@@ -1,8 +1,13 @@
 <?php
 
+<<<<<<< HEAD
 namespace App\Http\Controllers\Api;
+=======
+namespace App\Http\Controllers\API;
+>>>>>>> 0b271c1a13817dd7385db520f5d8ae4920ba4014
 
 use App\Models\Peminta;
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Str;
