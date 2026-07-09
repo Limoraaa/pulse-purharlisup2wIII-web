@@ -19,6 +19,16 @@ class Peminta extends Model
         'nama',
         'kategori',
     ];
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (empty($model->id)) {
+                $model->id = (string) \Illuminate\Support\Str::uuid();
+            }
+        });
+    }
 
     public function peminjaman(): HasMany
     {

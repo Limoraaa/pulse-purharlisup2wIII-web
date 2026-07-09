@@ -5,11 +5,11 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ConsumableController;
 use App\Http\Controllers\Api\ToolController;
-use App\Http\Controllers\PemintaController;
-use App\Http\Controllers\PeminjamanController;
-use App\Http\Controllers\ConsumableMasukController;
-use App\Http\Controllers\ConsumableKeluarController;
-use App\Http\Controllers\LaporanKerusakanController;
+use App\Http\Controllers\API\PemintaController;
+use App\Http\Controllers\API\PeminjamanController;
+use App\Http\Controllers\API\ConsumableMasukController;
+use App\Http\Controllers\API\ConsumableKeluarController;
+use App\Http\Controllers\API\LaporanKerusakanController;
 
 
 Route::post('/login', [AuthController::class, 'login']);

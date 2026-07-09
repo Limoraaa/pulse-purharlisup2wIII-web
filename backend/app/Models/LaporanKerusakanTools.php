@@ -21,6 +21,16 @@ class LaporanKerusakanTools extends Model
         'keterangan',
         'dilaporkan_oleh',
     ];
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (empty($model->id)) {
+                $model->id = (string) \Illuminate\Support\Str::uuid();
+            }
+        });
+    }
 
     protected function casts(): array
     {
