@@ -1,0 +1,41 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class LaporanKerusakanTools extends Model
+{
+    use HasFactory;
+
+    protected $table = 'laporan_kerusakan_tools';
+
+    public $incrementing = false;
+    protected $keyType = 'string';
+
+    protected $fillable = [
+        'tanggal',
+        'tool_id',
+        'keterangan',
+        'dilaporkan_oleh',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'tanggal' => 'date',
+        ];
+    }
+
+    public function tool(): BelongsTo
+    {
+        return $this->belongsTo(Tool::class);
+    }
+
+    public function dilaporkanOleh(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'dilaporkan_oleh');
+    }
+}

@@ -72,4 +72,23 @@ class User extends Authenticatable
     {
         return $query->where('role', $role);
     }
+    public function peminjamanDicatat(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Peminjaman::class, 'dicatat_oleh');
+    }
+
+    public function consumableMasukDicatat(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ConsumableMasuk::class, 'dicatat_oleh');
+    }
+
+    public function consumableKeluarDicatat(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ConsumableKeluar::class, 'dicatat_oleh');
+    }
+
+    public function laporanKerusakanDilaporkan(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(LaporanKerusakanTools::class, 'dilaporkan_oleh');
+    }
 }
