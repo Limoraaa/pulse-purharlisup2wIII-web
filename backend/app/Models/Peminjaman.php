@@ -27,7 +27,7 @@ class Peminjaman extends Model
         'tanggal_kembali',
         'dicatat_oleh',
     ];
-    
+
 
     protected function casts(): array
     {

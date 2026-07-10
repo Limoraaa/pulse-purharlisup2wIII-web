@@ -42,16 +42,4 @@ class Consumable extends Model
     {
         return $this->hasMany(ConsumableKeluar::class);
     }
-
-    /**
-     * Hitung stok akhir = stok_awal + total masuk - total keluar.
-     * Pemakaian: $consumable->stokAkhir()
-     */
-    public function stokAkhir(): int
-    {
-        $totalMasuk = $this->masuk()->sum('jumlah_masuk');
-        $totalKeluar = $this->keluar()->sum('jumlah_keluar');
-
-        return $this->stok_awal + $totalMasuk - $totalKeluar;
-    }
 }

@@ -1,8 +1,9 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\API;
 
 use App\Models\LaporanKerusakanTools;
+use App\Http\Controllers\Controller;
 use App\Models\Tool;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
