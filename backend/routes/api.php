@@ -27,6 +27,7 @@ Route::apiResource('peminta', PemintaController::class);
 // 4. Peminjaman (CRUD + tandai kembali)
 Route::apiResource('peminjaman', PeminjamanController::class);
 Route::patch('peminjaman/{id}/kembali', [PeminjamanController::class, 'kembali']);
+Route::post('/peminjaman/scan', [App\Http\Controllers\API\PeminjamanController::class, 'store']);
 
 // 5. Consumable Masuk & Keluar (transaksi stok)
 Route::apiResource('consumable-masuk', ConsumableMasukController::class);
