@@ -22,6 +22,34 @@ class PeminjamanController extends Controller
         );
     }
 
+    public function scan(Request $request)
+{
+    $request->validate([
+        'tools_id' => 'required'
+    ]);
+
+    try {
+
+        DB::table('temporary_cart')->insert([
+            'tools_id' => $request->tools_id,
+            'qty' => 1,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return response()->json([
+            'message' => 'Alat masuk antrean'
+        ],201);
+
+    } catch (\Exception $e) {
+
+        return response()->json([
+            'message'=>$e->getMessage()
+        ],500);
+
+    }
+}
+
     // GET /api/peminjaman/{id}
     public function show(string $id)
     {
@@ -118,6 +146,12 @@ class PeminjamanController extends Controller
             'message' => 'Alat berhasil ditandai dikembalikan',
             'data' => $peminjaman->load('tool'),
         ]);
+    }
+
+    public function antrean() 
+    {
+        $data = DB::table('temporary_cart')->get();
+        return response()->json(['data' => $data]);
     }
 
     // DELETE /api/peminjaman/{id}
