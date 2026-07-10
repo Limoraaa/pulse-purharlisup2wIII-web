@@ -23,7 +23,7 @@ class ConsumableController extends Controller
                 'er_e' => $item->er_e,
                 'ukuran' => $item->ukuran,
                 'stok_awal' => $item->stok_awal,
-                'stok_akhir' => $item->stokAkhir(),
+                'stok_akhir' => $item->stok_awal,
             ];
         });
 
@@ -66,7 +66,7 @@ class ConsumableController extends Controller
             'er_e' => $consumable->er_e,
             'ukuran' => $consumable->ukuran,
             'stok_awal' => $consumable->stok_awal,
-            'stok_akhir' => $consumable->stokAkhir(),
+            'stok_akhir' => $consumable->stok_awal,
             'riwayat_masuk' => $consumable->masuk,
             'riwayat_keluar' => $consumable->keluar,
         ]);

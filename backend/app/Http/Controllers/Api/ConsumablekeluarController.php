@@ -1,6 +1,10 @@
 <?php
 
+<<<<<<< HEAD
 namespace App\Http\Controllers\Api;
+=======
+namespace App\Http\Controllers\API;
+>>>>>>> 20aa64932d1054f1d0ce4b081bb34347975cec54
 
 use App\Models\Consumable;
 use App\Models\ConsumableKeluar;
