@@ -4,13 +4,14 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\LaporanKerusakanTools;
+use App\Models\Tool;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 class LaporanKerusakanController extends Controller
 {
-    // GET /api/laporan-kerusakan
     public function index()
     {
         return response()->json(
@@ -20,7 +21,6 @@ class LaporanKerusakanController extends Controller
         );
     }
 
-    // GET /api/laporan-kerusakan/{id}
     public function show(string $id)
     {
         $data = LaporanKerusakanTools::with(['tool', 'dilaporkanOleh'])->find($id);
@@ -33,11 +33,13 @@ class LaporanKerusakanController extends Controller
     }
 
     // POST /api/laporan-kerusakan
+    // Otomatis mengurangi tools.stok sebesar jumlah yang dilaporkan rusak
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'tanggal' => 'required|date',
             'tool_id' => 'required|uuid|exists:tools,id',
+            'jumlah' => 'required|integer|min:1',
             'keterangan' => 'nullable|string',
             'dilaporkan_oleh' => 'required|uuid|exists:users,id',
         ]);
@@ -47,14 +49,33 @@ class LaporanKerusakanController extends Controller
         }
 
         $data = $validator->validated();
-        $data['id'] = (string) Str::uuid();
 
-        $laporan = LaporanKerusakanTools::create($data);
+        try {
+            $laporan = DB::transaction(function () use ($data) {
+                $tool = Tool::lockForUpdate()->findOrFail($data['tool_id']);
+
+                if ($tool->stok < $data['jumlah']) {
+                    throw new \RuntimeException(
+                        "Jumlah rusak melebihi stok. Stok saat ini: {$tool->stok}, dilaporkan: {$data['jumlah']}"
+                    );
+                }
+
+                $tool->stok -= $data['jumlah'];
+                $tool->save();
+
+                $data['id'] = (string) Str::uuid();
+
+                return LaporanKerusakanTools::create($data);
+            });
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
 
         return response()->json($laporan->load('tool'), 201);
     }
 
     // PUT/PATCH /api/laporan-kerusakan/{id}
+    // Boleh ubah jumlah, dengan penyesuaian otomatis ke stok tools
     public function update(Request $request, string $id)
     {
         $laporan = LaporanKerusakanTools::find($id);
@@ -65,6 +86,7 @@ class LaporanKerusakanController extends Controller
 
         $validator = Validator::make($request->all(), [
             'tanggal' => 'sometimes|required|date',
+            'jumlah' => 'sometimes|required|integer|min:1',
             'keterangan' => 'nullable|string',
         ]);
 
@@ -72,12 +94,41 @@ class LaporanKerusakanController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $laporan->update($validator->validated());
+        $data = $validator->validated();
 
-        return response()->json($laporan);
+        try {
+            $laporan = DB::transaction(function () use ($laporan, $data) {
+                // Kalau jumlah tidak diubah, langsung update field lain saja
+                if (! isset($data['jumlah']) || $data['jumlah'] == $laporan->jumlah) {
+                    $laporan->update($data);
+                    return $laporan;
+                }
+
+                $tool = Tool::lockForUpdate()->findOrFail($laporan->tool_id);
+                $selisih = $data['jumlah'] - $laporan->jumlah;
+
+                // selisih positif = jumlah rusak nambah -> stok dikurangi lagi
+                // selisih negatif = jumlah rusak berkurang -> stok dikembalikan
+                if ($selisih > 0 && $tool->stok < $selisih) {
+                    throw new \RuntimeException(
+                        "Stok tidak cukup untuk menambah jumlah kerusakan. Stok saat ini: {$tool->stok}, tambahan diperlukan: {$selisih}"
+                    );
+                }
+
+                $tool->stok -= $selisih;
+                $tool->save();
+
+                $laporan->update($data);
+
+                return $laporan;
+            });
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json($laporan->load('tool'));
     }
-
-    // DELETE /api/laporan-kerusakan/{id}
+    // DELETE — stok dikembalikan (misal ternyata laporan salah input)
     public function destroy(string $id)
     {
         $laporan = LaporanKerusakanTools::find($id);
@@ -86,8 +137,17 @@ class LaporanKerusakanController extends Controller
             return response()->json(['message' => 'Data laporan kerusakan tidak ditemukan'], 404);
         }
 
-        $laporan->delete();
+        DB::transaction(function () use ($laporan) {
+            $tool = Tool::lockForUpdate()->find($laporan->tool_id);
 
-        return response()->json(['message' => 'Data laporan kerusakan berhasil dihapus']);
+            if ($tool) {
+                $tool->stok += $laporan->jumlah;
+                $tool->save();
+            }
+
+            $laporan->delete();
+        });
+
+        return response()->json(['message' => 'Laporan kerusakan dihapus, stok dikembalikan']);
     }
 }
