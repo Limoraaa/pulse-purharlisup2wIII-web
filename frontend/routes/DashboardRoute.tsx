@@ -24,7 +24,9 @@ export const DashboardMenu: MenuItemType[] = [
     title: "Inventaris",
     icon: <IconBoxSeam size={20} strokeWidth={1.5} />,
     children: [
-      { id: uuid(), name: "Data Tools", link: "inventaris/data-tools" },
+      { id: uuid(), 
+        name: "Data Tools", 
+        link: "inventaris/data-tools" },
       {
         id: uuid(),
         name: "Data Consumable",
@@ -44,13 +46,8 @@ export const DashboardMenu: MenuItemType[] = [
     children: [
       {
         id: uuid(),
-        name: "Peminjaman Tools",
-        link: "transaksi/peminjaman-tools",
-      },
-      {
-        id: uuid(),
-        name: "Pengembalian Tools",
-        link: "transaksi/pengembalian-tools",
+        name: "Peminjaman Aktif",
+        link: "transaksi/peminjaman-aktif",
       },
       {
         id: uuid(),
