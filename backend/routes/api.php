@@ -25,10 +25,14 @@ Route::apiResource('consumables', ConsumableController::class);
 Route::apiResource('peminta', PemintaController::class);
 
 // 4. Peminjaman (CRUD + tandai kembali)
-Route::apiResource('peminjaman', PeminjamanController::class);
-Route::patch('peminjaman/{id}/kembali', [PeminjamanController::class, 'kembali']);
-Route::post('/peminjaman/scan', [App\Http\Controllers\API\PeminjamanController::class, 'store']);
+// Route khusus HARUS di atas
+Route::post('/peminjaman/scan', [PeminjamanController::class, 'scan']);
+Route::get('/peminjaman/antrean', [PeminjamanController::class, 'antrean']);
+Route::post('/peminjaman/proses', [PeminjamanController::class, 'prosesPeminjaman']);
+Route::patch('/peminjaman/{id}/kembali', [PeminjamanController::class, 'kembali']);
 
+// Baru CRUD
+Route::apiResource('peminjaman', PeminjamanController::class);
 // 5. Consumable Masuk & Keluar (transaksi stok)
 Route::apiResource('consumable-masuk', ConsumableMasukController::class);
 Route::apiResource('consumable-keluar', ConsumableKeluarController::class);
@@ -44,4 +48,3 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 });
 
-Route::apiResource('tools', ToolController::class);

@@ -1,11 +1,12 @@
 //import node modules libraries
 import { v4 as uuid } from "uuid";
 import {
-  IconFiles,
-  IconShoppingBag,
-  IconNews,
-  IconFile,
-  IconLock,
+  IconLayoutDashboard,
+  IconBoxSeam,
+  IconArrowsExchange,
+  IconHistory,
+  IconReportAnalytics,
+  IconSettings,
 } from "@tabler/icons-react";
 
 //import custom type
@@ -14,41 +15,71 @@ import { MenuItemType } from "types/menuTypes";
 export const DashboardMenu: MenuItemType[] = [
   {
     id: uuid(),
-    title: "Project",
+    title: "Dashboard",
     link: "/",
-    icon: <IconFiles size={20} strokeWidth={1.5} />,
+    icon: <IconLayoutDashboard size={20} strokeWidth={1.5} />,
   },
   {
     id: uuid(),
-    title: "Ecommerce",
-    link: "/ecommerce",
-    icon: <IconShoppingBag size={20} strokeWidth={1.5} />,
-  },
-  {
-    id: uuid(),
-    title: "Blog",
-    link: "/blog",
-    icon: <IconNews size={20} strokeWidth={1.5} />,
-  },
-  {
-    id: uuid(),
-    title: "Auth",
-    link: "/sign-in",
-    icon: <IconLock size={20} strokeWidth={1.5} />,
-  },
-
-  {
-    id: uuid(),
-    title: "Pages",
-    grouptitle: true,
-  },
-  {
-    id: uuid(),
-    title: "Pages",
-    icon: <IconFile size={20} strokeWidth={1.5} />,
+    title: "Inventaris",
+    icon: <IconBoxSeam size={20} strokeWidth={1.5} />,
     children: [
-      { id: uuid(), name: "Maintenance", link: "maintenance" },
-      { id: uuid(), name: "404 Error", link: "not-found" },
+      { id: uuid(), name: "Data Tools", link: "inventaris/data-tools" },
+      {
+        id: uuid(),
+        name: "Data Consumable",
+        link: "inventaris/data-consumable",
+      },
+      {
+        id: uuid(),
+        name: "Data Peminjam",
+        link: "inventaris/data-peminjam",
+      },
     ],
+  },
+  {
+    id: uuid(),
+    title: "Transaksi",
+    icon: <IconArrowsExchange size={20} strokeWidth={1.5} />,
+    children: [
+      {
+        id: uuid(),
+        name: "Peminjaman Tools",
+        link: "transaksi/peminjaman-tools",
+      },
+      {
+        id: uuid(),
+        name: "Pengembalian Tools",
+        link: "transaksi/pengembalian-tools",
+      },
+      {
+        id: uuid(),
+        name: "Consumable Masuk",
+        link: "transaksi/consumable-masuk",
+      },
+      {
+        id: uuid(),
+        name: "Consumable Keluar",
+        link: "transaksi/consumable-keluar",
+      },
+    ],
+  },
+  {
+    id: uuid(),
+    title: "Riwayat",
+    link: "riwayat",
+    icon: <IconHistory size={20} strokeWidth={1.5} />,
+  },
+  {
+    id: uuid(),
+    title: "Laporan",
+    link: "laporan",
+    icon: <IconReportAnalytics size={20} strokeWidth={1.5} />,
+  },
+  {
+    id: uuid(),
+    title: "Pengaturan",
+    link: "pengaturan",
+    icon: <IconSettings size={20} strokeWidth={1.5} />,
   },
 ];
