@@ -28,6 +28,7 @@ Route::apiResource('peminta', PemintaController::class);
 // Route khusus HARUS di atas
 Route::post('/peminjaman/scan', [PeminjamanController::class, 'scan']);
 Route::get('/peminjaman/antrean', [PeminjamanController::class, 'antrean']);
+Route::post('/peminjaman/proses', [PeminjamanController::class, 'prosesPeminjaman']);
 Route::patch('/peminjaman/{id}/kembali', [PeminjamanController::class, 'kembali']);
 
 // Baru CRUD
