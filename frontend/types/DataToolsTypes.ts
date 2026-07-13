@@ -1,4 +1,4 @@
-export type ToolCondition = "Baik" | "Rusak Ringan" | "Rusak Berat";
+export type ToolCondition = "Baik" | "Rusak";
 
 export interface ToolItemType {
   id: string; // dipakai sebagai React key & pembanding saat edit/hapus
@@ -14,4 +14,4 @@ export interface ToolItemType {
 }
 
 // Payload yang dipakai form Tambah/Edit (tanpa id, id di-generate/di-pass terpisah)
-export type ToolFormValues = Omit<ToolItemType, "id">;
+export type ToolFormValues = Omit<ToolItemType, "id" | "dipinjam">;
