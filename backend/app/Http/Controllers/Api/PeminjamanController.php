@@ -99,6 +99,40 @@ class PeminjamanController extends Controller
         return response()->json($peminjaman->load(['tool', 'peminta']), 201);
     }
 
+    public function prosesPeminjaman(Request $request) 
+{
+    // 1. Validasi input dari form frontend (karena saat submit, user harus kirim peminta_id, dll)
+    $request->validate([
+        'peminta_id' => 'required|uuid|exists:peminta,id',
+        'dicatat_oleh' => 'required|uuid|exists:users,id',
+    ]);
+
+    // 2. Ambil semua item dari antrean
+    $antrean = DB::table('temporary_cart')->get();
+
+    if ($antrean->isEmpty()) {
+        return response()->json(['message' => 'Antrean kosong'], 400);
+    }
+
+    // 3. Simpan ke tabel Peminjaman (bisa di-loop atau disesuaikan dengan logika timmu)
+    foreach ($antrean as $item) {
+        Peminjaman::create([
+            'id' => (string) Str::uuid(),
+            'tool_id' => $item->tools_id,
+            'peminta_id' => $request->peminta_id,
+            'dicatat_oleh' => $request->dicatat_oleh,
+            'tanggal' => now(),
+            'jumlah' => $item->qty,
+            // tambahkan field lain sesuai kebutuhan
+        ]);
+    }
+
+    // 4. Kosongkan antrean setelah diproses
+    DB::table('temporary_cart')->truncate();
+
+    return response()->json(['message' => 'Peminjaman berhasil diproses!'], 200);
+    }
+
     // PUT/PATCH /api/peminjaman/{id}
     // Sengaja tidak izinkan ubah tool_id/jumlah di sini (butuh recalculation stok).
     // Kalau salah input alat/jumlah, hapus lalu buat ulang.
