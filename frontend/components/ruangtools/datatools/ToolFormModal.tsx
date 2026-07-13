@@ -139,13 +139,16 @@ const ToolFormModal = ({
               </Form.Label>
               <Form.Control
                 required
-                type="number"
-                min={0}
-                value={form.stok}
-                onFocus={(e) => e.target.select()}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                placeholder="0"
+                value={form.stok === 0 ? "" : String(form.stok)}
                 onChange={(e) => {
-                  const val = e.target.value;
-                  handleChange("stok", val === "" ? 0 : Number(val));
+                  // hanya izinkan digit, buang leading zero otomatis
+                  const digitsOnly = e.target.value.replace(/[^0-9]/g, "");
+                  const withoutLeadingZero = digitsOnly.replace(/^0+(?=\d)/, "");
+                  handleChange("stok", withoutLeadingZero === "" ? 0 : Number(withoutLeadingZero));
                 }}
               />
             </Col>
