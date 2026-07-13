@@ -4,6 +4,15 @@ import { Row, Col, Card, CardBody, Button, Form, Spinner, Alert } from "react-bo
 import { IconPlus } from "@tabler/icons-react";
 
 import { ToolItemType, ToolFormValues, ToolCondition } from "types/DataToolsTypes";
+// import node module libraries
+import { IconCircleCheck } from "@tabler/icons-react";
+// import { v4 as uuid } from "uuid"; // Dihapus jika uuid tidak dipakai lagi di tempat lain
+
+// import custom types
+import {
+  CartItemType,
+  LoanFormValues,
+} from "types/DataToolsTypes";
 
 import TanstackTable from "components/table/TanstackTable";
 import Flex from "components/common/Flex";
@@ -12,6 +21,9 @@ import { getDataToolsColumns } from "components/ruangtools/datatools/ColumnDefin
 import ToolFormModal from "components/ruangtools/datatools/ToolFormModal";
 import ToolDetailModal from "components/ruangtools/datatools/ToolDetailModal";
 import DeleteConfirmModal from "components/ruangtools/datatools/DeleteConfirmModal";
+import CartFAB from "components/ruangtools/datatools/CartFAB";
+import CartOffcanvas from "components/ruangtools/datatools/CartOffcanvas";
+import LoanFormModal from "components/ruangtools/datatools/LoanFormModal";
 
 import { getTools, createTool, updateTool, deleteTool } from "services/toolService";
 
@@ -33,7 +45,6 @@ const DataToolsManager = () => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [activeTool, setActiveTool] = useState<ToolItemType | null>(null);
   
-
   const loadTools = async () => {
     setLoading(true);
     setError(null);
@@ -51,6 +62,14 @@ const DataToolsManager = () => {
   useEffect(() => {
     loadTools();
   }, []);
+
+  // State Keranjang Peminjaman
+  const [cart, setCart] = useState<CartItemType[]>([]);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [loanFormOpen, setLoanFormOpen] = useState(false);
+
+  // State notifikasi sukses
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const filteredTools = useMemo(() => {
     if (kondisiFilter === "Semua") return tools;
@@ -107,6 +126,8 @@ const DataToolsManager = () => {
     try {
       await deleteTool(activeTool.id);
       setTools((prev) => prev.filter((t) => t.id !== activeTool.id));
+      // kalau alat yang dihapus kebetulan ada di keranjang, ikut dihapus juga
+      setCart((prev) => prev.filter((c) => c.toolId !== activeTool.id));
     } catch (err) {
       const message = err instanceof Error ? err.message : "Gagal menghapus data";
       alert(message);
@@ -116,18 +137,101 @@ const DataToolsManager = () => {
     }
   };
 
+  // ---- handler: Tambah ke Peminjaman (keranjang) ----
+  const handleAddToCart = (tool: ToolItemType) => {
+    const tersedia = tool.stok - tool.dipinjam;
+    if (tersedia <= 0) return;
+
+    setCart((prev) => {
+      const existing = prev.find((c) => c.toolId === tool.id);
+      if (existing) {
+        // sudah ada di keranjang -> tambah 1, dibatasi maksimal stok tersedia
+        return prev.map((c) =>
+          c.toolId === tool.id
+            ? { ...c, jumlah: Math.min(c.jumlah + 1, tersedia) }
+            : c
+        );
+      }
+      // item baru di keranjang
+      return [
+        ...prev,
+        {
+          toolId: tool.id,
+          kodeBarang: tool.kodeBarang,
+          namaBarang: tool.namaBarang,
+          jumlah: 1,
+          maxJumlah: tersedia,
+        },
+      ];
+    });
+    setCartOpen(true); // otomatis buka panel keranjang biar staff langsung lihat
+  };
+
+  const handleUpdateCartQty = (toolId: string, jumlah: number) => {
+    setCart((prev) =>
+      prev.map((c) => (c.toolId === toolId ? { ...c, jumlah } : c))
+    );
+  };
+
+  const handleRemoveFromCart = (toolId: string) => {
+    setCart((prev) => prev.filter((c) => c.toolId !== toolId));
+  };
+
+  // ---- handler: Lanjutkan Peminjaman -> buka Form Peminjaman ----
+  const handleProceedToLoanForm = () => {
+    setCartOpen(false);
+    setLoanFormOpen(true);
+  };
+
+  // ---- handler: submit Form Peminjaman ----
+  const handleLoanSubmit = (values: LoanFormValues) => {
+    // 1) kurangi tersedia / tambah dipinjam untuk tiap alat di keranjang
+    setTools((prev) =>
+      prev.map((tool) => {
+        const cartItem = cart.find((c) => c.toolId === tool.id);
+        if (!cartItem) return tool;
+        return { ...tool, dipinjam: tool.dipinjam + cartItem.jumlah };
+      })
+    );
+
+    // 2) bersihkan keranjang & tutup form
+    setCart([]);
+    setLoanFormOpen(false);
+
+    // 3) tampilkan notifikasi sukses
+    setSuccessMessage(
+      `Peminjaman untuk ${values.namaPeminjam} berhasil dibuat. Status: Sedang Dipinjam.`
+    );
+    setTimeout(() => setSuccessMessage(null), 5000);
+  };
+
   const columns = useMemo(
     () =>
       getDataToolsColumns({
         onDetail: openDetailModal,
         onEdit: openEditModal,
         onDelete: openDeleteModal,
+        onAddToCart: handleAddToCart,
       }),
     []
   );
 
   return (
     <>
+      {/* ---- Notifikasi sukses setelah peminjaman dikonfirmasi ---- */}
+      {successMessage && (
+        <Alert
+          variant="success"
+          className="d-flex align-items-center gap-2"
+          dismissible
+          onClose={() => setSuccessMessage(null)}
+        >
+          <IconCircleCheck size={20} />
+          {successMessage}
+        </Alert>
+      )}
+
+      {/* ---- Header: judul, deskripsi, breadcrumb, tombol Tambah Data ---- */}
       <Row>
         <Col>
           <Flex justifyContent="between" alignItems="center" className="mb-4 w-100" breakpoint="md">
@@ -202,6 +306,25 @@ const DataToolsManager = () => {
         onClose={() => setDeleteModalOpen(false)}
         onConfirm={handleConfirmDelete}
         tool={activeTool}
+      />
+
+      {/* ---- Keranjang Peminjaman: FAB + panel ---- */}
+      <CartFAB itemCount={cart.length} onClick={() => setCartOpen(true)} />
+      <CartOffcanvas
+        show={cartOpen}
+        onClose={() => setCartOpen(false)}
+        items={cart}
+        onUpdateQty={handleUpdateCartQty}
+        onRemove={handleRemoveFromCart}
+        onProceed={handleProceedToLoanForm}
+      />
+
+      {/* ---- Form Peminjaman ---- */}
+      <LoanFormModal
+        show={loanFormOpen}
+        onClose={() => setLoanFormOpen(false)}
+        onSubmit={handleLoanSubmit}
+        cartItems={cart}
       />
     </>
   );
