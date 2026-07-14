@@ -3,6 +3,22 @@ import { useEffect, useMemo, useState } from "react";
 import { Row, Col, Card, CardBody, Button, Form, Spinner, Alert } from "react-bootstrap";
 import { IconPlus, IconCircleCheck } from "@tabler/icons-react";
 
+// import node module libraries
+import { useMemo, useState } from "react";
+import { Row, Col, Card, CardBody, Button, Form, Alert } from "react-bootstrap";
+import { IconPlus, IconCircleCheck } from "@tabler/icons-react";
+import { v4 as uuid } from "uuid";
+
+// import redux store
+import { useAppDispatch, useAppSelector } from "store/store";
+import {
+  addTool,
+  updateTool,
+  deleteTool,
+  checkoutPeminjaman,
+} from "store/slices/inventoryToolsSlice";
+
+// import custom types
 import {
   ToolItemType,
   ToolFormValues,
@@ -11,6 +27,7 @@ import {
   LoanFormValues,
 } from "types/DataToolsTypes";
 
+// import custom components
 import TanstackTable from "components/table/TanstackTable";
 import Flex from "components/common/Flex";
 import DasherBreadcrumb from "components/common/DasherBreadcrumb";
@@ -47,6 +64,29 @@ const DataToolsManager = () => {
   const [kondisiFilter, setKondisiFilter] = useState<ToolCondition | "Semua">("Semua");
 
   // ---- Modal CRUD Tools ----
+import AddToCartFlyEffect, {
+  FlyAnimationItem,
+} from "components/ruangtools/datatools/AddToCartFlyEffect";
+
+const KONDISI_FILTER_OPTIONS: (ToolCondition | "Semua")[] = [
+  "Semua",
+  "Baik",
+  "Rusak Ringan",
+  "Rusak Berat",
+  "Rusak Permanen",
+];
+
+const DataToolsManager = () => {
+  const dispatch = useAppDispatch();
+  // Data tools sekarang dari Redux store (dipakai bersama halaman Peminjaman Aktif)
+  const tools = useAppSelector((state) => state.inventoryTools.tools);
+
+  // Filter "Kondisi" (dropdown custom, terpisah dari search bawaan TanstackTable)
+  const [kondisiFilter, setKondisiFilter] = useState<ToolCondition | "Semua">(
+    "Semua"
+  );
+
+  // State modal: Tambah/Edit, Detail, Hapus
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -83,53 +123,53 @@ const DataToolsManager = () => {
     loadTools();
   }, []);
 
+  // State Keranjang Peminjaman (tetap lokal, hanya UI sementara sebelum checkout)
+  const [cart, setCart] = useState<CartItemType[]>([]);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [loanFormOpen, setLoanFormOpen] = useState(false);
+
+  // Animasi "fly to cart"
+  const [flyAnimations, setFlyAnimations] = useState<FlyAnimationItem[]>([]);
+
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
   const filteredTools = useMemo(() => {
     if (kondisiFilter === "Semua") return tools;
     return tools.filter((t) => t.kondisi === kondisiFilter);
   }, [tools, kondisiFilter]);
 
   // ================= CRUD TOOLS =================
+  // ---- handler: Tambah Data ----
   const openAddModal = () => {
     setActiveTool(null);
     setSuggestedKodeBarang(generateNextKodeBarang(tools));
     setFormModalOpen(true);
   };
 
+  // ---- handler: Edit Data ----
   const openEditModal = (tool: ToolItemType) => {
     setActiveTool(tool);
     setFormModalOpen(true);
   };
 
-  const handleFormSubmit = async (values: ToolFormValues) => {
-    try {
-      if (activeTool) {
-        const updated = await updateTool(activeTool.id, values);
-        setTools((prev) =>
-          prev
-            .map((t) => (t.id === updated.id ? updated : t))
-            .sort((a, b) => a.kodeBarang.localeCompare(b.kodeBarang, undefined, { numeric: true }))
-        );
-      } else {
-        const created = await createTool(values);
-        setTools((prev) =>
-          [created, ...prev].sort((a, b) =>
-            a.kodeBarang.localeCompare(b.kodeBarang, undefined, { numeric: true })
-          )
-        );
-      }
-      setFormModalOpen(false);
-      setActiveTool(null);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Gagal menyimpan data";
-      alert(message);
+  // ---- handler: submit form (dipakai untuk Tambah maupun Edit) ----
+  const handleFormSubmit = (values: ToolFormValues) => {
+    if (activeTool) {
+      dispatch(updateTool({ id: activeTool.id, values }));
+    } else {
+      dispatch(addTool(values));
     }
+    setFormModalOpen(false);
+    setActiveTool(null);
   };
 
+  // ---- handler: Detail Alat ----
   const openDetailModal = (tool: ToolItemType) => {
     setActiveTool(tool);
     setDetailModalOpen(true);
   };
 
+  // ---- handler: Hapus Data ----
   const openDeleteModal = (tool: ToolItemType) => {
     setActiveTool(tool);
     setDeleteModalOpen(true);
@@ -140,18 +180,24 @@ const DataToolsManager = () => {
     try {
       await deleteTool(activeTool.id);
       setTools((prev) => prev.filter((t) => t.id !== activeTool.id));
+  const handleConfirmDelete = () => {
+    if (activeTool) {
+      dispatch(deleteTool({ id: activeTool.id }));
+      // kalau alat yang dihapus kebetulan ada di keranjang, ikut dihapus juga
       setCart((prev) => prev.filter((c) => c.toolId !== activeTool.id));
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Gagal menghapus data";
-      alert(message);
-    } finally {
-      setDeleteModalOpen(false);
-      setActiveTool(null);
     }
+    setDeleteModalOpen(false);
+    setActiveTool(null);
   };
 
   // ================= KERANJANG PEMINJAMAN =================
   const handleAddToCart = (tool: ToolItemType) => {
+  // ---- handler: Tambah ke Peminjaman (keranjang) ----
+  // Panel keranjang TIDAK otomatis terbuka -> cukup animasi ikon terbang ke FAB.
+  const handleAddToCart = (
+    tool: ToolItemType,
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => {
     const tersedia = tool.stok - tool.dipinjam;
     if (tersedia <= 0) return;
 
@@ -174,6 +220,21 @@ const DataToolsManager = () => {
       ];
     });
     setCartOpen(true);
+
+    // trigger animasi dari posisi tombol yang diklik menuju FAB keranjang
+    const rect = event.currentTarget.getBoundingClientRect();
+    setFlyAnimations((prev) => [
+      ...prev,
+      {
+        id: uuid(),
+        startX: rect.left + rect.width / 2,
+        startY: rect.top + rect.height / 2,
+      },
+    ]);
+  };
+
+  const handleAnimationEnd = (id: string) => {
+    setFlyAnimations((prev) => prev.filter((a) => a.id !== id));
   };
 
   const handleUpdateCartQty = (toolId: string, jumlah: number) => {
@@ -220,6 +281,17 @@ const DataToolsManager = () => {
     } finally {
       setSubmittingLoan(false);
     }
+  // ---- handler: submit Form Peminjaman ----
+  const handleLoanSubmit = (values: LoanFormValues) => {
+    dispatch(checkoutPeminjaman({ loanForm: values, cartItems: cart }));
+
+    setCart([]);
+    setLoanFormOpen(false);
+
+    setSuccessMessage(
+      `Peminjaman untuk ${values.namaPeminjam} berhasil dibuat. Status: Sedang Dipinjam.`
+    );
+    setTimeout(() => setSuccessMessage(null), 5000);
   };
 
   const columns = useMemo(
@@ -255,16 +327,26 @@ const DataToolsManager = () => {
 
       <Row>
         <Col>
-          <Flex justifyContent="between" alignItems="center" className="mb-4 w-100" breakpoint="md">
+          <Flex
+            justifyContent="between"
+            alignItems="center"
+            className="mb-4 w-100"
+            breakpoint="md"
+          >
             <div>
               <h1 className="mb-2 h2">Data Tools</h1>
               <p className="text-secondary mb-0">
-                Mengelola seluruh data peralatan yang terdapat di Ruang Tools.
+                Mengelola seluruh data peralatan yang terdapat di Ruang
+                Tools.
               </p>
               <DasherBreadcrumb />
             </div>
             <div>
-              <Button variant="primary" className="d-flex align-items-center gap-2" onClick={openAddModal}>
+              <Button
+                variant="primary"
+                className="d-flex align-items-center gap-2"
+                onClick={openAddModal}
+              >
                 <IconPlus size={18} />
                 Tambah Data
               </Button>
@@ -273,17 +355,22 @@ const DataToolsManager = () => {
         </Col>
       </Row>
 
+      {/* ---- Filter Kondisi ---- */}
       <Card className="card-lg mb-6">
         <CardBody>
-          {error && <Alert variant="danger">{error}</Alert>}
-
           <Row className="align-items-center g-3 mb-2">
             <Col md={4} sm={6}>
-              <Form.Label className="mb-1 small text-secondary">Filter Kondisi</Form.Label>
+              <Form.Label className="mb-1 small text-secondary">
+                Filter Kondisi
+              </Form.Label>
               <Form.Select
                 size="sm"
                 value={kondisiFilter}
-                onChange={(e) => setKondisiFilter(e.target.value as ToolCondition | "Semua")}
+                onChange={(e) =>
+                  setKondisiFilter(
+                    e.target.value as ToolCondition | "Semua"
+                  )
+                }
               >
                 {KONDISI_FILTER_OPTIONS.map((opt) => (
                   <option key={opt} value={opt}>
@@ -294,24 +381,18 @@ const DataToolsManager = () => {
             </Col>
           </Row>
 
-          {loading ? (
-            <div className="text-center py-6">
-              <Spinner animation="border" size="sm" className="me-2" />
-              Memuat data...
-            </div>
-          ) : (
-            <TanstackTable
-              data={filteredTools}
-              columns={columns}
-              filter
-              pagination
-              isSortable
-              filterPlaceholder="Cari kode / nama barang..."
-            />
-          )}
+          <TanstackTable
+            data={filteredTools}
+            columns={columns}
+            filter
+            pagination
+            isSortable
+            filterPlaceholder="Cari kode / nama barang..."
+          />
         </CardBody>
       </Card>
 
+      {/* ---- Modals ---- */}
       <ToolFormModal
         show={formModalOpen}
         onClose={() => {
@@ -322,7 +403,11 @@ const DataToolsManager = () => {
         initialData={activeTool}
         suggestedKodeBarang={suggestedKodeBarang}
       />
-      <ToolDetailModal show={detailModalOpen} onClose={() => setDetailModalOpen(false)} tool={activeTool} />
+      <ToolDetailModal
+        show={detailModalOpen}
+        onClose={() => setDetailModalOpen(false)}
+        tool={activeTool}
+      />
       <DeleteConfirmModal
         show={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
@@ -330,6 +415,7 @@ const DataToolsManager = () => {
         tool={activeTool}
       />
 
+      {/* ---- Keranjang Peminjaman: FAB + panel (tidak auto-terbuka) ---- */}
       <CartFAB itemCount={cart.length} onClick={() => setCartOpen(true)} />
       <CartOffcanvas
         show={cartOpen}
@@ -338,6 +424,10 @@ const DataToolsManager = () => {
         onUpdateQty={handleUpdateCartQty}
         onRemove={handleRemoveFromCart}
         onProceed={handleProceedToLoanForm}
+      />
+      <AddToCartFlyEffect
+        animations={flyAnimations}
+        onAnimationEnd={handleAnimationEnd}
       />
 
       <LoanFormModal
