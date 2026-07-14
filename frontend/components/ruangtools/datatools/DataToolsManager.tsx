@@ -1,15 +1,12 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { Row, Col, Card, CardBody, Button, Form, Spinner, Alert } from "react-bootstrap";
-import { IconPlus } from "@tabler/icons-react";
+import { IconPlus, IconCircleCheck } from "@tabler/icons-react";
 
-import { ToolItemType, ToolFormValues, ToolCondition } from "types/DataToolsTypes";
-// import node module libraries
-import { IconCircleCheck } from "@tabler/icons-react";
-// import { v4 as uuid } from "uuid"; // Dihapus jika uuid tidak dipakai lagi di tempat lain
-
-// import custom types
 import {
+  ToolItemType,
+  ToolFormValues,
+  ToolCondition,
   CartItemType,
   LoanFormValues,
 } from "types/DataToolsTypes";
@@ -26,25 +23,34 @@ import CartOffcanvas from "components/ruangtools/datatools/CartOffcanvas";
 import LoanFormModal from "components/ruangtools/datatools/LoanFormModal";
 
 import { getTools, createTool, updateTool, deleteTool } from "services/toolService";
+import { submitPeminjaman } from "services/peminjamanService";
 
-const KONDISI_FILTER_OPTIONS: (ToolCondition | "Semua")[] = [
-  "Semua",
-  "Baik",
-  "Rusak",
-];
+const KONDISI_FILTER_OPTIONS: (ToolCondition | "Semua")[] = ["Semua", "Baik", "Rusak"];
 
 const DataToolsManager = () => {
+  // ---- Data Tools ----
   const [tools, setTools] = useState<ToolItemType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
   const [kondisiFilter, setKondisiFilter] = useState<ToolCondition | "Semua">("Semua");
 
+  // ---- Modal CRUD Tools ----
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [activeTool, setActiveTool] = useState<ToolItemType | null>(null);
-  
+
+  // ---- Keranjang & Form Peminjaman ----
+  const [cart, setCart] = useState<CartItemType[]>([]);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [loanFormOpen, setLoanFormOpen] = useState(false);
+  const [submittingLoan, setSubmittingLoan] = useState(false);
+  const [loanError, setLoanError] = useState<string | null>(null);
+
+  // ---- Notifikasi ----
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // ================= LOAD DATA =================
   const loadTools = async () => {
     setLoading(true);
     setError(null);
@@ -63,19 +69,12 @@ const DataToolsManager = () => {
     loadTools();
   }, []);
 
-  // State Keranjang Peminjaman
-  const [cart, setCart] = useState<CartItemType[]>([]);
-  const [cartOpen, setCartOpen] = useState(false);
-  const [loanFormOpen, setLoanFormOpen] = useState(false);
-
-  // State notifikasi sukses
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-
   const filteredTools = useMemo(() => {
     if (kondisiFilter === "Semua") return tools;
     return tools.filter((t) => t.kondisi === kondisiFilter);
   }, [tools, kondisiFilter]);
 
+  // ================= CRUD TOOLS =================
   const openAddModal = () => {
     setActiveTool(null);
     setFormModalOpen(true);
@@ -126,7 +125,6 @@ const DataToolsManager = () => {
     try {
       await deleteTool(activeTool.id);
       setTools((prev) => prev.filter((t) => t.id !== activeTool.id));
-      // kalau alat yang dihapus kebetulan ada di keranjang, ikut dihapus juga
       setCart((prev) => prev.filter((c) => c.toolId !== activeTool.id));
     } catch (err) {
       const message = err instanceof Error ? err.message : "Gagal menghapus data";
@@ -137,7 +135,7 @@ const DataToolsManager = () => {
     }
   };
 
-  // ---- handler: Tambah ke Peminjaman (keranjang) ----
+  // ================= KERANJANG PEMINJAMAN =================
   const handleAddToCart = (tool: ToolItemType) => {
     const tersedia = tool.stok - tool.dipinjam;
     if (tersedia <= 0) return;
@@ -145,14 +143,10 @@ const DataToolsManager = () => {
     setCart((prev) => {
       const existing = prev.find((c) => c.toolId === tool.id);
       if (existing) {
-        // sudah ada di keranjang -> tambah 1, dibatasi maksimal stok tersedia
         return prev.map((c) =>
-          c.toolId === tool.id
-            ? { ...c, jumlah: Math.min(c.jumlah + 1, tersedia) }
-            : c
+          c.toolId === tool.id ? { ...c, jumlah: Math.min(c.jumlah + 1, tersedia) } : c
         );
       }
-      // item baru di keranjang
       return [
         ...prev,
         {
@@ -164,45 +158,53 @@ const DataToolsManager = () => {
         },
       ];
     });
-    setCartOpen(true); // otomatis buka panel keranjang biar staff langsung lihat
+    setCartOpen(true);
   };
 
   const handleUpdateCartQty = (toolId: string, jumlah: number) => {
-    setCart((prev) =>
-      prev.map((c) => (c.toolId === toolId ? { ...c, jumlah } : c))
-    );
+    setCart((prev) => prev.map((c) => (c.toolId === toolId ? { ...c, jumlah } : c)));
   };
 
   const handleRemoveFromCart = (toolId: string) => {
     setCart((prev) => prev.filter((c) => c.toolId !== toolId));
   };
 
-  // ---- handler: Lanjutkan Peminjaman -> buka Form Peminjaman ----
   const handleProceedToLoanForm = () => {
     setCartOpen(false);
     setLoanFormOpen(true);
   };
 
-  // ---- handler: submit Form Peminjaman ----
-  const handleLoanSubmit = (values: LoanFormValues) => {
-    // 1) kurangi tersedia / tambah dipinjam untuk tiap alat di keranjang
-    setTools((prev) =>
-      prev.map((tool) => {
-        const cartItem = cart.find((c) => c.toolId === tool.id);
-        if (!cartItem) return tool;
-        return { ...tool, dipinjam: tool.dipinjam + cartItem.jumlah };
-      })
-    );
+  // ---- submit Form Peminjaman -> kirim ke API ----
+  const handleLoanSubmit = async (values: LoanFormValues) => {
+    setSubmittingLoan(true);
+    setLoanError(null);
 
-    // 2) bersihkan keranjang & tutup form
-    setCart([]);
-    setLoanFormOpen(false);
+    try {
+      // TODO: ganti cara ambil staff id ini sesuai skema auth yang sebenarnya
+      const dicatatOleh = localStorage.getItem("userId");
+      if (!dicatatOleh) {
+        throw new Error("Sesi login tidak ditemukan. Silakan login ulang.");
+      }
 
-    // 3) tampilkan notifikasi sukses
-    setSuccessMessage(
-      `Peminjaman untuk ${values.namaPeminjam} berhasil dibuat. Status: Sedang Dipinjam.`
-    );
-    setTimeout(() => setSuccessMessage(null), 5000);
+      await submitPeminjaman(cart, values.peminjamId, values.areaKerja, dicatatOleh);
+
+      // ambil ulang data tools dari server, supaya kolom Dipinjam/Tersedia akurat
+      const freshTools = await getTools();
+      setTools(freshTools);
+
+      setCart([]);
+      setLoanFormOpen(false);
+
+      setSuccessMessage(
+        `Peminjaman untuk ${values.namaPeminjam} berhasil dibuat. Status: Sedang Dipinjam.`
+      );
+      setTimeout(() => setSuccessMessage(null), 5000);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Gagal membuat peminjaman";
+      setLoanError(message);
+    } finally {
+      setSubmittingLoan(false);
+    }
   };
 
   const columns = useMemo(
@@ -218,7 +220,6 @@ const DataToolsManager = () => {
 
   return (
     <>
-      {/* ---- Notifikasi sukses setelah peminjaman dikonfirmasi ---- */}
       {successMessage && (
         <Alert
           variant="success"
@@ -231,7 +232,12 @@ const DataToolsManager = () => {
         </Alert>
       )}
 
-      {/* ---- Header: judul, deskripsi, breadcrumb, tombol Tambah Data ---- */}
+      {loanError && (
+        <Alert variant="danger" dismissible onClose={() => setLoanError(null)}>
+          {loanError}
+        </Alert>
+      )}
+
       <Row>
         <Col>
           <Flex justifyContent="between" alignItems="center" className="mb-4 w-100" breakpoint="md">
@@ -308,7 +314,6 @@ const DataToolsManager = () => {
         tool={activeTool}
       />
 
-      {/* ---- Keranjang Peminjaman: FAB + panel ---- */}
       <CartFAB itemCount={cart.length} onClick={() => setCartOpen(true)} />
       <CartOffcanvas
         show={cartOpen}
@@ -319,12 +324,12 @@ const DataToolsManager = () => {
         onProceed={handleProceedToLoanForm}
       />
 
-      {/* ---- Form Peminjaman ---- */}
       <LoanFormModal
         show={loanFormOpen}
         onClose={() => setLoanFormOpen(false)}
         onSubmit={handleLoanSubmit}
         cartItems={cart}
+        submitting={submittingLoan}
       />
     </>
   );

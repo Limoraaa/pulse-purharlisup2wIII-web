@@ -32,8 +32,8 @@ class Peminjaman extends Model
     protected function casts(): array
     {
         return [
-            'tanggal' => 'date',
-            'tanggal_kembali' => 'date',
+            'tanggal' => 'datetime',        // sebelumnya 'date'
+            'tanggal_kembali' => 'date',    // ini tetap 'date', karena cuma perlu tanggal kembali, bukan jamnya
         ];
     }
 
