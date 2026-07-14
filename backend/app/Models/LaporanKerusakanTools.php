@@ -18,6 +18,7 @@ class LaporanKerusakanTools extends Model
     protected $fillable = [
         'tanggal',
         'tool_id',
+        'jumlah',
         'keterangan',
         'dilaporkan_oleh',
     ];
