@@ -1,6 +1,6 @@
 "use client";
 //import node module libraries
-import React, { Fragment, useState } from "react";
+import React, { Fragment, useState, useEffect } from "react";
 import Link from "next/link";
 import { useMediaQuery } from "react-responsive";
 import {
@@ -25,14 +25,24 @@ const Header = () => {
   const [isNoficationOpen, setIsNotificationOpen] = useState<boolean>(false);
   const { toggleMenuHandler, handleCollapsed } = useMenu();
 
+  // 1. Tambahkan state untuk mendeteksi apakah komponen sudah dimuat di browser
+  const [hasMounted, setHasMounted] = useState<boolean>(false);
+
   const isTablet = useMediaQuery({ maxWidth: 990 });
+
+  // 2. Set state menjadi true setelah render pertama (client-side)
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   return (
     <Fragment>
       <Navbar expand="lg" className="navbar-glass px-0 px-lg-4">
         <Container fluid className="px-lg-0">
           <Flex alignItems="center" className="gap-4">
-            {isTablet && (
+            
+            {/* 3. Gunakan hasMounted untuk mencegah render di server sebelum ukuran layar diketahui */}
+            {hasMounted && isTablet && (
               <div
                 className="d-block d-lg-none"
                 style={{ cursor: "pointer" }}
@@ -41,7 +51,8 @@ const Header = () => {
                 <IconMenu2 size={24} />
               </div>
             )}
-            {isTablet || (
+            
+            {hasMounted && !isTablet && (
               <div>
                 <Link href={"#"} className="sidebar-toggle d-flex p-3">
                   <span
@@ -68,6 +79,7 @@ const Header = () => {
               </div>
             )}
           </Flex>
+          
           <ListGroup
             bsPrefix="list-unstyled"
             as={"ul"}
@@ -94,17 +106,21 @@ const Header = () => {
                 </span>
               </Button>
             </ListGroup.Item>
+            
             <ListGroup.Item as="li">
               <UserMenu />
             </ListGroup.Item>
           </ListGroup>
         </Container>
       </Navbar>
+      
       <NoficationList
         isOpen={isNoficationOpen}
         onClose={() => setIsNotificationOpen(false)}
       />
-      {isTablet && <OffcanvasSidebar />}
+      
+      {/* 4. Terapkan juga pada sidebar offcanvas agar tidak memicu error yang sama */}
+      {hasMounted && isTablet && <OffcanvasSidebar />}
     </Fragment>
   );
 };
