@@ -11,7 +11,7 @@ return new class extends Migration
     {
         Schema::create('peminjaman', function (Blueprint $table) {
             $table->uuid('id')->default(DB::raw('gen_random_uuid()'))->primary();
-            $table->date('tanggal');
+            $table->timestamp('tanggal');
             $table->foreignUuid('tool_id')->constrained('tools');
             $table->foreignUuid('peminta_id')->constrained('peminta');
             $table->integer('jumlah');
