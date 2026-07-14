@@ -14,7 +14,7 @@ class ToolController extends Controller
      */
     public function index()
     {
-        $tools = Tool::all()->map(function ($tool) {
+        $tools = Tool::orderBy('kode_barang')->get()->map(function ($tool) {
             return [
                 'id' => $tool->id,
                 'kode_barang' => $tool->kode_barang,
@@ -37,7 +37,7 @@ class ToolController extends Controller
      * POST /api/tools
      * Tambah data alat baru.
      */
-    public function store(Request $request)
+        public function store(Request $request)
     {
         $validated = $request->validate([
             'kode_barang' => 'required|string|unique:tools,kode_barang',
@@ -52,9 +52,20 @@ class ToolController extends Controller
 
         $tool = Tool::create($validated);
 
-        return response()->json($tool, 201);
+        return response()->json([
+            'id' => $tool->id,
+            'kode_barang' => $tool->kode_barang,
+            'nama_barang' => $tool->nama_barang,
+            'merk' => $tool->merk,
+            'type' => $tool->type,
+            'warna' => $tool->warna,
+            'ukuran' => $tool->ukuran,
+            'stok' => $tool->stok,
+            'keadaan' => $tool->keadaan,
+            'sedang_dipinjam' => $tool->sedangDipinjam(),
+            'tersedia' => $tool->tersedia(),
+        ], 201);
     }
-
     /**
      * GET /api/tools/{id}
      * Tampilkan detail satu alat, termasuk riwayat peminjamannya.
@@ -84,23 +95,34 @@ class ToolController extends Controller
      * Edit data alat.
      */
     public function update(Request $request, Tool $tool)
-    {
-        $validated = $request->validate([
-            'kode_barang' => 'sometimes|string|unique:tools,kode_barang,' . $tool->id,
-            'nama_barang' => 'sometimes|string',
-            'merk' => 'nullable|string',
-            'type' => 'nullable|string',
-            'warna' => 'nullable|string',
-            'ukuran' => 'nullable|string',
-            'stok' => 'sometimes|integer|min:0',
-            'keadaan' => 'nullable|in:B,R',
-        ]);
+        {
+            $validated = $request->validate([
+                'kode_barang' => 'sometimes|string|unique:tools,kode_barang,' . $tool->id,
+                'nama_barang' => 'sometimes|string',
+                'merk' => 'nullable|string',
+                'type' => 'nullable|string',
+                'warna' => 'nullable|string',
+                'ukuran' => 'nullable|string',
+                'stok' => 'sometimes|integer|min:0',
+                'keadaan' => 'nullable|in:B,R',
+            ]);
 
-        $tool->update($validated);
+            $tool->update($validated);
 
-        return response()->json($tool);
-    }
-
+            return response()->json([
+                'id' => $tool->id,
+                'kode_barang' => $tool->kode_barang,
+                'nama_barang' => $tool->nama_barang,
+                'merk' => $tool->merk,
+                'type' => $tool->type,
+                'warna' => $tool->warna,
+                'ukuran' => $tool->ukuran,
+                'stok' => $tool->stok,
+                'keadaan' => $tool->keadaan,
+                'sedang_dipinjam' => $tool->sedangDipinjam(),
+                'tersedia' => $tool->tersedia(),
+            ]);
+        }
     /**
      * DELETE /api/tools/{id}
      * Hapus data alat.

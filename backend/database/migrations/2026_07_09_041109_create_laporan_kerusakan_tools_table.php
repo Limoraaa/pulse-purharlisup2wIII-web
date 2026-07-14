@@ -13,6 +13,7 @@ return new class extends Migration
             $table->uuid('id')->default(DB::raw('gen_random_uuid()'))->primary();
             $table->date('tanggal');
             $table->foreignUuid('tool_id')->constrained('tools');
+            $table->integer('jumlah')->default(1);
             $table->text('keterangan')->nullable();
             $table->foreignUuid('dilaporkan_oleh')->constrained('users');
             $table->timestamps();

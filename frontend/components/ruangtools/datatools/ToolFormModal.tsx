@@ -6,7 +6,7 @@ import { Modal, Form, Row, Col, Button } from "react-bootstrap";
 // import custom types
 import { ToolFormValues, ToolItemType, ToolCondition } from "types/DataToolsTypes";
 
-const KONDISI_OPTIONS: ToolCondition[] = ["Baik", "Rusak Ringan", "Rusak Berat"];
+const KONDISI_OPTIONS: ToolCondition[] = ["Baik", "Rusak"];
 
 const emptyForm: ToolFormValues = {
   kodeBarang: "",
@@ -17,7 +17,6 @@ const emptyForm: ToolFormValues = {
   ukuran: "",
   kondisi: "Baik",
   stok: 0,
-  dipinjam: 0,
 };
 
 interface ToolFormModalProps {
@@ -36,8 +35,6 @@ const ToolFormModal = ({
   const [form, setForm] = useState<ToolFormValues>(emptyForm);
   const isEditMode = Boolean(initialData);
 
-  // isi ulang form setiap kali modal dibuka, baik untuk Tambah (kosong)
-  // maupun Edit (terisi data yang dipilih)
   useEffect(() => {
     if (show) {
       setForm(initialData ? { ...initialData } : emptyForm);
@@ -67,7 +64,9 @@ const ToolFormModal = ({
         <Modal.Body>
           <Row className="g-3">
             <Col md={6}>
-              <Form.Label>Kode Barang</Form.Label>
+              <Form.Label>
+                Kode Barang <span className="text-danger">*</span>
+              </Form.Label>
               <Form.Control
                 required
                 placeholder="Contoh: TL-092-B"
@@ -76,7 +75,9 @@ const ToolFormModal = ({
               />
             </Col>
             <Col md={6}>
-              <Form.Label>Nama Barang</Form.Label>
+              <Form.Label>
+                Nama Barang <span className="text-danger">*</span>
+              </Form.Label>
               <Form.Control
                 required
                 placeholder="Contoh: Multimeter Digital"
@@ -87,7 +88,6 @@ const ToolFormModal = ({
             <Col md={6}>
               <Form.Label>Merk</Form.Label>
               <Form.Control
-                required
                 value={form.merk}
                 onChange={(e) => handleChange("merk", e.target.value)}
               />
@@ -95,7 +95,6 @@ const ToolFormModal = ({
             <Col md={6}>
               <Form.Label>Tipe</Form.Label>
               <Form.Control
-                required
                 value={form.tipe}
                 onChange={(e) => handleChange("tipe", e.target.value)}
               />
@@ -103,7 +102,6 @@ const ToolFormModal = ({
             <Col md={6}>
               <Form.Label>Warna</Form.Label>
               <Form.Control
-                required
                 value={form.warna}
                 onChange={(e) => handleChange("warna", e.target.value)}
               />
@@ -111,53 +109,48 @@ const ToolFormModal = ({
             <Col md={6}>
               <Form.Label>Ukuran</Form.Label>
               <Form.Control
-                required
                 value={form.ukuran}
                 onChange={(e) => handleChange("ukuran", e.target.value)}
               />
             </Col>
-            <Col md={4}>
-              <Form.Label>Kondisi</Form.Label>
-              <Form.Select
-                value={form.kondisi}
-                onChange={(e) =>
-                  handleChange("kondisi", e.target.value as ToolCondition)
-                }
-              >
-                {KONDISI_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
-                  </option>
-                ))}
-              </Form.Select>
-            </Col>
-            <Col md={4}>
-              <Form.Label>Stok</Form.Label>
+
+            {/* Kondisi cuma ditampilkan saat Edit — data baru selalu mulai dari "Baik" */}
+            {isEditMode ? (
+              <Col md={6}>
+                <Form.Label>Kondisi</Form.Label>
+                <Form.Select
+                  value={form.kondisi}
+                  onChange={(e) =>
+                    handleChange("kondisi", e.target.value as ToolCondition)
+                  }
+                >
+                  {KONDISI_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Col>
+            ) : null}
+
+            <Col md={isEditMode ? 6 : 12}>
+              <Form.Label>
+                Stok <span className="text-danger">*</span>
+              </Form.Label>
               <Form.Control
                 required
-                type="number"
-                min={0}
-                value={form.stok}
-                onChange={(e) =>
-                  handleChange("stok", Number(e.target.value))
-                }
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                placeholder="0"
+                value={form.stok === 0 ? "" : String(form.stok)}
+                onChange={(e) => {
+                  // hanya izinkan digit, buang leading zero otomatis
+                  const digitsOnly = e.target.value.replace(/[^0-9]/g, "");
+                  const withoutLeadingZero = digitsOnly.replace(/^0+(?=\d)/, "");
+                  handleChange("stok", withoutLeadingZero === "" ? 0 : Number(withoutLeadingZero));
+                }}
               />
-            </Col>
-            <Col md={4}>
-              <Form.Label>Dipinjam</Form.Label>
-              <Form.Control
-                required
-                type="number"
-                min={0}
-                max={form.stok}
-                value={form.dipinjam}
-                onChange={(e) =>
-                  handleChange("dipinjam", Number(e.target.value))
-                }
-              />
-              <Form.Text className="text-secondary">
-                Tersedia: {Math.max(form.stok - form.dipinjam, 0)}
-              </Form.Text>
             </Col>
           </Row>
         </Modal.Body>
@@ -173,5 +166,5 @@ const ToolFormModal = ({
     </Modal>
   );
 };
-
+        
 export default ToolFormModal;
