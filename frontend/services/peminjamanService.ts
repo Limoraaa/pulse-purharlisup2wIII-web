@@ -7,6 +7,8 @@ interface CreatePeminjamanPayload {
   peminta_id: string;
   jumlah: number;
   area_pekerjaan: string;
+  spesifikasi?: string;
+  keterangan?: string;
   dicatat_oleh: string;
 }
 
@@ -16,9 +18,11 @@ export async function submitPeminjaman(
   cartItems: CartItemType[],
   pemintaId: string,
   areaKerja: string,
-  dicatatOleh: string
+  dicatatOleh: string,
+  spesifikasi?: string,
+  keterangan?: string
 ): Promise<void> {
-  const tanggal = new Date().toISOString(); // timestamp saat ini, termasuk jam
+  const tanggal = new Date().toISOString();
 
   for (const item of cartItems) {
     const payload: CreatePeminjamanPayload = {
@@ -27,6 +31,8 @@ export async function submitPeminjaman(
       peminta_id: pemintaId,
       jumlah: item.jumlah,
       area_pekerjaan: areaKerja,
+      spesifikasi,
+      keterangan,
       dicatat_oleh: dicatatOleh,
     };
 

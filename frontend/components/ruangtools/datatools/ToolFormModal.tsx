@@ -24,6 +24,7 @@ interface ToolFormModalProps {
   onClose: () => void;
   onSubmit: (values: ToolFormValues) => void;
   initialData?: ToolItemType | null; // ada isinya = mode Edit, kosong = mode Tambah
+  suggestedKodeBarang?: string; // kode barang otomatis untuk mode Tambah
 }
 
 const ToolFormModal = ({
@@ -31,15 +32,22 @@ const ToolFormModal = ({
   onClose,
   onSubmit,
   initialData,
+  suggestedKodeBarang,
 }: ToolFormModalProps) => {
   const [form, setForm] = useState<ToolFormValues>(emptyForm);
   const isEditMode = Boolean(initialData);
 
   useEffect(() => {
-    if (show) {
-      setForm(initialData ? { ...initialData } : emptyForm);
+  if (show) {
+    if (initialData) {
+      setForm({ ...initialData });
+    } else {
+      setForm({ ...emptyForm, kodeBarang: suggestedKodeBarang || "" });
     }
-  }, [show, initialData]);
+  }
+}, [show, initialData, suggestedKodeBarang]);
+
+  
 
   const handleChange = (
     field: keyof ToolFormValues,
@@ -69,7 +77,7 @@ const ToolFormModal = ({
               </Form.Label>
               <Form.Control
                 required
-                placeholder="Contoh: TL-092-B"
+                placeholder="Contoh: I-092"
                 value={form.kodeBarang}
                 onChange={(e) => handleChange("kodeBarang", e.target.value)}
               />

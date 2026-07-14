@@ -25,6 +25,18 @@ import LoanFormModal from "components/ruangtools/datatools/LoanFormModal";
 import { getTools, createTool, updateTool, deleteTool } from "services/toolService";
 import { submitPeminjaman } from "services/peminjamanService";
 
+const generateNextKodeBarang = (tools: ToolItemType[]): string => {
+  if (tools.length === 0) return "I-001";
+  const maxNumber = tools.reduce((max, tool) => {
+    const match = tool.kodeBarang.match(/^I-(\d+)$/);
+    if (!match) return max;
+    const num = parseInt(match[1], 10);
+    return num > max ? num : max;
+  }, 0);
+  const nextNumber = maxNumber + 1;
+  return `I-${String(nextNumber).padStart(3, "0")}`;
+};
+
 const KONDISI_FILTER_OPTIONS: (ToolCondition | "Semua")[] = ["Semua", "Baik", "Rusak"];
 
 const DataToolsManager = () => {
@@ -39,7 +51,9 @@ const DataToolsManager = () => {
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [activeTool, setActiveTool] = useState<ToolItemType | null>(null);
+  const [suggestedKodeBarang, setSuggestedKodeBarang] = useState("");
 
+  // ... sisanya SAMA seperti yang sudah Anda tulis, tidak ada perubahan lain
   // ---- Keranjang & Form Peminjaman ----
   const [cart, setCart] = useState<CartItemType[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
@@ -77,6 +91,7 @@ const DataToolsManager = () => {
   // ================= CRUD TOOLS =================
   const openAddModal = () => {
     setActiveTool(null);
+    setSuggestedKodeBarang(generateNextKodeBarang(tools));
     setFormModalOpen(true);
   };
 
@@ -186,7 +201,7 @@ const DataToolsManager = () => {
         throw new Error("Sesi login tidak ditemukan. Silakan login ulang.");
       }
 
-      await submitPeminjaman(cart, values.peminjamId, values.areaKerja, dicatatOleh);
+      await submitPeminjaman(cart, values.peminjamId, values.areaKerja, dicatatOleh, values.spesifikasi, values.keterangan);
 
       // ambil ulang data tools dari server, supaya kolom Dipinjam/Tersedia akurat
       const freshTools = await getTools();
@@ -305,6 +320,7 @@ const DataToolsManager = () => {
         }}
         onSubmit={handleFormSubmit}
         initialData={activeTool}
+        suggestedKodeBarang={suggestedKodeBarang}
       />
       <ToolDetailModal show={detailModalOpen} onClose={() => setDetailModalOpen(false)} tool={activeTool} />
       <DeleteConfirmModal

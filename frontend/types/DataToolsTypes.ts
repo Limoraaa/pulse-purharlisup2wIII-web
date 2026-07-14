@@ -46,6 +46,8 @@ export interface LoanFormValues {
   namaPeminjam: string;
   divisi: string; // otomatis terisi berdasarkan peminjamId
   areaKerja: string;
+  spesifikasi?: string;   // tambahan baru, optional
+  keterangan?: string; 
 }
 
 // ------------------------------------------------------------------

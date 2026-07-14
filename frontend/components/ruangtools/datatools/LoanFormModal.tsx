@@ -18,6 +18,8 @@ const emptyForm = (): LoanFormValues => ({
   namaPeminjam: "",
   divisi: "",
   areaKerja: "",
+  spesifikasi: "",
+  keterangan: "",
 });
 
 interface LoanFormModalProps {
@@ -112,6 +114,29 @@ const LoanFormModal = ({
                 placeholder="Contoh: Gardu Induk A"
                 value={form.areaKerja}
                 onChange={(e) => setForm((prev) => ({ ...prev, areaKerja: e.target.value }))}
+                disabled={submitting}
+              />
+            </Col>
+            <Col md={12}>
+              <Form.Label>
+                Spesifikasi <span className="text-secondary fw-normal">(opsional)</span>
+              </Form.Label>
+              <Form.Control
+                value={form.spesifikasi}
+                onChange={(e) => setForm((prev) => ({ ...prev, spesifikasi: e.target.value }))}
+                disabled={submitting}
+              />
+            </Col>
+            <Col md={12}>
+              <Form.Label>
+                Keterangan <span className="text-secondary fw-normal">(opsional)</span>
+              </Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={2}
+                placeholder="Catatan tambahan jika ada"
+                value={form.keterangan}
+                onChange={(e) => setForm((prev) => ({ ...prev, keterangan: e.target.value }))}
                 disabled={submitting}
               />
             </Col>
