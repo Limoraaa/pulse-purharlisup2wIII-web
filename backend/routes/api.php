@@ -5,15 +5,17 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ConsumableController;
 use App\Http\Controllers\Api\ToolController;
-use App\Http\Controllers\Api\PemintaController;
-use App\Http\Controllers\Api\PeminjamanController;
-use App\Http\Controllers\Api\ConsumableMasukController;
-use App\Http\Controllers\Api\ConsumableKeluarController;
-use App\Http\Controllers\Api\LaporanKerusakanController;
-
+use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\API\PemintaController;
+use App\Http\Controllers\API\PeminjamanController;
+use App\Http\Controllers\API\ConsumableMasukController;
+use App\Http\Controllers\API\ConsumableKeluarController;
+use App\Http\Controllers\API\LaporanKerusakanController;
 
 Route::post('/login', [AuthController::class, 'login']);
 
+// 0. Users (kelola staff & super admin)
+Route::apiResource('users', UserController::class);
 
 // 1. tools (simple CRUD)
 Route::apiResource('tools', ToolController::class);

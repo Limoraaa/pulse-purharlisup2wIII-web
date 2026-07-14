@@ -9,9 +9,7 @@ const kondisiVariant = (kondisi: ToolCondition) => {
   switch (kondisi) {
     case "Baik":
       return { bg: "success-subtle", text: "success-emphasis" };
-    case "Rusak Ringan":
-      return { bg: "warning-subtle", text: "warning-emphasis" };
-    case "Rusak Berat":
+    case "Rusak":
       return { bg: "danger-subtle", text: "danger-emphasis" };
   }
 };
