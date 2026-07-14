@@ -4,10 +4,12 @@ import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 
 //import required reducers
 import appReducer from "./slices/appSlice";
+import inventoryToolsReducer from "./slices/inventoryToolsSlice";
 
 const store = configureStore({
   reducer: {
     app: appReducer,
+    inventoryTools: inventoryToolsReducer,
   },
 });
 
