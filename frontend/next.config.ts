@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   basePath: isProd ? "/dasher-ui" : "",
   assetPrefix: isProd ? "/dasher-ui/" : "",
+  allowedDevOrigins: [' 192.168.214.1'],
   images: {
     unoptimized: true,
   },
