@@ -19,6 +19,7 @@ Route::apiResource('users', UserController::class);
 
 // 1. tools (simple CRUD)
 Route::apiResource('tools', ToolController::class);
+Route::patch('/tools/{tool}/kurangi-stok', [ToolController::class, 'kurangiStok']);
 
 // 2. consumable (simple CRUD)
 Route::apiResource('consumable', ConsumableController::class);
