@@ -1,8 +1,6 @@
 export type ToolCondition =
   | "Baik"
-  | "Rusak Ringan"
-  | "Rusak Berat"
-  | "Rusak Permanen";
+  | "Rusak";
 
 export interface ToolItemType {
   id: string; // dipakai sebagai React key & pembanding saat edit/hapus
@@ -87,3 +85,28 @@ export interface PengembalianItemInput {
   kondisi: ToolCondition;
   catatan: string; // wajib diisi kalau kondisi selain "Baik"
 }
+
+
+// ------------------------------------------------------------------
+// TAMBAHKAN INI ke types/DataToolsTypes.ts (di bagian bawah file)
+// Dipakai untuk halaman "Peminjaman Aktif" -> 1 baris = 1 alat,
+// datanya flat langsung dari GET /api/peminjaman (bukan grouped transaksi).
+// ------------------------------------------------------------------
+export interface PeminjamanAktifItemType {
+  id: string; // id record peminjaman
+  toolId: string; // id alat, dipakai untuk update kondisi kalau rusak
+  tanggal: string; // tanggal peminjaman
+  kodeBarang: string;
+  namaBarang: string;
+  merk: string;
+  tipe: string;
+  warna: string;
+  ukuran: string;
+  jumlah: number;
+  namaPeminjam: string;
+  divisi: string;
+  areaKerja: string;
+  spesifikasi: string;
+  keterangan: string;
+}
+ 

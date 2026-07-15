@@ -368,11 +368,7 @@ Informasi yang ditampilkan
 
 - Tersedia
 - Dipinjam
-- Rusak Ringan
-- Rusak Berat
-- Dalam Perbaikan
-- Rusak Permanen
-
+- Rusak 
 ---
 
 # 7.2 Data Consumable

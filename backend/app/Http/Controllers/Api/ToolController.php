@@ -133,4 +133,24 @@ class ToolController extends Controller
 
         return response()->json(['message' => 'Alat berhasil dihapus']);
     }
+    public function kurangiStok(Request $request, Tool $tool)
+    {
+        $validated = $request->validate([
+            'jumlah' => 'required|integer|min:1',
+        ]);
+
+        // jangan sampai stok jadi negatif
+        if ($validated['jumlah'] > $tool->stok) {
+            return response()->json([
+                'message' => "Jumlah melebihi stok yang ada. Stok saat ini: {$tool->stok}",
+            ], 422);
+        }
+
+        $tool->decrement('stok', $validated['jumlah']);
+
+        return response()->json([
+            'message' => 'Stok berhasil dikurangi',
+            'stok_baru' => $tool->fresh()->stok,
+        ]);
+    }
 }
