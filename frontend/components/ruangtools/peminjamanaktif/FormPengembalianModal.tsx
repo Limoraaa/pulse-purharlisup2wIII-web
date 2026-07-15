@@ -1,156 +1,135 @@
 "use client";
 // import node module libraries
 import { useEffect, useState } from "react";
-import { Modal, Form, Table, Button, Alert } from "react-bootstrap";
+import { Modal, Form, Button, Alert } from "react-bootstrap";
 
 // import custom types
-import {
-  TransaksiPeminjamanType,
-  ToolCondition,
-  PengembalianItemInput,
-} from "types/DataToolsTypes";
+import { PeminjamanAktifItemType } from "types/DataToolsTypes";
 
-const KONDISI_OPTIONS: ToolCondition[] = [
-  "Baik",
-  "Rusak Ringan",
-  "Rusak Berat",
-  "Rusak Permanen",
-];
+export interface PengembalianSubmitPayload {
+  jumlahRusak: number;
+  catatan: string;
+}
 
 interface FormPengembalianModalProps {
   show: boolean;
   onClose: () => void;
-  transaksi: TransaksiPeminjamanType | null;
-  onSubmit: (returns: PengembalianItemInput[]) => void;
+  item: PeminjamanAktifItemType | null;
+  onSubmit: (payload: PengembalianSubmitPayload) => void;
+  submitting?: boolean;
 }
 
 const FormPengembalianModal = ({
   show,
   onClose,
-  transaksi,
+  item,
   onSubmit,
+  submitting = false,
 }: FormPengembalianModalProps) => {
-  const [rows, setRows] = useState<PengembalianItemInput[]>([]);
+  const [jumlahRusak, setJumlahRusak] = useState(0);
+  const [catatan, setCatatan] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  // isi ulang state form setiap kali modal dibuka untuk transaksi tertentu
   useEffect(() => {
-    if (show && transaksi) {
-      setRows(
-        transaksi.items.map((item) => ({
-          toolId: item.toolId,
-          kodeBarang: item.kodeBarang,
-          namaBarang: item.namaBarang,
-          jumlah: item.jumlah,
-          kondisi: "Baik",
-          catatan: "",
-        }))
-      );
+    if (show) {
+      setJumlahRusak(0);
+      setCatatan("");
       setError(null);
     }
-  }, [show, transaksi]);
+  }, [show, item]);
 
-  if (!transaksi) return null;
+  if (!item) return null;
 
-  const updateRow = (
-    toolId: string,
-    field: "kondisi" | "catatan",
-    value: string
-  ) => {
-    setRows((prev) =>
-      prev.map((r) =>
-        r.toolId === toolId ? { ...r, [field]: value as never } : r
-      )
-    );
+  const jumlahBaik = item.jumlah - jumlahRusak;
+
+  const handleJumlahRusakChange = (value: string) => {
+    const digitsOnly = value.replace(/[^0-9]/g, "");
+    let num = digitsOnly === "" ? 0 : Number(digitsOnly);
+    if (num > item.jumlah) num = item.jumlah; // tidak boleh lebih dari total dipinjam
+    setJumlahRusak(num);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // validasi: kalau kondisi bukan "Baik", catatan wajib diisi
-    const invalid = rows.find(
-      (r) => r.kondisi !== "Baik" && r.catatan.trim() === ""
-    );
-    if (invalid) {
-      setError(
-        `Catatan wajib diisi untuk "${invalid.namaBarang}" karena kondisinya tidak Baik.`
-      );
+    if (jumlahRusak > 0 && catatan.trim() === "") {
+      setError("Catatan wajib diisi kalau ada unit yang rusak.");
       return;
     }
 
     setError(null);
-    onSubmit(rows);
+    onSubmit({ jumlahRusak, catatan });
   };
 
   return (
-    <Modal show={show} onHide={onClose} centered size="lg">
+    <Modal show={show} onHide={submitting ? undefined : onClose} centered>
       <Form onSubmit={handleSubmit}>
-        <Modal.Header closeButton>
+        <Modal.Header closeButton={!submitting}>
           <Modal.Title as="h5">Form Pengembalian</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {error && <Alert variant="danger">{error}</Alert>}
 
-          <Table responsive className="align-middle">
-            <thead>
-              <tr>
-                <th>Nama Barang</th>
-                <th className="text-center">Jumlah</th>
-                <th style={{ minWidth: "160px" }}>Kondisi Alat</th>
-                <th style={{ minWidth: "200px" }}>Catatan</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.toolId}>
-                  <td>{row.namaBarang}</td>
-                  <td className="text-center">{row.jumlah}</td>
-                  <td>
-                    <Form.Select
-                      size="sm"
-                      value={row.kondisi}
-                      onChange={(e) =>
-                        updateRow(row.toolId, "kondisi", e.target.value)
-                      }
-                    >
-                      {KONDISI_OPTIONS.map((opt) => (
-                        <option key={opt} value={opt}>
-                          {opt}
-                        </option>
-                      ))}
-                    </Form.Select>
-                  </td>
-                  <td>
-                    <Form.Control
-                      size="sm"
-                      placeholder={
-                        row.kondisi !== "Baik"
-                          ? "Wajib diisi..."
-                          : "Opsional"
-                      }
-                      value={row.catatan}
-                      onChange={(e) =>
-                        updateRow(row.toolId, "catatan", e.target.value)
-                      }
-                    />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
+          <div className="mb-3">
+            <div className="text-secondary small text-uppercase mb-1">Alat</div>
+            <div className="fw-semibold">
+              {item.namaBarang} ({item.kodeBarang})
+            </div>
+            <div className="text-secondary small">
+              Dipinjam oleh {item.namaPeminjam} &middot; {item.jumlah} unit
+            </div>
+          </div>
 
-          <p className="text-secondary small mb-0">
-            Alat dengan kondisi selain <span className="fw-semibold">Baik</span>{" "}
-            tidak akan menambah jumlah tersedia dan akan masuk ke riwayat
-            kerusakan.
-          </p>
+          <Form.Group className="mb-3">
+            <Form.Label>Dari {item.jumlah} unit, berapa yang rusak?</Form.Label>
+            <Form.Control
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={jumlahRusak === 0 ? "" : String(jumlahRusak)}
+              placeholder="0"
+              onChange={(e) => handleJumlahRusakChange(e.target.value)}
+              disabled={submitting}
+            />
+            <Form.Text className="text-secondary">
+              {jumlahBaik} unit kondisi baik, {jumlahRusak} unit rusak.
+            </Form.Text>
+          </Form.Group>
+
+          <Form.Group>
+            <Form.Label>
+              Catatan{" "}
+              {jumlahRusak > 0 ? (
+                <span className="text-danger">*</span>
+              ) : (
+                <span className="text-secondary fw-normal">(opsional)</span>
+              )}
+            </Form.Label>
+            <Form.Control
+              as="textarea"
+              rows={2}
+              placeholder={
+                jumlahRusak > 0 ? "Jelaskan kerusakannya..." : "Catatan tambahan jika ada"
+              }
+              value={catatan}
+              onChange={(e) => setCatatan(e.target.value)}
+              disabled={submitting}
+            />
+          </Form.Group>
+
+          {jumlahRusak > 0 && (
+            <p className="text-secondary small mt-3 mb-0">
+              {jumlahRusak} unit akan dikurangi permanen dari stok alat ini.
+              {jumlahBaik > 0 && ` ${jumlahBaik} unit lainnya kembali tersedia seperti biasa.`}
+            </p>
+          )}
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="outline-secondary" onClick={onClose}>
+          <Button variant="outline-secondary" onClick={onClose} disabled={submitting}>
             Batal
           </Button>
-          <Button variant="primary" type="submit">
-            Konfirmasi Pengembalian
+          <Button variant="primary" type="submit" disabled={submitting}>
+            {submitting ? "Memproses..." : "Konfirmasi Pengembalian"}
           </Button>
         </Modal.Footer>
       </Form>

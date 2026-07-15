@@ -55,9 +55,7 @@ const generateNextKodeBarang = (tools: ToolItemType[]): string => {
 const KONDISI_FILTER_OPTIONS: (ToolCondition | "Semua")[] = [
   "Semua",
   "Baik",
-  "Rusak Ringan",
-  "Rusak Berat",
-  "Rusak Permanen",
+  "Rusak",
 ];
 
 const DataToolsManager = () => {
