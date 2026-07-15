@@ -6,6 +6,7 @@ export interface ConsumableItemType {
   kode_barang: string;
   nama: string;
   merk: string;
+  tipe: string;
   er_e: string;
   ukuran: string;
   stok_awal: number; // Ini adalah total stok yang tersedia
