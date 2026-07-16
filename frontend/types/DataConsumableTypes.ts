@@ -29,11 +29,12 @@ export interface ConsumableCartItemType {
 // Form Pengambilan Bahan (Consumable Keluar)
 // ------------------------------------------------------------------
 export interface ConsumableOutFormValues {
-  consumable_id: string;
-  jumlah: number;
-  tanggal_keluar: string;
-  area_pekerjaan: string;
-  dipakai_oleh: string;
+  tanggalPengambilan: string; // ditampilkan, format "16 Juli 2026"
+  pemintaId: string;
+  namaPeminta: string;
+  divisi: string;
+  areaKerja: string;
+  keterangan: string;
 }
 
 // ------------------------------------------------------------------
@@ -42,7 +43,7 @@ export interface ConsumableOutFormValues {
 export interface ConsumableMasukType {
   id: string;
   tanggal: string;
-  consumable_id: string; // relasi ke ConsumableItemType.id
+  consumable_id: string;
   kode_barang: string;
   nama: string;
   merk: string;
