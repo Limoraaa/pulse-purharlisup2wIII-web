@@ -64,12 +64,14 @@ const ConsumableMasukFormModal = ({
   consumableOptions = [],
   error = null,
 }: ConsumableMasukFormModalProps) => {
+  const [consumableSearchText, setConsumableSearchText] = useState("");
   const [form, setForm] = useState<ConsumableMasukFormValues>(emptyForm());
   const isEditMode = Boolean(initialData);
 
   useEffect(() => {
     if (show) {
       setForm(initialData ? { ...initialData } : emptyForm());
+      setConsumableSearchText("");
     }
   }, [show, initialData]);
 
@@ -136,19 +138,47 @@ const ConsumableMasukFormModal = ({
             </Col>
             <Col md={6}>
               <Form.Label>Kode Barang</Form.Label>
-              <Form.Select
+              <Form.Control
                 required
-                value={form.consumable_id}
-                onChange={(e) => handleSelectConsumable(e.target.value)}
-                disabled={isEditMode} // kode barang tidak diubah saat edit, cukup jumlah/keterangan
-              >
-                <option value="">-- Pilih Kode Barang --</option>
+                list="consumable-options"
+                placeholder="Ketik atau pilih kode barang..."
+                disabled={isEditMode}
+                value={
+                  form.consumable_id
+                    ? `${form.kode_barang} — ${form.nama}`
+                    : consumableSearchText
+                }
+                onChange={(e) => {
+                  const typed = e.target.value;
+                  setConsumableSearchText(typed);
+
+                  // cocokkan ke opsi yang persis sama teksnya (setelah dipilih dari datalist,
+                  // browser otomatis isi input dengan value yang sama persis kayak di <option>)
+                  const match = consumableOptions.find(
+                    (c) => `${c.kode_barang} — ${c.nama}` === typed
+                  );
+                  if (match) {
+                    handleSelectConsumable(match.id);
+                  } else {
+                    // ketikan belum cocok opsi manapun -> kosongkan pilihan
+                    setForm((prev) => ({
+                      ...prev,
+                      consumable_id: "",
+                      kode_barang: "",
+                      nama: "",
+                      merk: "",
+                      tipe: "",
+                      er_e: "",
+                      ukuran: "",
+                    }));
+                  }
+                }}
+              />
+              <datalist id="consumable-options">
                 {consumableOptions.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.kode_barang} — {c.nama}
-                  </option>
+                  <option key={c.id} value={`${c.kode_barang} — ${c.nama}`} />
                 ))}
-              </Form.Select>
+              </datalist>
             </Col>
 
             <Col md={6}>
@@ -180,7 +210,6 @@ const ConsumableMasukFormModal = ({
                 inputMode="numeric"
                 pattern="[0-9]*"
                 placeholder="0"
-                disabled={isEditMode}
                 value={form.jumlah_masuk === 0 ? "" : String(form.jumlah_masuk)}
                 onChange={(e) => {
                   const digitsOnly = e.target.value.replace(/[^0-9]/g, "");
@@ -192,11 +221,6 @@ const ConsumableMasukFormModal = ({
                   }));
                 }}
               />
-              {isEditMode && (
-                <Form.Text className="text-secondary">
-                  Jumlah tidak bisa diubah di sini. Hapus data lalu buat ulang kalau perlu koreksi.
-                </Form.Text>
-              )}
             </Col>
             <Col md={6}>
               <Form.Label>Keterangan</Form.Label>

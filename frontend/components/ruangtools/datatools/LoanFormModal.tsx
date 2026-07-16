@@ -37,6 +37,7 @@ const LoanFormModal = ({
   cartItems,
   submitting = false,
 }: LoanFormModalProps) => {
+  const [peminjamSearchText, setPeminjamSearchText] = useState("");
   const [form, setForm] = useState<LoanFormValues>(emptyForm());
   const [peminjamList, setPeminjamList] = useState<PeminjamType[]>([]);
   const [loadingPeminjam, setLoadingPeminjam] = useState(false);
@@ -44,6 +45,7 @@ const LoanFormModal = ({
   useEffect(() => {
     if (show) {
       setForm(emptyForm());
+      setPeminjamSearchText("");
       setLoadingPeminjam(true);
       getPeminta()
         .then(setPeminjamList)
@@ -84,21 +86,34 @@ const LoanFormModal = ({
             </Col>
             <Col md={12}>
               <Form.Label>Nama Peminjam</Form.Label>
-              <Form.Select
+              <Form.Control
                 required
-                value={form.peminjamId}
-                onChange={(e) => handlePeminjamChange(e.target.value)}
-                disabled={loadingPeminjam || submitting}
-              >
-                <option value="">
-                  {loadingPeminjam ? "Memuat..." : "-- Pilih Peminjam --"}
-                </option>
+                list="peminjam-options"
+                placeholder={loadingPeminjam ? "Memuat..." : "Ketik atau pilih nama peminjam..."}
+                disabled={loadingPeminjam}
+                value={form.peminjamId ? form.namaPeminjam : peminjamSearchText}
+                onChange={(e) => {
+                  const typed = e.target.value;
+                  setPeminjamSearchText(typed);
+
+                  const match = peminjamList.find((p) => p.nama === typed);
+                  if (match) {
+                    handlePeminjamChange(match.id);
+                  } else {
+                    setForm((prev) => ({
+                      ...prev,
+                      peminjamId: "",
+                      namaPeminjam: "",
+                      divisi: "",
+                    }));
+                  }
+                }}
+              />
+              <datalist id="peminjam-options">
                 {peminjamList.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.nama}
-                  </option>
+                  <option key={p.id} value={p.nama} />
                 ))}
-              </Form.Select>
+              </datalist>
             </Col>
             <Col md={12}>
               <Form.Label>Divisi</Form.Label>

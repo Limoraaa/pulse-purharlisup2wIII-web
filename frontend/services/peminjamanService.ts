@@ -1,6 +1,7 @@
 import apiFetch from "lib/api";
 import { CartItemType } from "types/DataToolsTypes";
 import { PeminjamanAktifItemType } from "types/DataToolsTypes";
+import { RiwayatPeminjamanType } from "types/RiwayatTypes";
 
 interface CreatePeminjamanPayload {
   tanggal: string;
@@ -101,3 +102,56 @@ export async function submitPeminjaman(
   export async function tandaiDikembalikan(id: string): Promise<void> {
     await apiFetch(`/peminjaman/${id}/kembali`, { method: "PATCH" });
   }
+
+  const BULAN_SINGKAT = [
+  "Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
+  "Jul", "Agu", "Sep", "Okt", "Nov", "Des",
+];
+
+function formatTanggalJam(isoString: string): string {
+  const d = new Date(isoString);
+  const day = String(d.getDate()).padStart(2, "0");
+  const bulan = BULAN_SINGKAT[d.getMonth()];
+  const year = d.getFullYear();
+  const hour = String(d.getHours()).padStart(2, "0");
+  const minute = String(d.getMinutes()).padStart(2, "0");
+  return `${day} ${bulan} ${year}, ${hour}:${minute}`;
+}
+
+// Nomor transaksi buatan: semua alat yang dipinjam dalam satu kali submit form
+// punya timestamp "tanggal" yang identik persis (di-generate sekali sebelum loop
+// di submitPeminjaman), jadi kombinasi tanggal+peminta cukup unik untuk grouping.
+function buildNomorTransaksi(tanggalIso: string, pemintaNama: string): string {
+  const timestamp = new Date(tanggalIso).getTime();
+  const pemintaCode = pemintaNama.replace(/\s+/g, "").slice(0, 4).toUpperCase();
+  return `TRX-${timestamp}-${pemintaCode}`;
+}
+
+function mapRiwayatFromApi(item: PeminjamanIndexApiResponse): RiwayatPeminjamanType {
+  const namaPeminjam = item.peminta?.nama ?? "-";
+  return {
+    id: item.id,
+    nomor_transaksi: buildNomorTransaksi(item.tanggal, namaPeminjam),
+    tanggal_pinjam: formatTanggalJam(item.tanggal),
+    tanggal_kembali: item.tanggal_kembali ? formatTanggalJam(item.tanggal_kembali) : "-",
+    kode_barang: item.tool?.kode_barang ?? "-",
+    nama_barang: item.tool?.nama_barang ?? "-",
+    merk: item.tool?.merk ?? "-",
+    tipe: item.tool?.type ?? "-",
+    warna: item.tool?.warna ?? "-",
+    ukuran: item.tool?.ukuran ?? "-",
+    jumlah: item.jumlah,
+    nama_peminjam: namaPeminjam,
+    divisi: item.peminta?.divisi ?? "-",
+    area_kerja: item.area_pekerjaan ?? "-",
+    keterangan: item.keterangan ?? "-",
+  };
+}
+
+// Ambil semua peminjaman yang SUDAH SELESAI (tanggal_kembali sudah terisi)
+export async function getRiwayatPeminjaman(): Promise<RiwayatPeminjamanType[]> {
+  const data: PeminjamanIndexApiResponse[] = await apiFetch("/peminjaman");
+  return data
+    .filter((item) => item.tanggal_kembali !== null)
+    .map(mapRiwayatFromApi);
+}
