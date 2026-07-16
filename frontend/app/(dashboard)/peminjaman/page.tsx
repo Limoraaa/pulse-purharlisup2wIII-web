@@ -20,7 +20,7 @@ export default function PeminjamanPage() {
   // Fungsi untuk mengambil data yang masuk ke API Peminjaman
   const fetchAntreanScan = async () => {
     try {
-      const response = await fetch("http://10.22.46.156:8001/api/peminjaman/antrean")
+      const response = await fetch("http://10.11.51.112:8001/api/peminjaman/antrean")
       if (!response.ok) throw new Error('Network error')
       
       const result = await response.json()
@@ -57,7 +57,7 @@ export default function PeminjamanPage() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch('http://10.22.46.156:8001/api/peminjaman/proses', {
+      const response = await fetch('http://10.11.51.112:8001/api/peminjaman/proses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

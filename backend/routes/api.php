@@ -29,11 +29,17 @@ Route::apiResource('peminta', PemintaController::class);
 
 // 4. Peminjaman -> khusus route cart & proses WAJIB login (dipakai web + app Flutter)
 // karena butuh identitas user yang scan/pilih alat.
+// 4. Peminjaman
+Route::post('/peminjaman/scan', [PeminjamanController::class, 'scan']);
+
+// Pindahkan route ini KELUAR dari middleware auth:sanctum 
+// agar Flutter (tanpa login) dan Web bisa mengaksesnya.
+Route::get('/peminjaman/antrean', [PeminjamanController::class, 'antrean']);
+Route::patch('/peminjaman/cart/{id}', [PeminjamanController::class, 'updateCartItem']);
+Route::delete('/peminjaman/cart/{id}', [PeminjamanController::class, 'removeCartItem']);
+
+// Proses peminjaman tetap butuh auth karena harus tahu siapa yang meminjam
 Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/peminjaman/scan', [PeminjamanController::class, 'scan']);
-    Route::get('/peminjaman/antrean', [PeminjamanController::class, 'antrean']);
-    Route::patch('/peminjaman/cart/{id}', [PeminjamanController::class, 'updateCartItem']);
-    Route::delete('/peminjaman/cart/{id}', [PeminjamanController::class, 'removeCartItem']);
     Route::post('/peminjaman/proses', [PeminjamanController::class, 'prosesPeminjaman']);
 });
 

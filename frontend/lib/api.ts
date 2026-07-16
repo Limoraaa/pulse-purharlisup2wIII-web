@@ -21,6 +21,15 @@ async function apiFetch<T = unknown>(
   });
 
   if (!res.ok) {
+    // Jika Unauthorized (Token expired/tidak valid)
+    if (res.status === 401) {
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("token"); // Bersihkan token yang sudah tidak valid
+        localStorage.removeItem("userId"); // Bersihkan data user lainnya jika ada
+        window.location.href = "/signin"; // Arahkan kembali ke halaman login
+      }
+    }
+
     const error: ApiErrorResponse = await res.json().catch(() => ({}));
     throw new Error(error.message || `Request gagal: ${res.status}`);
   }

@@ -76,7 +76,15 @@ const DataToolsManager = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // ================= LOAD DATA + POLLING ANTREAN =================
+  // ================= LOAD DATA + POLLING ANTREAN =================
   useEffect(() => {
+    // Cek apakah user sudah login (sesuaikan dengan cara kamu menyimpan sesi/token)
+    const token = localStorage.getItem("token"); // atau "userId"
+    
+    if (!token) {
+      return; // Hentikan proses jika tidak ada token/belum login
+    }
+
     dispatch(fetchTools());
     dispatch(fetchAntreanThunk());
 
@@ -149,19 +157,36 @@ const DataToolsManager = () => {
     tool: ToolItemType,
     event: React.MouseEvent<HTMLButtonElement>
   ) => {
-    const tersedia = tool.stok - tool.dipinjam;
-    if (tersedia <= 0) return;
+    // 1. Cari apakah alat ini sudah ada di keranjang
+    const itemDiKeranjang = cart.find(c => c.toolId === tool.id);
+    const jumlahDiKeranjang = itemDiKeranjang ? itemDiKeranjang.jumlah : 0;
+
+    // 2. Hitung stok AKTUAL (Stok - Dipinjam - Yang sudah ada di keranjang)
+    const tersedia = (tool.stok - tool.dipinjam) - jumlahDiKeranjang;
+
+    if (tersedia <= 0) {
+      alert(`Stok maksimal! Anda sudah memasukkan semua stok ${tool.namaBarang} yang tersedia ke keranjang.`);
+      return;
+    }
 
     try {
       await dispatch(scanToolThunk({ toolId: tool.id, jumlah: 1 })).unwrap();
+      await dispatch(fetchAntreanThunk()).unwrap();
 
-      const rect = event.currentTarget.getBoundingClientRect();
-      setFlyAnimations((prev) => [
-        ...prev,
-        { id: uuid(), startX: rect.left + rect.width / 2, startY: rect.top + rect.height / 2 },
-      ]);
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Gagal menambah ke keranjang");
+      if (event.currentTarget) {
+        const rect = event.currentTarget.getBoundingClientRect();
+        setFlyAnimations((prev) => [
+          ...prev,
+          { 
+            id: uuid(), 
+            startX: rect.left + rect.width / 2, 
+            startY: rect.top + rect.height / 2 
+          },
+        ]);
+      }
+    } catch (err: any) {
+      const errorMessage = (typeof err === 'string' ? err : err?.message) || "Gagal menambah ke keranjang";
+      alert(errorMessage);
     }
   };
 
@@ -169,16 +194,16 @@ const DataToolsManager = () => {
     setFlyAnimations((prev) => prev.filter((a) => a.id !== id));
   };
 
-  const handleUpdateCartQty = (toolId: string, jumlah: number) => {
-    const item = cart.find((c) => c.toolId === toolId);
-    if (!item?.cartId) return;
-    dispatch(updateCartItemThunk({ cartId: item.cartId, qty: jumlah }));
+  // Pastikan parameter di sini menerima string cartId
+  const handleUpdateCartQty = (cartId: string, jumlah: number) => {
+    // Pastikan updateCartItemThunk mengirimkan cartId ke backend
+    dispatch(updateCartItemThunk({ cartId, qty: jumlah }));
   };
 
-  const handleRemoveFromCart = (toolId: string) => {
-    const item = cart.find((c) => c.toolId === toolId);
-    if (!item?.cartId) return;
-    dispatch(removeCartItemThunk(item.cartId));
+  const handleRemoveFromCart = async (cartId: string) => {
+    // Pastikan removeCartItemThunk mengirimkan cartId ke backend
+    await dispatch(removeCartItemThunk(cartId)).unwrap();
+    await dispatch(fetchAntreanThunk()).unwrap(); // Refresh agar UI terupdate
   };
 
   const handleProceedToLoanForm = () => {

@@ -10,8 +10,8 @@ interface CartOffcanvasProps {
   show: boolean;
   onClose: () => void;
   items: CartItemType[];
-  onUpdateQty: (toolId: string, jumlah: number) => void;
-  onRemove: (toolId: string) => void;
+  onUpdateQty: (cartId: string, jumlah: number) => void;
+  onRemove: (cartId: string) => void;
   onProceed: () => void;
 }
 
@@ -23,16 +23,15 @@ const CartOffcanvas = ({
   onRemove,
   onProceed,
 }: CartOffcanvasProps) => {
-  // kurangi 1, minimal jumlah = 1 (kalau mau jadi 0, pakai tombol Hapus Barang)
+  
   const handleDecrease = (item: CartItemType) => {
-    if (item.jumlah <= 1) return;
-    onUpdateQty(item.toolId, item.jumlah - 1);
+    if (item.jumlah <= 1 || !item.cartId) return;
+    onUpdateQty(item.cartId.toString(), item.jumlah - 1);
   };
 
-  // tambah 1, dibatasi maksimal stok tersedia
   const handleIncrease = (item: CartItemType) => {
-    if (item.jumlah >= item.maxJumlah) return;
-    onUpdateQty(item.toolId, item.jumlah + 1);
+    if (item.jumlah >= item.maxJumlah || !item.cartId) return;
+    onUpdateQty(item.cartId.toString(), item.jumlah + 1);
   };
 
   return (
@@ -45,18 +44,20 @@ const CartOffcanvas = ({
           <p className="text-secondary">Keranjang masih kosong.</p>
         ) : (
           <div className="d-flex flex-column gap-4 flex-grow-1">
-            {items.map((item) => (
-              <div
-                key={item.toolId}
-                className="d-flex justify-content-between align-items-start border-bottom pb-3"
-              >
+            {/* TAMBAHKAN index DI SINI */}
+            {items.map((item, index) => (
+                <div
+                  // FALLBACK KEY: Jika cartId tidak ada, gunakan index
+                  key={item.cartId ? item.cartId.toString() : `cart-item-${index}`} 
+                  className="d-flex justify-content-between align-items-start border-bottom pb-3"
+                >
                 <div className="flex-grow-1 me-3">
                   <div className="fw-semibold">{item.namaBarang}</div>
                   <div className="text-secondary small mb-2">
                     {item.kodeBarang}
                   </div>
 
-                  {/* Stepper jumlah: tombol minus - angka - tombol plus */}
+                  {/* Stepper jumlah */}
                   <div className="d-flex align-items-center gap-2">
                     <Button
                       variant="outline-secondary"
@@ -92,10 +93,12 @@ const CartOffcanvas = ({
                     Maks. {item.maxJumlah} unit tersedia
                   </div>
                 </div>
+                
+                {/* Tombol Hapus */}
                 <Button
                   variant="link"
                   className="text-danger p-0"
-                  onClick={() => onRemove(item.toolId)}
+                  onClick={() => item.cartId && onRemove(item.cartId.toString())}
                   aria-label="Hapus Barang"
                 >
                   <IconTrash size={18} />
