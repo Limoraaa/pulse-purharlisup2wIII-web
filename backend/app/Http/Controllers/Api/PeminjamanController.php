@@ -25,29 +25,37 @@ class PeminjamanController extends Controller
     public function scan(Request $request)
 {
     $request->validate([
-        'tools_id' => 'required'
+        'tools_id' => 'required|uuid|exists:tools,id',
+        'jumlah'   => 'sometimes|integer|min:1',
     ]);
 
-    try {
+    $userId = $request->user()->id; // sesuaikan dengan auth kamu
+    $tambahan = $request->input('jumlah', 1);
 
+    $existing = DB::table('temporary_cart')
+        ->where('tools_id', $request->tools_id)
+        ->where('user_id', $userId)
+        ->first();
+
+    if ($existing) {
+        DB::table('temporary_cart')
+            ->where('id', $existing->id)
+            ->update([
+                'qty' => $existing->qty + $tambahan,
+                'updated_at' => now(),
+            ]);
+    } else {
         DB::table('temporary_cart')->insert([
+            'id' => (string) Str::uuid(),
+            'user_id' => $userId,
             'tools_id' => $request->tools_id,
-            'qty' => 1,
+            'qty' => $tambahan,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-
-        return response()->json([
-            'message' => 'Alat masuk antrean'
-        ],201);
-
-    } catch (\Exception $e) {
-
-        return response()->json([
-            'message'=>$e->getMessage()
-        ],500);
-
     }
+
+    return response()->json(['message' => 'Alat masuk antrean'], 201);
 }
 
     // GET /api/peminjaman/{id}
@@ -98,6 +106,25 @@ class PeminjamanController extends Controller
 
         return response()->json($peminjaman->load(['tool', 'peminta']), 201);
     }
+
+    public function updateCartItem(Request $request, string $id)
+{
+    $request->validate(['qty' => 'required|integer|min:1']);
+    DB::table('temporary_cart')->where('id', $id)
+        ->where('user_id', $request->user()->id)
+        ->update(['qty' => $request->qty, 'updated_at' => now()]);
+
+    return response()->json(['message' => 'Jumlah diperbarui']);
+}
+
+public function removeCartItem(Request $request, string $id)
+{
+    DB::table('temporary_cart')->where('id', $id)
+        ->where('user_id', $request->user()->id)
+        ->delete();
+
+    return response()->json(['message' => 'Item dihapus dari antrean']);
+}
 
     public function prosesPeminjaman(Request $request) 
 {
@@ -182,11 +209,16 @@ class PeminjamanController extends Controller
         ]);
     }
 
-    public function antrean() 
-    {
-        $data = DB::table('temporary_cart')->get();
-        return response()->json(['data' => $data]);
-    }
+    public function antrean(Request $request)
+{
+    $data = DB::table('temporary_cart')
+        ->join('tools', 'tools.id', '=', 'temporary_cart.tools_id')
+        ->where('temporary_cart.user_id', $request->user()->id)
+        ->select('temporary_cart.*', 'tools.nama_barang', 'tools.kode_barang')
+        ->get();
+
+    return response()->json(['data' => $data]);
+}
 
     // DELETE /api/peminjaman/{id}
     public function destroy(string $id)
