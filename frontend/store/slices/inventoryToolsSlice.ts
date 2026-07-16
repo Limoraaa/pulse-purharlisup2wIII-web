@@ -24,7 +24,6 @@ import {
   updateCartItem,
   removeCartItem,
   prosesPeminjamanApi,
-  AntreanItemResponse,
 } from "services/peminjamanService";
 
 interface InventoryToolsState {
@@ -51,17 +50,22 @@ const initialState: InventoryToolsState = {
   checkoutError: null,
 };
 
-const mapAntreanToCartItems = (data: AntreanItemResponse[]): CartItemType[] =>
-  data.map((d) => ({
-    toolId: d.tool_id,
-    cartId: d.cart_id,
+const mapAntreanToCartItems = (data: any[]): CartItemType[] => {
+  const arrayData = Array.isArray(data) ? data : (data as any).data || [];
+  
+  return arrayData.map((d: any) => ({
+    toolId: d.tools_id || d.tool_id,
+    cartId: d.id || d.cart_id, 
     kodeBarang: d.kode_barang,
     namaBarang: d.nama_barang,
     jumlah: d.qty,
-    maxJumlah: d.max_jumlah,
+    
+    // Langsung tembak ambil dari max_jumlah yang dikirim Backend
+    maxJumlah: d.max_jumlah || 0, 
   }));
+};
 
-// ================= THUNKS: TOOLS (tidak berubah) =================
+// ================= THUNKS: TOOLS =================
 
 export const fetchTools = createAsyncThunk(
   "inventoryTools/fetchTools",
@@ -108,12 +112,13 @@ export const deleteToolThunk = createAsyncThunk(
   }
 );
 
-// ================= THUNKS: CART (temporary_cart) =================
+// ================= THUNKS: CART =================
 
 export const fetchAntreanThunk = createAsyncThunk(
   "inventoryTools/fetchAntrean",
-  async (_: void, { rejectWithValue }) => {
+  async (_, { rejectWithValue }) => {
     try {
+      // Menggunakan service yang sudah kamu buat sebelumnya
       const data = await fetchAntrean();
       return mapAntreanToCartItems(data);
     } catch (err) {
@@ -287,7 +292,6 @@ const inventoryToolsSlice = createSlice({
         state.cartLoading = true;
       })
       .addCase(fetchAntreanThunk.fulfilled, (state, action) => {
-        state.cartLoading = false;
         state.cart = action.payload;
       })
       .addCase(fetchAntreanThunk.rejected, (state, action) => {
@@ -304,13 +308,38 @@ const inventoryToolsSlice = createSlice({
         state.cartError = (action.payload as string) || "Gagal menambah ke keranjang";
       });
 
-    builder.addCase(updateCartItemThunk.fulfilled, (state, action) => {
-      state.cart = action.payload;
-    });
+    builder
+      .addCase(updateCartItemThunk.pending, (state, action) => {
+        // Langsung ubah angka di UI sebelum API selesai
+        // action.meta.arg berisi parameter yang dikirim: { cartId, qty }
+        const { cartId, qty } = action.meta.arg;
+        const item = state.cart.find((c) => c.cartId === cartId);
+        if (item) {
+          item.jumlah = qty; // Ubah secara instan!
+        }
+      })
+      .addCase(updateCartItemThunk.fulfilled, (state, action) => {
+        // Jika sukses, sinkronkan dengan data asli dari server
+        state.cart = action.payload;
+      })
+      .addCase(updateCartItemThunk.rejected, (state, action) => {
+        // (Opsional) Jika gagal, kamu bisa me-refresh data atau biarkan polling memperbaikinya
+        state.cartError = (action.payload as string) || "Gagal mengubah jumlah";
+      });
 
-    builder.addCase(removeCartItemThunk.fulfilled, (state, action) => {
-      state.cart = action.payload;
-    });
+    builder
+      .addCase(removeCartItemThunk.pending, (state, action) => {
+        // Langsung hilangkan barang dari UI sebelum API selesai
+        // action.meta.arg berisi parameter yang dikirim: cartId
+        const cartId = action.meta.arg;
+        state.cart = state.cart.filter((c) => c.cartId !== cartId); // Hapus secara instan!
+      })
+      .addCase(removeCartItemThunk.fulfilled, (state, action) => {
+        state.cart = action.payload;
+      })
+      .addCase(removeCartItemThunk.rejected, (state, action) => {
+        state.cartError = (action.payload as string) || "Gagal menghapus item";
+      });
 
     builder
       .addCase(checkoutPeminjamanThunk.pending, (state) => {
