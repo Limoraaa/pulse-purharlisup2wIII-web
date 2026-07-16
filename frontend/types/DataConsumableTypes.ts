@@ -1,60 +1,56 @@
 // ------------------------------------------------------------------
-// Data Consumable (Bahan Habis Pakai)
+// Data Consumable (master data)
 // ------------------------------------------------------------------
 export interface ConsumableItemType {
-  id: string; 
+  id: string;
   kode_barang: string;
   nama: string;
   merk: string;
-  tipe: string;
+  tipe: string; // ditambahkan setelah "merk", sebelumnya terlewat
   er_e: string;
   ukuran: string;
-  stok_awal: number; // Ini adalah total stok yang tersedia
+  stok_awal: number;
 }
 
-// Payload untuk form Tambah/Edit Consumable
 export type ConsumableFormValues = Omit<ConsumableItemType, "id">;
 
 // ------------------------------------------------------------------
-// Antrean Pengambilan Consumable
+// Keranjang "Ambil Bahan" (dipakai di Data Consumable)
 // ------------------------------------------------------------------
 export interface ConsumableCartItemType {
-  consumable_id: string; // Relasi ke ConsumableItemType.id
+  consumable_id: string;
   kode_barang: string;
   nama: string;
   jumlah: number;
-  stok_tersedia: number; // Untuk membatasi jumlah pengambilan agar tidak melebihi stok
-}
-// ------------------------------------------------------------------
-// Transaksi Consumable (Masuk & Keluar)
-// ------------------------------------------------------------------
-// Consumable tidak dipinjam, melainkan ada alur masuk (restock) dan keluar (pemakaian)
-export interface ConsumableLogItemType {
-  id: string;
-  consumable_id: string; // Relasi ke ConsumableItemType.id
-  kode_barang: string;
-  nama: string;
-  jumlah: number;
-  tanggal: string;
+  stok_tersedia: number;
 }
 
 // ------------------------------------------------------------------
-// Form Pemakaian Consumable (Consumable Keluar)
+// Form Pengambilan Bahan (Consumable Keluar)
 // ------------------------------------------------------------------
 export interface ConsumableOutFormValues {
   consumable_id: string;
   jumlah: number;
   tanggal_keluar: string;
   area_pekerjaan: string;
-  dipakai_oleh: string; // Nama teknisi atau ID peminjam
+  dipakai_oleh: string;
 }
 
 // ------------------------------------------------------------------
-// Form Restock Consumable (Consumable Masuk)
+// Consumable Masuk (transaksi barang masuk)
 // ------------------------------------------------------------------
-export interface ConsumableInFormValues {
-  consumable_id: string;
-  jumlah: number;
-  tanggal_masuk: string;
-  keterangan: string; // Contoh: "Pembelian rutin" atau "Barang dari supplier"
+export interface ConsumableMasukType {
+  id: string;
+  tanggal: string;
+  consumable_id: string; // relasi ke ConsumableItemType.id
+  kode_barang: string;
+  nama: string;
+  merk: string;
+  tipe: string;
+  er_e: string;
+  ukuran: string;
+  jumlah_masuk: number;
+  keterangan: string;
 }
+
+export type ConsumableMasukFormValues = Omit<ConsumableMasukType, "id">;
