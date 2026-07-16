@@ -43,7 +43,7 @@ export interface ConsumableOutFormValues {
 export interface ConsumableMasukType {
   id: string;
   tanggal: string;
-  consumable_id: string; // relasi ke ConsumableItemType.id
+  consumable_id: string;
   kode_barang: string;
   nama: string;
   merk: string;

@@ -36,7 +36,8 @@ class ConsumableMasuk extends Model
     protected function casts(): array
     {
         return [
-            'tanggal' => 'date',
+            // 'date' buang jamnya (jadi tengah malam terus). 'datetime' simpan jam juga.
+            'tanggal' => 'datetime',
         ];
     }
 

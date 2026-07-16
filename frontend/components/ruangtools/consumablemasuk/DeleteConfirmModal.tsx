@@ -26,7 +26,7 @@ const DeleteConfirmModal = ({
       <Modal.Body>
         Yakin ingin menghapus catatan masuk{" "}
         <span className="fw-semibold">{item?.nama}</span> ({item?.jumlah_masuk}{" "}
-        unit, {item?.tanggal})? Tindakan ini tidak bisa dibatalkan.
+        unit) , Tindakan ini tidak bisa dibatalkan.
       </Modal.Body>
       <Modal.Footer>
         <Button variant="outline-secondary" size="sm" onClick={onClose}>
