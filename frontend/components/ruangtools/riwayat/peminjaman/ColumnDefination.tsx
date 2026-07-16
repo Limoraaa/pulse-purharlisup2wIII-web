@@ -1,0 +1,97 @@
+"use client";
+// import node module libraries
+import { ColumnDef } from "@tanstack/react-table";
+import { Dropdown } from "react-bootstrap";
+import { IconDotsVertical } from "@tabler/icons-react";
+
+// import custom types
+import { RiwayatPeminjamanType } from "types/RiwayatTypes";
+
+// import custom components
+import ActionMenu from "components/common/ActionMenu";
+
+interface ColumnHandlers {
+  onEdit: (item: RiwayatPeminjamanType) => void;
+  onDetail: (item: RiwayatPeminjamanType) => void;
+  onLihatKeterangan: (item: RiwayatPeminjamanType) => void;
+}
+
+export const getRiwayatPeminjamanColumns = ({
+  onEdit,
+  onDetail,
+  onLihatKeterangan,
+}: ColumnHandlers): ColumnDef<RiwayatPeminjamanType>[] => [
+  {
+    accessorKey: "tanggal_pinjam",
+    header: "Tanggal & Waktu Pinjam",
+  },
+  {
+    accessorKey: "tanggal_kembali",
+    header: "Tanggal & Waktu Kembali",
+  },
+  {
+    accessorKey: "kode_barang",
+    header: "Kode Barang",
+  },
+  {
+    accessorKey: "nama_barang",
+    header: "Nama Barang",
+  },
+  {
+    accessorKey: "merk",
+    header: "Merk",
+  },
+  {
+    accessorKey: "tipe",
+    header: "Tipe",
+  },
+  {
+    accessorKey: "warna",
+    header: "Warna",
+  },
+  {
+    accessorKey: "ukuran",
+    header: "Ukuran",
+  },
+  {
+    accessorKey: "jumlah",
+    header: "Jumlah",
+    cell: ({ row }) => (
+      <span className="text-center d-block">{row.original.jumlah}</span>
+    ),
+  },
+  {
+    accessorKey: "nama_peminjam",
+    header: "Nama Peminjam",
+  },
+  {
+    accessorKey: "divisi",
+    header: "Divisi",
+  },
+  {
+    accessorKey: "area_kerja",
+    header: "Area Kerja",
+  },
+  {
+    id: "aksi",
+    header: "Aksi",
+    cell: ({ row }) => (
+      <ActionMenu
+        toggleButton={<IconDotsVertical size={20} />}
+        className="btn btn-ghost btn-icon btn-sm rounded-circle"
+        drop="start"
+        align="start"
+      >
+        <Dropdown.Item onClick={() => onEdit(row.original)}>
+          Edit
+        </Dropdown.Item>
+        <Dropdown.Item onClick={() => onDetail(row.original)}>
+          Detail Transaksi
+        </Dropdown.Item>
+        <Dropdown.Item onClick={() => onLihatKeterangan(row.original)}>
+          Lihat Keterangan
+        </Dropdown.Item>
+      </ActionMenu>
+    ),
+  },
+];
