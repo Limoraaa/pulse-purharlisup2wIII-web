@@ -9,6 +9,7 @@ const emptyForm: ConsumableFormValues = {
   kode_barang: "",
   nama: "",
   merk: "",
+  tipe: "",
   er_e: "",
   ukuran: "",
   stok_awal: 0,
@@ -84,20 +85,27 @@ const ConsumableToolFormModal = ({
               />
             </Col>
             <Col md={4}>
+              <Form.Label>Tipe</Form.Label>
+              <Form.Control
+                value={form.tipe}
+                onChange={(e) => handleChange("tipe", e.target.value)}
+              />
+            </Col>
+            <Col md={4}>
               <Form.Label>ER / E</Form.Label>
               <Form.Control
                 value={form.er_e}
                 onChange={(e) => handleChange("er_e", e.target.value)}
               />
             </Col>
-            <Col md={4}>
+            <Col md={6}>
               <Form.Label>Ukuran</Form.Label>
               <Form.Control
                 value={form.ukuran}
                 onChange={(e) => handleChange("ukuran", e.target.value)}
               />
             </Col>
-            <Col md={12}>
+            <Col md={6}>
               <Form.Label>Stok Awal <span className="text-danger">*</span></Form.Label>
               <Form.Control
                 required

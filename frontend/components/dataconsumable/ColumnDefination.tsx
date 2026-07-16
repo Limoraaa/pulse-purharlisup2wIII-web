@@ -41,6 +41,10 @@ export const getConsumableColumns = ({
     header: "Merk",
   },
   {
+    accessorKey: "tipe",
+    header: "Tipe",
+  },
+  {
     accessorKey: "er_e",
     header: "ER/E",
   },
