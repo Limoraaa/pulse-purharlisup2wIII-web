@@ -1,17 +1,15 @@
 "use client";
-// import node module libraries
 import { useEffect, useMemo, useState } from "react";
 import { Row, Col, Card, CardBody, Button, Alert, Spinner } from "react-bootstrap";
 import { IconPlus, IconCircleCheck } from "@tabler/icons-react";
 
-// import custom types
+
 import {
   ConsumableItemType,
   ConsumableMasukType,
   ConsumableMasukFormValues,
 } from "types/DataConsumableTypes";
 
-// import custom components
 import TanstackTable from "components/table/TanstackTable";
 import Flex from "components/common/Flex";
 import DasherBreadcrumb from "components/common/DasherBreadcrumb";
@@ -19,19 +17,31 @@ import { getConsumableMasukColumns } from "components/ruangtools/consumablemasuk
 import ConsumableMasukFormModal from "components/ruangtools/consumablemasuk/ConsumableMasukFormModal";
 import DeleteConfirmModal from "components/ruangtools/consumablemasuk/DeleteConfirmModal";
 
-// import service Data Consumable yang SUDAH ADA (dipakai bersama dengan
-// halaman Data Consumable) — ini titik integrasi utamanya.
-import { getConsumables, updateConsumable } from "services/consumableService";
+import { getConsumables } from "services/consumableService";
+import {
+  getConsumableMasuk,
+  createConsumableMasuk,
+  updateConsumableMasuk,
+  deleteConsumableMasuk,
+} from "services/consumableMasukService";
 
 const ConsumableMasukManager = () => {
-  // Daftar barang Data Consumable, dipakai sebagai sumber dropdown "Kode Barang"
   const [consumables, setConsumables] = useState<ConsumableItemType[]>([]);
   const [loadingConsumables, setLoadingConsumables] = useState(true);
+
+  const [masukList, setMasukList] = useState<ConsumableMasukType[]>([]);
+  const [loadingList, setLoadingList] = useState(true);
+
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const [formModalOpen, setFormModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [activeItem, setActiveItem] = useState<ConsumableMasukType | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const loadConsumables = async () => {
     setLoadingConsumables(true);
-    setErrorMsg(null);
     try {
       const data = await getConsumables();
       setConsumables(data);
@@ -42,31 +52,32 @@ const ConsumableMasukManager = () => {
     }
   };
 
+  const loadMasukList = async () => {
+    setLoadingList(true);
+    try {
+      const data = await getConsumableMasuk();
+      setMasukList(data);
+    } catch (err) {
+      setErrorMsg("Gagal memuat riwayat barang masuk.");
+    } finally {
+      setLoadingList(false);
+    }
+  };
+
   useEffect(() => {
     loadConsumables();
+    loadMasukList();
   }, []);
-
-  // Catatan Consumable Masuk (riwayat transaksi masuk).
-  // Belum ada service/endpoint khusus untuk ini, jadi untuk sekarang
-  // disimpan di state lokal saja. Begitu backend sudah punya endpoint
-  // (misal getConsumableMasuk / createConsumableMasuk di service terpisah),
-  // ganti useState ini dengan fetch dari sana.
-  const [masukList, setMasukList] = useState<ConsumableMasukType[]>([]);
-
-  const [formModalOpen, setFormModalOpen] = useState(false);
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [activeItem, setActiveItem] = useState<ConsumableMasukType | null>(
-    null
-  );
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const openAddModal = () => {
     setActiveItem(null);
+    setFormError(null);
     setFormModalOpen(true);
   };
 
   const openEditModal = (item: ConsumableMasukType) => {
     setActiveItem(item);
+    setFormError(null);
     setFormModalOpen(true);
   };
 
@@ -75,44 +86,29 @@ const ConsumableMasukManager = () => {
     setDeleteModalOpen(true);
   };
 
-  // ---- submit Tambah / Edit ----
   const handleFormSubmit = async (values: ConsumableMasukFormValues) => {
+    setFormError(null);
     try {
       if (activeItem) {
-        // Mode Edit: hanya perbarui catatan masuk di state lokal.
-        // Tidak menyesuaikan ulang stok Data Consumable secara otomatis —
-        // kalau perlu, tambahkan logic penyesuaian selisih jumlah di sini
-        // begitu sudah ada endpoint riwayat masuk yang sesungguhnya.
+        // Mode Edit: backend cuma izinkan ubah tanggal & keterangan
+        const updated = await updateConsumableMasuk(activeItem.id, {
+          tanggal: values.tanggal,
+          keterangan: values.keterangan,
+        });
         setMasukList((prev) =>
-          prev.map((m) =>
-            m.id === activeItem.id ? { ...m, ...values } : m
-          )
+          prev.map((m) => (m.id === updated.id ? { ...m, ...updated, kode_barang: m.kode_barang, nama: m.nama, merk: m.merk, tipe: m.tipe, er_e: m.er_e, ukuran: m.ukuran, jumlah_masuk: m.jumlah_masuk } : m))
         );
       } else {
-        // Mode Tambah: INI INTEGRASI UTAMANYA.
-        // Panggil updateConsumable() dari service asli untuk menambah
-        // stok_awal di Data Consumable sejumlah "jumlah_masuk".
-        const target = consumables.find((c) => c.id === values.consumable_id);
-        if (target) {
-          await updateConsumable(target.id, {
-            kode_barang: target.kode_barang,
-            nama: target.nama,
-            merk: target.merk,
-            tipe: target.tipe,
-            er_e: target.er_e,
-            ukuran: target.ukuran,
-            stok_awal: target.stok_awal + values.jumlah_masuk,
-          });
-          // refresh daftar consumable supaya stok yang tampil (kalau ada
-          // tempat lain yang menampilkannya) ikut ter-update
-          await loadConsumables();
+        const dicatatOleh = localStorage.getItem("userId");
+        if (!dicatatOleh) {
+          throw new Error("Sesi login tidak ditemukan. Silakan login ulang.");
         }
 
-        // catat transaksi masuknya di tabel halaman ini
-        setMasukList((prev) => [
-          { id: crypto.randomUUID(), ...values },
-          ...prev,
-        ]);
+        const created = await createConsumableMasuk(values, dicatatOleh);
+        setMasukList((prev) => [created, ...prev]);
+
+        // refresh Data Consumable supaya stok_awal yang tampil di halaman lain akurat
+        await loadConsumables();
 
         setSuccessMessage(
           `Berhasil menambah ${values.jumlah_masuk} unit "${values.nama}" ke Data Consumable.`
@@ -123,21 +119,25 @@ const ConsumableMasukManager = () => {
       setFormModalOpen(false);
       setActiveItem(null);
     } catch (err) {
-      setErrorMsg("Gagal menyimpan data consumable masuk. Silakan coba lagi.");
+      const message = err instanceof Error ? err.message : "Gagal menyimpan data";
+      setFormError(message);
     }
   };
 
-  // ---- Hapus ----
-  // Catatan: hanya menghapus catatan di tabel ini, TIDAK mengurangi lagi
-  // stok Data Consumable yang sudah kadung bertambah. Kalau perlu perilaku
-  // "hapus = batalkan penambahan stok", tambahkan pemanggilan
-  // updateConsumable() lagi di sini untuk mengurangi stok_awal.
-  const handleConfirmDelete = () => {
-    if (activeItem) {
+  const handleConfirmDelete = async () => {
+    if (!activeItem) return;
+    try {
+      await deleteConsumableMasuk(activeItem.id);
       setMasukList((prev) => prev.filter((m) => m.id !== activeItem.id));
+      // stok Data Consumable otomatis disesuaikan balik oleh backend,
+      // refresh supaya halaman lain (Data Consumable) tetap akurat
+      await loadConsumables();
+    } catch (err) {
+      setErrorMsg("Gagal menghapus data consumable masuk.");
+    } finally {
+      setDeleteModalOpen(false);
+      setActiveItem(null);
     }
-    setDeleteModalOpen(false);
-    setActiveItem(null);
   };
 
   const columns = useMemo(
@@ -200,10 +200,14 @@ const ConsumableMasukManager = () => {
 
       <Card className="card-lg mb-6">
         <CardBody>
-          {masukList.length === 0 ? (
+          {loadingList ? (
+            <div className="text-center py-6">
+              <Spinner animation="border" size="sm" className="me-2" />
+              Memuat data...
+            </div>
+          ) : masukList.length === 0 ? (
             <p className="text-secondary text-center py-6 mb-0">
-              Belum ada catatan barang masuk. Klik "Tambah" untuk mulai
-              mencatat.
+              Belum ada catatan barang masuk. Klik &quot;Tambah&quot; untuk mulai mencatat.
             </p>
           ) : (
             <TanstackTable
@@ -223,10 +227,12 @@ const ConsumableMasukManager = () => {
         onClose={() => {
           setFormModalOpen(false);
           setActiveItem(null);
+          setFormError(null);
         }}
         onSubmit={handleFormSubmit}
         initialData={activeItem}
         consumableOptions={consumables}
+        error={formError}
       />
       <DeleteConfirmModal
         show={deleteModalOpen}
