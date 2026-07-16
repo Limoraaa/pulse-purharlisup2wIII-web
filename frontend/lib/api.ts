@@ -22,6 +22,15 @@ async function apiFetch<T = unknown>(
 
   if (!res.ok) {
     const error: ApiErrorResponse = await res.json().catch(() => ({}));
+
+    // kalau ada detail error validasi per-field, ambil pesan yang paling spesifik
+    if (error.errors) {
+      const firstField = Object.values(error.errors)[0];
+      if (firstField && firstField.length > 0) {
+        throw new Error(firstField[0]);
+      }
+    }
+
     throw new Error(error.message || `Request gagal: ${res.status}`);
   }
 

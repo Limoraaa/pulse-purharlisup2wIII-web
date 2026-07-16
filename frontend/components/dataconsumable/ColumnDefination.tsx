@@ -14,7 +14,6 @@ interface ColumnHandlers {
   onDetail: (consumable: ConsumableItemType) => void;
   onEdit: (consumable: ConsumableItemType) => void;
   onDelete: (consumable: ConsumableItemType) => void;
-  onStockIn: (consumable: ConsumableItemType) => void;  // Restock
   onStockOut: (consumable: ConsumableItemType) => void; // Pengambilan
 }
 
@@ -22,7 +21,6 @@ export const getConsumableColumns = ({
   onDetail,
   onEdit,
   onDelete,
-  onStockIn,
   onStockOut,
 }: ColumnHandlers): ColumnDef<ConsumableItemType>[] => [
   {
@@ -87,9 +85,6 @@ export const getConsumableColumns = ({
             drop="start"
             align="start"
           >
-            <Dropdown.Item onClick={() => onStockIn(row.original)}>
-              Tambah Stok
-            </Dropdown.Item>
             <Dropdown.Item onClick={() => onDetail(row.original)}>
               Detail Bahan
             </Dropdown.Item>
