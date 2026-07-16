@@ -45,9 +45,9 @@ const ConsumableMasukManager = () => {
     try {
       const data = await getConsumables();
       setConsumables(data);
-    } catch (err) {
+    } catch {
       setErrorMsg("Gagal memuat data consumable untuk pilihan Kode Barang.");
-    } finally {
+    }finally {
       setLoadingConsumables(false);
     }
   };
@@ -57,7 +57,7 @@ const ConsumableMasukManager = () => {
     try {
       const data = await getConsumableMasuk();
       setMasukList(data);
-    } catch (err) {
+    } catch {
       setErrorMsg("Gagal memuat riwayat barang masuk.");
     } finally {
       setLoadingList(false);
@@ -132,7 +132,7 @@ const ConsumableMasukManager = () => {
       // stok Data Consumable otomatis disesuaikan balik oleh backend,
       // refresh supaya halaman lain (Data Consumable) tetap akurat
       await loadConsumables();
-    } catch (err) {
+    } catch {
       setErrorMsg("Gagal menghapus data consumable masuk.");
     } finally {
       setDeleteModalOpen(false);
