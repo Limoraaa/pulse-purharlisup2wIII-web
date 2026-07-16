@@ -12,9 +12,9 @@ class ConsumableController extends Controller
      * GET /api/consumables
      * Tampilkan semua data consumable, plus stok akhir (computed).
      */
-    public function index()
-    {
-        $consumables = Consumable::all()->map(function ($item) {
+   public function index()
+{
+    $consumables = Consumable::orderBy('kode_barang')->get()->map(function ($item) {
             return [
                 'id' => $item->id,
                 'kode_barang' => $item->kode_barang,

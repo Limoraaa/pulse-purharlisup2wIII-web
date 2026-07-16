@@ -1,7 +1,7 @@
 "use client";
 // import node module libraries
 import { useEffect, useState } from "react";
-import { Modal, Form, Row, Col, Button } from "react-bootstrap";
+import { Modal, Form, Row, Col, Button, Alert } from "react-bootstrap";
 
 // import custom types
 import {
@@ -10,10 +10,32 @@ import {
   ConsumableMasukFormValues,
 } from "types/DataConsumableTypes";
 
-const getTodayDate = () => new Date().toISOString().split("T")[0];
+// Tampilan "16 Juli 2026, 14:32" dari timestamp ISO
+const formatTanggalJam = (iso: string): string => {
+  const date = new Date(iso);
+  if (isNaN(date.getTime())) return iso;
+  const tanggal = date.toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  const jam = date.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+  return `${tanggal}, ${jam}`;
+};
+
+// Konversi ISO timestamp -> format yang dimengerti <input type="datetime-local">
+// ("YYYY-MM-DDTHH:mm", pakai waktu lokal browser)
+const toDatetimeLocalValue = (iso: string): string => {
+  const date = new Date(iso);
+  if (isNaN(date.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
+    date.getHours()
+  )}:${pad(date.getMinutes())}`;
+};
 
 const emptyForm = (): ConsumableMasukFormValues => ({
-  tanggal: getTodayDate(),
+  tanggal: new Date().toISOString(), // otomatis waktu saat ini (tanggal + jam)
   consumable_id: "",
   kode_barang: "",
   nama: "",
@@ -31,6 +53,7 @@ interface ConsumableMasukFormModalProps {
   onSubmit: (values: ConsumableMasukFormValues) => void;
   initialData?: ConsumableMasukType | null; // ada isinya = mode Edit
   consumableOptions: ConsumableItemType[]; // sumber dropdown "Kode Barang", dari Data Consumable
+  error?: string | null;
 }
 
 const ConsumableMasukFormModal = ({
@@ -38,7 +61,8 @@ const ConsumableMasukFormModal = ({
   onClose,
   onSubmit,
   initialData,
-  consumableOptions,
+  consumableOptions = [],
+  error = null,
 }: ConsumableMasukFormModalProps) => {
   const [form, setForm] = useState<ConsumableMasukFormValues>(emptyForm());
   const isEditMode = Boolean(initialData);
@@ -78,17 +102,37 @@ const ConsumableMasukFormModal = ({
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
+          {error && <Alert variant="danger">{error}</Alert>}
           <Row className="g-3">
             <Col md={6}>
               <Form.Label>Tanggal</Form.Label>
-              <Form.Control
-                type="date"
-                required
-                value={form.tanggal}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, tanggal: e.target.value }))
-                }
-              />
+              {isEditMode ? (
+                <>
+                  <Form.Control
+                    type="datetime-local"
+                    required
+                    value={toDatetimeLocalValue(form.tanggal)}
+                    onChange={(e) => {
+                      const local = e.target.value; // "YYYY-MM-DDTHH:mm"
+                      if (!local) return;
+                      setForm((prev) => ({
+                        ...prev,
+                        tanggal: new Date(local).toISOString(),
+                      }));
+                    }}
+                  />
+                  <Form.Text className="text-secondary">
+                    Bisa dikoreksi manual kalau perlu.
+                  </Form.Text>
+                </>
+              ) : (
+                <>
+                  <Form.Control value={formatTanggalJam(form.tanggal)} disabled readOnly />
+                  <Form.Text className="text-secondary">
+                    Otomatis terisi sesuai tanggal &amp; jam saat ini.
+                  </Form.Text>
+                </>
+              )}
             </Col>
             <Col md={6}>
               <Form.Label>Kode Barang</Form.Label>
@@ -136,6 +180,7 @@ const ConsumableMasukFormModal = ({
                 inputMode="numeric"
                 pattern="[0-9]*"
                 placeholder="0"
+                disabled={isEditMode}
                 value={form.jumlah_masuk === 0 ? "" : String(form.jumlah_masuk)}
                 onChange={(e) => {
                   const digitsOnly = e.target.value.replace(/[^0-9]/g, "");
@@ -147,11 +192,15 @@ const ConsumableMasukFormModal = ({
                   }));
                 }}
               />
+              {isEditMode && (
+                <Form.Text className="text-secondary">
+                  Jumlah tidak bisa diubah di sini. Hapus data lalu buat ulang kalau perlu koreksi.
+                </Form.Text>
+              )}
             </Col>
             <Col md={6}>
               <Form.Label>Keterangan</Form.Label>
               <Form.Control
-                placeholder="Contoh: Pembelian dari Supplier A"
                 value={form.keterangan}
                 onChange={(e) =>
                   setForm((prev) => ({ ...prev, keterangan: e.target.value }))

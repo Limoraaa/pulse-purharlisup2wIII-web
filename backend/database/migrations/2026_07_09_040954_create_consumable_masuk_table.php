@@ -11,7 +11,7 @@ return new class extends Migration
     {
         Schema::create('consumable_masuk', function (Blueprint $table) {
             $table->uuid('id')->default(DB::raw('gen_random_uuid()'))->primary();
-            $table->date('tanggal');
+            $table->timestamp('tanggal'); // <- diubah dari date() jadi timestamp(), supaya jam ikut tersimpan
             $table->foreignUuid('consumable_id')->constrained('consumables');
             $table->integer('jumlah_masuk');
             $table->text('keterangan')->nullable();

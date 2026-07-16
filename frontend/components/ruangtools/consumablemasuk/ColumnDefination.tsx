@@ -15,6 +15,24 @@ interface ColumnHandlers {
   onDelete: (item: ConsumableMasukType) => void;
 }
 
+// Ubah timestamp mentah dari database (mis. "2026-07-16T14:06:00.000000Z")
+// jadi format tanggal + jam yang enak dibaca (mis. "16 Jul 2026, 14:06").
+const formatTanggal = (raw: string): string => {
+  const date = new Date(raw);
+  if (isNaN(date.getTime())) return raw;
+
+  const tanggal = date.toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+  const jam = date.toLocaleTimeString("id-ID", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  return `${tanggal}, ${jam}`;
+};
+
 export const getConsumableMasukColumns = ({
   onEdit,
   onDelete,
@@ -22,6 +40,7 @@ export const getConsumableMasukColumns = ({
   {
     accessorKey: "tanggal",
     header: "Tanggal",
+    cell: ({ row }) => formatTanggal(row.original.tanggal),
   },
   {
     accessorKey: "kode_barang",
