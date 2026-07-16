@@ -24,9 +24,7 @@ export const DashboardMenu: MenuItemType[] = [
     title: "Inventaris",
     icon: <IconBoxSeam size={20} strokeWidth={1.5} />,
     children: [
-      { id: uuid(), 
-        name: "Data Tools", 
-        link: "inventaris/data-tools" },
+      { id: uuid(), name: "Data Tools", link: "inventaris/data-tools" },
       {
         id: uuid(),
         name: "Data Consumable",
@@ -54,18 +52,24 @@ export const DashboardMenu: MenuItemType[] = [
         name: "Consumable Masuk",
         link: "transaksi/consumable-masuk",
       },
-      {
-        id: uuid(),
-        name: "Consumable Keluar",
-        link: "transaksi/consumable-keluar",
-      },
     ],
   },
   {
     id: uuid(),
     title: "Riwayat",
-    link: "riwayat",
     icon: <IconHistory size={20} strokeWidth={1.5} />,
+    children: [
+      {
+        id: uuid(),
+        name: "Peminjaman Tools",
+        link: "riwayat/peminjaman-tools",
+      },
+      {
+        id: uuid(),
+        name: "Consumable Keluar",
+        link: "riwayat/consumable-keluar",
+      },
+    ],
   },
   {
     id: uuid(),
