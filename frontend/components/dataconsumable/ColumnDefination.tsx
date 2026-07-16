@@ -1,7 +1,7 @@
 "use client";
 // import node module libraries
 import { ColumnDef } from "@tanstack/react-table";
-import { Dropdown } from "react-bootstrap";
+import { Dropdown, Badge } from "react-bootstrap";
 import { IconDotsVertical, IconShoppingCartPlus } from "@tabler/icons-react";
 
 // import custom types
@@ -53,11 +53,21 @@ export const getConsumableColumns = ({
   {
     accessorKey: "stok_awal",
     header: "Stok Tersedia",
-    cell: ({ row }) => (
-      <span className="text-center d-block fw-bold text-blue-600">
-        {row.original.stok_awal}
-      </span>
-    ),
+    cell: ({ row }) => {
+      const stok = row.original.stok_awal;
+      const perluRestock = stok < 5;
+
+      return (
+        <div className="d-flex flex-column align-items-center gap-1">
+          <span className={`fw-bold ${perluRestock ? "text-danger" : "text-success"}`}>
+            {stok}
+          </span>
+          <Badge bg={perluRestock ? "danger-subtle" : "success-subtle"} text={perluRestock ? "danger-emphasis" : "success-emphasis"}>
+            {perluRestock ? "Perlu Restock" : "Cukup"}
+          </Badge>
+        </div>
+      );
+    },
   },
   {
     id: "aksi",
