@@ -90,14 +90,15 @@ const ConsumableMasukManager = () => {
     setFormError(null);
     try {
       if (activeItem) {
-        // Mode Edit: backend cuma izinkan ubah tanggal & keterangan
-        const updated = await updateConsumableMasuk(activeItem.id, {
-          tanggal: values.tanggal,
-          keterangan: values.keterangan,
-        });
-        setMasukList((prev) =>
-          prev.map((m) => (m.id === updated.id ? { ...m, ...updated, kode_barang: m.kode_barang, nama: m.nama, merk: m.merk, tipe: m.tipe, er_e: m.er_e, ukuran: m.ukuran, jumlah_masuk: m.jumlah_masuk } : m))
-        );
+          const updated = await updateConsumableMasuk(activeItem.id, {
+            tanggal: values.tanggal,
+            jumlah_masuk: values.jumlah_masuk,
+            keterangan: values.keterangan,
+          });
+          setMasukList((prev) =>
+            prev.map((m) => (m.id === updated.id ? updated : m))
+          );
+           await loadConsumables();
       } else {
         const dicatatOleh = localStorage.getItem("userId");
         if (!dicatatOleh) {

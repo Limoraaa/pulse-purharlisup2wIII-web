@@ -38,20 +38,22 @@ const ConsumableOutFormModal = ({
   submitting = false,
   error = null,
 }: ConsumableOutFormModalProps) => {
+  const [pemintaSearchText, setPemintaSearchText] = useState("");
   const [form, setForm] = useState<ConsumableOutFormValues>(emptyForm());
   const [pemintaList, setPemintaList] = useState<PeminjamType[]>([]);
   const [loadingPeminta, setLoadingPeminta] = useState(false);
 
   useEffect(() => {
-    if (show) {
-      setForm(emptyForm());
-      setLoadingPeminta(true);
-      getPeminta()
-        .then(setPemintaList)
-        .catch(() => setPemintaList([]))
-        .finally(() => setLoadingPeminta(false));
-    }
-  }, [show]);
+  if (show) {
+    setForm(emptyForm());
+    setPemintaSearchText("");
+    setLoadingPeminta(true);
+    getPeminta()
+      .then(setPemintaList)
+      .catch(() => setPemintaList([]))
+      .finally(() => setLoadingPeminta(false));
+  }
+}, [show]);
 
   const handlePemintaChange = (pemintaId: string) => {
     const selected = pemintaList.find((p) => p.id === pemintaId);
@@ -91,21 +93,34 @@ const ConsumableOutFormModal = ({
             </Col>
             <Col md={12}>
               <Form.Label>Dipakai Oleh (Teknisi/Staff)</Form.Label>
-              <Form.Select
+              <Form.Control
                 required
-                value={form.pemintaId}
-                onChange={(e) => handlePemintaChange(e.target.value)}
-                disabled={loadingPeminta || submitting}
-              >
-                <option value="">
-                  {loadingPeminta ? "Memuat..." : "-- Pilih Pemakai --"}
-                </option>
+                list="peminta-options"
+                placeholder={loadingPeminta ? "Memuat..." : "Ketik atau pilih nama pemakai..."}
+                disabled={loadingPeminta}
+                value={form.pemintaId ? form.namaPeminta : pemintaSearchText}
+                onChange={(e) => {
+                  const typed = e.target.value;
+                  setPemintaSearchText(typed);
+
+                  const match = pemintaList.find((p) => p.nama === typed);
+                  if (match) {
+                    handlePemintaChange(match.id);
+                  } else {
+                    setForm((prev) => ({
+                      ...prev,
+                      pemintaId: "",
+                      namaPeminta: "",
+                      divisi: "",
+                    }));
+                  }
+                }}
+              />
+              <datalist id="peminta-options">
                 {pemintaList.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.nama}
-                  </option>
+                  <option key={p.id} value={p.nama} />
                 ))}
-              </Form.Select>
+              </datalist>
             </Col>
             <Col md={12}>
               <Form.Label>Divisi</Form.Label>

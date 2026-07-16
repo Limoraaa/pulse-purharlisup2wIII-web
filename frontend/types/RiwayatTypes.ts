@@ -3,9 +3,9 @@
 // ------------------------------------------------------------------
 export interface RiwayatPeminjamanType {
   id: string;
-  nomor_transaksi: string; // beberapa baris bisa berbagi nomor yang sama (1 transaksi, banyak alat)
-  tanggal_pinjam: string; // termasuk waktu, contoh: "10 Jul 2026, 09:15"
-  tanggal_kembali: string;
+  nomor_transaksi: string; // derived: gabungan tanggal + peminta, dipakai buat grouping detail
+  tanggal_pinjam: string; // format "10 Jul 2026, 09:15"
+  tanggal_kembali: string; // format "12 Jul 2026, 11:00"
   kode_barang: string;
   nama_barang: string;
   merk: string;
@@ -16,15 +16,15 @@ export interface RiwayatPeminjamanType {
   nama_peminjam: string;
   divisi: string;
   area_kerja: string;
-  keterangan: string; // catatan kondisi saat pengembalian (kalau ada)
+  keterangan: string;
 
-  // Tambahan Index Signature agar bisa dibaca secara dinamis oleh exportUtils
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
-export type RiwayatPeminjamanFormValues = Pick<
+
+export type RiwayatPeminjamanFormValues = Omit<
   RiwayatPeminjamanType,
-  "jumlah" | "area_kerja" | "keterangan"
+  "id" | "nomor_transaksi"
 >;
 
 // ------------------------------------------------------------------
@@ -47,7 +47,7 @@ export interface RiwayatConsumableKeluarType {
   keterangan: string;
 
   // Tambahan Index Signature untuk mengatasi error TS2345 pada exportToPDF / exportToExcel
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export type RiwayatConsumableKeluarFormValues = Pick<

@@ -30,6 +30,7 @@ interface CreateConsumableMasukPayload {
 
 interface UpdateConsumableMasukPayload {
   tanggal?: string;
+    jumlah_masuk?: number;
   keterangan?: string;
 }
 
@@ -79,10 +80,11 @@ export async function createConsumableMasuk(
 // jadi sengaja tidak bisa diubah lewat update biasa)
 export async function updateConsumableMasuk(
   id: string,
-  values: { tanggal: string; keterangan: string }
+  values: { tanggal: string; jumlah_masuk: number; keterangan: string }
 ): Promise<ConsumableMasukType> {
   const payload: UpdateConsumableMasukPayload = {
     tanggal: values.tanggal,
+    jumlah_masuk: values.jumlah_masuk,
     keterangan: values.keterangan,
   };
 

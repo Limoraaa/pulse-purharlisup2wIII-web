@@ -1,15 +1,12 @@
 "use client";
-// import node module libraries
-import { useMemo, useState } from "react";
-import { Row, Col, Card, CardBody } from "react-bootstrap";
+import { useEffect, useMemo, useState } from "react";
+import { Row, Col, Card, CardBody, Alert, Spinner } from "react-bootstrap";
 
-// import custom types
 import {
   RiwayatPeminjamanType,
   RiwayatPeminjamanFormValues,
 } from "types/RiwayatTypes";
 
-// import custom components
 import TanstackTable from "components/table/TanstackTable";
 import Flex from "components/common/Flex";
 import DasherBreadcrumb from "components/common/DasherBreadcrumb";
@@ -20,10 +17,8 @@ import DetailTransaksiModal from "components/ruangtools/riwayat/peminjaman/Detai
 import EditRiwayatModal from "components/ruangtools/riwayat/peminjaman/EditRiwayatModal";
 import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
 
-// import required data files
-import { RiwayatPeminjamanData } from "data/RiwayatPeminjamanData";
+import { getRiwayatPeminjaman } from "services/peminjamanService";
 
-// kolom yang dipakai untuk export (mengikuti urutan tabel)
 const EXPORT_COLUMNS: ExportColumn[] = [
   { header: "Nomor Transaksi", key: "nomor_transaksi" },
   { header: "Tanggal Pinjam", key: "tanggal_pinjam" },
@@ -41,14 +36,32 @@ const EXPORT_COLUMNS: ExportColumn[] = [
 ];
 
 const RiwayatPeminjamanManager = () => {
-  const [riwayatList, setRiwayatList] =
-    useState<RiwayatPeminjamanType[]>(RiwayatPeminjamanData);
+  const [riwayatList, setRiwayatList] = useState<RiwayatPeminjamanType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
- // ---- Filter Bulan & Tahun ----
-  const [bulanFilter, setBulanFilter] = useState(0); // 0 = Semua Bulan
-  const [tahunFilter, setTahunFilter] = useState(0); // 0 = Semua Tahun
+  const loadData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getRiwayatPeminjaman();
+      setRiwayatList(data);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Gagal memuat riwayat peminjaman";
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // parse "10 Jul 2026, 09:15" -> Date
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  // ---- Filter Bulan & Tahun ----
+  const [bulanFilter, setBulanFilter] = useState(0);
+  const [tahunFilter, setTahunFilter] = useState(0);
+
   const parseTanggal = (str: string) => {
     const bulanMap: Record<string, number> = {
       Jan: 0, Feb: 1, Mar: 2, Apr: 3, Mei: 4, Jun: 5,
@@ -107,6 +120,9 @@ const RiwayatPeminjamanManager = () => {
     setKeteranganModalOpen(true);
   };
 
+  // Catatan: form ini masih mengubah state lokal saja (belum PUT ke API),
+  // karena field yang bisa diedit (area_kerja dll) belum dipetakan ke endpoint
+  // update /peminjaman/{id}. Bisa disambungkan nanti kalau memang dibutuhkan.
   const handleEditSubmit = (values: RiwayatPeminjamanFormValues) => {
     if (activeItem) {
       setRiwayatList((prev) =>
@@ -117,42 +133,26 @@ const RiwayatPeminjamanManager = () => {
     setActiveItem(null);
   };
 
-  // ---- Export ----
   const handleExportPDF = () =>
-    exportToPDF(
-      filteredList,
-      EXPORT_COLUMNS,
-      "riwayat-peminjaman-tools",
-      "Riwayat Peminjaman Tools"
-    );
+    exportToPDF(filteredList, EXPORT_COLUMNS, "riwayat-peminjaman-tools", "Riwayat Peminjaman Tools");
   const handleExportExcel = () =>
     exportToExcel(filteredList, EXPORT_COLUMNS, "riwayat-peminjaman-tools");
 
-  const columns = useMemo(
-    () =>
-      getRiwayatPeminjamanColumns({
-        onEdit: openEditModal,
-        onDetail: openDetailModal,
-        onLihatKeterangan: openKeteranganModal,
-      }),
-    [riwayatList]
-  );
+  const columns = getRiwayatPeminjamanColumns({
+  onEdit: openEditModal,
+  onDetail: openDetailModal,
+  onLihatKeterangan: openKeteranganModal,
+});
 
   return (
     <>
       <Row>
         <Col>
-          <Flex
-            justifyContent="between"
-            alignItems="center"
-            className="mb-4 w-100"
-            breakpoint="md"
-          >
+          <Flex justifyContent="between" alignItems="center" className="mb-4 w-100" breakpoint="md">
             <div>
               <h1 className="mb-2 h2">Riwayat Peminjaman Tools</h1>
               <p className="text-secondary mb-0">
-                Menampilkan riwayat seluruh transaksi peminjaman tools yang
-                telah dikembalikan.
+                Menampilkan riwayat seluruh transaksi peminjaman tools yang telah dikembalikan.
               </p>
               <DasherBreadcrumb />
             </div>
@@ -162,6 +162,8 @@ const RiwayatPeminjamanManager = () => {
 
       <Card className="card-lg mb-6">
         <CardBody>
+          {error && <Alert variant="danger">{error}</Alert>}
+
           <RiwayatFilterBar
             bulanFilter={bulanFilter}
             onBulanFilterChange={setBulanFilter}
@@ -172,22 +174,25 @@ const RiwayatPeminjamanManager = () => {
             onExportExcel={handleExportExcel}
           />
 
-          <TanstackTable
-            data={filteredList}
-            columns={columns}
-            filter
-            pagination
-            isSortable
-            filterPlaceholder="Cari nomor transaksi / nama barang..."
-          />
+          {loading ? (
+            <div className="text-center py-6">
+              <Spinner animation="border" size="sm" className="me-2" />
+              Memuat data...
+            </div>
+          ) : (
+            <TanstackTable
+              data={filteredList}
+              columns={columns}
+              filter
+              pagination
+              isSortable
+              filterPlaceholder="Cari nomor transaksi / nama barang..."
+            />
+          )}
         </CardBody>
       </Card>
 
-      <DetailTransaksiModal
-        show={detailModalOpen}
-        onClose={() => setDetailModalOpen(false)}
-        items={detailGroupItems}
-      />
+      <DetailTransaksiModal show={detailModalOpen} onClose={() => setDetailModalOpen(false)} items={detailGroupItems} />
       <EditRiwayatModal
         show={editModalOpen}
         onClose={() => {
