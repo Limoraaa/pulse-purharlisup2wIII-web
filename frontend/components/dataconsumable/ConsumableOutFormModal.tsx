@@ -1,26 +1,33 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Modal, Form, Row, Col, Button } from "react-bootstrap";
+import { Modal, Form, Row, Col, Button, Spinner } from "react-bootstrap";
 import { ConsumableOutFormValues, ConsumableCartItemType } from "types/DataConsumableTypes";
+import { PeminjamType } from "types/DataToolsTypes";
+import { getPeminta } from "services/pemintaService";
 
-// Format tanggal hari ini (YYYY-MM-DD)
-const getTodayDate = () => new Date().toISOString().split('T')[0];
+const formatToday = () =>
+  new Date().toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 
-// Struktur awal form (Header Transaksi)
 const emptyForm = (): ConsumableOutFormValues => ({
-  consumable_id: "MULTIPLE", // Nilai dummy karena kita pakai keranjang (cartItems)
-  jumlah: 0,                 // Nilai dummy karena kita pakai keranjang (cartItems)
-  tanggal_keluar: getTodayDate(),
-  area_pekerjaan: "",
-  dipakai_oleh: "",
+  tanggalPengambilan: formatToday(),
+  pemintaId: "",
+  namaPeminta: "",
+  divisi: "",
+  areaKerja: "",
+  keterangan: "",
 });
 
 interface ConsumableOutFormModalProps {
   show: boolean;
   onClose: () => void;
-  // Saat submit, kita kirim header form DAN list barangnya
   onSubmit: (values: ConsumableOutFormValues, items: ConsumableCartItemType[]) => void;
   cartItems: ConsumableCartItemType[];
+  submitting?: boolean;
+  error?: string | null;
 }
 
 const ConsumableOutFormModal = ({
@@ -28,52 +35,121 @@ const ConsumableOutFormModal = ({
   onClose,
   onSubmit,
   cartItems,
+  submitting = false,
+  error = null,
 }: ConsumableOutFormModalProps) => {
-  const [form, setForm] = useState(emptyForm());
+  const [pemintaSearchText, setPemintaSearchText] = useState("");
+  const [form, setForm] = useState<ConsumableOutFormValues>(emptyForm());
+  const [pemintaList, setPemintaList] = useState<PeminjamType[]>([]);
+  const [loadingPeminta, setLoadingPeminta] = useState(false);
 
   useEffect(() => {
-    if (show) setForm(emptyForm());
-  }, [show]);
+  if (show) {
+    setForm(emptyForm());
+    setPemintaSearchText("");
+    setLoadingPeminta(true);
+    getPeminta()
+      .then(setPemintaList)
+      .catch(() => setPemintaList([]))
+      .finally(() => setLoadingPeminta(false));
+  }
+}, [show]);
+
+  const handlePemintaChange = (pemintaId: string) => {
+    const selected = pemintaList.find((p) => p.id === pemintaId);
+    setForm((prev) => ({
+      ...prev,
+      pemintaId,
+      namaPeminta: selected?.nama || "",
+      divisi: selected?.divisi || "",
+    }));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Mengirim form data beserta list barang di keranjang
     onSubmit(form, cartItems);
   };
 
   return (
-    <Modal show={show} onHide={onClose} centered>
+    <Modal show={show} onHide={submitting ? undefined : onClose} centered backdrop={submitting ? "static" : true}>
       <Form onSubmit={handleSubmit}>
-        <Modal.Header closeButton>
+        <Modal.Header closeButton={!submitting}>
           <Modal.Title as="h5">Form Pengambilan Bahan</Modal.Title>
         </Modal.Header>
         <Modal.Body>
+          {error && (
+            <div className="alert alert-danger" role="alert">
+              {error}
+            </div>
+          )}
+
           <Row className="g-3">
             <Col md={12}>
-              <Form.Label>Tanggal Pemakaian</Form.Label>
-              <Form.Control 
-                type="date" 
-                required
-                value={form.tanggal_keluar} 
-                onChange={(e) => setForm({...form, tanggal_keluar: e.target.value})} 
-              />
+              <Form.Label>Tanggal Pengambilan</Form.Label>
+              <Form.Control value={form.tanggalPengambilan} disabled readOnly />
+              <Form.Text className="text-secondary">
+                Otomatis terisi sesuai tanggal &amp; jam saat ini.
+              </Form.Text>
             </Col>
             <Col md={12}>
               <Form.Label>Dipakai Oleh (Teknisi/Staff)</Form.Label>
-              <Form.Control 
-                required 
-                placeholder="Nama pemakai" 
-                value={form.dipakai_oleh} 
-                onChange={(e) => setForm({...form, dipakai_oleh: e.target.value})} 
+              <Form.Control
+                required
+                list="peminta-options"
+                placeholder={loadingPeminta ? "Memuat..." : "Ketik atau pilih nama pemakai..."}
+                disabled={loadingPeminta}
+                value={form.pemintaId ? form.namaPeminta : pemintaSearchText}
+                onChange={(e) => {
+                  const typed = e.target.value;
+                  setPemintaSearchText(typed);
+
+                  const match = pemintaList.find((p) => p.nama === typed);
+                  if (match) {
+                    handlePemintaChange(match.id);
+                  } else {
+                    setForm((prev) => ({
+                      ...prev,
+                      pemintaId: "",
+                      namaPeminta: "",
+                      divisi: "",
+                    }));
+                  }
+                }}
               />
+              <datalist id="peminta-options">
+                {pemintaList.map((p) => (
+                  <option key={p.id} value={p.nama} />
+                ))}
+              </datalist>
+            </Col>
+            <Col md={12}>
+              <Form.Label>Divisi</Form.Label>
+              <Form.Control value={form.divisi} disabled readOnly />
+              <Form.Text className="text-secondary">
+                Otomatis terisi berdasarkan pemakai yang dipilih.
+              </Form.Text>
             </Col>
             <Col md={12}>
               <Form.Label>Area Pekerjaan</Form.Label>
-              <Form.Control 
-                required 
-                placeholder="Contoh: Lab Produksi" 
-                value={form.area_pekerjaan} 
-                onChange={(e) => setForm({...form, area_pekerjaan: e.target.value})} 
+              <Form.Control
+                required
+                placeholder="Contoh: Lab Produksi"
+                value={form.areaKerja}
+                onChange={(e) => setForm((prev) => ({ ...prev, areaKerja: e.target.value }))}
+                disabled={submitting}
+              />
+            </Col>
+            <Col md={12}>
+              <Form.Label>
+                Keterangan <span className="text-secondary fw-normal">(opsional)</span>
+              </Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={2}
+                placeholder="Catatan tambahan jika ada"
+                value={form.keterangan}
+                onChange={(e) => setForm((prev) => ({ ...prev, keterangan: e.target.value }))}
+                disabled={submitting}
               />
             </Col>
           </Row>
@@ -91,9 +167,22 @@ const ConsumableOutFormModal = ({
           </div>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="outline-secondary" onClick={onClose}>Batal</Button>
-          <Button variant="primary" type="submit" disabled={cartItems.length === 0}>
-            Konfirmasi Pengambilan
+          <Button variant="outline-secondary" onClick={onClose} disabled={submitting}>
+            Batal
+          </Button>
+          <Button
+            variant="primary"
+            type="submit"
+            disabled={cartItems.length === 0 || !form.pemintaId || submitting}
+          >
+            {submitting ? (
+              <>
+                <Spinner animation="border" size="sm" className="me-2" />
+                Memproses...
+              </>
+            ) : (
+              "Konfirmasi Pengambilan"
+            )}
           </Button>
         </Modal.Footer>
       </Form>
