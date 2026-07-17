@@ -1,7 +1,6 @@
 import apiFetch from "lib/api";
 import { ConsumableItemType, ConsumableFormValues } from "types/DataConsumableTypes";
 
-// Bentuk data mentah dari Laravel
 interface ConsumableApiResponse {
   id: string;
   kode_barang: string;
@@ -13,7 +12,6 @@ interface ConsumableApiResponse {
   stok_awal: number;
 }
 
-// Bentuk payload untuk Create/Update ke Laravel
 interface ConsumableApiPayload {
   kode_barang: string;
   nama: string;
@@ -24,7 +22,6 @@ interface ConsumableApiPayload {
   stok_awal: number;
 }
 
-// Map dari bentuk backend ke bentuk frontend (ConsumableItemType)
 function mapConsumableFromApi(item: ConsumableApiResponse): ConsumableItemType {
   return {
     id: item.id,
@@ -38,7 +35,6 @@ function mapConsumableFromApi(item: ConsumableApiResponse): ConsumableItemType {
   };
 }
 
-// Map dari form values ke payload backend
 function mapConsumableToApi(values: ConsumableFormValues): ConsumableApiPayload {
   return {
     kode_barang: values.kode_barang,
@@ -51,10 +47,16 @@ function mapConsumableToApi(values: ConsumableFormValues): ConsumableApiPayload 
   };
 }
 
+// urutan natural: T-1, T-2, T-3, ... T-10 (bukan T-1, T-10, T-2 ala alfabetis biasa)
+function sortByKode(items: ConsumableItemType[]): ConsumableItemType[] {
+  return [...items].sort((a, b) =>
+    a.kode_barang.localeCompare(b.kode_barang, undefined, { numeric: true })
+  );
+}
+
 export async function getConsumables(): Promise<ConsumableItemType[]> {
-  // Pastikan endpoint sesuai dengan route Laravel: /api/consumable
   const data: ConsumableApiResponse[] = await apiFetch("/consumable");
-  return data.map(mapConsumableFromApi);
+  return sortByKode(data.map(mapConsumableFromApi));
 }
 
 export async function createConsumable(values: ConsumableFormValues): Promise<ConsumableItemType> {

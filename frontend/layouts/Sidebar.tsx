@@ -1,8 +1,8 @@
 "use client";
 //import node module libraries
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import React, { Fragment } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import React, { Fragment, useEffect, useState } from "react";
 import {
   Accordion,
   Badge,
@@ -11,6 +11,7 @@ import {
   Nav,
   NavItem,
 } from "react-bootstrap";
+import { IconLogout } from "@tabler/icons-react";
 
 //import custom types
 import { MenuItemType } from "types/menuTypes";
@@ -29,6 +30,21 @@ interface SidebarProps {
 }
 const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
   const location = usePathname();
+  const router = useRouter();
+  const [userName, setUserName] = useState("Staff");
+
+  useEffect(() => {
+    const storedName = localStorage.getItem("userName");
+    if (storedName) setUserName(storedName);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("userId");
+    localStorage.removeItem("userName");
+    localStorage.removeItem("userRole");
+    router.push("/signin");
+  };
 
   //Generate Link
   const generateLink = (item: MenuItemType) => {
@@ -238,6 +254,20 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
               }
             }
           })}
+
+          {/* Tombol Logout — di bawah menu Pengaturan */}
+          <Nav.Item as='li'>
+            <button
+              type='button'
+              onClick={handleLogout}
+              className='nav-link border-0 bg-transparent w-100 text-start'>
+              <span className='nav-icon'>
+                <IconLogout size={18} />
+              </span>
+              <span className='text'>Logout</span>
+            </button>
+          </Nav.Item>
+
           <NavItem as='li' bsPrefix=''>
             <div className='text-center py-5 upgrade-ui'>
               <div>
@@ -248,8 +278,8 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
                   className='rounded-circle'
                 />
                 <div className='my-3'>
-                  <h5 className='mb-1 fs-6'>Jitu Chauhan</h5>
-                  <span className='text-secondary'>Free Version - 1 Month</span>
+                  <h5 className='mb-1 fs-6'>{userName}</h5>
+                  <span className='text-secondary'>Staff Ruang Tools</span>
                 </div>
               </div>
             </div>

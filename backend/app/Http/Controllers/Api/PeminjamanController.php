@@ -235,6 +235,43 @@ class PeminjamanController extends Controller
         return response()->json($peminjaman->load(['tool', 'peminta']), 201);
     }
 
+<<<<<<< HEAD
+=======
+    public function prosesPeminjaman(Request $request)
+{
+    // 1. Validasi input dari form frontend (karena saat submit, user harus kirim peminta_id, dll)
+    $request->validate([
+        'peminta_id' => 'required|uuid|exists:peminta,id',
+        'dicatat_oleh' => 'required|uuid|exists:users,id',
+    ]);
+
+    // 2. Ambil semua item dari antrean
+    $antrean = DB::table('temporary_cart')->get();
+
+    if ($antrean->isEmpty()) {
+        return response()->json(['message' => 'Antrean kosong'], 400);
+    }
+
+    // 3. Simpan ke tabel Peminjaman (bisa di-loop atau disesuaikan dengan logika timmu)
+    foreach ($antrean as $item) {
+        Peminjaman::create([
+            'id' => (string) Str::uuid(),
+            'tool_id' => $item->tools_id,
+            'peminta_id' => $request->peminta_id,
+            'dicatat_oleh' => $request->dicatat_oleh,
+            'tanggal' => now(),
+            'jumlah' => $item->qty,
+            // tambahkan field lain sesuai kebutuhan
+        ]);
+    }
+
+    // 4. Kosongkan antrean setelah diproses
+    DB::table('temporary_cart')->truncate();
+
+    return response()->json(['message' => 'Peminjaman berhasil diproses!'], 200);
+    }
+
+>>>>>>> 2fb0dd31fc42ad8cef89ee2b3cf8f7e2a6bfbff0
     // PUT/PATCH /api/peminjaman/{id}
     public function update(Request $request, string $id)
     {
@@ -273,7 +310,7 @@ class PeminjamanController extends Controller
             return response()->json(['message' => 'Peminjaman ini sudah ditandai kembali sebelumnya'], 422);
         }
 
-        $peminjaman->update(['tanggal_kembali' => now()->toDateString()]);
+        $peminjaman->update(['tanggal_kembali' => now()]); // ganti dari now()->toDateString()
 
         return response()->json([
             'message' => 'Alat berhasil ditandai dikembalikan',
@@ -281,6 +318,15 @@ class PeminjamanController extends Controller
         ]);
     }
 
+<<<<<<< HEAD
+=======
+    public function antrean()
+    {
+        $data = DB::table('temporary_cart')->get();
+        return response()->json(['data' => $data]);
+    }
+
+>>>>>>> 2fb0dd31fc42ad8cef89ee2b3cf8f7e2a6bfbff0
     // DELETE /api/peminjaman/{id}
     public function destroy(string $id)
     {

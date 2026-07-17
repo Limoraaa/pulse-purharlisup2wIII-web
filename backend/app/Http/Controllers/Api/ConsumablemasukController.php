@@ -67,27 +67,60 @@ class ConsumableMasukController extends Controller
     // PUT/PATCH /api/consumable-masuk/{id}
     // Catatan: sengaja tidak mengizinkan ubah jumlah_masuk/consumable_id di sini
     // karena itu butuh recalculation stok. Kalau butuh koreksi jumlah, hapus lalu buat ulang.
+    // PUT/PATCH /api/consumable-masuk/{id}
+// Boleh ubah jumlah_masuk, dengan penyesuaian otomatis ke stok consumable
     public function update(Request $request, string $id)
-    {
-        $consumableMasuk = ConsumableMasuk::find($id);
+        {
+            $consumableMasuk = ConsumableMasuk::find($id);
 
-        if (! $consumableMasuk) {
-            return response()->json(['message' => 'Data consumable masuk tidak ditemukan'], 404);
+            if (! $consumableMasuk) {
+                return response()->json(['message' => 'Data consumable masuk tidak ditemukan'], 404);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'tanggal' => 'sometimes|required|date',
+                'jumlah_masuk' => 'sometimes|required|integer|min:1',
+                'keterangan' => 'nullable|string',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json(['errors' => $validator->errors()], 422);
+            }
+
+            $data = $validator->validated();
+
+            try {
+                $consumableMasuk = DB::transaction(function () use ($consumableMasuk, $data) {
+                    // kalau jumlah tidak diubah, langsung update field lain saja
+                    if (! isset($data['jumlah_masuk']) || $data['jumlah_masuk'] == $consumableMasuk->jumlah_masuk) {
+                        $consumableMasuk->update($data);
+                        return $consumableMasuk;
+                    }
+
+                    $consumable = Consumable::lockForUpdate()->findOrFail($consumableMasuk->consumable_id);
+                    $selisih = $data['jumlah_masuk'] - $consumableMasuk->jumlah_masuk;
+
+                    // selisih positif = jumlah masuk nambah -> stok ditambah lagi
+                    // selisih negatif = jumlah masuk berkurang -> stok dikurangi
+                    if ($selisih < 0 && $consumable->stok_awal < abs($selisih)) {
+                        throw new \RuntimeException(
+                            "Stok tidak cukup untuk mengurangi jumlah ini. Stok saat ini: {$consumable->stok_awal}"
+                        );
+                    }
+
+                    $consumable->stok_awal += $selisih;
+                    $consumable->save();
+
+                    $consumableMasuk->update($data);
+
+                    return $consumableMasuk;
+                });
+            } catch (\RuntimeException $e) {
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
+
+            return response()->json($consumableMasuk->load('consumable'));
         }
-
-        $validator = Validator::make($request->all(), [
-            'tanggal' => 'sometimes|required|date',
-            'keterangan' => 'nullable|string',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-
-        $consumableMasuk->update($validator->validated());
-
-        return response()->json($consumableMasuk);
-    }
 
     // DELETE /api/consumable-masuk/{id}
     // Stok akan dikembalikan (dikurangi lagi) saat record dihapus

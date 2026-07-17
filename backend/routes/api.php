@@ -50,6 +50,7 @@ Route::patch('/peminjaman/{id}/kembali', [PeminjamanController::class, 'kembali'
 Route::apiResource('peminjaman', PeminjamanController::class);
 
 // 5. Consumable Masuk & Keluar (transaksi stok)
+Route::apiResource('consumable', ConsumableController::class);
 Route::apiResource('consumable-masuk', ConsumableMasukController::class);
 Route::apiResource('consumable-keluar', ConsumableKeluarController::class);
 
