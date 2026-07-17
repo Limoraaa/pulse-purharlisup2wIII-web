@@ -36,6 +36,7 @@ export interface PeminjamType {
   id: string;
   nama: string;
   divisi: string;
+  aktif: boolean;
 }
 
 // ------------------------------------------------------------------

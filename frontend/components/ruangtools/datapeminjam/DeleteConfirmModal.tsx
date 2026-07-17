@@ -24,7 +24,7 @@ const DeleteConfirmModal = ({
         <Modal.Title as="h6">Hapus Data</Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        Yakin ingin menghapus{" "}
+        Yakin ingin nonaktifkan{" "}
         <span className="fw-semibold">{peminjam?.nama}</span> dari data
         peminjam? Tindakan ini tidak bisa dibatalkan.
       </Modal.Body>
@@ -33,7 +33,7 @@ const DeleteConfirmModal = ({
           Batal
         </Button>
         <Button variant="danger" size="sm" onClick={onConfirm}>
-          Hapus
+          Nonaktifkan
         </Button>
       </Modal.Footer>
     </Modal>

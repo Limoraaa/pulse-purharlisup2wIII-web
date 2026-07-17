@@ -1,15 +1,12 @@
 "use client";
-// import node module libraries
-import { useMemo, useState } from "react";
-import { Row, Col, Card, CardBody } from "react-bootstrap";
+import { useEffect, useMemo, useState } from "react";
+import { Row, Col, Card, CardBody, Alert, Spinner } from "react-bootstrap";
 
-// import custom types
 import {
   RiwayatConsumableKeluarType,
   RiwayatConsumableKeluarFormValues,
 } from "types/RiwayatTypes";
 
-// import custom components
 import TanstackTable from "components/table/TanstackTable";
 import Flex from "components/common/Flex";
 import DasherBreadcrumb from "components/common/DasherBreadcrumb";
@@ -20,8 +17,7 @@ import DetailTransaksiModal from "components/ruangtools/riwayat/consumablekeluar
 import EditRiwayatModal from "components/ruangtools/riwayat/consumablekeluar/EditRiwayatModal";
 import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
 
-// import required data files
-import { RiwayatConsumableKeluarData } from "data/RiwayatConsumableKeluarData";
+import { getRiwayatConsumableKeluar } from "services/consumableKeluarService";
 
 const EXPORT_COLUMNS: ExportColumn[] = [
   { header: "Nomor Transaksi", key: "nomor_transaksi" },
@@ -40,10 +36,28 @@ const EXPORT_COLUMNS: ExportColumn[] = [
 ];
 
 const RiwayatConsumableKeluarManager = () => {
-  const [riwayatList, setRiwayatList] =
-    useState<RiwayatConsumableKeluarType[]>(RiwayatConsumableKeluarData);
+  const [riwayatList, setRiwayatList] = useState<RiwayatConsumableKeluarType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // ---- Filter Bulan & Tahun ----
+  const loadData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getRiwayatConsumableKeluar();
+      setRiwayatList(data);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Gagal memuat riwayat pengambilan bahan";
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
   const [bulanFilter, setBulanFilter] = useState(0);
   const [tahunFilter, setTahunFilter] = useState(0);
 
@@ -80,7 +94,6 @@ const RiwayatConsumableKeluarManager = () => {
     });
   }, [riwayatList, bulanFilter, tahunFilter]);
 
-  // ---- Modals ----
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [keteranganModalOpen, setKeteranganModalOpen] = useState(false);
@@ -88,9 +101,7 @@ const RiwayatConsumableKeluarManager = () => {
   const [detailGroupItems, setDetailGroupItems] = useState<RiwayatConsumableKeluarType[]>([]);
 
   const openDetailModal = (item: RiwayatConsumableKeluarType) => {
-    const group = riwayatList.filter(
-      (r) => r.nomor_transaksi === item.nomor_transaksi
-    );
+    const group = riwayatList.filter((r) => r.nomor_transaksi === item.nomor_transaksi);
     setDetailGroupItems(group);
     setDetailModalOpen(true);
   };
@@ -105,6 +116,10 @@ const RiwayatConsumableKeluarManager = () => {
     setKeteranganModalOpen(true);
   };
 
+  // Catatan: masih mengubah state lokal saja (belum PUT ke API).
+  // Backend ConsumableKeluarController::update() hanya izinkan ubah
+  // tanggal & pekerjaan_area, belum jumlah_keluar (butuh recalculation stok
+  // seperti yang sudah diterapkan di ConsumableMasukController).
   const handleEditSubmit = (values: RiwayatConsumableKeluarFormValues) => {
     if (activeItem) {
       setRiwayatList((prev) =>
@@ -115,37 +130,22 @@ const RiwayatConsumableKeluarManager = () => {
     setActiveItem(null);
   };
 
-  // ---- Export ----
   const handleExportPDF = () =>
-    exportToPDF(
-      filteredList,
-      EXPORT_COLUMNS,
-      "riwayat-consumable-keluar",
-      "Riwayat Consumable Keluar"
-    );
+    exportToPDF(filteredList, EXPORT_COLUMNS, "riwayat-consumable-keluar", "Riwayat Consumable Keluar");
   const handleExportExcel = () =>
     exportToExcel(filteredList, EXPORT_COLUMNS, "riwayat-consumable-keluar");
 
-  const columns = useMemo(
-    () =>
-      getRiwayatConsumableKeluarColumns({
-        onEdit: openEditModal,
-        onDetail: openDetailModal,
-        onLihatKeterangan: openKeteranganModal,
-      }),
-    [riwayatList]
-  );
-
+  const columns = getRiwayatConsumableKeluarColumns({
+  onEdit: openEditModal,
+  onDetail: openDetailModal,
+  onLihatKeterangan: openKeteranganModal,
+});
+  
   return (
     <>
       <Row>
         <Col>
-          <Flex
-            justifyContent="between"
-            alignItems="center"
-            className="mb-4 w-100"
-            breakpoint="md"
-          >
+          <Flex justifyContent="between" alignItems="center" className="mb-4 w-100" breakpoint="md">
             <div>
               <h1 className="mb-2 h2">Riwayat Consumable Keluar</h1>
               <p className="text-secondary mb-0">
@@ -159,6 +159,8 @@ const RiwayatConsumableKeluarManager = () => {
 
       <Card className="card-lg mb-6">
         <CardBody>
+          {error && <Alert variant="danger">{error}</Alert>}
+
           <RiwayatFilterBar
             bulanFilter={bulanFilter}
             onBulanFilterChange={setBulanFilter}
@@ -169,22 +171,25 @@ const RiwayatConsumableKeluarManager = () => {
             onExportExcel={handleExportExcel}
           />
 
-          <TanstackTable
-            data={filteredList}
-            columns={columns}
-            filter
-            pagination
-            isSortable
-            filterPlaceholder="Cari nomor transaksi / nama barang..."
-          />
+          {loading ? (
+            <div className="text-center py-6">
+              <Spinner animation="border" size="sm" className="me-2" />
+              Memuat data...
+            </div>
+          ) : (
+            <TanstackTable
+              data={filteredList}
+              columns={columns}
+              filter
+              pagination
+              isSortable
+              filterPlaceholder="Cari nomor transaksi / nama barang..."
+            />
+          )}
         </CardBody>
       </Card>
 
-      <DetailTransaksiModal
-        show={detailModalOpen}
-        onClose={() => setDetailModalOpen(false)}
-        items={detailGroupItems}
-      />
+      <DetailTransaksiModal show={detailModalOpen} onClose={() => setDetailModalOpen(false)} items={detailGroupItems} />
       <EditRiwayatModal
         show={editModalOpen}
         onClose={() => {

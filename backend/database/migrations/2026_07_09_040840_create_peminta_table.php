@@ -13,6 +13,7 @@ return new class extends Migration
             $table->uuid('id')->default(DB::raw('gen_random_uuid()'))->primary();
             $table->string('nama');
             $table->string('kategori')->nullable();
+            $table->boolean('aktif')->default(true);
             $table->timestamps();
         });
     }
