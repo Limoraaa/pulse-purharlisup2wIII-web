@@ -63,9 +63,9 @@ export async function submitPeminjaman(
       warna: string | null;
       ukuran: string | null;
     } | null;
-    peminta: {
+        peminta: {
       nama: string;
-      divisi: string;
+      kategori: string | null;
     } | null;
   }
   
@@ -82,7 +82,7 @@ export async function submitPeminjaman(
       ukuran: item.tool?.ukuran ?? "-",
       jumlah: item.jumlah,
       namaPeminjam: item.peminta?.nama ?? "-",
-      divisi: item.peminta?.divisi ?? "-",
+      divisi: item.peminta?.kategori ?? "-",
       areaKerja: item.area_pekerjaan ?? "-",
       spesifikasi: item.spesifikasi ?? "-",
       keterangan: item.keterangan ?? "-",
@@ -145,7 +145,7 @@ function mapRiwayatFromApi(item: PeminjamanIndexApiResponse): RiwayatPeminjamanT
     ukuran: item.tool?.ukuran ?? "-",
     jumlah: item.jumlah,
     nama_peminjam: namaPeminjam,
-    divisi: item.peminta?.divisi ?? "-",
+    divisi: item.peminta?.kategori ?? "-",
     area_kerja: item.area_pekerjaan ?? "-",
     keterangan: item.keterangan ?? "-",
   };
