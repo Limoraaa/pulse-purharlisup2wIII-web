@@ -11,9 +11,16 @@ use Illuminate\Support\Facades\Validator;
 class PemintaController extends Controller
 {
     // GET /api/peminta
-    public function index()
+    // GET /api/peminta?aktif=1  -> cuma yang aktif (dipakai buat dropdown pilih peminjam)
+    public function index(Request $request)
     {
-        return response()->json(Peminta::orderBy('nama')->get());
+        $query = Peminta::orderBy('nama');
+
+        if ($request->has('aktif')) {
+            $query->where('aktif', $request->boolean('aktif'));
+        }
+
+        return response()->json($query->get());
     }
 
     // GET /api/peminta/{id}
@@ -72,6 +79,9 @@ class PemintaController extends Controller
     }
 
     // DELETE /api/peminta/{id}
+    // Sengaja TIDAK hapus permanen -- kalau peminta sudah punya riwayat
+    // transaksi (peminjaman/consumable keluar), hapus paksa akan melanggar
+    // foreign key. Jadi "hapus" di sini artinya nonaktifkan.
     public function destroy(string $id)
     {
         $peminta = Peminta::find($id);
@@ -80,8 +90,28 @@ class PemintaController extends Controller
             return response()->json(['message' => 'Peminta tidak ditemukan'], 404);
         }
 
-        $peminta->delete();
+        $peminta->update(['aktif' => false]);
 
-        return response()->json(['message' => 'Peminta berhasil dihapus']);
+        return response()->json([
+            'message' => 'Peminta berhasil dinonaktifkan. Riwayat transaksi lama tetap aman.',
+            'data' => $peminta,
+        ]);
+    }
+
+    // PATCH /api/peminta/{id}/aktifkan
+    public function aktifkan(string $id)
+    {
+        $peminta = Peminta::find($id);
+
+        if (! $peminta) {
+            return response()->json(['message' => 'Peminta tidak ditemukan'], 404);
+        }
+
+        $peminta->update(['aktif' => true]);
+
+        return response()->json([
+            'message' => 'Peminta berhasil diaktifkan kembali.',
+            'data' => $peminta,
+        ]);
     }
 }
