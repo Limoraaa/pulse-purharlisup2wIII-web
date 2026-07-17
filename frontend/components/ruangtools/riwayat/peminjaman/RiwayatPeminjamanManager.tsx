@@ -2,19 +2,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Row, Col, Card, CardBody, Alert, Spinner } from "react-bootstrap";
 
-import {
-  RiwayatPeminjamanType,
-  RiwayatPeminjamanFormValues,
-} from "types/RiwayatTypes";
+import { RiwayatPeminjamanType } from "types/RiwayatTypes";
 
 import TanstackTable from "components/table/TanstackTable";
 import Flex from "components/common/Flex";
 import DasherBreadcrumb from "components/common/DasherBreadcrumb";
 import RiwayatFilterBar from "components/ruangtools/riwayat/common/RiwayatFilterBar";
-import KeteranganModal from "components/ruangtools/riwayat/common/KeteranganModal";
 import { getRiwayatPeminjamanColumns } from "components/ruangtools/riwayat/peminjaman/ColumnDefination";
 import DetailTransaksiModal from "components/ruangtools/riwayat/peminjaman/DetailTransaksiModal";
-import EditRiwayatModal from "components/ruangtools/riwayat/peminjaman/EditRiwayatModal";
 import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
 
 import { getRiwayatPeminjaman } from "services/peminjamanService";
@@ -95,11 +90,8 @@ const RiwayatPeminjamanManager = () => {
     });
   }, [riwayatList, bulanFilter, tahunFilter]);
 
-  // ---- Modals ----
+  // ---- Modal Detail Transaksi ----
   const [detailModalOpen, setDetailModalOpen] = useState(false);
-  const [editModalOpen, setEditModalOpen] = useState(false);
-  const [keteranganModalOpen, setKeteranganModalOpen] = useState(false);
-  const [activeItem, setActiveItem] = useState<RiwayatPeminjamanType | null>(null);
   const [detailGroupItems, setDetailGroupItems] = useState<RiwayatPeminjamanType[]>([]);
 
   const openDetailModal = (item: RiwayatPeminjamanType) => {
@@ -110,39 +102,14 @@ const RiwayatPeminjamanManager = () => {
     setDetailModalOpen(true);
   };
 
-  const openEditModal = (item: RiwayatPeminjamanType) => {
-    setActiveItem(item);
-    setEditModalOpen(true);
-  };
-
-  const openKeteranganModal = (item: RiwayatPeminjamanType) => {
-    setActiveItem(item);
-    setKeteranganModalOpen(true);
-  };
-
-  // Catatan: form ini masih mengubah state lokal saja (belum PUT ke API),
-  // karena field yang bisa diedit (area_kerja dll) belum dipetakan ke endpoint
-  // update /peminjaman/{id}. Bisa disambungkan nanti kalau memang dibutuhkan.
-  const handleEditSubmit = (values: RiwayatPeminjamanFormValues) => {
-    if (activeItem) {
-      setRiwayatList((prev) =>
-        prev.map((r) => (r.id === activeItem.id ? { ...r, ...values } : r))
-      );
-    }
-    setEditModalOpen(false);
-    setActiveItem(null);
-  };
-
   const handleExportPDF = () =>
     exportToPDF(filteredList, EXPORT_COLUMNS, "riwayat-peminjaman-tools", "Riwayat Peminjaman Tools");
   const handleExportExcel = () =>
     exportToExcel(filteredList, EXPORT_COLUMNS, "riwayat-peminjaman-tools");
 
   const columns = getRiwayatPeminjamanColumns({
-  onEdit: openEditModal,
-  onDetail: openDetailModal,
-  onLihatKeterangan: openKeteranganModal,
-});
+    onDetail: openDetailModal,
+  });
 
   return (
     <>
@@ -192,21 +159,10 @@ const RiwayatPeminjamanManager = () => {
         </CardBody>
       </Card>
 
-      <DetailTransaksiModal show={detailModalOpen} onClose={() => setDetailModalOpen(false)} items={detailGroupItems} />
-      <EditRiwayatModal
-        show={editModalOpen}
-        onClose={() => {
-          setEditModalOpen(false);
-          setActiveItem(null);
-        }}
-        onSubmit={handleEditSubmit}
-        item={activeItem}
-      />
-      <KeteranganModal
-        show={keteranganModalOpen}
-        onClose={() => setKeteranganModalOpen(false)}
-        title={`Keterangan — ${activeItem?.nama_barang ?? ""}`}
-        keterangan={activeItem?.keterangan ?? ""}
+      <DetailTransaksiModal
+        show={detailModalOpen}
+        onClose={() => setDetailModalOpen(false)}
+        items={detailGroupItems}
       />
     </>
   );

@@ -73,7 +73,7 @@ export const DashboardMenu: MenuItemType[] = [
   },
   {
     id: uuid(),
-    title: "Laporan",
+    title: "Laporan Kerusakan Alat",
     link: "laporan",
     icon: <IconReportAnalytics size={20} strokeWidth={1.5} />,
   },

@@ -11,15 +11,11 @@ import { RiwayatPeminjamanType } from "types/RiwayatTypes";
 import ActionMenu from "components/common/ActionMenu";
 
 interface ColumnHandlers {
-  onEdit: (item: RiwayatPeminjamanType) => void;
   onDetail: (item: RiwayatPeminjamanType) => void;
-  onLihatKeterangan: (item: RiwayatPeminjamanType) => void;
 }
 
 export const getRiwayatPeminjamanColumns = ({
-  onEdit,
   onDetail,
-  onLihatKeterangan,
 }: ColumnHandlers): ColumnDef<RiwayatPeminjamanType>[] => [
   {
     accessorKey: "tanggal_pinjam",
@@ -82,14 +78,8 @@ export const getRiwayatPeminjamanColumns = ({
         drop="start"
         align="start"
       >
-        <Dropdown.Item onClick={() => onEdit(row.original)}>
-          Edit
-        </Dropdown.Item>
         <Dropdown.Item onClick={() => onDetail(row.original)}>
           Detail Transaksi
-        </Dropdown.Item>
-        <Dropdown.Item onClick={() => onLihatKeterangan(row.original)}>
-          Lihat Keterangan
         </Dropdown.Item>
       </ActionMenu>
     ),
