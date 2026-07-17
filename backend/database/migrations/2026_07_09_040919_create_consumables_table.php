@@ -14,6 +14,7 @@ return new class extends Migration
             $table->string('kode_barang')->unique();
             $table->string('nama');
             $table->string('merk')->nullable();
+            $table->string('type')->nullable();
             $table->string('er_e')->nullable();
             $table->string('ukuran')->nullable();
             $table->integer('stok_awal')->default(0);

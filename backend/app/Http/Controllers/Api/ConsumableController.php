@@ -12,15 +12,16 @@ class ConsumableController extends Controller
      * GET /api/consumables
      * Tampilkan semua data consumable, plus stok akhir (computed).
      */
-    public function index()
-    {
-        $consumables = Consumable::all()->map(function ($item) {
+   public function index()
+{
+    $consumables = Consumable::orderBy('kode_barang')->get()->map(function ($item) {
             return [
                 'id' => $item->id,
                 'kode_barang' => $item->kode_barang,
                 'nama' => $item->nama,
                 'merk' => $item->merk,
                 'er_e' => $item->er_e,
+                'type' => $item->type,
                 'ukuran' => $item->ukuran,
                 'stok_awal' => $item->stok_awal,
                 'stok_akhir' => $item->stok_awal,
@@ -41,6 +42,7 @@ class ConsumableController extends Controller
             'nama' => 'required|string',
             'merk' => 'nullable|string',
             'er_e' => 'nullable|string',
+            'type' => 'nullable|string',
             'ukuran' => 'nullable|string',
             'stok_awal' => 'required|integer|min:0',
         ]);
@@ -64,6 +66,7 @@ class ConsumableController extends Controller
             'nama' => $consumable->nama,
             'merk' => $consumable->merk,
             'er_e' => $consumable->er_e,
+            'type' => $consumable->type,
             'ukuran' => $consumable->ukuran,
             'stok_awal' => $consumable->stok_awal,
             'stok_akhir' => $consumable->stok_awal,
@@ -83,6 +86,7 @@ class ConsumableController extends Controller
             'nama' => 'sometimes|string',
             'merk' => 'nullable|string',
             'er_e' => 'nullable|string',
+            'type' => 'nullable|string',
             'ukuran' => 'nullable|string',
             'stok_awal' => 'sometimes|integer|min:0',
         ]);

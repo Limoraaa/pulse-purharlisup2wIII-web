@@ -23,7 +23,8 @@ interface ColumnHandlers {
   onDetail: (tool: ToolItemType) => void;
   onEdit: (tool: ToolItemType) => void;
   onDelete: (tool: ToolItemType) => void;
-  onAddToCart: (tool: ToolItemType) => void;
+  // event ikut dikirim supaya komponen induk tahu titik awal animasi "fly to cart"
+  onAddToCart: (tool: ToolItemType, event: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
 // Dibuat sebagai function (bukan array statis) karena kolom "Aksi" butuh
@@ -116,7 +117,7 @@ export const getDataToolsColumns = ({
             className="btn btn-primary btn-sm d-flex align-items-center gap-1"
             disabled={habis}
             title={habis ? "Stok tidak tersedia" : "Tambah ke Peminjaman"}
-            onClick={() => onAddToCart(row.original)}
+            onClick={(e) => onAddToCart(row.original, e)}
           >
             <IconShoppingCartPlus size={16} />
             Tambah ke Peminjaman

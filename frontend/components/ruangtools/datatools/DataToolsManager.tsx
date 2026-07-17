@@ -1,16 +1,26 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { Row, Col, Card, CardBody, Button, Form, Spinner, Alert } from "react-bootstrap";
-import { IconPlus } from "@tabler/icons-react";
+import { IconPlus, IconCircleCheck } from "@tabler/icons-react";
+import { v4 as uuid } from "uuid";
 
-import { ToolItemType, ToolFormValues, ToolCondition } from "types/DataToolsTypes";
-// import node module libraries
-import { IconCircleCheck } from "@tabler/icons-react";
-// import { v4 as uuid } from "uuid"; // Dihapus jika uuid tidak dipakai lagi di tempat lain
-
-// import custom types
+import { useAppDispatch, useAppSelector } from "store/store";
 import {
-  CartItemType,
+  fetchTools,
+  addToolThunk,
+  updateToolThunk,
+  deleteToolThunk,
+  checkoutPeminjamanThunk,
+  fetchAntreanThunk,
+  scanToolThunk,
+  updateCartItemThunk,
+  removeCartItemThunk,
+} from "store/slices/inventoryToolsSlice";
+
+import {
+  ToolItemType,
+  ToolFormValues,
+  ToolCondition,
   LoanFormValues,
 } from "types/DataToolsTypes";
 
@@ -24,60 +34,77 @@ import DeleteConfirmModal from "components/ruangtools/datatools/DeleteConfirmMod
 import CartFAB from "components/ruangtools/datatools/CartFAB";
 import CartOffcanvas from "components/ruangtools/datatools/CartOffcanvas";
 import LoanFormModal from "components/ruangtools/datatools/LoanFormModal";
+import AddToCartFlyEffect, {
+  FlyAnimationItem,
+} from "components/ruangtools/datatools/AddToCartFlyEffect";
 
-import { getTools, createTool, updateTool, deleteTool } from "services/toolService";
+const generateNextKodeBarang = (tools: ToolItemType[]): string => {
+  if (tools.length === 0) return "I-001";
+  const maxNumber = tools.reduce((max, tool) => {
+    const match = tool.kodeBarang.match(/^I-(\d+)$/);
+    if (!match) return max;
+    const num = parseInt(match[1], 10);
+    return num > max ? num : max;
+  }, 0);
+  return `I-${String(maxNumber + 1).padStart(3, "0")}`;
+};
 
-const KONDISI_FILTER_OPTIONS: (ToolCondition | "Semua")[] = [
-  "Semua",
-  "Baik",
-  "Rusak",
-];
+const KONDISI_FILTER_OPTIONS: (ToolCondition | "Semua")[] = ["Semua", "Baik", "Rusak"];
 
 const DataToolsManager = () => {
-  const [tools, setTools] = useState<ToolItemType[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const dispatch = useAppDispatch();
+
+  const tools = useAppSelector((state) => state.inventoryTools.tools);
+  const cart = useAppSelector((state) => state.inventoryTools.cart);
+  const loadingTools = useAppSelector((state) => state.inventoryTools.loadingTools);
+  const toolsError = useAppSelector((state) => state.inventoryTools.toolsError);
+  const cartError = useAppSelector((state) => state.inventoryTools.cartError);
 
   const [kondisiFilter, setKondisiFilter] = useState<ToolCondition | "Semua">("Semua");
-
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [activeTool, setActiveTool] = useState<ToolItemType | null>(null);
-  
-  const loadTools = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await getTools();
-      setTools(data);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Gagal memuat data alat";
-      setError(message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [suggestedKodeBarang, setSuggestedKodeBarang] = useState("");
 
-  useEffect(() => {
-    loadTools();
-  }, []);
-
-  // State Keranjang Peminjaman
-  const [cart, setCart] = useState<CartItemType[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [loanFormOpen, setLoanFormOpen] = useState(false);
+  const [submittingLoan, setSubmittingLoan] = useState(false);
+  const [loanError, setLoanError] = useState<string | null>(null);
 
-  // State notifikasi sukses
+  const [flyAnimations, setFlyAnimations] = useState<FlyAnimationItem[]>([]);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // ================= LOAD DATA + POLLING ANTREAN =================
+  // ================= LOAD DATA + POLLING ANTREAN =================
+  useEffect(() => {
+    // Cek apakah user sudah login (sesuaikan dengan cara kamu menyimpan sesi/token)
+    const token = localStorage.getItem("token"); // atau "userId"
+    
+    if (!token) {
+      return; // Hentikan proses jika tidak ada token/belum login
+    }
+
+    dispatch(fetchTools());
+    dispatch(fetchAntreanThunk());
+
+    // polling supaya hasil scan dari Flutter app langsung muncul di web
+    const interval = setInterval(() => {
+      dispatch(fetchAntreanThunk());
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [dispatch]);
 
   const filteredTools = useMemo(() => {
     if (kondisiFilter === "Semua") return tools;
     return tools.filter((t) => t.kondisi === kondisiFilter);
   }, [tools, kondisiFilter]);
 
+  // ================= CRUD TOOLS (tidak berubah) =================
   const openAddModal = () => {
     setActiveTool(null);
+    setSuggestedKodeBarang(generateNextKodeBarang(tools));
     setFormModalOpen(true);
   };
 
@@ -89,25 +116,14 @@ const DataToolsManager = () => {
   const handleFormSubmit = async (values: ToolFormValues) => {
     try {
       if (activeTool) {
-        const updated = await updateTool(activeTool.id, values);
-        setTools((prev) =>
-          prev
-            .map((t) => (t.id === updated.id ? updated : t))
-            .sort((a, b) => a.kodeBarang.localeCompare(b.kodeBarang, undefined, { numeric: true }))
-        );
+        await dispatch(updateToolThunk({ id: activeTool.id, values })).unwrap();
       } else {
-        const created = await createTool(values);
-        setTools((prev) =>
-          [created, ...prev].sort((a, b) =>
-            a.kodeBarang.localeCompare(b.kodeBarang, undefined, { numeric: true })
-          )
-        );
+        await dispatch(addToolThunk(values)).unwrap();
       }
       setFormModalOpen(false);
       setActiveTool(null);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Gagal menyimpan data";
-      alert(message);
+      alert(err instanceof Error ? err.message : "Gagal menyimpan data");
     }
   };
 
@@ -124,85 +140,99 @@ const DataToolsManager = () => {
   const handleConfirmDelete = async () => {
     if (!activeTool) return;
     try {
-      await deleteTool(activeTool.id);
-      setTools((prev) => prev.filter((t) => t.id !== activeTool.id));
-      // kalau alat yang dihapus kebetulan ada di keranjang, ikut dihapus juga
-      setCart((prev) => prev.filter((c) => c.toolId !== activeTool.id));
+      await dispatch(deleteToolThunk(activeTool.id)).unwrap();
+      // kalau tool yang dihapus ada di cart, item di temporary_cart jadi orphan
+      // -> antrean() sudah nge-skip tool yang null, jadi tinggal refetch
+      dispatch(fetchAntreanThunk());
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Gagal menghapus data";
-      alert(message);
+      alert(err instanceof Error ? err.message : "Gagal menghapus data");
     } finally {
       setDeleteModalOpen(false);
       setActiveTool(null);
     }
   };
 
-  // ---- handler: Tambah ke Peminjaman (keranjang) ----
-  const handleAddToCart = (tool: ToolItemType) => {
-    const tersedia = tool.stok - tool.dipinjam;
-    if (tersedia <= 0) return;
+  // ================= KERANJANG PEMINJAMAN =================
+  const handleAddToCart = async (
+    tool: ToolItemType,
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    // 1. Cari apakah alat ini sudah ada di keranjang
+    const itemDiKeranjang = cart.find(c => c.toolId === tool.id);
+    const jumlahDiKeranjang = itemDiKeranjang ? itemDiKeranjang.jumlah : 0;
 
-    setCart((prev) => {
-      const existing = prev.find((c) => c.toolId === tool.id);
-      if (existing) {
-        // sudah ada di keranjang -> tambah 1, dibatasi maksimal stok tersedia
-        return prev.map((c) =>
-          c.toolId === tool.id
-            ? { ...c, jumlah: Math.min(c.jumlah + 1, tersedia) }
-            : c
-        );
+    // 2. Hitung stok AKTUAL (Stok - Dipinjam - Yang sudah ada di keranjang)
+    const tersedia = (tool.stok - tool.dipinjam) - jumlahDiKeranjang;
+
+    if (tersedia <= 0) {
+      alert(`Stok maksimal! Anda sudah memasukkan semua stok ${tool.namaBarang} yang tersedia ke keranjang.`);
+      return;
+    }
+
+    try {
+      await dispatch(scanToolThunk({ toolId: tool.id, jumlah: 1 })).unwrap();
+      await dispatch(fetchAntreanThunk()).unwrap();
+
+      if (event.currentTarget) {
+        const rect = event.currentTarget.getBoundingClientRect();
+        setFlyAnimations((prev) => [
+          ...prev,
+          { 
+            id: uuid(), 
+            startX: rect.left + rect.width / 2, 
+            startY: rect.top + rect.height / 2 
+          },
+        ]);
       }
-      // item baru di keranjang
-      return [
-        ...prev,
-        {
-          toolId: tool.id,
-          kodeBarang: tool.kodeBarang,
-          namaBarang: tool.namaBarang,
-          jumlah: 1,
-          maxJumlah: tersedia,
-        },
-      ];
-    });
-    setCartOpen(true); // otomatis buka panel keranjang biar staff langsung lihat
+    } catch (err: any) {
+      const errorMessage = (typeof err === 'string' ? err : err?.message) || "Gagal menambah ke keranjang";
+      alert(errorMessage);
+    }
   };
 
-  const handleUpdateCartQty = (toolId: string, jumlah: number) => {
-    setCart((prev) =>
-      prev.map((c) => (c.toolId === toolId ? { ...c, jumlah } : c))
-    );
+  const handleAnimationEnd = (id: string) => {
+    setFlyAnimations((prev) => prev.filter((a) => a.id !== id));
   };
 
-  const handleRemoveFromCart = (toolId: string) => {
-    setCart((prev) => prev.filter((c) => c.toolId !== toolId));
+  // Pastikan parameter di sini menerima string cartId
+  const handleUpdateCartQty = (cartId: string, jumlah: number) => {
+    // Pastikan updateCartItemThunk mengirimkan cartId ke backend
+    dispatch(updateCartItemThunk({ cartId, qty: jumlah }));
   };
 
-  // ---- handler: Lanjutkan Peminjaman -> buka Form Peminjaman ----
+  const handleRemoveFromCart = async (cartId: string) => {
+    // Pastikan removeCartItemThunk mengirimkan cartId ke backend
+    await dispatch(removeCartItemThunk(cartId)).unwrap();
+    await dispatch(fetchAntreanThunk()).unwrap(); // Refresh agar UI terupdate
+  };
+
   const handleProceedToLoanForm = () => {
     setCartOpen(false);
     setLoanFormOpen(true);
   };
 
-  // ---- handler: submit Form Peminjaman ----
-  const handleLoanSubmit = (values: LoanFormValues) => {
-    // 1) kurangi tersedia / tambah dipinjam untuk tiap alat di keranjang
-    setTools((prev) =>
-      prev.map((tool) => {
-        const cartItem = cart.find((c) => c.toolId === tool.id);
-        if (!cartItem) return tool;
-        return { ...tool, dipinjam: tool.dipinjam + cartItem.jumlah };
-      })
-    );
+  const handleLoanSubmit = async (values: LoanFormValues) => {
+    setSubmittingLoan(true);
+    setLoanError(null);
 
-    // 2) bersihkan keranjang & tutup form
-    setCart([]);
-    setLoanFormOpen(false);
+    try {
+      const dicatatOleh = localStorage.getItem("userId");
+      if (!dicatatOleh) {
+        throw new Error("Sesi login tidak ditemukan. Silakan login ulang.");
+      }
 
-    // 3) tampilkan notifikasi sukses
-    setSuccessMessage(
-      `Peminjaman untuk ${values.namaPeminjam} berhasil dibuat. Status: Sedang Dipinjam.`
-    );
-    setTimeout(() => setSuccessMessage(null), 5000);
+      await dispatch(checkoutPeminjamanThunk({ loanForm: values, dicatatOleh })).unwrap();
+
+      setLoanFormOpen(false);
+      setSuccessMessage(
+        `Peminjaman untuk ${values.namaPeminjam} berhasil dibuat. Status: Sedang Dipinjam.`
+      );
+      setTimeout(() => setSuccessMessage(null), 5000);
+    } catch (err) {
+      setLoanError(err instanceof Error ? err.message : "Gagal membuat peminjaman");
+    } finally {
+      setSubmittingLoan(false);
+    }
   };
 
   const columns = useMemo(
@@ -218,20 +248,25 @@ const DataToolsManager = () => {
 
   return (
     <>
-      {/* ---- Notifikasi sukses setelah peminjaman dikonfirmasi ---- */}
       {successMessage && (
-        <Alert
-          variant="success"
-          className="d-flex align-items-center gap-2"
-          dismissible
-          onClose={() => setSuccessMessage(null)}
-        >
+        <Alert variant="success" className="d-flex align-items-center gap-2" dismissible onClose={() => setSuccessMessage(null)}>
           <IconCircleCheck size={20} />
           {successMessage}
         </Alert>
       )}
 
-      {/* ---- Header: judul, deskripsi, breadcrumb, tombol Tambah Data ---- */}
+      {loanError && (
+        <Alert variant="danger" dismissible onClose={() => setLoanError(null)}>
+          {loanError}
+        </Alert>
+      )}
+
+      {cartError && (
+        <Alert variant="warning" dismissible onClose={() => {}}>
+          {cartError}
+        </Alert>
+      )}
+
       <Row>
         <Col>
           <Flex justifyContent="between" alignItems="center" className="mb-4 w-100" breakpoint="md">
@@ -254,7 +289,7 @@ const DataToolsManager = () => {
 
       <Card className="card-lg mb-6">
         <CardBody>
-          {error && <Alert variant="danger">{error}</Alert>}
+          {toolsError && <Alert variant="danger">{toolsError}</Alert>}
 
           <Row className="align-items-center g-3 mb-2">
             <Col md={4} sm={6}>
@@ -265,15 +300,13 @@ const DataToolsManager = () => {
                 onChange={(e) => setKondisiFilter(e.target.value as ToolCondition | "Semua")}
               >
                 {KONDISI_FILTER_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
-                  </option>
+                  <option key={opt} value={opt}>{opt}</option>
                 ))}
               </Form.Select>
             </Col>
           </Row>
 
-          {loading ? (
+          {loadingTools ? (
             <div className="text-center py-6">
               <Spinner animation="border" size="sm" className="me-2" />
               Memuat data...
@@ -293,12 +326,10 @@ const DataToolsManager = () => {
 
       <ToolFormModal
         show={formModalOpen}
-        onClose={() => {
-          setFormModalOpen(false);
-          setActiveTool(null);
-        }}
+        onClose={() => { setFormModalOpen(false); setActiveTool(null); }}
         onSubmit={handleFormSubmit}
         initialData={activeTool}
+        suggestedKodeBarang={suggestedKodeBarang}
       />
       <ToolDetailModal show={detailModalOpen} onClose={() => setDetailModalOpen(false)} tool={activeTool} />
       <DeleteConfirmModal
@@ -308,7 +339,6 @@ const DataToolsManager = () => {
         tool={activeTool}
       />
 
-      {/* ---- Keranjang Peminjaman: FAB + panel ---- */}
       <CartFAB itemCount={cart.length} onClick={() => setCartOpen(true)} />
       <CartOffcanvas
         show={cartOpen}
@@ -318,13 +348,14 @@ const DataToolsManager = () => {
         onRemove={handleRemoveFromCart}
         onProceed={handleProceedToLoanForm}
       />
+      <AddToCartFlyEffect animations={flyAnimations} onAnimationEnd={handleAnimationEnd} />
 
-      {/* ---- Form Peminjaman ---- */}
       <LoanFormModal
         show={loanFormOpen}
         onClose={() => setLoanFormOpen(false)}
         onSubmit={handleLoanSubmit}
         cartItems={cart}
+        submitting={submittingLoan}
       />
     </>
   );

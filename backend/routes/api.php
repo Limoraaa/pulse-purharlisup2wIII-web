@@ -6,11 +6,11 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ConsumableController;
 use App\Http\Controllers\Api\ToolController;
 use App\Http\Controllers\Api\UserController;
-use App\Http\Controllers\API\PemintaController;
-use App\Http\Controllers\API\PeminjamanController;
-use App\Http\Controllers\API\ConsumableMasukController;
-use App\Http\Controllers\API\ConsumableKeluarController;
-use App\Http\Controllers\API\LaporanKerusakanController;
+use App\Http\Controllers\Api\PemintaController;
+use App\Http\Controllers\Api\PeminjamanController;
+use App\Http\Controllers\Api\ConsumableMasukController;
+use App\Http\Controllers\Api\ConsumableKeluarController;
+use App\Http\Controllers\Api\LaporanKerusakanController;
 
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -19,23 +19,38 @@ Route::apiResource('users', UserController::class);
 
 // 1. tools (simple CRUD)
 Route::apiResource('tools', ToolController::class);
+Route::patch('/tools/{tool}/kurangi-stok', [ToolController::class, 'kurangiStok']);
 
 // 2. consumable (simple CRUD)
-Route::apiResource('consumables', ConsumableController::class);
+Route::apiResource('consumable', ConsumableController::class);
 
 // 3. Peminta (simple CRUD)
 Route::apiResource('peminta', PemintaController::class);
 
-// 4. Peminjaman (CRUD + tandai kembali)
-// Route khusus HARUS di atas
+// 4. Peminjaman -> khusus route cart & proses WAJIB login (dipakai web + app Flutter)
+// karena butuh identitas user yang scan/pilih alat.
+// 4. Peminjaman
 Route::post('/peminjaman/scan', [PeminjamanController::class, 'scan']);
+
+// Pindahkan route ini KELUAR dari middleware auth:sanctum 
+// agar Flutter (tanpa login) dan Web bisa mengaksesnya.
 Route::get('/peminjaman/antrean', [PeminjamanController::class, 'antrean']);
-Route::post('/peminjaman/proses', [PeminjamanController::class, 'prosesPeminjaman']);
+Route::patch('/peminjaman/cart/{id}', [PeminjamanController::class, 'updateCartItem']);
+Route::delete('/peminjaman/cart/{id}', [PeminjamanController::class, 'removeCartItem']);
+
+// Proses peminjaman tetap butuh auth karena harus tahu siapa yang meminjam
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/peminjaman/proses', [PeminjamanController::class, 'prosesPeminjaman']);
+});
+
+// Route khusus HARUS di atas
 Route::patch('/peminjaman/{id}/kembali', [PeminjamanController::class, 'kembali']);
 
-// Baru CRUD
+// CRUD dasar peminjaman (tidak butuh scoping per user)
 Route::apiResource('peminjaman', PeminjamanController::class);
+
 // 5. Consumable Masuk & Keluar (transaksi stok)
+Route::apiResource('consumable', ConsumableController::class);
 Route::apiResource('consumable-masuk', ConsumableMasukController::class);
 Route::apiResource('consumable-keluar', ConsumableKeluarController::class);
 
@@ -49,4 +64,3 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user();
     });
 });
-

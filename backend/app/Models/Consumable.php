@@ -17,6 +17,7 @@ class Consumable extends Model
         'kode_barang',
         'nama',
         'merk',
+        'type',
         'er_e',
         'ukuran',
         'stok_awal',

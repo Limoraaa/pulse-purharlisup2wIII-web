@@ -95,3 +95,21 @@ export async function updateTool(id: string, values: ToolFormValues): Promise<To
 export async function deleteTool(id: string): Promise<void> {
   await apiFetch(`/tools/${id}`, { method: "DELETE" });
 }
+
+export async function updateToolKondisi(
+  id: string,
+  kondisi: "Baik" | "Rusak"
+): Promise<void> {
+  const keadaan = kondisi === "Rusak" ? "R" : "B";
+  await apiFetch(`/tools/${id}`, {
+    method: "PUT",
+    body: JSON.stringify({ keadaan }),
+  });
+}
+
+export async function kurangiStokTool(id: string, jumlah: number): Promise<void> {
+  await apiFetch(`/tools/${id}/kurangi-stok`, {
+    method: "PATCH",
+    body: JSON.stringify({ jumlah }),
+  });
+}

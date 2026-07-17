@@ -11,14 +11,14 @@ return new class extends Migration
     {
         Schema::create('peminjaman', function (Blueprint $table) {
             $table->uuid('id')->default(DB::raw('gen_random_uuid()'))->primary();
-            $table->date('tanggal');
+            $table->timestamp('tanggal');
             $table->foreignUuid('tool_id')->constrained('tools');
             $table->foreignUuid('peminta_id')->constrained('peminta');
             $table->integer('jumlah');
             $table->string('area_pekerjaan')->nullable();
             $table->string('spesifikasi')->nullable();
             $table->text('keterangan')->nullable();
-            $table->date('tanggal_kembali')->nullable();
+            $table->timestamp('tanggal_kembali')->nullable();
             $table->foreignUuid('dicatat_oleh')->constrained('users');
             $table->timestamps();
         });

@@ -1,0 +1,207 @@
+"use client";
+// import node module libraries
+import { useMemo, useState } from "react";
+import { Row, Col, Card, CardBody } from "react-bootstrap";
+
+// import custom types
+import {
+  RiwayatConsumableKeluarType,
+  RiwayatConsumableKeluarFormValues,
+} from "types/RiwayatTypes";
+
+// import custom components
+import TanstackTable from "components/table/TanstackTable";
+import Flex from "components/common/Flex";
+import DasherBreadcrumb from "components/common/DasherBreadcrumb";
+import RiwayatFilterBar from "components/ruangtools/riwayat/common/RiwayatFilterBar";
+import KeteranganModal from "components/ruangtools/riwayat/common/KeteranganModal";
+import { getRiwayatConsumableKeluarColumns } from "components/ruangtools/riwayat/consumablekeluar/ColumnDefination";
+import DetailTransaksiModal from "components/ruangtools/riwayat/consumablekeluar/DetailTransaksiModal";
+import EditRiwayatModal from "components/ruangtools/riwayat/consumablekeluar/EditRiwayatModal";
+import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
+
+// import required data files
+import { RiwayatConsumableKeluarData } from "data/RiwayatConsumableKeluarData";
+
+const EXPORT_COLUMNS: ExportColumn[] = [
+  { header: "Nomor Transaksi", key: "nomor_transaksi" },
+  { header: "Tanggal Pengambilan", key: "tanggal_pengambilan" },
+  { header: "Kode Barang", key: "kode_barang" },
+  { header: "Nama Barang", key: "nama_barang" },
+  { header: "Merk", key: "merk" },
+  { header: "Tipe", key: "tipe" },
+  { header: "ER/E", key: "er_e" },
+  { header: "Ukuran", key: "ukuran" },
+  { header: "Jumlah", key: "jumlah" },
+  { header: "Nama Peminta", key: "nama_peminta" },
+  { header: "Divisi", key: "divisi" },
+  { header: "Area Kerja", key: "area_kerja" },
+  { header: "Keterangan", key: "keterangan" },
+];
+
+const RiwayatConsumableKeluarManager = () => {
+  const [riwayatList, setRiwayatList] =
+    useState<RiwayatConsumableKeluarType[]>(RiwayatConsumableKeluarData);
+
+  // ---- Filter Bulan & Tahun ----
+  const [bulanFilter, setBulanFilter] = useState(0);
+  const [tahunFilter, setTahunFilter] = useState(0);
+
+  const parseTanggal = (str: string) => {
+    const bulanMap: Record<string, number> = {
+      Jan: 0, Feb: 1, Mar: 2, Apr: 3, Mei: 4, Jun: 5,
+      Jul: 6, Agu: 7, Sep: 8, Okt: 9, Nov: 10, Des: 11,
+    };
+    const match = str.match(/(\d{2}) (\w{3}) (\d{4})/);
+    if (!match) return null;
+    const [, day, bulanStr, year] = match;
+    const month = bulanMap[bulanStr];
+    if (month === undefined) return null;
+    return new Date(Number(year), month, Number(day));
+  };
+
+  const tahunOptions = useMemo(() => {
+    const tahunSet = new Set<number>();
+    riwayatList.forEach((r) => {
+      const tanggal = parseTanggal(r.tanggal_pengambilan);
+      if (tanggal) tahunSet.add(tanggal.getFullYear());
+    });
+    return Array.from(tahunSet).sort((a, b) => b - a);
+  }, [riwayatList]);
+
+  const filteredList = useMemo(() => {
+    return riwayatList.filter((r) => {
+      if (bulanFilter === 0 && tahunFilter === 0) return true;
+      const tanggal = parseTanggal(r.tanggal_pengambilan);
+      if (!tanggal) return true;
+      if (bulanFilter !== 0 && tanggal.getMonth() + 1 !== bulanFilter) return false;
+      if (tahunFilter !== 0 && tanggal.getFullYear() !== tahunFilter) return false;
+      return true;
+    });
+  }, [riwayatList, bulanFilter, tahunFilter]);
+
+  // ---- Modals ----
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [keteranganModalOpen, setKeteranganModalOpen] = useState(false);
+  const [activeItem, setActiveItem] = useState<RiwayatConsumableKeluarType | null>(null);
+  const [detailGroupItems, setDetailGroupItems] = useState<RiwayatConsumableKeluarType[]>([]);
+
+  const openDetailModal = (item: RiwayatConsumableKeluarType) => {
+    const group = riwayatList.filter(
+      (r) => r.nomor_transaksi === item.nomor_transaksi
+    );
+    setDetailGroupItems(group);
+    setDetailModalOpen(true);
+  };
+
+  const openEditModal = (item: RiwayatConsumableKeluarType) => {
+    setActiveItem(item);
+    setEditModalOpen(true);
+  };
+
+  const openKeteranganModal = (item: RiwayatConsumableKeluarType) => {
+    setActiveItem(item);
+    setKeteranganModalOpen(true);
+  };
+
+  const handleEditSubmit = (values: RiwayatConsumableKeluarFormValues) => {
+    if (activeItem) {
+      setRiwayatList((prev) =>
+        prev.map((r) => (r.id === activeItem.id ? { ...r, ...values } : r))
+      );
+    }
+    setEditModalOpen(false);
+    setActiveItem(null);
+  };
+
+  // ---- Export ----
+  const handleExportPDF = () =>
+    exportToPDF(
+      filteredList,
+      EXPORT_COLUMNS,
+      "riwayat-consumable-keluar",
+      "Riwayat Consumable Keluar"
+    );
+  const handleExportExcel = () =>
+    exportToExcel(filteredList, EXPORT_COLUMNS, "riwayat-consumable-keluar");
+
+  const columns = useMemo(
+    () =>
+      getRiwayatConsumableKeluarColumns({
+        onEdit: openEditModal,
+        onDetail: openDetailModal,
+        onLihatKeterangan: openKeteranganModal,
+      }),
+    [riwayatList]
+  );
+
+  return (
+    <>
+      <Row>
+        <Col>
+          <Flex
+            justifyContent="between"
+            alignItems="center"
+            className="mb-4 w-100"
+            breakpoint="md"
+          >
+            <div>
+              <h1 className="mb-2 h2">Riwayat Consumable Keluar</h1>
+              <p className="text-secondary mb-0">
+                Menampilkan riwayat pengambilan barang consumable.
+              </p>
+              <DasherBreadcrumb />
+            </div>
+          </Flex>
+        </Col>
+      </Row>
+
+      <Card className="card-lg mb-6">
+        <CardBody>
+          <RiwayatFilterBar
+            bulanFilter={bulanFilter}
+            onBulanFilterChange={setBulanFilter}
+            tahunFilter={tahunFilter}
+            onTahunFilterChange={setTahunFilter}
+            tahunOptions={tahunOptions}
+            onExportPDF={handleExportPDF}
+            onExportExcel={handleExportExcel}
+          />
+
+          <TanstackTable
+            data={filteredList}
+            columns={columns}
+            filter
+            pagination
+            isSortable
+            filterPlaceholder="Cari nomor transaksi / nama barang..."
+          />
+        </CardBody>
+      </Card>
+
+      <DetailTransaksiModal
+        show={detailModalOpen}
+        onClose={() => setDetailModalOpen(false)}
+        items={detailGroupItems}
+      />
+      <EditRiwayatModal
+        show={editModalOpen}
+        onClose={() => {
+          setEditModalOpen(false);
+          setActiveItem(null);
+        }}
+        onSubmit={handleEditSubmit}
+        item={activeItem}
+      />
+      <KeteranganModal
+        show={keteranganModalOpen}
+        onClose={() => setKeteranganModalOpen(false)}
+        title={`Keterangan — ${activeItem?.nama_barang ?? ""}`}
+        keterangan={activeItem?.keterangan ?? ""}
+      />
+    </>
+  );
+};
+
+export default RiwayatConsumableKeluarManager;

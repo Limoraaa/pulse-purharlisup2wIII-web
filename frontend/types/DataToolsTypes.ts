@@ -1,7 +1,7 @@
 export type ToolCondition = "Baik" | "Rusak";
 
 export interface ToolItemType {
-  id: string; // dipakai sebagai React key & pembanding saat edit/hapus
+  id: string;
   kodeBarang: string;
   namaBarang: string;
   merk: string;
@@ -13,23 +13,22 @@ export interface ToolItemType {
   dipinjam: number;
 }
 
-// Payload yang dipakai form Tambah/Edit (tanpa id, id di-generate/di-pass terpisah)
-export type ToolFormValues = Omit<ToolItemType, "id" | "dipinjam">;
-
+export type ToolFormValues = Omit<ToolItemType, "id">;
 
 // ------------------------------------------------------------------
 // Keranjang Peminjaman
 // ------------------------------------------------------------------
 export interface CartItemType {
-  toolId: string; // relasi ke ToolItemType.id
+  toolId: string;
+  cartId?: string | number; // id baris di temporary_cart, dipakai untuk update/hapus
   kodeBarang: string;
   namaBarang: string;
   jumlah: number;
-  maxJumlah: number; // dibatasi sesuai stok tersedia saat item ditambahkan
+  maxJumlah: number;
 }
 
 // ------------------------------------------------------------------
-// Data Peminjam (dummy, nantinya diambil dari halaman "Data Peminjam")
+// Data Peminjam
 // ------------------------------------------------------------------
 export interface PeminjamType {
   id: string;
@@ -41,22 +40,26 @@ export interface PeminjamType {
 // Form Peminjaman
 // ------------------------------------------------------------------
 export interface LoanFormValues {
-  tanggalPeminjaman: string; // otomatis, tanggal hari ini
-  peminjamId: string; // id dari PeminjamType yang dipilih
+  tanggalPeminjaman: string;
+  peminjamId: string;
   namaPeminjam: string;
-  divisi: string; // otomatis terisi berdasarkan peminjamId
+  divisi: string;
   areaKerja: string;
+  spesifikasi?: string;
+  keterangan?: string;
 }
 
 // ------------------------------------------------------------------
-// Transaksi Peminjaman (dibuat otomatis setelah form peminjaman disubmit)
+// Transaksi Peminjaman
 // ------------------------------------------------------------------
-export type TransaksiStatus = "Sedang Dipinjam" | "Dikembalikan" | "Terlambat";
+export type TransaksiStatus = "Sedang Dipinjam" | "Selesai";
 
 export interface TransaksiPeminjamanItemType {
+  toolId: string;
   kodeBarang: string;
   namaBarang: string;
   jumlah: number;
+  kondisiSaatDipinjam: ToolCondition;
 }
 
 export interface TransaksiPeminjamanType {
@@ -67,4 +70,52 @@ export interface TransaksiPeminjamanType {
   areaKerja: string;
   items: TransaksiPeminjamanItemType[];
   status: TransaksiStatus;
+}
+
+// ------------------------------------------------------------------
+// Form Pengembalian
+// ------------------------------------------------------------------
+export interface PengembalianItemInput {
+  toolId: string;
+  kodeBarang: string;
+  namaBarang: string;
+  jumlah: number;
+  kondisi: ToolCondition;
+  catatan: string;
+}
+
+// ------------------------------------------------------------------
+// Riwayat Kerusakan (dipakai reducer prosesPengembalian di inventoryToolsSlice)
+// ------------------------------------------------------------------
+export interface KerusakanHistoryType {
+  id: string;
+  tanggal: string;
+  kodeBarang: string;
+  namaBarang: string;
+  jumlah: number;
+  kondisi: ToolCondition;
+  catatan: string;
+  namaPeminjam: string;
+  divisi: string;
+}
+
+// ------------------------------------------------------------------
+// Peminjaman Aktif
+// ------------------------------------------------------------------
+export interface PeminjamanAktifItemType {
+  id: string;
+  toolId: string;
+  tanggal: string;
+  kodeBarang: string;
+  namaBarang: string;
+  merk: string;
+  tipe: string;
+  warna: string;
+  ukuran: string;
+  jumlah: number;
+  namaPeminjam: string;
+  divisi: string;
+  areaKerja: string;
+  spesifikasi: string;
+  keterangan: string;
 }
