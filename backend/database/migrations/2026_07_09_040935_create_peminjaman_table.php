@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('area_pekerjaan')->nullable();
             $table->string('spesifikasi')->nullable();
             $table->text('keterangan')->nullable();
-            $table->date('tanggal_kembali')->nullable();
+            $table->timestamp('tanggal_kembali')->nullable();
             $table->foreignUuid('dicatat_oleh')->constrained('users');
             $table->timestamps();
         });

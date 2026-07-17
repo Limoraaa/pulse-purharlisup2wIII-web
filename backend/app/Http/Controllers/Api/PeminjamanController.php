@@ -99,7 +99,7 @@ class PeminjamanController extends Controller
         return response()->json($peminjaman->load(['tool', 'peminta']), 201);
     }
 
-    public function prosesPeminjaman(Request $request) 
+    public function prosesPeminjaman(Request $request)
 {
     // 1. Validasi input dari form frontend (karena saat submit, user harus kirim peminta_id, dll)
     $request->validate([
@@ -174,7 +174,7 @@ class PeminjamanController extends Controller
             return response()->json(['message' => 'Peminjaman ini sudah ditandai kembali sebelumnya'], 422);
         }
 
-        $peminjaman->update(['tanggal_kembali' => now()->toDateString()]);
+        $peminjaman->update(['tanggal_kembali' => now()]); // ganti dari now()->toDateString()
 
         return response()->json([
             'message' => 'Alat berhasil ditandai dikembalikan',
@@ -182,7 +182,7 @@ class PeminjamanController extends Controller
         ]);
     }
 
-    public function antrean() 
+    public function antrean()
     {
         $data = DB::table('temporary_cart')->get();
         return response()->json(['data' => $data]);
