@@ -6,7 +6,7 @@ export interface ConsumableItemType {
   kode_barang: string;
   nama: string;
   merk: string;
-  tipe: string; // ditambahkan setelah "merk", sebelumnya terlewat
+  type: string; // disamakan dengan kolom DB `type` di tabel consumables (sebelumnya salah tulis "tipe")
   er_e: string;
   ukuran: string;
   stok_awal: number;
@@ -47,7 +47,7 @@ export interface ConsumableMasukType {
   kode_barang: string;
   nama: string;
   merk: string;
-  tipe: string;
+  type: string; // disamakan dengan kolom DB `type` (sebelumnya "tipe")
   er_e: string;
   ukuran: string;
   jumlah_masuk: number;

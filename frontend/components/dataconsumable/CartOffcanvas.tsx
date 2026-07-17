@@ -3,13 +3,12 @@
 import { Offcanvas, Button } from "react-bootstrap";
 import { IconTrash, IconMinus, IconPlus } from "@tabler/icons-react";
 
-// Sesuaikan import type dengan model Consumable
 import { ConsumableCartItemType } from "types/DataConsumableTypes"; 
 
 interface CartOffcanvasProps {
   show: boolean;
   onClose: () => void;
-  items: ConsumableCartItemType[]; // Gunakan interface khusus untuk keranjang consumable
+  items: ConsumableCartItemType[];
   onUpdateQty: (consumable_id: string, jumlah: number) => void;
   onRemove: (consumable_id: string) => void;
   onProceed: () => void;
@@ -30,7 +29,12 @@ const CartOffcanvas = ({
   };
 
   const handleIncrease = (item: ConsumableCartItemType) => {
-    // Menambah jumlah, bisa disesuaikan jika ingin ada batas maxJumlah
+    // TAMBAHKAN VALIDASI STOK DI SINI
+    // Pastikan item memiliki properti 'stok_tersedia' atau 'maxJumlah'
+    if (item.jumlah >= item.stok_tersedia) {
+      alert(`Stok maksimal untuk ${item.nama} telah tercapai!`);
+      return;
+    }
     onUpdateQty(item.consumable_id, item.jumlah + 1);
   };
 
@@ -53,6 +57,7 @@ const CartOffcanvas = ({
                   <div className="fw-semibold">{item.nama}</div>
                   <div className="text-secondary small mb-2">{item.kode_barang}</div>
 
+                  {/* Stepper jumlah dengan validasi */}
                   <div className="d-flex align-items-center gap-2">
                     <Button
                       variant="outline-secondary"
@@ -72,10 +77,16 @@ const CartOffcanvas = ({
                       size="sm"
                       className="d-flex align-items-center justify-content-center p-0"
                       style={{ width: "28px", height: "28px" }}
+                      disabled={item.jumlah >= item.stok_tersedia}
                       onClick={() => handleIncrease(item)}
                     >
                       <IconPlus size={14} />
                     </Button>
+                  </div>
+                  
+                  {/* Informasi stok tersedia */}
+                  <div className="text-secondary small mt-1">
+                    Tersedia: {item.stok_tersedia}
                   </div>
                 </div>
                 
