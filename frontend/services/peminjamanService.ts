@@ -103,20 +103,23 @@ export async function submitPeminjaman(
     await apiFetch(`/peminjaman/${id}/kembali`, { method: "PATCH" });
   }
 
-  const BULAN_SINGKAT = [
-  "Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
-  "Jul", "Agu", "Sep", "Okt", "Nov", "Des",
-];
+    function formatTanggalJam(isoString: string): string {
+      const d = new Date(isoString);
 
-function formatTanggalJam(isoString: string): string {
-  const d = new Date(isoString);
-  const day = String(d.getDate()).padStart(2, "0");
-  const bulan = BULAN_SINGKAT[d.getMonth()];
-  const year = d.getFullYear();
-  const hour = String(d.getHours()).padStart(2, "0");
-  const minute = String(d.getMinutes()).padStart(2, "0");
-  return `${day} ${bulan} ${year}, ${hour}:${minute}`;
-}
+      const parts = new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Asia/Jakarta",
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      }).formatToParts(d);
+
+      const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+
+      return `${get("day")} ${get("month")} ${get("year")}, ${get("hour")}:${get("minute")}`;
+    }
 
 // Nomor transaksi buatan: semua alat yang dipinjam dalam satu kali submit form
 // punya timestamp "tanggal" yang identik persis (di-generate sekali sebelum loop
