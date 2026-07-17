@@ -8,7 +8,7 @@ const emptyForm: ConsumableFormValues = {
   kode_barang: "",
   nama: "",
   merk: "",
-  tipe: "",
+  type: "",
   er_e: "",
   ukuran: "",
   stok_awal: 0,
@@ -134,8 +134,8 @@ const ConsumableToolFormModal = ({
             <Col md={4}>
               <Form.Label>Tipe</Form.Label>
               <Form.Control
-                value={form.tipe}
-                onChange={(e) => handleChange("tipe", e.target.value)}
+                value={form.type}
+                onChange={(e) => handleChange("type", e.target.value)}
               />
             </Col>
             <Col md={4}>

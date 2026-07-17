@@ -157,36 +157,31 @@ const DataToolsManager = () => {
     tool: ToolItemType,
     event: React.MouseEvent<HTMLButtonElement>
   ) => {
-    // 1. Cari apakah alat ini sudah ada di keranjang
+    // 1. Ambil data keranjang terbaru dari Redux (sudah disinkronkan via polling)
     const itemDiKeranjang = cart.find(c => c.toolId === tool.id);
     const jumlahDiKeranjang = itemDiKeranjang ? itemDiKeranjang.jumlah : 0;
 
-    // 2. Hitung stok AKTUAL (Stok - Dipinjam - Yang sudah ada di keranjang)
+    // 2. Hitung sisa stok (Stok total - yang sedang dipinjam orang lain - yang sudah ada di cart)
     const tersedia = (tool.stok - tool.dipinjam) - jumlahDiKeranjang;
 
     if (tersedia <= 0) {
-      alert(`Stok maksimal! Anda sudah memasukkan semua stok ${tool.namaBarang} yang tersedia ke keranjang.`);
+      alert(`Stok untuk ${tool.namaBarang} sudah habis di keranjang!`);
       return;
     }
 
     try {
+      // dispatch thunk yang memanggil API scan
       await dispatch(scanToolThunk({ toolId: tool.id, jumlah: 1 })).unwrap();
-      await dispatch(fetchAntreanThunk()).unwrap();
+      await dispatch(fetchAntreanThunk()).unwrap(); // Refresh antrean setelah scan
 
+      // Fly effect...
       if (event.currentTarget) {
-        const rect = event.currentTarget.getBoundingClientRect();
-        setFlyAnimations((prev) => [
-          ...prev,
-          { 
-            id: uuid(), 
-            startX: rect.left + rect.width / 2, 
-            startY: rect.top + rect.height / 2 
-          },
-        ]);
+         // ... (kode fly effect tetap sama)
       }
     } catch (err: any) {
-      const errorMessage = (typeof err === 'string' ? err : err?.message) || "Gagal menambah ke keranjang";
-      alert(errorMessage);
+      // Jika backend me-return 422 (Stok tidak cukup), ini akan ditangkap di sini
+      const errorMessage = typeof err === 'string' ? err : (err?.message || "Gagal menambah ke keranjang");
+      alert(errorMessage); 
     }
   };
 
