@@ -11,7 +11,7 @@ return new class extends Migration
     {
         Schema::create('consumable_keluar', function (Blueprint $table) {
             $table->uuid('id')->default(DB::raw('gen_random_uuid()'))->primary();
-            $table->date('tanggal');
+            $table->timestamp('tanggal');
             $table->foreignUuid('consumable_id')->constrained('consumables');
             $table->foreignUuid('peminta_id')->constrained('peminta');
             $table->integer('jumlah_keluar');

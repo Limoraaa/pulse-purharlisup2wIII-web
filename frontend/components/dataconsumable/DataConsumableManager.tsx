@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Row, Col, Card, CardBody, Button, Spinner, Alert } from "react-bootstrap";
 import { IconPlus, IconCircleCheck } from "@tabler/icons-react";
+import { submitConsumableKeluar } from "services/consumableKeluarService";
 
 import {
   ConsumableItemType,
@@ -39,6 +40,8 @@ const DataConsumableManager = () => {
   const [consumables, setConsumables] = useState<ConsumableItemType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [submittingOut, setSubmittingOut] = useState(false);
+  const [outError, setOutError] = useState<string | null>(null);
 
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
@@ -144,13 +147,33 @@ const DataConsumableManager = () => {
     setCartOpen(true);
   };
 
-  const handleLoanSubmit = (values: ConsumableOutFormValues) => {
-    // TODO: sambungkan ke ConsumableKeluarController (belum diimplementasi)
-    console.log("Submit Pengambilan:", values, cart);
-    setCart([]);
-    setLoanFormOpen(false);
-    setSuccessMessage("Pengambilan bahan berhasil dicatat!");
-    setTimeout(() => setSuccessMessage(null), 5000);
+  const handleLoanSubmit = async (values: ConsumableOutFormValues) => {
+    setSubmittingOut(true);
+    setOutError(null);
+
+    try {
+      const dicatatOleh = localStorage.getItem("userId");
+      if (!dicatatOleh) {
+        throw new Error("Sesi login tidak ditemukan. Silakan login ulang.");
+      }
+
+      await submitConsumableKeluar(cart, values, dicatatOleh);
+
+      // ambil ulang data consumable, supaya kolom Stok Tersedia akurat
+      const freshData = await getConsumables();
+      setConsumables(freshData);
+
+      setCart([]);
+      setLoanFormOpen(false);
+
+      setSuccessMessage(`Pengambilan bahan oleh ${values.namaPeminta} berhasil dicatat!`);
+      setTimeout(() => setSuccessMessage(null), 5000);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Gagal mencatat pengambilan";
+      setOutError(message);
+    } finally {
+      setSubmittingOut(false);
+    }
   };
 
   const columns = useMemo(
@@ -217,7 +240,14 @@ const DataConsumableManager = () => {
         onUpdateQty={(id, qty) => setCart((prev) => prev.map((c) => (c.consumable_id === id ? { ...c, jumlah: qty } : c)))}
         onRemove={(id) => setCart((prev) => prev.filter((c) => c.consumable_id !== id))}
       />
-      <ConsumableOutFormModal show={loanFormOpen} onClose={() => setLoanFormOpen(false)} onSubmit={handleLoanSubmit} cartItems={cart} />
+      <ConsumableOutFormModal
+    show={loanFormOpen}
+    onClose={() => setLoanFormOpen(false)}
+    onSubmit={handleLoanSubmit}
+    cartItems={cart}
+    submitting={submittingOut}
+    error={outError}
+  />
     </>
   );
 };
