@@ -50,7 +50,7 @@ function mapConsumableToApi(values: ConsumableFormValues): ConsumableApiPayload 
 // urutan natural: T-1, T-2, T-3, ... T-10 (bukan T-1, T-10, T-2 ala alfabetis biasa)
 function sortByKode(items: ConsumableItemType[]): ConsumableItemType[] {
   return [...items].sort((a, b) =>
-    a.kode_barang.localeCompare(b.kode_barang, undefined, { numeric: true })
+    b.kode_barang.localeCompare(a.kode_barang, undefined, { numeric: true })
   );
 }
 

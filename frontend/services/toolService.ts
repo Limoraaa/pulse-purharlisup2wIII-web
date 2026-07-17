@@ -67,7 +67,7 @@ function mapToolToApi(values: ToolFormValues): ToolApiPayload {
 
 function sortByKode(tools: ToolItemType[]): ToolItemType[] {
   return [...tools].sort((a, b) =>
-    a.kodeBarang.localeCompare(b.kodeBarang, undefined, { numeric: true })
+    b.kodeBarang.localeCompare(a.kodeBarang, undefined, { numeric: true })
   );
 }
 
