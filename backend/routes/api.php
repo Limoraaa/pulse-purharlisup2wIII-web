@@ -26,6 +26,7 @@ Route::apiResource('consumable', ConsumableController::class);
 
 // 3. Peminta (simple CRUD)
 Route::apiResource('peminta', PemintaController::class);
+Route::patch('/peminta/{id}/aktifkan', [PemintaController::class, 'aktifkan']);
 
 // 4. Peminjaman (CRUD + tandai kembali)
 // Route khusus HARUS di atas

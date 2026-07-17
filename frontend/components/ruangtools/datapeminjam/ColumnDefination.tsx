@@ -1,22 +1,23 @@
-// import node module libraries
+"use client";
 import { ColumnDef } from "@tanstack/react-table";
-import { Dropdown } from "react-bootstrap";
+import { Dropdown, Badge, Spinner } from "react-bootstrap";
 import { IconDotsVertical } from "@tabler/icons-react";
 
-// import custom types
 import { PeminjamType } from "types/DataToolsTypes";
-
-// import custom components
 import ActionMenu from "components/common/ActionMenu";
 
 interface ColumnHandlers {
-  onEdit: (peminjam: PeminjamType) => void;
-  onDelete: (peminjam: PeminjamType) => void;
+  onEdit: (item: PeminjamType) => void;
+  onDelete: (item: PeminjamType) => void; // nonaktifkan
+  onAktifkan: (item: PeminjamType) => void;
+  togglingId?: string | null; // id yang sedang diproses aktifkan/nonaktifkan
 }
 
-export const getDataPeminjamColumns = ({
+export const getPeminjamColumns = ({
   onEdit,
   onDelete,
+  onAktifkan,
+  togglingId,
 }: ColumnHandlers): ColumnDef<PeminjamType>[] => [
   {
     accessorKey: "nama",
@@ -30,25 +31,55 @@ export const getDataPeminjamColumns = ({
     header: "Divisi",
   },
   {
+    accessorKey: "aktif",
+    header: "Status",
+    cell: ({ row }) => {
+      const aktif = row.original.aktif;
+      return (
+        <Badge bg={aktif ? "success-subtle" : "secondary-subtle"} text={aktif ? "success-emphasis" : "secondary-emphasis"}>
+          {aktif ? "Aktif" : "Nonaktif"}
+        </Badge>
+      );
+    },
+  },
+  {
     id: "aksi",
     header: "Aksi",
-    cell: ({ row }) => (
-      <ActionMenu
-        toggleButton={<IconDotsVertical size={20} />}
-        className="btn btn-ghost btn-icon btn-sm rounded-circle"
-        drop="start"
-        align="start"
-      >
-        <Dropdown.Item onClick={() => onEdit(row.original)}>
-          Edit Data
-        </Dropdown.Item>
-        <Dropdown.Item
-          className="text-danger"
-          onClick={() => onDelete(row.original)}
+    cell: ({ row }) => {
+      const item = row.original;
+      const isToggling = togglingId === item.id;
+
+      return (
+        <ActionMenu
+          toggleButton={
+            isToggling ? <Spinner animation="border" size="sm" /> : <IconDotsVertical size={20} />
+          }
+          className="btn btn-ghost btn-icon btn-sm rounded-circle"
+          drop="start"
+          align="start"
         >
-          Hapus Data
-        </Dropdown.Item>
-      </ActionMenu>
-    ),
+          <Dropdown.Item onClick={() => onEdit(item)}>
+            Edit Data
+          </Dropdown.Item>
+          {item.aktif ? (
+            <Dropdown.Item
+              className="text-danger"
+              onClick={() => onDelete(item)}
+              disabled={isToggling}
+            >
+              Nonaktifkan
+            </Dropdown.Item>
+          ) : (
+            <Dropdown.Item
+              className="text-success"
+              onClick={() => onAktifkan(item)}
+              disabled={isToggling}
+            >
+              Aktifkan Kembali
+            </Dropdown.Item>
+          )}
+        </ActionMenu>
+      );
+    },
   },
 ];
