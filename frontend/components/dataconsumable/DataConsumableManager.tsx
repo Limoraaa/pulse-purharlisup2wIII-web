@@ -21,6 +21,10 @@ import DeleteConfirmModal from "components/dataconsumable/DeleteConfirmModal";
 import CartFAB from "components/dataconsumable/CartFAB";
 import CartOffcanvas from "components/dataconsumable/CartOffcanvas";
 import ConsumableOutFormModal from "components/dataconsumable/ConsumableOutFormModal";
+import AddToCartFlyEffect, {
+  FlyAnimationItem,
+} from "components/dataconsumable/AddToCartFlyEffect";
+import { v4 as uuid } from "uuid";
 
 import {
   getConsumables,
@@ -68,6 +72,7 @@ const DataConsumableManager = () => {
 
   const [cart, setCart] = useState<ConsumableCartItemType[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
+  const [flyAnimations, setFlyAnimations] = useState<FlyAnimationItem[]>([]);
   const [loanFormOpen, setLoanFormOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -121,7 +126,10 @@ const DataConsumableManager = () => {
     }
   };
 
-  const handleAddToCart = (item: ConsumableItemType) => {
+  const handleAddToCart = (
+    item: ConsumableItemType,
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => {
     if (item.stok_awal <= 0) return;
 
     setCart((prev) => {
@@ -144,7 +152,21 @@ const DataConsumableManager = () => {
         },
       ];
     });
-    setCartOpen(true);
+
+    // Panel keranjang TIDAK otomatis terbuka -> cukup animasi ikon terbang ke FAB.
+    const rect = event.currentTarget.getBoundingClientRect();
+    setFlyAnimations((prev) => [
+      ...prev,
+      {
+        id: uuid(),
+        startX: rect.left + rect.width / 2,
+        startY: rect.top + rect.height / 2,
+      },
+    ]);
+  };
+
+  const handleAnimationEnd = (id: string) => {
+    setFlyAnimations((prev) => prev.filter((a) => a.id !== id));
   };
 
   const handleLoanSubmit = async (values: ConsumableOutFormValues) => {
@@ -230,6 +252,11 @@ const DataConsumableManager = () => {
       />
       <ConsumableDetailModal show={detailModalOpen} onClose={() => setDetailModalOpen(false)} consumable={activeItem} />
       <DeleteConfirmModal show={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} onConfirm={handleConfirmDelete} consumable={activeItem} />
+
+      <AddToCartFlyEffect
+        animations={flyAnimations}
+        onAnimationEnd={handleAnimationEnd}
+      />
 
       <CartFAB itemCount={cart.length} onClick={() => setCartOpen(true)} />
       <CartOffcanvas
