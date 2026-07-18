@@ -46,12 +46,16 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
     router.push("/signin");
   };
 
-  //Generate Link
+  // Generate Link
+  // NOTE: seluruh `item.link` di routes/DashboardRoute.tsx SUDAH berupa path
+  // absolut (diawali "/"), jadi di sini TIDAK BOLEH ditambah "/" lagi di
+  // depannya -- kalau ditambah, hasilnya jadi "//path" (protocol-relative
+  // URL) yang bikin browser coba resolve "path" sebagai nama domain.
   const generateLink = (item: MenuItemType) => {
     return (
       <Link
         href={`${item.link}`}
-        className={`nav-link ${location === `/${item.link}` ? "active" : ""}`}>
+        className={`nav-link ${location === item.link ? "active" : ""}`}>
         <span className='text'>{item.name}</span>
         {item.badge && (
           <Badge
@@ -169,13 +173,10 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
                                                             as='li'
                                                             bsPrefix='nav-item'>
                                                             <Link
-                                                              href={
-                                                                menuLevel3Item.link?.toString() ||
-                                                                `/${menuLevel3Item.link}`
-                                                              }
+                                                              href={`${menuLevel3Item.link}`}
                                                               className={`nav-link ${
                                                                 location ===
-                                                                `/${menuLevel3Item.link}`
+                                                                menuLevel3Item.link
                                                                   ? "active"
                                                                   : ""
                                                               }`}>
@@ -220,9 +221,9 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
                                 key={menuLevel1Index}>
                                 {/* first level menu items */}
                                 <Link
-                                  href={`/${menuLevel1Item?.link}`}
+                                  href={`${menuLevel1Item?.link}`}
                                   className={`nav-link ${
-                                    location === `/${menuLevel1Item.link}`
+                                    location === menuLevel1Item.link
                                       ? "active"
                                       : ""
                                   }`}>
