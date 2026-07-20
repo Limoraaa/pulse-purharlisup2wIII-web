@@ -15,7 +15,7 @@ class LaporanKerusakanController extends Controller
     public function index()
     {
         return response()->json(
-            LaporanKerusakanTools::with(['tool', 'dilaporkanOleh'])
+            LaporanKerusakanTools::with(['tool', 'dilaporkanOleh', 'peminjaman.peminta'])
                 ->orderBy('tanggal', 'desc')
                 ->get()
         );
@@ -39,6 +39,7 @@ class LaporanKerusakanController extends Controller
         $validator = Validator::make($request->all(), [
             'tanggal' => 'required|date',
             'tool_id' => 'required|uuid|exists:tools,id',
+            'peminjaman_id' => 'nullable|uuid|exists:peminjaman,id',
             'jumlah' => 'required|integer|min:1',
             'keterangan' => 'nullable|string',
             'dilaporkan_oleh' => 'required|uuid|exists:users,id',
