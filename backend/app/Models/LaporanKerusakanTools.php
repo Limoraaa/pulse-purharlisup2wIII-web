@@ -15,9 +15,10 @@ class LaporanKerusakanTools extends Model
     public $incrementing = false;
     protected $keyType = 'string';
 
-    protected $fillable = [
+        protected $fillable = [
         'tanggal',
         'tool_id',
+        'peminjaman_id',
         'jumlah',
         'keterangan',
         'dilaporkan_oleh',
@@ -36,7 +37,7 @@ class LaporanKerusakanTools extends Model
     protected function casts(): array
     {
         return [
-            'tanggal' => 'date',
+            'tanggal' => 'datetime',
         ];
     }
 
@@ -48,5 +49,10 @@ class LaporanKerusakanTools extends Model
     public function dilaporkanOleh(): BelongsTo
     {
         return $this->belongsTo(User::class, 'dilaporkan_oleh');
+    }
+
+    public function peminjaman(): BelongsTo
+    {
+        return $this->belongsTo(Peminjaman::class);
     }
 }

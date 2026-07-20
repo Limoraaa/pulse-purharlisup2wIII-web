@@ -1,6 +1,6 @@
 export interface LaporanKerusakanType {
   id: string;
-  tanggal_pengembalian: string; // format "12 Jul 2026, 11:00"
+  tanggal_pengembalian: string;
   kode_barang: string;
   nama_barang: string;
   merk: string;
@@ -13,5 +13,6 @@ export interface LaporanKerusakanType {
   area_kerja: string;
   keterangan: string;
 
-  [key: string]: unknown; // dibutuhkan agar kompatibel dengan exportToPDF/exportToExcel
+  // Diperlukan agar cocok dengan constraint generic exportToPDF / exportToExcel
+  [key: string]: unknown;
 }

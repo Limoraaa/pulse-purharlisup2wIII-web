@@ -73,7 +73,6 @@ const PeminjamFormModal = ({
               <Form.Label>Divisi</Form.Label>
               <Form.Control
                 required
-                placeholder="Contoh: Pemeliharaan Trafo"
                 value={form.divisi}
                 onChange={(e) =>
                   setForm((prev) => ({ ...prev, divisi: e.target.value }))
