@@ -1,12 +1,8 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { Row, Col, Card, CardBody, Button, Spinner, Alert } from "react-bootstrap";
+import { Card, CardBody, Button, Spinner, Alert } from "react-bootstrap";
 import { IconPlus, IconCircleCheck } from "@tabler/icons-react";
-<<<<<<< HEAD
 import { v4 as uuid } from "uuid";
-=======
-import { submitConsumableKeluar } from "services/consumableKeluarService";
->>>>>>> c6af6ec6514cf734afa2d1eac90efa0c907bec11
 
 import {
   ConsumableItemType,
@@ -34,20 +30,9 @@ import DeleteConfirmModal from "components/dataconsumable/DeleteConfirmModal";
 import CartFAB from "components/dataconsumable/CartFAB";
 import CartOffcanvas from "components/dataconsumable/CartOffcanvas";
 import ConsumableOutFormModal from "components/dataconsumable/ConsumableOutFormModal";
-<<<<<<< HEAD
-// Komponen efek visual ini generik (tidak spesifik ke tools), jadi di-reuse
-// langsung dari ruangtools/datatools alih-alih duplikat. Kalau kamu lebih suka
-// punya salinan terpisah di folder dataconsumable, cukup copy file ini ke sana
-// dan ganti path import-nya.
-import AddToCartFlyEffect, {
-  FlyAnimationItem,
-} from "components/ruangtools/datatools/AddToCartFlyEffect";
-=======
 import AddToCartFlyEffect, {
   FlyAnimationItem,
 } from "components/dataconsumable/AddToCartFlyEffect";
-import { v4 as uuid } from "uuid";
->>>>>>> c6af6ec6514cf734afa2d1eac90efa0c907bec11
 
 import {
   getConsumables,
@@ -70,8 +55,6 @@ const DataConsumableManager = () => {
   const [consumables, setConsumables] = useState<ConsumableItemType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [submittingOut, setSubmittingOut] = useState(false);
-  const [outError, setOutError] = useState<string | null>(null);
 
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
@@ -146,18 +129,9 @@ const DataConsumableManager = () => {
     return () => clearInterval(interval);
   }, []);
 
-<<<<<<< HEAD
   // ==========================================
   // HANDLER MODAL MASTER DATA
   // ==========================================
-=======
-  const [cart, setCart] = useState<ConsumableCartItemType[]>([]);
-  const [cartOpen, setCartOpen] = useState(false);
-  const [flyAnimations, setFlyAnimations] = useState<FlyAnimationItem[]>([]);
-  const [loanFormOpen, setLoanFormOpen] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-
->>>>>>> c6af6ec6514cf734afa2d1eac90efa0c907bec11
   const openAddModal = () => {
     setActiveItem(null);
     setFormError(null);
@@ -216,11 +190,9 @@ const DataConsumableManager = () => {
     }
   };
 
-  const handleAddToCart = (
-    item: ConsumableItemType,
-    event: React.MouseEvent<HTMLButtonElement>
-  ) => {
-    if (item.stok_awal <= 0) return;
+  // ==========================================
+  // HANDLER CART (BERBASIS API/DATABASE)
+  // ==========================================
 
   // Berlaku untuk Klik Manual dari Tabel maupun dari Hasil Scan QR Code.
   // `event` opsional: kalau dipanggil dari hasil scan (bukan klik tombol),
@@ -248,57 +220,33 @@ const DataConsumableManager = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           consumable_id: item.id,
-          kode_barang: item.kode_barang,
-          nama: item.nama,
           jumlah: 1,
-          stok_tersedia: item.stok_awal,
-        },
-      ];
-    });
+        }),
+      });
 
-    // Panel keranjang TIDAK otomatis terbuka -> cukup animasi ikon terbang ke FAB.
-    const rect = event.currentTarget.getBoundingClientRect();
-    setFlyAnimations((prev) => [
-      ...prev,
-      {
-        id: uuid(),
-        startX: rect.left + rect.width / 2,
-        startY: rect.top + rect.height / 2,
-      },
-    ]);
+      // 4. Update state keranjang segera setelah scan berhasil
+      await loadCart();
+      setCartOpen(true);
+
+      // Fly animation hanya jika ada event click (bukan dari scan QR otomatis)
+      if (event?.currentTarget) {
+        const rect = event.currentTarget.getBoundingClientRect();
+        setFlyAnimations((prev) => [
+          ...prev,
+          {
+            id: uuid(),
+            startX: rect.left + rect.width / 2,
+            startY: rect.top + rect.height / 2,
+          },
+        ]);
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Gagal menambah ke keranjang.");
+    }
   };
 
   const handleAnimationEnd = (id: string) => {
     setFlyAnimations((prev) => prev.filter((a) => a.id !== id));
-  };
-
-  const handleLoanSubmit = async (values: ConsumableOutFormValues) => {
-    setSubmittingOut(true);
-    setOutError(null);
-
-    try {
-      const dicatatOleh = localStorage.getItem("userId");
-      if (!dicatatOleh) {
-        throw new Error("Sesi login tidak ditemukan. Silakan login ulang.");
-      }
-
-      await submitConsumableKeluar(cart, values, dicatatOleh);
-
-      // ambil ulang data consumable, supaya kolom Stok Tersedia akurat
-      const freshData = await getConsumables();
-      setConsumables(freshData);
-
-      setCart([]);
-      setLoanFormOpen(false);
-
-      setSuccessMessage(`Pengambilan bahan oleh ${values.namaPeminta} berhasil dicatat!`);
-      setTimeout(() => setSuccessMessage(null), 5000);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Gagal mencatat pengambilan";
-      setOutError(message);
-    } finally {
-      setSubmittingOut(false);
-    }
   };
 
   const handleUpdateQty = async (consumableId: string, qty: number) => {
@@ -458,11 +406,19 @@ const DataConsumableManager = () => {
         existingCodes={consumables.map((c) => c.kode_barang)}
       />
 
-      <AddToCartFlyEffect
-        animations={flyAnimations}
-        onAnimationEnd={handleAnimationEnd}
+      <ConsumableDetailModal
+        show={detailModalOpen}
+        onClose={() => setDetailModalOpen(false)}
+        consumable={activeItem}
+      />
+      <DeleteConfirmModal
+        show={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        consumable={activeItem}
       />
 
+      {/* FLOATING ACTION BUTTON KERANJANG */}
       <CartFAB itemCount={cart.length} onClick={() => setCartOpen(true)} />
 
       {/* OFFCANVAS KERANJANG */}
@@ -486,15 +442,8 @@ const DataConsumableManager = () => {
         onSubmit={handleLoanSubmit}
         cartItems={cart}
         submitting={isSubmittingCart}
+        error={outError}
       />
-      <ConsumableOutFormModal
-    show={loanFormOpen}
-    onClose={() => setLoanFormOpen(false)}
-    onSubmit={handleLoanSubmit}
-    cartItems={cart}
-    submitting={submittingOut}
-    error={outError}
-  />
     </>
   );
 };
