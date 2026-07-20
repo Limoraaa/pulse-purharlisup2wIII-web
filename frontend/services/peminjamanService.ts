@@ -9,22 +9,24 @@ export interface PeminjamanIndexApiResponse {
   tanggal: string;
   tanggal_kembali: string | null;
   jumlah: number;
-  area_pekerjaan: string;
-  spesifikasi?: string;
-  keterangan?: string;
+  tool_id?: string;
+  area_pekerjaan: string | null;
+  spesifikasi: string | null;
+  keterangan: string | null;
   tool?: {
-    id: string;
+    id?: string;
     kode_barang: string;
     nama_barang: string;
-    merk: string;
-    type: string;
-    warna: string;
-    ukuran: string;
-  };
+    merk: string | null;
+    type: string | null;
+    warna: string | null;
+    ukuran: string | null;
+  } | null;
   peminta?: {
     nama: string;
-    divisi: string;
-  };
+    divisi?: string;
+    kategori?: string | null;
+  } | null;
 }
 
 interface CreatePeminjamanPayload {
@@ -55,64 +57,6 @@ function formatTanggalJam(isoString: string): string {
   const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
   return `${get("day")} ${get("month")} ${get("year")}, ${get("hour")}:${get("minute")}`;
 }
-// Bentuk response index() dari Laravel, dengan relasi tool & peminta ter-load
-// Bentuk response index() dari Laravel, dengan relasi tool & peminta ter-load
-  interface PeminjamanIndexApiResponse {
-    id: string;
-    tanggal: string;
-    tool_id: string;
-    jumlah: number;
-    area_pekerjaan: string | null;
-    spesifikasi: string | null;
-    keterangan: string | null;
-    tanggal_kembali: string | null;
-    tool: {
-      kode_barang: string;
-      nama_barang: string;
-      merk: string | null;
-      type: string | null;
-      warna: string | null;
-      ukuran: string | null;
-    } | null;
-        peminta: {
-      nama: string;
-      kategori: string | null;
-    } | null;
-  }
-  
-  function mapPeminjamanFromApi(item: PeminjamanIndexApiResponse): PeminjamanAktifItemType {
-    return {
-      id: item.id,
-      toolId: item.tool_id,
-      tanggal: item.tanggal,
-      kodeBarang: item.tool?.kode_barang ?? "-",
-      namaBarang: item.tool?.nama_barang ?? "-",
-      merk: item.tool?.merk ?? "-",
-      tipe: item.tool?.type ?? "-",
-      warna: item.tool?.warna ?? "-",
-      ukuran: item.tool?.ukuran ?? "-",
-      jumlah: item.jumlah,
-      namaPeminjam: item.peminta?.nama ?? "-",
-      divisi: item.peminta?.kategori ?? "-",
-      areaKerja: item.area_pekerjaan ?? "-",
-      spesifikasi: item.spesifikasi ?? "-",
-      keterangan: item.keterangan ?? "-",
-    };
-  }
-  
-  // Ambil semua peminjaman yang MASIH AKTIF (tanggal_kembali masih null)
-  export async function getPeminjamanAktif(): Promise<PeminjamanAktifItemType[]> {
-    const data: PeminjamanIndexApiResponse[] = await apiFetch("/peminjaman");
-    return data
-      .filter((item) => item.tanggal_kembali === null)
-      .map(mapPeminjamanFromApi);
-  }
-  
-  // Tandai 1 peminjaman sebagai sudah dikembalikan
-  // (pakai endpoint yang sudah ada: PATCH /api/peminjaman/{id}/kembalikan)
-  export async function tandaiDikembalikan(id: string): Promise<void> {
-    await apiFetch(`/peminjaman/${id}/kembali`, { method: "PATCH" });
-  }
 
 function buildNomorTransaksi(tanggalIso: string, pemintaNama: string): string {
   const timestamp = new Date(tanggalIso).getTime();
@@ -123,8 +67,8 @@ function buildNomorTransaksi(tanggalIso: string, pemintaNama: string): string {
 function mapPeminjamanFromApi(item: PeminjamanIndexApiResponse): PeminjamanAktifItemType {
   return {
     id: item.id,
-    toolId: item.tool?.id ?? "-",
-    tanggal: formatTanggalJam(item.tanggal),
+    toolId: item.tool_id ?? item.tool?.id ?? "-",
+    tanggal: item.tanggal.includes("T") ? formatTanggalJam(item.tanggal) : item.tanggal,
     kodeBarang: item.tool?.kode_barang ?? "-",
     namaBarang: item.tool?.nama_barang ?? "-",
     merk: item.tool?.merk ?? "-",
@@ -133,7 +77,7 @@ function mapPeminjamanFromApi(item: PeminjamanIndexApiResponse): PeminjamanAktif
     ukuran: item.tool?.ukuran ?? "-",
     jumlah: item.jumlah,
     namaPeminjam: item.peminta?.nama ?? "-",
-    divisi: item.peminta?.divisi ?? "-",
+    divisi: item.peminta?.divisi ?? item.peminta?.kategori ?? "-",
     areaKerja: item.area_pekerjaan ?? "-",
     spesifikasi: item.spesifikasi ?? "-",
     keterangan: item.keterangan ?? "-",
@@ -155,8 +99,8 @@ function mapRiwayatFromApi(item: PeminjamanIndexApiResponse): RiwayatPeminjamanT
     ukuran: item.tool?.ukuran ?? "-",
     jumlah: item.jumlah,
     namaPeminjam: namaPeminjam,
-    nama_peminjam: namaPeminjam,
-    divisi: item.peminta?.kategori ?? "-",
+    nama_peminjam: namaPeminjam, // Assuming this duplicates namaPeminjam due to RiwayatPeminjamanType requirements
+    divisi: item.peminta?.divisi ?? item.peminta?.kategori ?? "-",
     area_kerja: item.area_pekerjaan ?? "-",
     spesifikasi: item.spesifikasi ?? "-",
     keterangan: item.keterangan ?? "-",
