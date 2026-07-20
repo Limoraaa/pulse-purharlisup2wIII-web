@@ -14,7 +14,10 @@ interface ColumnHandlers {
   onDetail: (consumable: ConsumableItemType) => void;
   onEdit: (consumable: ConsumableItemType) => void;
   onDelete: (consumable: ConsumableItemType) => void;
-  onStockOut: (consumable: ConsumableItemType) => void; // Pengambilan
+  onStockOut: (
+    consumable: ConsumableItemType,
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => void; // Pengambilan
 }
 
 export const getConsumableColumns = ({
@@ -82,7 +85,7 @@ export const getConsumableColumns = ({
             className="btn btn-primary btn-sm d-flex align-items-center gap-1"
             disabled={isHabis}
             title={isHabis ? "Stok habis" : "Ambil bahan"}
-            onClick={() => onStockOut(row.original)}
+            onClick={(e) => onStockOut(row.original, e)}
           >
             <IconShoppingCartPlus size={16} />
             Ambil Bahan
