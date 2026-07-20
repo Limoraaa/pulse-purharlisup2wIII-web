@@ -43,63 +43,23 @@ export async function submitPeminjaman(
   }
 }
 
-interface PeminjamanIndexApiResponse {
-  id: string;
-  tanggal: string;
-  tool_id: string;
-  jumlah: number;
-  area_pekerjaan: string | null;
-  spesifikasi: string | null;
-  keterangan: string | null;
-  tanggal_kembali: string | null;
-  tool: {
-    kode_barang: string;
-    nama_barang: string;
-    merk: string | null;
-    type: string | null;
-    warna: string | null;
-    ukuran: string | null;
-  } | null;
-  peminta: {
-    nama: string;
-    divisi: string;
-  } | null;
-}
+    function formatTanggalJam(isoString: string): string {
+      const d = new Date(isoString);
 
-function mapPeminjamanFromApi(item: PeminjamanIndexApiResponse): PeminjamanAktifItemType {
-  return {
-    id: item.id,
-    toolId: item.tool_id,
-    tanggal: item.tanggal,
-    kodeBarang: item.tool?.kode_barang ?? "-",
-    namaBarang: item.tool?.nama_barang ?? "-",
-    merk: item.tool?.merk ?? "-",
-    tipe: item.tool?.type ?? "-",
-    warna: item.tool?.warna ?? "-",
-    ukuran: item.tool?.ukuran ?? "-",
-    jumlah: item.jumlah,
-    namaPeminjam: item.peminta?.nama ?? "-",
-    divisi: item.peminta?.divisi ?? "-",
-    areaKerja: item.area_pekerjaan ?? "-",
-    spesifikasi: item.spesifikasi ?? "-",
-    keterangan: item.keterangan ?? "-",
-  };
-}
+      const parts = new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Asia/Jakarta",
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      }).formatToParts(d);
 
-const BULAN_SINGKAT = [
-  "Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
-  "Jul", "Agu", "Sep", "Okt", "Nov", "Des",
-];
+      const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
 
-function formatTanggalJam(isoString: string): string {
-  const d = new Date(isoString);
-  const day = String(d.getDate()).padStart(2, "0");
-  const bulan = BULAN_SINGKAT[d.getMonth()];
-  const year = d.getFullYear();
-  const hour = String(d.getHours()).padStart(2, "0");
-  const minute = String(d.getMinutes()).padStart(2, "0");
-  return `${day} ${bulan} ${year}, ${hour}:${minute}`;
-}
+      return `${get("day")} ${get("month")} ${get("year")}, ${get("hour")}:${get("minute")}`;
+    }
 
 // Nomor transaksi buatan: semua alat yang dipinjam dalam satu kali submit form
 // punya timestamp "tanggal" yang identik persis (di-generate sekali sebelum loop

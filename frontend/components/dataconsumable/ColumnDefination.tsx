@@ -14,11 +14,9 @@ interface ColumnHandlers {
   onDetail: (consumable: ConsumableItemType) => void;
   onEdit: (consumable: ConsumableItemType) => void;
   onDelete: (consumable: ConsumableItemType) => void;
-  // event opsional: dipakai DataConsumableManager untuk memicu animasi fly-to-cart
-  // dari posisi tombol yang diklik.
   onStockOut: (
     consumable: ConsumableItemType,
-    event?: React.MouseEvent<HTMLButtonElement>
+    event: React.MouseEvent<HTMLButtonElement>
   ) => void; // Pengambilan
 }
 

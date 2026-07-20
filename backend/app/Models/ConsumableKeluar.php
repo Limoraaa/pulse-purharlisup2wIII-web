@@ -36,11 +36,11 @@ class ConsumableKeluar extends Model
     }
 
     protected function casts(): array
-    {
-        return [
-            'tanggal' => 'date',
-        ];
-    }
+        {
+            return [
+                'tanggal' => 'datetime',
+            ];
+        }
 
     public function consumable(): BelongsTo
     {

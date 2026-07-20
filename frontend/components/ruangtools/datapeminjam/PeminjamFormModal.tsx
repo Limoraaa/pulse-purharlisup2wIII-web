@@ -1,12 +1,12 @@
 "use client";
-// import node module libraries
 import { useEffect, useState } from "react";
-import { Modal, Form, Row, Col, Button } from "react-bootstrap";
+import { Modal, Form, Row, Col, Button, Alert } from "react-bootstrap";
 
-// import custom types
 import { PeminjamType } from "types/DataToolsTypes";
 
-export type PeminjamFormValues = Omit<PeminjamType, "id">;
+// "aktif" sengaja dikeluarkan -- status aktif/nonaktif diatur lewat
+// tombol terpisah (nonaktifkanPeminta/aktifkanPeminta), bukan form ini.
+export type PeminjamFormValues = Omit<PeminjamType, "id" | "aktif">;
 
 const emptyForm: PeminjamFormValues = {
   nama: "",
@@ -17,7 +17,8 @@ interface PeminjamFormModalProps {
   show: boolean;
   onClose: () => void;
   onSubmit: (values: PeminjamFormValues) => void;
-  initialData?: PeminjamType | null; // ada isinya = mode Edit, kosong = mode Tambah
+  initialData?: PeminjamType | null;
+  error?: string | null;
 }
 
 const PeminjamFormModal = ({
@@ -25,13 +26,18 @@ const PeminjamFormModal = ({
   onClose,
   onSubmit,
   initialData,
+  error = null,
 }: PeminjamFormModalProps) => {
   const [form, setForm] = useState<PeminjamFormValues>(emptyForm);
   const isEditMode = Boolean(initialData);
 
   useEffect(() => {
     if (show) {
-      setForm(initialData ? { ...initialData } : emptyForm);
+      setForm(
+        initialData
+          ? { nama: initialData.nama, divisi: initialData.divisi }
+          : emptyForm
+      );
     }
   }, [show, initialData]);
 
@@ -49,6 +55,8 @@ const PeminjamFormModal = ({
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
+          {error && <Alert variant="danger">{error}</Alert>}
+
           <Row className="g-3">
             <Col md={12}>
               <Form.Label>Nama Pegawai</Form.Label>
