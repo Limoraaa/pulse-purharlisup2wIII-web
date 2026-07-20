@@ -29,9 +29,7 @@ const DetailTransaksiModal = ({
   return (
     <Modal show={show} onHide={onClose} centered size="lg">
       <Modal.Header closeButton>
-        <Modal.Title as="h5">
-          Detail Transaksi — {header.nomor_transaksi}
-        </Modal.Title>
+        <Modal.Title as="h5">Detail Transaksi</Modal.Title>
       </Modal.Header>
       <Modal.Body>
         <div className="mb-4">
@@ -51,6 +49,7 @@ const DetailTransaksiModal = ({
               <th>ER/E</th>
               <th>Ukuran</th>
               <th className="text-center">Jumlah</th>
+              <th>Keterangan</th>
             </tr>
           </thead>
           <tbody>
@@ -63,6 +62,9 @@ const DetailTransaksiModal = ({
                 <td>{item.er_e}</td>
                 <td>{item.ukuran}</td>
                 <td className="text-center">{item.jumlah}</td>
+                <td className="text-secondary small">
+                  {item.keterangan || "-"}
+                </td>
               </tr>
             ))}
           </tbody>

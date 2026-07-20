@@ -179,22 +179,11 @@ class ConsumableKeluarController extends Controller
             return response()->json(['message' => 'Antrean kosong'], 400);
         }
 
-        foreach ($antrean as $item) {
-            $consumable = Consumable::find($item->consumable_id);
-            if (!$consumable) {
-                return response()->json(['message' => 'Salah satu bahan di keranjang sudah tidak ada'], 422);
-            }
-            if ($item->qty > $consumable->stok_awal) {
-                return response()->json([
-                    'message' => "Stok {$consumable->nama} tidak mencukupi! Tersedia maksimal: {$consumable->stok_awal}",
-                ], 422);
-            }
-        }
-
         DB::transaction(function () use ($antrean, $request) {
             foreach ($antrean as $item) {
                 $consumable = Consumable::find($item->consumable_id);
-
+                
+                // Proses catat data dengan waktu real-time server
                 ConsumableKeluar::create([
                     'id' => (string) Str::uuid(),
                     'consumable_id' => $item->consumable_id,
@@ -202,15 +191,13 @@ class ConsumableKeluarController extends Controller
                     'dicatat_oleh' => $request->dicatat_oleh,
                     'pekerjaan_area' => $request->pekerjaan_area,
                     'keterangan' => $request->keterangan,
-                    'tanggal' => now(),
+                    'tanggal' => now(), // Menggunakan waktu tepat saat diproses
                     'jumlah_keluar' => $item->qty,
                 ]);
 
-                // Kurangi stok_awal consumable
                 $consumable->decrement('stok_awal', $item->qty);
             }
 
-            // Hapus HANYA cart milik consumable
             DB::table('temporary_cart')->whereNotNull('consumable_id')->delete();
         });
 
@@ -233,7 +220,7 @@ class ConsumableKeluarController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'tanggal' => 'required|date',
+            // 'tanggal' dihapus dari validasi agar tidak bergantung input user
             'consumable_id' => 'required|uuid|exists:consumables,id',
             'peminta_id' => 'required|uuid|exists:peminta,id',
             'jumlah_keluar' => 'required|integer|min:1',
@@ -247,6 +234,9 @@ class ConsumableKeluarController extends Controller
         }
 
         $data = $validator->validated();
+        $data['tanggal'] = now(); // Force waktu real-time saat ini
+        $data['id'] = (string) Str::uuid();
+
         $consumable = Consumable::findOrFail($data['consumable_id']);
 
         if ($consumable->stok_awal < $data['jumlah_keluar']) {
@@ -254,8 +244,6 @@ class ConsumableKeluarController extends Controller
                 'message' => "Stok tidak cukup. Tersedia: {$consumable->stok_awal}, diminta: {$data['jumlah_keluar']}",
             ], 422);
         }
-
-        $data['id'] = (string) Str::uuid();
 
         $consumableKeluar = ConsumableKeluar::create($data);
         $consumable->decrement('stok_awal', $data['jumlah_keluar']);
