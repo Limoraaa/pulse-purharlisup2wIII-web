@@ -24,16 +24,16 @@ export const DashboardMenu: MenuItemType[] = [
     title: "Inventaris",
     icon: <IconBoxSeam size={20} strokeWidth={1.5} />,
     children: [
-      { id: uuid(), name: "Data Tools", link: "inventaris/data-tools" },
+      { id: uuid(), name: "Data Tools", link: "/inventaris/data-tools" },
       {
         id: uuid(),
         name: "Data Consumable",
-        link: "inventaris/data-consumable",
+        link: "/inventaris/data-consumable",
       },
       {
         id: uuid(),
         name: "Data Peminjam",
-        link: "inventaris/data-peminjam",
+        link: "/inventaris/data-peminjam",
       },
     ],
   },
@@ -45,12 +45,12 @@ export const DashboardMenu: MenuItemType[] = [
       {
         id: uuid(),
         name: "Peminjaman Aktif",
-        link: "transaksi/peminjaman-aktif",
+        link: "/transaksi/peminjaman-aktif",
       },
       {
         id: uuid(),
         name: "Consumable Masuk",
-        link: "transaksi/consumable-masuk",
+        link: "/transaksi/consumable-masuk",
       },
     ],
   },
@@ -62,25 +62,25 @@ export const DashboardMenu: MenuItemType[] = [
       {
         id: uuid(),
         name: "Peminjaman Tools",
-        link: "riwayat/peminjaman-tools",
+        link: "/riwayat/peminjaman-tools",
       },
       {
         id: uuid(),
         name: "Consumable Keluar",
-        link: "riwayat/consumable-keluar",
+        link: "/riwayat/consumable-keluar",
       },
     ],
   },
   {
     id: uuid(),
     title: "Laporan Kerusakan Alat",
-    link: "laporan",
+    link: "/laporan",
     icon: <IconReportAnalytics size={20} strokeWidth={1.5} />,
   },
   {
     id: uuid(),
     title: "Pengaturan",
-    link: "pengaturan",
+    link: "/pengaturan",
     icon: <IconSettings size={20} strokeWidth={1.5} />,
   },
 ];

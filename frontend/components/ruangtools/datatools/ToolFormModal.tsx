@@ -17,6 +17,7 @@ const emptyForm: ToolFormValues = {
   ukuran: "",
   kondisi: "Baik",
   stok: 0,
+  dipinjam: 0,
 };
 
 interface ToolFormModalProps {
