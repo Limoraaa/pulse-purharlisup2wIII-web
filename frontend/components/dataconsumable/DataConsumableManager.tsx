@@ -47,7 +47,7 @@ import api from "lib/api";
 // urutan natural, dipakai lagi di sini supaya urutan tetap benar tiap ada perubahan state lokal
 function sortByKode(items: ConsumableItemType[]): ConsumableItemType[] {
   return [...items].sort((a, b) =>
-    a.kode_barang.localeCompare(b.kode_barang, undefined, { numeric: true })
+    b.kode_barang.localeCompare(a.kode_barang, undefined, { numeric: true })
   );
 }
 

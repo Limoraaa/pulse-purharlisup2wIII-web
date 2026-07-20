@@ -3,13 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Row, Col, Card, CardBody, Form, Alert, Spinner } from "react-bootstrap";
 import { IconCircleCheck } from "@tabler/icons-react";
+import { createLaporanKerusakan } from "services/laporanKerusakanService";
 
 // import custom types
 import { PeminjamanAktifItemType } from "types/DataToolsTypes";
 
 // import services (langsung ke API, data ini tidak perlu dibagi ke halaman lain)
 import { getPeminjamanAktif, tandaiDikembalikan } from "services/peminjamanService";
-import { kurangiStokTool } from "services/toolService";
 
 // import custom components
 import TanstackTable from "components/table/TanstackTable";
@@ -79,9 +79,20 @@ const PeminjamanAktifManager = () => {
       //    Catatan: teks "catatan" belum tersimpan permanen karena belum
       //    ada tabel riwayat kerusakan di backend -- baru pengurangan stoknya saja.
       if (payload.jumlahRusak > 0) {
-        await kurangiStokTool(activeItem.toolId, payload.jumlahRusak);
+      const dicatatOleh = localStorage.getItem("userId");
+      if (!dicatatOleh) {
+        throw new Error("Sesi login tidak ditemukan. Silakan login ulang.");
       }
 
+      await createLaporanKerusakan({
+        tanggal: new Date().toISOString(),
+        tool_id: activeItem.toolId,
+        peminjaman_id: activeItem.id,
+        jumlah: payload.jumlahRusak,
+        keterangan: payload.catatan,
+        dilaporkan_oleh: dicatatOleh,
+      });
+    }
       setItems((prev) => prev.filter((i) => i.id !== activeItem.id));
       setReturnModalOpen(false);
       setActiveItem(null);

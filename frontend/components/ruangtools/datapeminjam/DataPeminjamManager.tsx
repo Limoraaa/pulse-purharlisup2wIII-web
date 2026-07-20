@@ -214,7 +214,7 @@ const PeminjamManager = () => {
         show={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
         onConfirm={handleConfirmDelete}
-        item={activeItem}
+        peminjam={activeItem}
         submitting={deleting}
       />
     </>

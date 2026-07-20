@@ -1,16 +1,12 @@
 "use client";
-// import node module libraries
-import { useMemo, useState } from "react";
-import { Row, Col, Card, CardBody } from "react-bootstrap";
+import { useEffect, useMemo, useState } from "react";
+import { Row, Col, Card, CardBody, Alert, Spinner } from "react-bootstrap";
 
-// import custom types
 import { LaporanKerusakanType } from "types/LaporanKerusakanTypes";
 
-// import custom components
 import TanstackTable from "components/table/TanstackTable";
 import Flex from "components/common/Flex";
 import DasherBreadcrumb from "components/common/DasherBreadcrumb";
-// reuse komponen filter & export yang sudah dibuat untuk halaman Riwayat
 import RiwayatFilterBar from "components/ruangtools/riwayat/common/RiwayatFilterBar";
 import {
   exportToExcel,
@@ -20,8 +16,7 @@ import {
 import { getLaporanKerusakanColumns } from "components/ruangtools/laporan/kerusakan/ColumnDefination";
 import DetailLaporanModal from "components/ruangtools/laporan/kerusakan/DetailLaporanModal";
 
-// import required data files
-import { LaporanKerusakanData } from "data/LaporanKerusakanData";
+import { getLaporanKerusakan } from "services/laporanKerusakanService";
 
 const EXPORT_COLUMNS: ExportColumn[] = [
   { header: "Tgl & Jam Pengembalian", key: "tanggal_pengembalian" },
@@ -39,9 +34,28 @@ const EXPORT_COLUMNS: ExportColumn[] = [
 ];
 
 const LaporanKerusakanManager = () => {
-  const [laporanList] = useState<LaporanKerusakanType[]>(LaporanKerusakanData);
+  const [laporanList, setLaporanList] = useState<LaporanKerusakanType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // ---- Filter Bulan & Tahun ----
+  const loadData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getLaporanKerusakan();
+      setLaporanList(data);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Gagal memuat laporan kerusakan";
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
   const [bulanFilter, setBulanFilter] = useState(0);
   const [tahunFilter, setTahunFilter] = useState(0);
 
@@ -78,7 +92,6 @@ const LaporanKerusakanManager = () => {
     });
   }, [laporanList, bulanFilter, tahunFilter]);
 
-  // ---- Modal Detail Laporan ----
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [activeItem, setActiveItem] = useState<LaporanKerusakanType | null>(null);
 
@@ -87,37 +100,22 @@ const LaporanKerusakanManager = () => {
     setDetailModalOpen(true);
   };
 
-  // ---- Export ----
   const handleExportPDF = () =>
-    exportToPDF(
-      filteredList,
-      EXPORT_COLUMNS,
-      "laporan-kerusakan-alat",
-      "Laporan Kerusakan Alat"
-    );
+    exportToPDF(filteredList, EXPORT_COLUMNS, "laporan-kerusakan-alat", "Laporan Kerusakan Alat");
   const handleExportExcel = () =>
     exportToExcel(filteredList, EXPORT_COLUMNS, "laporan-kerusakan-alat");
 
-  const columns = useMemo(
-    () => getLaporanKerusakanColumns({ onDetail: openDetailModal }),
-    []
-  );
+  const columns = useMemo(() => getLaporanKerusakanColumns({ onDetail: openDetailModal }), []);
 
   return (
     <>
       <Row>
         <Col>
-          <Flex
-            justifyContent="between"
-            alignItems="center"
-            className="mb-4 w-100"
-            breakpoint="md"
-          >
+          <Flex justifyContent="between" alignItems="center" className="mb-4 w-100" breakpoint="md">
             <div>
               <h1 className="mb-2 h2">Laporan Kerusakan Alat</h1>
               <p className="text-secondary mb-0">
-                Menampilkan seluruh data alat yang mengalami kerusakan
-                berdasarkan hasil pengembalian dari proses peminjaman.
+                Menampilkan seluruh data alat yang mengalami kerusakan berdasarkan hasil pengembalian dari proses peminjaman.
               </p>
               <DasherBreadcrumb />
             </div>
@@ -127,6 +125,8 @@ const LaporanKerusakanManager = () => {
 
       <Card className="card-lg mb-6">
         <CardBody>
+          {error && <Alert variant="danger">{error}</Alert>}
+
           <RiwayatFilterBar
             bulanFilter={bulanFilter}
             onBulanFilterChange={setBulanFilter}
@@ -137,22 +137,25 @@ const LaporanKerusakanManager = () => {
             onExportExcel={handleExportExcel}
           />
 
-          <TanstackTable
-            data={filteredList}
-            columns={columns}
-            filter
-            pagination
-            isSortable
-            filterPlaceholder="Cari kode / nama barang / nama peminjam..."
-          />
+          {loading ? (
+            <div className="text-center py-6">
+              <Spinner animation="border" size="sm" className="me-2" />
+              Memuat data...
+            </div>
+          ) : (
+            <TanstackTable
+              data={filteredList}
+              columns={columns}
+              filter
+              pagination
+              isSortable
+              filterPlaceholder="Cari kode / nama barang / nama peminjam..."
+            />
+          )}
         </CardBody>
       </Card>
 
-      <DetailLaporanModal
-        show={detailModalOpen}
-        onClose={() => setDetailModalOpen(false)}
-        item={activeItem}
-      />
+      <DetailLaporanModal show={detailModalOpen} onClose={() => setDetailModalOpen(false)} item={activeItem} />
     </>
   );
 };
