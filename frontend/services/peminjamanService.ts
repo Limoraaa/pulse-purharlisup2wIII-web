@@ -2,6 +2,31 @@ import apiFetch from "lib/api";
 import { CartItemType, PeminjamanAktifItemType } from "types/DataToolsTypes";
 import { RiwayatPeminjamanType } from "types/RiwayatTypes";
 
+// --- INTERFACES ---
+
+export interface PeminjamanIndexApiResponse {
+  id: string;
+  tanggal: string;
+  tanggal_kembali: string | null;
+  jumlah: number;
+  area_pekerjaan: string;
+  spesifikasi?: string;
+  keterangan?: string;
+  tool?: {
+    id: string;
+    kode_barang: string;
+    nama_barang: string;
+    merk: string;
+    type: string;
+    warna: string;
+    ukuran: string;
+  };
+  peminta?: {
+    nama: string;
+    divisi: string;
+  };
+}
+
 interface CreatePeminjamanPayload {
   tanggal: string;
   tool_id: string;
@@ -13,61 +38,48 @@ interface CreatePeminjamanPayload {
   dicatat_oleh: string;
 }
 
-// DIPERTAHANKAN untuk kompatibilitas lama, TIDAK DIPAKAI LAGI oleh flow cart baru.
-export async function submitPeminjaman(
-  cartItems: CartItemType[],
-  pemintaId: string,
-  areaKerja: string,
-  dicatatOleh: string,
-  spesifikasi?: string,
-  keterangan?: string
-): Promise<void> {
-  const tanggal = new Date().toISOString();
+// --- UTILS & MAPPERS ---
 
-  for (const item of cartItems) {
-    const payload: CreatePeminjamanPayload = {
-      tanggal,
-      tool_id: item.toolId,
-      peminta_id: pemintaId,
-      jumlah: item.jumlah,
-      area_pekerjaan: areaKerja,
-      spesifikasi,
-      keterangan,
-      dicatat_oleh: dicatatOleh,
-    };
+function formatTanggalJam(isoString: string): string {
+  const d = new Date(isoString);
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Jakarta",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(d);
 
-    await apiFetch("/peminjaman", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
-  }
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  return `${get("day")} ${get("month")} ${get("year")}, ${get("hour")}:${get("minute")}`;
 }
 
-    function formatTanggalJam(isoString: string): string {
-      const d = new Date(isoString);
-
-      const parts = new Intl.DateTimeFormat("en-GB", {
-        timeZone: "Asia/Jakarta",
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      }).formatToParts(d);
-
-      const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
-
-      return `${get("day")} ${get("month")} ${get("year")}, ${get("hour")}:${get("minute")}`;
-    }
-
-// Nomor transaksi buatan: semua alat yang dipinjam dalam satu kali submit form
-// punya timestamp "tanggal" yang identik persis (di-generate sekali sebelum loop
-// di submitPeminjaman), jadi kombinasi tanggal+peminta cukup unik untuk grouping.
 function buildNomorTransaksi(tanggalIso: string, pemintaNama: string): string {
   const timestamp = new Date(tanggalIso).getTime();
   const pemintaCode = pemintaNama.replace(/\s+/g, "").slice(0, 4).toUpperCase();
   return `TRX-${timestamp}-${pemintaCode}`;
+}
+
+function mapPeminjamanFromApi(item: PeminjamanIndexApiResponse): PeminjamanAktifItemType {
+  return {
+    id: item.id,
+    toolId: item.tool?.id ?? "-",
+    tanggal: formatTanggalJam(item.tanggal),
+    kodeBarang: item.tool?.kode_barang ?? "-",
+    namaBarang: item.tool?.nama_barang ?? "-",
+    merk: item.tool?.merk ?? "-",
+    tipe: item.tool?.type ?? "-",
+    warna: item.tool?.warna ?? "-",
+    ukuran: item.tool?.ukuran ?? "-",
+    jumlah: item.jumlah,
+    namaPeminjam: item.peminta?.nama ?? "-",
+    divisi: item.peminta?.divisi ?? "-",
+    areaKerja: item.area_pekerjaan ?? "-",
+    spesifikasi: item.spesifikasi ?? "-",
+    keterangan: item.keterangan ?? "-",
+  };
 }
 
 function mapRiwayatFromApi(item: PeminjamanIndexApiResponse): RiwayatPeminjamanType {
@@ -94,9 +106,45 @@ function mapRiwayatFromApi(item: PeminjamanIndexApiResponse): RiwayatPeminjamanT
   };
 }
 
+// --- EXPORTED FUNCTIONS ---
+
+export async function submitPeminjaman(
+  cartItems: CartItemType[],
+  pemintaId: string,
+  areaKerja: string,
+  dicatatOleh: string,
+  spesifikasi?: string,
+  keterangan?: string
+): Promise<void> {
+  const tanggal = new Date().toISOString();
+  for (const item of cartItems) {
+    const payload: CreatePeminjamanPayload = {
+      tanggal,
+      tool_id: item.toolId,
+      peminta_id: pemintaId,
+      jumlah: item.jumlah,
+      area_pekerjaan: areaKerja,
+      spesifikasi,
+      keterangan,
+      dicatat_oleh: dicatatOleh,
+    };
+    await apiFetch("/peminjaman", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  }
+}
+
 export async function getPeminjamanAktif(): Promise<PeminjamanAktifItemType[]> {
   const data: PeminjamanIndexApiResponse[] = await apiFetch("/peminjaman");
   return data.filter((item) => item.tanggal_kembali === null).map(mapPeminjamanFromApi);
+}
+
+export async function getRiwayatPeminjaman(): Promise<RiwayatPeminjamanType[]> {
+  const data: PeminjamanIndexApiResponse[] = await apiFetch("/peminjaman");
+  return data
+    .filter((item) => item.tanggal_kembali !== null)
+    .map(mapRiwayatFromApi);
 }
 
 export async function tandaiDikembalikan(id: string): Promise<void> {
@@ -114,11 +162,7 @@ export interface AntreanItemResponse {
   max_jumlah: number;
 }
 
-// Dipanggil dari: tombol "+" manual di web, DAN app Flutter setelah scan QR/barcode.
-export async function scanTool(
-  toolId: string,
-  jumlah = 1
-): Promise<{ message: string; qty: number }> {
+export async function scanTool(toolId: string, jumlah = 1): Promise<{ message: string; qty: number }> {
   return apiFetch("/peminjaman/scan", {
     method: "POST",
     body: JSON.stringify({ tools_id: toolId, jumlah }),
@@ -158,12 +202,4 @@ export async function prosesPeminjamanApi(params: {
       keterangan: params.keterangan,
     }),
   });
-}
-
-// Ambil semua peminjaman yang SUDAH SELESAI (tanggal_kembali sudah terisi)
-export async function getRiwayatPeminjaman(): Promise<RiwayatPeminjamanType[]> {
-  const data: PeminjamanIndexApiResponse[] = await apiFetch("/peminjaman");
-  return data
-    .filter((item) => item.tanggal_kembali !== null)
-    .map(mapRiwayatFromApi);
 }

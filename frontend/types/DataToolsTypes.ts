@@ -63,6 +63,7 @@ export interface TransaksiPeminjamanItemType {
   kondisiSaatDipinjam: ToolCondition;
 }
 
+
 export interface TransaksiPeminjamanType {
   id: string;
   tanggalPeminjaman: string;
