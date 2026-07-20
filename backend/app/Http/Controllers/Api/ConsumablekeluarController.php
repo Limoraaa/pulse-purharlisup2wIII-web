@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\ConsumableKeluar;
 use App\Models\Consumable;
+use App\Models\Tool; 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -23,51 +24,61 @@ class ConsumableKeluarController extends Controller
     }
 
     // POST /api/consumable/scan
+    // Catatan: endpoint ini men-generalisasi "scan" untuk Tool maupun Consumable.
+    // Frontend WAJIB mengirim key snake_case persis: `tools_id` ATAU `consumable_id`,
+    // plus `jumlah`. Tidak ada auto-convert dari camelCase di sisi backend.
     public function scan(Request $request)
     {
-        // 1. Validasi fleksibel: minimal salah satu ID dikirim
-        // Ini akan mencegah error "The tool id field is required"
         $request->validate([
-            'toolId' => 'nullable|uuid|required_without:consumableId',
-            'consumableId' => 'nullable|uuid|required_without:toolId',
-            'jumlah' => 'required|integer|min:1'
+            'tools_id'      => 'nullable|uuid|required_without:consumable_id',
+            'consumable_id' => 'nullable|uuid|required_without:tools_id',
+            'jumlah'        => 'required|integer|min:1',
+        ], [
+            'tools_id.required_without'      => 'ID alat atau ID bahan wajib diisi.',
+            'consumable_id.required_without'  => 'ID alat atau ID bahan wajib diisi.',
+            'jumlah.required'                => 'Jumlah wajib diisi.',
         ]);
 
         $userId = $request->user('sanctum')?->id ?? '00000000-0000-0000-0000-000000000000';
 
-        // 2. Tentukan konteks: Apakah Tool atau Consumable
-        // Kita gunakan toolId sebagai indikator utama untuk modul Tools
-        $isTool = $request->has('toolId');
-        $itemId = $isTool ? $request->toolId : $request->consumableId;
+        // Tentukan ID apa yang sedang diproses
+        $isTool = $request->filled('tools_id');
+        $itemId = $isTool ? $request->tools_id : $request->consumable_id;
         $column = $isTool ? 'tools_id' : 'consumable_id';
+        $jumlah = $request->jumlah;
 
-        // 3. Validasi Stok (Opsional: Cek stok di model terkait)
+        // Validasi stok
         if ($isTool) {
-            $tool = Tool::findOrFail($itemId);
-            if ($tool->tersedia() <= 0) {
+            $tool = Tool::find($itemId);
+            if (!$tool || $tool->tersedia() < $jumlah) {
                 return response()->json(['message' => 'Stok alat tidak mencukupi!'], 422);
+            }
+        } else {
+            $consumable = Consumable::find($itemId);
+            if (!$consumable || $consumable->stok_awal < $jumlah) {
+                return response()->json(['message' => 'Stok bahan tidak mencukupi!'], 422);
             }
         }
 
-        // 4. Cek apakah sudah ada di cart untuk user ini
+        // Cek apakah sudah ada di cart
         $existing = DB::table('temporary_cart')
             ->where($column, $itemId)
             ->where('user_id', $userId)
             ->first();
 
-        // 5. Proses Insert/Update
-        return DB::transaction(function () use ($existing, $itemId, $userId, $column) {
+        // Proses Insert/Update
+        return DB::transaction(function () use ($existing, $itemId, $userId, $column, $jumlah) {
             if ($existing) {
                 DB::table('temporary_cart')->where('id', $existing->id)->update([
-                    'qty' => $existing->qty + 1,
+                    'qty'        => $existing->qty + $jumlah,
                     'updated_at' => now(),
                 ]);
             } else {
                 DB::table('temporary_cart')->insert([
-                    'id' => (string) Str::uuid(), 
-                    'user_id' => $userId,
-                    $column => $itemId, // Akan mengisi kolom yang benar secara dinamis
-                    'qty' => 1,
+                    'id'         => (string) Str::uuid(),
+                    'user_id'    => $userId,
+                    $column      => $itemId,
+                    'qty'        => $jumlah,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
@@ -82,9 +93,6 @@ class ConsumableKeluarController extends Controller
         $staticUserId = '00000000-0000-0000-0000-000000000000';
         $authUserId = $request->user('sanctum')?->id;
 
-        // 1. Ambil data cart saja tanpa join raw SQL.
-        // whereNotNull('consumable_id') memastikan baris milik keranjang tools
-        // (yang consumable_id-nya null) tidak ikut terbawa.
         $cartItems = DB::table('temporary_cart')
             ->where(function ($query) use ($staticUserId, $authUserId) {
                 $query->where('user_id', $staticUserId);
@@ -95,18 +103,12 @@ class ConsumableKeluarController extends Controller
             ->whereNotNull('consumable_id')
             ->get();
 
-        // 2. Looping data cart untuk menyisipkan info detail bahan dan stok
         $data = $cartItems->map(function ($item) {
             $consumable = Consumable::find($item->consumable_id);
 
             if ($consumable) {
                 $item->nama = $consumable->nama;
                 $item->kode_barang = $consumable->kode_barang;
-
-                // Consumable habis terpakai (bukan dipinjam), jadi stok tersedia
-                // = stok_awal saat ini. Kalau nanti ada kebutuhan mengunci stok
-                // yang sudah "dipesan" user lain di keranjang mereka, method ini
-                // bisa disesuaikan sama seperti Tool::tersedia().
                 $item->stok_tersedia = $consumable->stok_awal;
             } else {
                 $item->nama = 'Bahan Dihapus';
@@ -123,23 +125,25 @@ class ConsumableKeluarController extends Controller
     // PATCH /api/consumable-keluar/cart/{id}
     public function updateCartItem(Request $request, string $id)
     {
+        // Berjaga-jaga jika frontend mengirim 'jumlah' alih-alih 'qty'
+        $request->merge([
+            'qty' => $request->input('jumlah') ?? $request->input('qty'),
+        ]);
+
         $request->validate(['qty' => 'required|integer|min:1']);
 
-        // 1. Ambil data keranjang dan bahannya
         $cart = DB::table('temporary_cart')->where('id', $id)->whereNotNull('consumable_id')->first();
         if (!$cart) return response()->json(['message' => 'Item tidak ditemukan'], 404);
 
         $consumable = Consumable::find($cart->consumable_id);
         if (!$consumable) return response()->json(['message' => 'Bahan tidak ditemukan'], 404);
 
-        // 2. Validasi Stok! Cek apakah angka yang direquest melebihi stok tersedia
         if ($request->qty > $consumable->stok_awal) {
             return response()->json([
-                'message' => 'Stok tidak mencukupi! Tersedia maksimal: ' . $consumable->stok_awal
+                'message' => 'Stok tidak mencukupi! Tersedia maksimal: ' . $consumable->stok_awal,
             ], 422);
         }
 
-        // 3. Update jika aman
         DB::table('temporary_cart')
             ->where('id', $id)
             ->update(['qty' => $request->qty, 'updated_at' => now()]);
@@ -150,9 +154,6 @@ class ConsumableKeluarController extends Controller
     // DELETE /api/consumable-keluar/cart/{id}
     public function removeCartItem($id)
     {
-        // Hapus berdasarkan id cart tanpa filter user (Public Mode untuk Cart),
-        // tapi tetap dibatasi ke baris consumable saja supaya tidak menyentuh
-        // baris keranjang tools yang kebetulan share tabel yang sama.
         $affected = DB::table('temporary_cart')
             ->where('id', $id)
             ->whereNotNull('consumable_id')
@@ -172,15 +173,12 @@ class ConsumableKeluarController extends Controller
             'keterangan' => 'nullable|string',
         ]);
 
-        // Karena satu sistem, kita ambil semua isi antrean consumable
         $antrean = DB::table('temporary_cart')->whereNotNull('consumable_id')->get();
 
         if ($antrean->isEmpty()) {
             return response()->json(['message' => 'Antrean kosong'], 400);
         }
 
-        // Validasi stok semua item dulu sebelum eksekusi, supaya tidak ada
-        // proses yang setengah jalan kalau salah satu item stoknya kurang.
         foreach ($antrean as $item) {
             $consumable = Consumable::find($item->consumable_id);
             if (!$consumable) {
@@ -188,7 +186,7 @@ class ConsumableKeluarController extends Controller
             }
             if ($item->qty > $consumable->stok_awal) {
                 return response()->json([
-                    'message' => "Stok {$consumable->nama} tidak mencukupi! Tersedia maksimal: {$consumable->stok_awal}"
+                    'message' => "Stok {$consumable->nama} tidak mencukupi! Tersedia maksimal: {$consumable->stok_awal}",
                 ], 422);
             }
         }
@@ -208,11 +206,11 @@ class ConsumableKeluarController extends Controller
                     'jumlah_keluar' => $item->qty,
                 ]);
 
-                // Bahan habis terpakai -> kurangi stok_awal secara permanen.
+                // Kurangi stok_awal consumable
                 $consumable->decrement('stok_awal', $item->qty);
             }
 
-            // Kosongkan antrean consumable setelah sukses (biarkan baris tools tetap ada)
+            // Hapus HANYA cart milik consumable
             DB::table('temporary_cart')->whereNotNull('consumable_id')->delete();
         });
 
