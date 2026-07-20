@@ -11,18 +11,14 @@ import { RiwayatConsumableKeluarType } from "types/RiwayatTypes";
 import ActionMenu from "components/common/ActionMenu";
 
 interface ColumnHandlers {
-  onEdit: (item: RiwayatConsumableKeluarType) => void;
   onDetail: (item: RiwayatConsumableKeluarType) => void;
-  onLihatKeterangan: (item: RiwayatConsumableKeluarType) => void;
 }
 
 const truncate = (text: string, max = 30) =>
   text.length > max ? `${text.slice(0, max)}...` : text;
 
 export const getRiwayatConsumableKeluarColumns = ({
-  onEdit,
   onDetail,
-  onLihatKeterangan,
 }: ColumnHandlers): ColumnDef<RiwayatConsumableKeluarType>[] => [
   {
     accessorKey: "tanggal_pengambilan",
@@ -90,14 +86,8 @@ export const getRiwayatConsumableKeluarColumns = ({
         drop="start"
         align="start"
       >
-        <Dropdown.Item onClick={() => onEdit(row.original)}>
-          Edit
-        </Dropdown.Item>
         <Dropdown.Item onClick={() => onDetail(row.original)}>
           Detail Transaksi
-        </Dropdown.Item>
-        <Dropdown.Item onClick={() => onLihatKeterangan(row.original)}>
-          Lihat Keterangan
         </Dropdown.Item>
       </ActionMenu>
     ),
