@@ -222,7 +222,10 @@ const DataConsumableManager = () => {
       await api("/consumable/scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kode: item.id }),
+        body: JSON.stringify({
+          consumable_id: item.id,
+          jumlah: 1, // atau jumlah yang sesuai, misal dari hasil scan
+        }),
       });
 
       // 4. Update state keranjang segera setelah scan berhasil
