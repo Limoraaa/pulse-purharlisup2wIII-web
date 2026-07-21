@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Modal, Form, Row, Col, Button, Alert } from "react-bootstrap";
 
 import { ConsumableFormValues, ConsumableItemType } from "types/DataConsumableTypes";
@@ -65,16 +65,18 @@ const ConsumableToolFormModal = ({
   const [form, setForm] = useState<ConsumableFormValues>(emptyForm);
   const isEditMode = Boolean(initialData);
 
-  useEffect(() => {
-    if (show) {
+  const wasShown = useRef(false);
+
+useEffect(() => {
+    if (show && !wasShown.current) {
+      // modal baru saja DIBUKA (transisi dari tertutup ke terbuka) -> reset form
       if (initialData) {
-        // mode Edit: isi form sesuai data yang dipilih
         setForm({ ...initialData });
       } else {
-        // mode Tambah: kosongkan form, tapi kasih saran kode barang berikutnya
         setForm({ ...emptyForm, kode_barang: suggestNextCode(existingCodes) });
       }
     }
+    wasShown.current = show;
   }, [show, initialData, existingCodes]);
 
   const handleChange = (
