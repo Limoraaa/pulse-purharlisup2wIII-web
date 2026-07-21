@@ -12,7 +12,7 @@ use App\Http\Controllers\Api\PeminjamanController;
 use App\Http\Controllers\Api\ConsumableMasukController;
 use App\Http\Controllers\Api\ConsumableKeluarController;
 use App\Http\Controllers\Api\LaporanKerusakanController;
-use App\Http\Controllers\Api\DashboardController;
+
 
 Route::post('/login', [AuthController::class, 'login']);
 
