@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\ToolController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\PemintaController;
 use App\Http\Controllers\Api\PeminjamanController;
+use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\ConsumableMasukController;
 use App\Http\Controllers\Api\ConsumableKeluarController;
 use App\Http\Controllers\Api\LaporanKerusakanController;
@@ -44,6 +45,17 @@ Route::apiResource('consumable-keluar', ConsumableKeluarController::class);
 
 // 6. Laporan Kerusakan Tools
 Route::apiResource('laporan-kerusakan', LaporanKerusakanController::class);
+
+Route::prefix('dashboard')->group(function () {
+    Route::get('/summary', [DashboardController::class, 'summary']);
+    Route::get('/stok-menipis', [DashboardController::class, 'stokMenipis']);
+    Route::get('/telat-kembali', [DashboardController::class, 'telatKembali']);
+    Route::get('/alat-terpopuler', [DashboardController::class, 'alatTerpopuler']);
+    Route::get('/consumable-terpopuler', [DashboardController::class, 'consumableTerpopuler']);
+    Route::get('/kerusakan-summary', [DashboardController::class, 'kerusakanSummary']);
+    Route::get('/aktivitas-terbaru', [DashboardController::class, 'aktivitasTerbaru']);
+    Route::get('/tren-peminjaman', [DashboardController::class, 'trenPeminjaman']);
+});
 
 
 Route::middleware('auth:sanctum')->group(function () {
