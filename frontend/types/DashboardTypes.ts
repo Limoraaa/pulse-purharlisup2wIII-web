@@ -1,47 +1,51 @@
-export type DashboardStatType = {
-  id: string;
-  title: string;
-  value: string;
-  icon: React.ReactNode;
-  bgColor: string;
-  textColor: string;
-  bottomValue: string;
-  description: string;
-};
-
-export interface ProjectType {
-  id: string;
-  name: string;
-  deadline: string;
-  progress: number;
-  status: string;
-  assignedAvatars: string[];
+export interface DashboardSummary {
+  total_tools: number;
+  total_consumables: number;
+  total_peminta: number;
+  sedang_dipinjam: number;
 }
 
-export interface TeamsProps {
-  name: string;
-  role: string;
-  avatar: string;
-  tasksAssigned: number;
-}
-
-export interface ActivityLogType {
-  description: string;
-  timestamp: string;
-
-  colorClass: string;
-}
-
-export type Task = {
+export interface StokMenipisItem {
   id: string;
-  title: string;
-  priority: "Low" | "Medium" | "High" | "Critical";
-  badgeVariant: "primary" | "warning" | "info" | "danger";
-};
+  kode_barang: string;
+  nama: string;
+  stok_awal: number;
+}
 
-export interface EventType {
-  title: string;
-  date: string;
-  time: string;
-  platform: string;
+export interface TelatKembaliItem {
+  id: string;
+  kode_barang: string;
+  nama_barang: string;
+  nama_peminjam: string;
+  tanggal_pinjam: string;
+  hari_terlambat: number;
+}
+
+export interface AlatTerpopulerItem {
+  kode_barang: string;
+  nama_barang: string;
+  total_transaksi: number;
+  total_unit: number;
+}
+
+export interface ConsumableTerpopulerItem {
+  kode_barang: string;
+  nama: string;
+  total_diambil: number;
+}
+
+export interface KerusakanSummary {
+  bulan_ini: number;
+  total_semua: number;
+}
+
+export interface AktivitasItem {
+  jenis: "peminjaman" | "pengembalian" | "consumable_keluar" | "kerusakan";
+  deskripsi: string;
+  waktu: string;
+}
+
+export interface TrenPeminjamanItem {
+  tanggal: string;
+  total: number;
 }
