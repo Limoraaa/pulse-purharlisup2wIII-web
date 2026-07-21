@@ -1,7 +1,7 @@
 "use client";
 // import node module libraries
 import { useEffect, useMemo, useState } from "react";
-import { Row, Col, Card, CardBody, Button, Form, Spinner, Alert } from "react-bootstrap";
+import { Row, Col, Card, CardBody, Button, Spinner, Alert } from "react-bootstrap";
 import { IconPlus, IconCircleCheck } from "@tabler/icons-react";
 import { v4 as uuid } from "uuid";
 
@@ -19,7 +19,6 @@ import {
 import {
   ToolItemType,
   ToolFormValues,
-  ToolCondition,
   CartItemType,
   LoanFormValues,
 } from "types/DataToolsTypes";
@@ -52,12 +51,6 @@ const generateNextKodeBarang = (tools: ToolItemType[]): string => {
   return `I-${String(nextNumber).padStart(3, "0")}`;
 };
 
-const KONDISI_FILTER_OPTIONS: (ToolCondition | "Semua")[] = [
-  "Semua",
-  "Baik",
-  "Rusak",
-];
-
 const DataToolsManager = () => {
   const dispatch = useAppDispatch();
 
@@ -65,9 +58,6 @@ const DataToolsManager = () => {
   const tools = useAppSelector((state) => state.inventoryTools.tools);
   const loadingTools = useAppSelector((state) => state.inventoryTools.loadingTools);
   const toolsError = useAppSelector((state) => state.inventoryTools.toolsError);
-
-  // Filter "Kondisi" (dropdown custom, terpisah dari search bawaan TanstackTable)
-  const [kondisiFilter, setKondisiFilter] = useState<ToolCondition | "Semua">("Semua");
 
   // ---- State modal: Tambah/Edit, Detail, Hapus ----
   const [formModalOpen, setFormModalOpen] = useState(false);
@@ -93,11 +83,6 @@ const DataToolsManager = () => {
   useEffect(() => {
     dispatch(fetchTools());
   }, [dispatch]);
-
-  const filteredTools = useMemo(() => {
-    if (kondisiFilter === "Semua") return tools;
-    return tools.filter((t) => t.kondisi === kondisiFilter);
-  }, [tools, kondisiFilter]);
 
   // ================= CRUD TOOLS =================
   const openAddModal = () => {
@@ -299,27 +284,9 @@ const DataToolsManager = () => {
         </Col>
       </Row>
 
-      {/* ---- Filter Kondisi ---- */}
       <Card className="card-lg mb-6">
         <CardBody>
           {toolsError && <Alert variant="danger">{toolsError}</Alert>}
-
-          <Row className="align-items-center g-3 mb-2">
-            <Col md={4} sm={6}>
-              <Form.Label className="mb-1 small text-secondary">Filter Kondisi</Form.Label>
-              <Form.Select
-                size="sm"
-                value={kondisiFilter}
-                onChange={(e) => setKondisiFilter(e.target.value as ToolCondition | "Semua")}
-              >
-                {KONDISI_FILTER_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
-                  </option>
-                ))}
-              </Form.Select>
-            </Col>
-          </Row>
 
           {loadingTools ? (
             <div className="text-center py-6">
@@ -328,7 +295,7 @@ const DataToolsManager = () => {
             </div>
           ) : (
             <TanstackTable
-              data={filteredTools}
+              data={tools}
               columns={columns}
               filter
               pagination

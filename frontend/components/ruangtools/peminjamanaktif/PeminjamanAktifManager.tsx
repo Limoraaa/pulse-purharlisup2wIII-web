@@ -1,7 +1,7 @@
 "use client";
 // import node module libraries
 import { useEffect, useMemo, useState } from "react";
-import { Row, Col, Card, CardBody, Form, Alert, Spinner } from "react-bootstrap";
+import { Row, Col, Card, CardBody, Alert, Spinner } from "react-bootstrap";
 import { IconCircleCheck } from "@tabler/icons-react";
 import { createLaporanKerusakan } from "services/laporanKerusakanService";
 
@@ -47,18 +47,6 @@ const PeminjamanAktifManager = () => {
   useEffect(() => {
     loadData();
   }, []);
-
-  // Filter Divisi, opsinya diambil otomatis dari data yang ada
-  const [divisiFilter, setDivisiFilter] = useState("Semua");
-  const divisiOptions = useMemo(() => {
-    const unique = Array.from(new Set(items.map((t) => t.divisi)));
-    return ["Semua", ...unique];
-  }, [items]);
-
-  const filteredItems = useMemo(() => {
-    if (divisiFilter === "Semua") return items;
-    return items.filter((t) => t.divisi === divisiFilter);
-  }, [items, divisiFilter]);
 
   // ---- buka form pengembalian untuk 1 alat ----
   const handleOpenPengembalian = (item: PeminjamanAktifItemType) => {
@@ -153,23 +141,6 @@ const PeminjamanAktifManager = () => {
         <CardBody>
           {error && <Alert variant="danger">{error}</Alert>}
 
-          <Row className="align-items-center g-3 mb-2">
-            <Col md={4} sm={6}>
-              <Form.Label className="mb-1 small text-secondary">Filter Divisi</Form.Label>
-              <Form.Select
-                size="sm"
-                value={divisiFilter}
-                onChange={(e) => setDivisiFilter(e.target.value)}
-              >
-                {divisiOptions.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
-                  </option>
-                ))}
-              </Form.Select>
-            </Col>
-          </Row>
-
           {loading ? (
             <div className="text-center py-6">
               <Spinner animation="border" size="sm" className="me-2" />
@@ -177,7 +148,7 @@ const PeminjamanAktifManager = () => {
             </div>
           ) : (
             <TanstackTable
-              data={filteredItems}
+              data={items}
               columns={columns}
               filter
               pagination
