@@ -11,8 +11,11 @@ use App\Http\Controllers\Api\PeminjamanController;
 use App\Http\Controllers\Api\ConsumableMasukController;
 use App\Http\Controllers\Api\ConsumableKeluarController;
 use App\Http\Controllers\Api\LaporanKerusakanController;
+use App\Http\Controllers\Api\DashboardController;
 
 Route::post('/login', [AuthController::class, 'login']);
+
+Route::get('/dashboard', [DashboardController::class, 'index']);
 
 // 0. Users (kelola staff & super admin)
 Route::apiResource('users', UserController::class);
