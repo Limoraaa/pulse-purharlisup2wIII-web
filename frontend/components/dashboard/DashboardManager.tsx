@@ -223,7 +223,7 @@ const DashboardManager = () => {
             <CardBody>
               <div className="d-flex align-items-center gap-2 mb-3">
                 <IconClockHour4 className="text-warning" size={20} />
-                <h5 className="mb-0">Belum Dikembalikan &gt; 7 Hari</h5>
+                <h5 className="mb-0">Belum Dikembalikan &gt; 14 Hari</h5>
               </div>
               {telatKembali.length === 0 ? (
                 <p className="text-secondary small mb-0">Tidak ada yang terlambat.</p>

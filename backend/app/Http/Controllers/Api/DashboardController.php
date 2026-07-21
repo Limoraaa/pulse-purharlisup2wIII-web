@@ -40,10 +40,10 @@ class DashboardController extends Controller
     // GET /api/dashboard/telat-kembali
     // Peminjaman aktif yang sudah lewat expected_return_date...
     // Catatan: skema kita belum punya expected_return_date, jadi pakai ambang
-    // "sudah lebih dari 7 hari sejak tanggal pinjam dan belum kembali"
+    // "sudah lebih dari 14 hari sejak tanggal pinjam dan belum kembali"
     public function telatKembali()
     {
-        $batasHari = 7;
+        $batasHari = 14;
 
         $data = Peminjaman::with(['tool', 'peminta'])
             ->whereNull('tanggal_kembali')
