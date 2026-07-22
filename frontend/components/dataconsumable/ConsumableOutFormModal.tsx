@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Modal, Form, Row, Col, Button, Spinner } from "react-bootstrap";
+import { IconClipboardList, IconCheck } from "@tabler/icons-react";
 import { ConsumableOutFormValues, ConsumableCartItemType } from "types/DataConsumableTypes";
 import { PeminjamType } from "types/DataToolsTypes";
 import { getPeminta } from "services/pemintaService";
@@ -71,10 +72,15 @@ const ConsumableOutFormModal = ({
   };
 
   return (
-    <Modal show={show} onHide={submitting ? undefined : onClose} centered backdrop={submitting ? "static" : true}>
+    <Modal show={show} onHide={submitting ? undefined : onClose} centered size="lg" backdrop={submitting ? "static" : true} className="consumable-out-modal">
       <Form onSubmit={handleSubmit}>
         <Modal.Header closeButton={!submitting}>
-          <Modal.Title as="h5">Form Pengambilan Bahan</Modal.Title>
+          <Modal.Title as="h5" className="d-flex align-items-center gap-2">
+            <span className="consumable-out-title-icon">
+              <IconClipboardList size={20} />
+            </span>
+            Form Pengambilan Bahan
+          </Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {error && (
@@ -83,84 +89,106 @@ const ConsumableOutFormModal = ({
             </div>
           )}
 
-          <Row className="g-3">
-            <Col md={12}>
-              <Form.Label>Tanggal Pengambilan</Form.Label>
-              <Form.Control value={form.tanggalPengambilan} disabled readOnly />
-              <Form.Text className="text-secondary">
-                Otomatis terisi sesuai tanggal &amp; jam saat ini.
-              </Form.Text>
-            </Col>
-            <Col md={12}>
-              <Form.Label>Dipakai Oleh (Teknisi/Staff)</Form.Label>
-              <Form.Control
-                required
-                list="peminta-options"
-                placeholder={loadingPeminta ? "Memuat..." : "Ketik atau pilih nama pemakai..."}
-                disabled={loadingPeminta}
-                value={form.pemintaId ? form.namaPeminta : pemintaSearchText}
-                onChange={(e) => {
-                  const typed = e.target.value;
-                  setPemintaSearchText(typed);
+          {/* Section: Data Pemakai */}
+          <div className="consumable-out-section mb-4">
+            <div className="text-secondary small text-uppercase fw-semibold mb-3">
+              Data Pemakai
+            </div>
+            <Row className="g-3">
+              <Col md={12}>
+                <Form.Label>Tanggal Pengambilan</Form.Label>
+                <Form.Control value={form.tanggalPengambilan} disabled readOnly />
+                <Form.Text className="text-secondary">
+                  Otomatis terisi sesuai tanggal &amp; jam saat ini.
+                </Form.Text>
+              </Col>
+              <Col md={6}>
+                <Form.Label>
+                  Dipakai Oleh (Teknisi/Staff) <span className="text-danger">*</span>
+                </Form.Label>
+                <Form.Control
+                  required
+                  list="peminta-options"
+                  placeholder={loadingPeminta ? "Memuat..." : "Ketik atau pilih nama pemakai..."}
+                  disabled={loadingPeminta}
+                  value={form.pemintaId ? form.namaPeminta : pemintaSearchText}
+                  onChange={(e) => {
+                    const typed = e.target.value;
+                    setPemintaSearchText(typed);
 
-                  const match = pemintaList.find((p) => p.nama === typed);
-                  if (match) {
-                    handlePemintaChange(match.id);
-                  } else {
-                    setForm((prev) => ({
-                      ...prev,
-                      pemintaId: "",
-                      namaPeminta: "",
-                      divisi: "",
-                    }));
-                  }
-                }}
-              />
-              <datalist id="peminta-options">
-                {pemintaList.map((p) => (
-                  <option key={p.id} value={p.nama} />
-                ))}
-              </datalist>
-            </Col>
-            <Col md={12}>
-              <Form.Label>Divisi</Form.Label>
-              <Form.Control value={form.divisi} disabled readOnly />
-              <Form.Text className="text-secondary">
-                Otomatis terisi berdasarkan pemakai yang dipilih.
-              </Form.Text>
-            </Col>
-            <Col md={12}>
-              <Form.Label>Area Pekerjaan</Form.Label>
-              <Form.Control
-                required
-                placeholder="Contoh: Lab Produksi"
-                value={form.areaKerja}
-                onChange={(e) => setForm((prev) => ({ ...prev, areaKerja: e.target.value }))}
-                disabled={submitting}
-              />
-            </Col>
-            <Col md={12}>
-              <Form.Label>
-                Keterangan <span className="text-secondary fw-normal">(opsional)</span>
-              </Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={2}
-                placeholder="Catatan tambahan jika ada"
-                value={form.keterangan}
-                onChange={(e) => setForm((prev) => ({ ...prev, keterangan: e.target.value }))}
-                disabled={submitting}
-              />
-            </Col>
-          </Row>
+                    const match = pemintaList.find((p) => p.nama === typed);
+                    if (match) {
+                      handlePemintaChange(match.id);
+                    } else {
+                      setForm((prev) => ({
+                        ...prev,
+                        pemintaId: "",
+                        namaPeminta: "",
+                        divisi: "",
+                      }));
+                    }
+                  }}
+                />
+                <datalist id="peminta-options">
+                  {pemintaList.map((p) => (
+                    <option key={p.id} value={p.nama} />
+                  ))}
+                </datalist>
+              </Col>
+              <Col md={6}>
+                <Form.Label>Divisi</Form.Label>
+                <Form.Control value={form.divisi} disabled readOnly />
+                <Form.Text className="text-secondary">
+                  Otomatis terisi berdasarkan pemakai.
+                </Form.Text>
+              </Col>
+            </Row>
+          </div>
 
-          <div className="mt-4">
-            <div className="text-secondary small text-uppercase mb-2">Ringkasan Bahan yang Diambil</div>
-            <ul className="list-unstyled mb-0 border rounded p-2">
+          {/* Section: Detail Pekerjaan */}
+          <div className="consumable-out-section mb-4">
+            <div className="text-secondary small text-uppercase fw-semibold mb-3">
+              Detail Pekerjaan
+            </div>
+            <Row className="g-3">
+              <Col md={12}>
+                <Form.Label>
+                  Area Pekerjaan <span className="text-danger">*</span>
+                </Form.Label>
+                <Form.Control
+                  required
+                  placeholder="Contoh: Lab Produksi"
+                  value={form.areaKerja}
+                  onChange={(e) => setForm((prev) => ({ ...prev, areaKerja: e.target.value }))}
+                  disabled={submitting}
+                />
+              </Col>
+              <Col md={12}>
+                <Form.Label>
+                  Keterangan <span className="text-secondary fw-normal">(opsional)</span>
+                </Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={2}
+                  placeholder="Catatan tambahan jika ada"
+                  value={form.keterangan}
+                  onChange={(e) => setForm((prev) => ({ ...prev, keterangan: e.target.value }))}
+                  disabled={submitting}
+                />
+              </Col>
+            </Row>
+          </div>
+
+          {/* Section: Ringkasan Bahan */}
+          <div className="consumable-out-summary">
+            <div className="text-secondary small text-uppercase fw-semibold mb-2">
+              Ringkasan Bahan yang Diambil
+            </div>
+            <ul className="list-unstyled mb-0 consumable-out-summary-list">
               {cartItems.map((item) => (
-                <li key={item.consumable_id} className="d-flex justify-content-between border-bottom py-2 small">
+                <li key={item.consumable_id} className="d-flex justify-content-between align-items-center px-2 py-2 rounded small">
                   <span className="fw-medium">{item.nama}</span>
-                  <span className="text-muted">{item.jumlah} unit</span>
+                  <span className="fw-semibold">{item.jumlah} unit</span>
                 </li>
               ))}
             </ul>
@@ -174,14 +202,18 @@ const ConsumableOutFormModal = ({
             variant="primary"
             type="submit"
             disabled={cartItems.length === 0 || !form.pemintaId || submitting}
+            className="d-inline-flex align-items-center gap-2"
           >
             {submitting ? (
               <>
-                <Spinner animation="border" size="sm" className="me-2" />
+                <Spinner animation="border" size="sm" />
                 Memproses...
               </>
             ) : (
-              "Konfirmasi Pengambilan"
+              <>
+                <IconCheck size={18} />
+                Konfirmasi Pengambilan
+              </>
             )}
           </Button>
         </Modal.Footer>

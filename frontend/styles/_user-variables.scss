@@ -2,6 +2,31 @@
 // user-variables.scss
 // Use this to overwrite Bootstrap and Dasher variables
 //
-// Example of a variable override to change Dasher primary color
-// Remove the "//" to comment it in and see it in action!
-// $primary: #000;
+// ============================================================
+// PT PLN (Persero) - Brand Palette (ui-design.md)
+// Hanya mengubah token warna/tema (efek visual global),
+// tidak mengubah logic, API, struktur data, maupun routing.
+// ============================================================
+
+// --- Base color tokens (dipakai untuk menurunkan theme colors) ---
+$blue:   #006492; // Primary PLN
+$cyan:   #00aeef; // Secondary / Info PLN
+$green:  #22c55e; // Success
+$yellow: #f59e0b; // Warning
+$red:    #ef4444; // Danger
+
+// --- Theme colors ---
+$primary: $blue;
+$success: $green;
+$info:    $cyan;
+$warning: $yellow;
+$danger:  $red;
+
+// --- Neutrals (teks & border sesuai design) ---
+$gray-600: #6b7280; // Text Secondary
+$gray-800: #1f2937; // Text Primary
+
+// --- Surfaces ---
+$body-bg:      #f8fafc; // Background aplikasi
+$body-color:   #1f2937; // Text Primary
+$border-color: #e5e7eb; // Border netral

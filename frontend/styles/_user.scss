@@ -2,3 +2,999 @@
 // user.scss
 // Use this to write your custom SCSS
 //
+
+// ============================================================
+// Dashboard - komponen presentasi (UI only)
+// ============================================================
+
+// Kartu statistik: hover halus sesuai design (transition 200ms, scale kecil)
+.stat-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  }
+}
+
+// List divider konsisten: garis tipis antar item, item terakhir tanpa garis
+.dash-list {
+  li {
+    border-bottom: 1px solid var(--#{$prefix}border-color);
+    transition: background-color 0.2s ease;
+
+    &:last-child {
+      border-bottom: 0;
+    }
+
+    &:hover {
+      background-color: var(--#{$prefix}gray-100);
+    }
+  }
+}
+
+// ============================================================
+// Data Tools - scoped (UI only, tidak berdampak ke halaman lain)
+// ============================================================
+.datatools-page {
+  // ---- Toolbar: search + filter ----
+  .datatools-toolbar {
+    padding: 1rem 1.25rem;
+
+    .form-control,
+    .form-select {
+      height: 44px;
+    }
+  }
+
+  // Search dengan ikon di depan
+  .datatools-search {
+    .input-group-text {
+      background-color: var(--#{$prefix}body-bg);
+      border-right: 0;
+      color: var(--#{$prefix}gray-600);
+    }
+
+    .form-control {
+      border-left: 0;
+      padding-left: 0;
+
+      &:focus {
+        box-shadow: none;
+        border-color: var(--#{$prefix}border-color);
+      }
+
+      // sembunyikan tombol clear bawaan browser (pakai tombol kustom)
+      &::-webkit-search-cancel-button {
+        display: none;
+      }
+    }
+
+    // Bungkus fokus: highlight seluruh grup saat input aktif
+    &:focus-within {
+      .input-group-text,
+      .form-control {
+        border-color: var(--#{$prefix}primary);
+      }
+    }
+
+    .datatools-search-clear {
+      position: absolute;
+      right: 0;
+      top: 0;
+      z-index: 5;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      padding: 0 0.75rem;
+      color: var(--#{$prefix}gray-600);
+      text-decoration: none;
+
+      &:hover {
+        color: var(--#{$prefix}danger);
+      }
+    }
+  }
+
+  // ---- Table ----
+  .table {
+    thead th {
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.03em;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      transition: background-color 0.15s ease;
+
+      &:hover {
+        background-color: var(--#{$prefix}gray-100);
+      }
+    }
+  }
+
+  // ---- Pagination modern ----
+  .pagination {
+    gap: 0.25rem;
+
+    .page-item {
+      .page-link {
+        border: 0;
+        border-radius: $border-radius;
+        min-width: 36px;
+        text-align: center;
+        color: var(--#{$prefix}gray-600);
+        transition: background-color 0.2s ease, color 0.2s ease;
+
+        &:hover {
+          background-color: var(--#{$prefix}gray-100);
+          color: var(--#{$prefix}primary);
+        }
+      }
+
+      &.active .page-link {
+        background-color: var(--#{$prefix}primary);
+        color: #fff;
+      }
+
+      &.disabled .page-link {
+        opacity: 0.5;
+      }
+    }
+  }
+
+  // ---- Empty state ----
+  .datatools-empty {
+    .datatools-empty-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background-color: var(--#{$prefix}primary-subtle);
+      color: var(--#{$prefix}primary);
+    }
+  }
+
+  // ---- Responsive ----
+  @include media-breakpoint-down(md) {
+    .datatools-toolbar {
+      padding: 1rem;
+    }
+  }
+}
+
+// ============================================================
+// Tool Detail Modal - scoped (UI only)
+// ============================================================
+.tool-detail-modal {
+  // Ikon pada judul modal
+  .tool-detail-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: $border-radius;
+    background-color: var(--#{$prefix}primary-subtle);
+    color: var(--#{$prefix}primary);
+  }
+
+  // Hero: blok nama barang + status
+  .tool-detail-hero {
+    padding: 1.25rem;
+    border-radius: $border-radius-lg;
+    background-color: var(--#{$prefix}gray-100);
+  }
+
+  .tool-detail-status {
+    font-size: 0.8125rem;
+    padding: 0.4rem 0.75rem;
+  }
+
+  // Kotak ringkasan stok
+  .tool-detail-stat {
+    padding: 1rem 0.5rem;
+    border-radius: $border-radius-lg;
+    height: 100%;
+  }
+
+  // Item informasi
+  .tool-detail-item {
+    padding: 0.75rem 0;
+  }
+
+  .tool-detail-section {
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--#{$prefix}border-color);
+  }
+}
+
+// ============================================================
+// Tool Form Modal (Tambah/Edit) - scoped (UI only)
+// Selaras dengan gaya Tool Detail Modal.
+// ============================================================
+.tool-form-modal {
+  // Ikon pada judul modal
+  .tool-form-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: $border-radius;
+    background-color: var(--#{$prefix}primary-subtle);
+    color: var(--#{$prefix}primary);
+  }
+
+  // Info baris "sedang mengubah data" saat mode edit
+  .tool-form-hero {
+    padding: 1rem 1.25rem;
+    border-radius: $border-radius-lg;
+    background-color: var(--#{$prefix}gray-100);
+  }
+
+  // Grup field
+  .tool-form-section {
+    .form-label {
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--#{$prefix}gray-800);
+      margin-bottom: 0.375rem;
+    }
+
+    .form-control,
+    .form-select {
+      height: 44px;
+    }
+  }
+}
+
+// ============================================================
+// Tool Delete Confirm Modal - scoped (UI only)
+// Selaras dengan gaya modal detail/edit, aksen danger.
+// ============================================================
+.tool-delete-modal {
+  // Ikon pada judul modal (aksen danger untuk aksi destruktif)
+  .tool-delete-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: $border-radius;
+    background-color: var(--#{$prefix}danger-subtle);
+    color: var(--#{$prefix}danger);
+  }
+
+  // Ikon peringatan besar di body
+  .tool-delete-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background-color: var(--#{$prefix}danger-subtle);
+    color: var(--#{$prefix}danger);
+  }
+
+  // Blok info alat yang akan dihapus
+  .tool-delete-hero {
+    padding: 1rem 1.25rem;
+    border-radius: $border-radius-lg;
+    background-color: var(--#{$prefix}gray-100);
+  }
+}
+
+// ============================================================
+// Cart FAB - scoped (UI only)
+// ============================================================
+.cart-fab {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: scale(1.05);
+  }
+}
+
+// ============================================================
+// Cart Offcanvas (Keranjang Peminjaman) - scoped (UI only)
+// ============================================================
+.cart-offcanvas {
+  // Ikon pada judul
+  .cart-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: $border-radius;
+    background-color: var(--#{$prefix}primary-subtle);
+    color: var(--#{$prefix}primary);
+  }
+
+  // Item keranjang jadi card
+  .cart-item {
+    padding: 1rem;
+    border: 1px solid var(--#{$prefix}border-color);
+    border-radius: $border-radius-lg;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+    &:hover {
+      border-color: var(--#{$prefix}primary);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+  }
+
+  .cart-item-remove {
+    line-height: 1;
+
+    &:hover {
+      opacity: 0.75;
+    }
+  }
+
+  // Stepper jumlah
+  .cart-stepper {
+    border: 1px solid var(--#{$prefix}border-color);
+    border-radius: $border-radius;
+    overflow: hidden;
+
+    .cart-stepper-btn {
+      width: 32px;
+      height: 32px;
+      border: 0;
+      border-radius: 0;
+      background-color: transparent;
+      color: var(--#{$prefix}gray-800);
+
+      &:hover:not(:disabled) {
+        background-color: var(--#{$prefix}gray-100);
+      }
+
+      &:disabled {
+        opacity: 0.4;
+      }
+    }
+
+    .cart-stepper-value {
+      min-width: 40px;
+      border-left: 1px solid var(--#{$prefix}border-color);
+      border-right: 1px solid var(--#{$prefix}border-color);
+      align-self: stretch;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+
+  // Empty state
+  .cart-empty-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background-color: var(--#{$prefix}gray-100);
+    color: var(--#{$prefix}gray-600);
+  }
+}
+
+// ============================================================
+// Loan Form Modal (Form Peminjaman) - scoped (UI only)
+// ============================================================
+.loan-form-modal {
+  // Ikon pada judul
+  .loan-form-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: $border-radius;
+    background-color: var(--#{$prefix}primary-subtle);
+    color: var(--#{$prefix}primary);
+  }
+
+  // Grup field per-section
+  .loan-form-section {
+    .form-label {
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--#{$prefix}gray-800);
+      margin-bottom: 0.375rem;
+    }
+
+    .form-control:not(textarea) {
+      height: 44px;
+    }
+  }
+
+  // Ringkasan alat
+  .loan-form-summary {
+    padding: 1rem 1.25rem;
+    border-radius: $border-radius-lg;
+    background-color: var(--#{$prefix}gray-100);
+
+    .loan-summary-list li {
+      border-bottom: 1px solid var(--#{$prefix}border-color);
+
+      &:last-child {
+        border-bottom: 0;
+      }
+    }
+  }
+}
+
+// ============================================================
+// Data Consumable - scoped (UI only, tidak berdampak ke halaman lain)
+// Pola sama dengan Data Tools.
+// ============================================================
+.dataconsumable-page {
+  // ---- Toolbar: search + filter ----
+  .dataconsumable-toolbar {
+    padding: 1rem 1.25rem;
+
+    .form-control,
+    .form-select {
+      height: 44px;
+    }
+  }
+
+  // Search dengan ikon di depan
+  .dataconsumable-search {
+    .input-group-text {
+      background-color: var(--#{$prefix}body-bg);
+      border-right: 0;
+      color: var(--#{$prefix}gray-600);
+    }
+
+    .form-control {
+      border-left: 0;
+      padding-left: 0;
+
+      &:focus {
+        box-shadow: none;
+        border-color: var(--#{$prefix}border-color);
+      }
+
+      &::-webkit-search-cancel-button {
+        display: none;
+      }
+    }
+
+    &:focus-within {
+      .input-group-text,
+      .form-control {
+        border-color: var(--#{$prefix}primary);
+      }
+    }
+
+    .dataconsumable-search-clear {
+      position: absolute;
+      right: 0;
+      top: 0;
+      z-index: 5;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      padding: 0 0.75rem;
+      color: var(--#{$prefix}gray-600);
+      text-decoration: none;
+
+      &:hover {
+        color: var(--#{$prefix}danger);
+      }
+    }
+  }
+
+  // ---- Table ----
+  .table {
+    thead th {
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.03em;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      transition: background-color 0.15s ease;
+
+      &:hover {
+        background-color: var(--#{$prefix}gray-100);
+      }
+    }
+  }
+
+  // ---- Pagination modern ----
+  .pagination {
+    gap: 0.25rem;
+
+    .page-item {
+      .page-link {
+        border: 0;
+        border-radius: $border-radius;
+        min-width: 36px;
+        text-align: center;
+        color: var(--#{$prefix}gray-600);
+        transition: background-color 0.2s ease, color 0.2s ease;
+
+        &:hover {
+          background-color: var(--#{$prefix}gray-100);
+          color: var(--#{$prefix}primary);
+        }
+      }
+
+      &.active .page-link {
+        background-color: var(--#{$prefix}primary);
+        color: #fff;
+      }
+
+      &.disabled .page-link {
+        opacity: 0.5;
+      }
+    }
+  }
+
+  // ---- Empty state ----
+  .dataconsumable-empty {
+    .dataconsumable-empty-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background-color: var(--#{$prefix}primary-subtle);
+      color: var(--#{$prefix}primary);
+    }
+  }
+
+  // ---- Responsive ----
+  @include media-breakpoint-down(md) {
+    .dataconsumable-toolbar {
+      padding: 1rem;
+    }
+  }
+}
+
+// ============================================================
+// Consumable Detail Modal - scoped (UI only)
+// ============================================================
+.consumable-detail-modal {
+  .consumable-detail-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: $border-radius;
+    background-color: var(--#{$prefix}primary-subtle);
+    color: var(--#{$prefix}primary);
+  }
+
+  .consumable-detail-hero {
+    padding: 1.25rem;
+    border-radius: $border-radius-lg;
+    background-color: var(--#{$prefix}gray-100);
+  }
+
+  .consumable-detail-status {
+    font-size: 0.8125rem;
+    padding: 0.4rem 0.75rem;
+  }
+
+  .consumable-detail-stat {
+    padding: 1rem 1.25rem;
+    border-radius: $border-radius-lg;
+  }
+
+  .consumable-detail-item {
+    padding: 0.75rem 0;
+  }
+
+  .consumable-detail-section {
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--#{$prefix}border-color);
+  }
+}
+
+// ============================================================
+// Consumable Form Modal (Tambah/Edit) - scoped (UI only)
+// ============================================================
+.consumable-form-modal {
+  .consumable-form-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: $border-radius;
+    background-color: var(--#{$prefix}primary-subtle);
+    color: var(--#{$prefix}primary);
+  }
+
+  .consumable-form-hero {
+    padding: 1rem 1.25rem;
+    border-radius: $border-radius-lg;
+    background-color: var(--#{$prefix}gray-100);
+  }
+
+  .consumable-form-section {
+    .form-label {
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--#{$prefix}gray-800);
+      margin-bottom: 0.375rem;
+    }
+
+    .form-control,
+    .form-select {
+      height: 44px;
+    }
+  }
+}
+
+// ============================================================
+// Consumable Delete Confirm Modal - scoped (UI only)
+// ============================================================
+.consumable-delete-modal {
+  .consumable-delete-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: $border-radius;
+    background-color: var(--#{$prefix}danger-subtle);
+    color: var(--#{$prefix}danger);
+  }
+
+  .consumable-delete-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background-color: var(--#{$prefix}danger-subtle);
+    color: var(--#{$prefix}danger);
+  }
+
+  .consumable-delete-hero {
+    padding: 1rem 1.25rem;
+    border-radius: $border-radius-lg;
+    background-color: var(--#{$prefix}gray-100);
+  }
+}
+
+// ============================================================
+// Consumable Cart Offcanvas (Antrean Pengambilan) - scoped (UI only)
+// ============================================================
+.consumable-cart-offcanvas {
+  .consumable-cart-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: $border-radius;
+    background-color: var(--#{$prefix}primary-subtle);
+    color: var(--#{$prefix}primary);
+  }
+
+  .consumable-cart-item {
+    padding: 1rem;
+    border: 1px solid var(--#{$prefix}border-color);
+    border-radius: $border-radius-lg;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+    &:hover {
+      border-color: var(--#{$prefix}primary);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+  }
+
+  .consumable-cart-item-remove {
+    line-height: 1;
+
+    &:hover {
+      opacity: 0.75;
+    }
+  }
+
+  .consumable-cart-stepper {
+    border: 1px solid var(--#{$prefix}border-color);
+    border-radius: $border-radius;
+    overflow: hidden;
+
+    .consumable-cart-stepper-btn {
+      width: 32px;
+      height: 32px;
+      border: 0;
+      border-radius: 0;
+      background-color: transparent;
+      color: var(--#{$prefix}gray-800);
+
+      &:hover:not(:disabled) {
+        background-color: var(--#{$prefix}gray-100);
+      }
+
+      &:disabled {
+        opacity: 0.4;
+      }
+    }
+
+    .consumable-cart-stepper-value {
+      min-width: 40px;
+      border-left: 1px solid var(--#{$prefix}border-color);
+      border-right: 1px solid var(--#{$prefix}border-color);
+      align-self: stretch;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+
+  .consumable-cart-empty-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background-color: var(--#{$prefix}gray-100);
+    color: var(--#{$prefix}gray-600);
+  }
+}
+
+// ============================================================
+// Consumable Out Form Modal (Pengambilan Bahan) - scoped (UI only)
+// ============================================================
+.consumable-out-modal {
+  .consumable-out-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: $border-radius;
+    background-color: var(--#{$prefix}primary-subtle);
+    color: var(--#{$prefix}primary);
+  }
+
+  .consumable-out-section {
+    .form-label {
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--#{$prefix}gray-800);
+      margin-bottom: 0.375rem;
+    }
+
+    .form-control:not(textarea) {
+      height: 44px;
+    }
+  }
+
+  .consumable-out-summary {
+    padding: 1rem 1.25rem;
+    border-radius: $border-radius-lg;
+    background-color: var(--#{$prefix}gray-100);
+
+    .consumable-out-summary-list li {
+      border-bottom: 1px solid var(--#{$prefix}border-color);
+
+      &:last-child {
+        border-bottom: 0;
+      }
+    }
+  }
+}
+
+// ============================================================
+// Data Peminjam - scoped (UI only, tidak berdampak ke halaman lain)
+// Pola sama dengan Data Tools / Data Consumable.
+// ============================================================
+.datapeminjam-page {
+  // ---- Toolbar: search + filter ----
+  .datapeminjam-toolbar {
+    padding: 1rem 1.25rem;
+
+    .form-control,
+    .form-select {
+      height: 44px;
+    }
+  }
+
+  // Search dengan ikon di depan
+  .datapeminjam-search {
+    .input-group-text {
+      background-color: var(--#{$prefix}body-bg);
+      border-right: 0;
+      color: var(--#{$prefix}gray-600);
+    }
+
+    .form-control {
+      border-left: 0;
+      padding-left: 0;
+
+      &:focus {
+        box-shadow: none;
+        border-color: var(--#{$prefix}border-color);
+      }
+
+      &::-webkit-search-cancel-button {
+        display: none;
+      }
+    }
+
+    &:focus-within {
+      .input-group-text,
+      .form-control {
+        border-color: var(--#{$prefix}primary);
+      }
+    }
+
+    .datapeminjam-search-clear {
+      position: absolute;
+      right: 0;
+      top: 0;
+      z-index: 5;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      padding: 0 0.75rem;
+      color: var(--#{$prefix}gray-600);
+      text-decoration: none;
+
+      &:hover {
+        color: var(--#{$prefix}danger);
+      }
+    }
+  }
+
+  // ---- Table ----
+  .table {
+    thead th {
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.03em;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      transition: background-color 0.15s ease;
+
+      &:hover {
+        background-color: var(--#{$prefix}gray-100);
+      }
+    }
+  }
+
+  // ---- Pagination modern ----
+  .pagination {
+    gap: 0.25rem;
+
+    .page-item {
+      .page-link {
+        border: 0;
+        border-radius: $border-radius;
+        min-width: 36px;
+        text-align: center;
+        color: var(--#{$prefix}gray-600);
+        transition: background-color 0.2s ease, color 0.2s ease;
+
+        &:hover {
+          background-color: var(--#{$prefix}gray-100);
+          color: var(--#{$prefix}primary);
+        }
+      }
+
+      &.active .page-link {
+        background-color: var(--#{$prefix}primary);
+        color: #fff;
+      }
+
+      &.disabled .page-link {
+        opacity: 0.5;
+      }
+    }
+  }
+
+  // ---- Empty state ----
+  .datapeminjam-empty {
+    .datapeminjam-empty-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background-color: var(--#{$prefix}primary-subtle);
+      color: var(--#{$prefix}primary);
+    }
+  }
+
+  // ---- Responsive ----
+  @include media-breakpoint-down(md) {
+    .datapeminjam-toolbar {
+      padding: 1rem;
+    }
+  }
+}
+
+// ============================================================
+// Peminjam Form Modal (Tambah/Edit) - scoped (UI only)
+// ============================================================
+.peminjam-form-modal {
+  .peminjam-form-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: $border-radius;
+    background-color: var(--#{$prefix}primary-subtle);
+    color: var(--#{$prefix}primary);
+  }
+
+  .peminjam-form-hero {
+    padding: 1rem 1.25rem;
+    border-radius: $border-radius-lg;
+    background-color: var(--#{$prefix}gray-100);
+  }
+
+  .peminjam-form-section {
+    .form-label {
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--#{$prefix}gray-800);
+      margin-bottom: 0.375rem;
+    }
+
+    .form-control {
+      height: 44px;
+    }
+  }
+}
+
+// ============================================================
+// Peminjam Deactivate Modal (Nonaktifkan) - scoped (UI only)
+// Aksen warning karena aksi non-permanen (soft-delete).
+// ============================================================
+.peminjam-deactivate-modal {
+  .peminjam-deactivate-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: $border-radius;
+    background-color: var(--#{$prefix}warning-subtle);
+    color: var(--#{$prefix}warning);
+  }
+
+  .peminjam-deactivate-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background-color: var(--#{$prefix}warning-subtle);
+    color: var(--#{$prefix}warning);
+  }
+
+  .peminjam-deactivate-hero {
+    padding: 1rem 1.25rem;
+    border-radius: $border-radius-lg;
+    background-color: var(--#{$prefix}gray-100);
+  }
+}

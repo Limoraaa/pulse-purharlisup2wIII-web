@@ -41,6 +41,11 @@ import {
   getTrenPeminjaman,
 } from "services/dashboardService";
 
+// import custom components
+import Flex from "components/common/Flex";
+import DasherBreadcrumb from "components/common/DasherBreadcrumb";
+import StatCard from "components/dashboard/StatCard";
+
 const formatWaktu = (iso: string) => {
   const d = new Date(iso);
   return d.toLocaleString("id-ID", {
@@ -116,74 +121,86 @@ const DashboardManager = () => {
     loadAll();
   }, []);
 
+  // Page header konsisten dengan halaman lain (breadcrumb + judul + deskripsi)
+  const PageHeader = (
+    <Row>
+      <Col>
+        <Flex
+          justifyContent="between"
+          alignItems="center"
+          className="mb-4 w-100"
+          breakpoint="md"
+        >
+          <div>
+            <h1 className="mb-2 h2">Dashboard</h1>
+            <p className="text-secondary mb-0">
+              Ringkasan aktivitas dan kondisi inventaris Ruang Tools.
+            </p>
+            <DasherBreadcrumb />
+          </div>
+        </Flex>
+      </Col>
+    </Row>
+  );
+
   if (loading) {
     return (
-      <div className="text-center py-6">
-        <Spinner animation="border" size="sm" className="me-2" />
-        Memuat dashboard...
-      </div>
+      <>
+        {PageHeader}
+        <div className="text-center py-6">
+          <Spinner animation="border" size="sm" className="me-2" />
+          Memuat dashboard...
+        </div>
+      </>
     );
   }
 
   if (error) {
-    return <Alert variant="danger">{error}</Alert>;
+    return (
+      <>
+        {PageHeader}
+        <Alert variant="danger">{error}</Alert>
+      </>
+    );
   }
 
   return (
     <>
+      {PageHeader}
+
       {/* Baris 1: Ringkasan Utama */}
       <Row className="g-3 mb-4">
-        <Col md={3} sm={6}>
-          <Card className="card-lg h-100">
-            <CardBody className="d-flex align-items-center gap-3">
-              <div className="bg-primary-subtle rounded-3 p-3">
-                <IconTool className="text-primary" size={24} />
-              </div>
-              <div>
-                <div className="text-secondary small">Total Tools</div>
-                <div className="h3 mb-0">{summary?.total_tools ?? 0}</div>
-              </div>
-            </CardBody>
-          </Card>
+        <Col xl={3} md={6} sm={6}>
+          <StatCard
+            icon={<IconTool size={26} />}
+            title="Total Tools"
+            value={summary?.total_tools ?? 0}
+            variant="primary"
+          />
         </Col>
-        <Col md={3} sm={6}>
-          <Card className="card-lg h-100">
-            <CardBody className="d-flex align-items-center gap-3">
-              <div className="bg-info-subtle rounded-3 p-3">
-                <IconPackage className="text-info" size={24} />
-              </div>
-              <div>
-                <div className="text-secondary small">Total Consumable</div>
-                <div className="h3 mb-0">{summary?.total_consumables ?? 0}</div>
-              </div>
-            </CardBody>
-          </Card>
+        <Col xl={3} md={6} sm={6}>
+          <StatCard
+            icon={<IconPackage size={26} />}
+            title="Total Consumable"
+            value={summary?.total_consumables ?? 0}
+            variant="info"
+          />
         </Col>
-        <Col md={3} sm={6}>
-          <Card className="card-lg h-100">
-            <CardBody className="d-flex align-items-center gap-3">
-              <div className="bg-success-subtle rounded-3 p-3">
-                <IconUsers className="text-success" size={24} />
-              </div>
-              <div>
-                <div className="text-secondary small">Total Peminta</div>
-                <div className="h3 mb-0">{summary?.total_peminta ?? 0}</div>
-              </div>
-            </CardBody>
-          </Card>
+        <Col xl={3} md={6} sm={6}>
+          <StatCard
+            icon={<IconUsers size={26} />}
+            title="Total Peminta"
+            value={summary?.total_peminta ?? 0}
+            variant="success"
+          />
         </Col>
-        <Col md={3} sm={6}>
-          <Card className="card-lg h-100">
-            <CardBody className="d-flex align-items-center gap-3">
-              <div className="bg-warning-subtle rounded-3 p-3">
-                <IconClockHour4 className="text-warning" size={24} />
-              </div>
-              <div>
-                <div className="text-secondary small">Sedang Dipinjam</div>
-                <div className="h3 mb-0">{summary?.sedang_dipinjam ?? 0}</div>
-              </div>
-            </CardBody>
-          </Card>
+        <Col xl={3} md={6} sm={6}>
+          <StatCard
+            icon={<IconClockHour4 size={26} />}
+            title="Sedang Dipinjam"
+            value={summary?.sedang_dipinjam ?? 0}
+            variant="warning"
+          />
         </Col>
       </Row>
 
@@ -199,11 +216,11 @@ const DashboardManager = () => {
               {stokMenipis.length === 0 ? (
                 <p className="text-secondary small mb-0">Semua stok aman.</p>
               ) : (
-                <ul className="list-unstyled mb-0">
+                <ul className="list-unstyled mb-0 dash-list">
                   {stokMenipis.map((item) => (
                     <li
                       key={item.id}
-                      className="d-flex justify-content-between border-bottom py-2 small"
+                      className="d-flex justify-content-between align-items-center px-2 py-2 rounded small"
                     >
                       <span>
                         {item.nama} <span className="text-secondary">({item.kode_barang})</span>
@@ -228,9 +245,9 @@ const DashboardManager = () => {
               {telatKembali.length === 0 ? (
                 <p className="text-secondary small mb-0">Tidak ada yang terlambat.</p>
               ) : (
-                <ul className="list-unstyled mb-0">
+                <ul className="list-unstyled mb-0 dash-list">
                   {telatKembali.map((item) => (
-                    <li key={item.id} className="d-flex justify-content-between border-bottom py-2 small">
+                    <li key={item.id} className="d-flex justify-content-between align-items-center px-2 py-2 rounded small">
                       <span>
                         {item.nama_barang} — {item.nama_peminjam}
                       </span>
@@ -272,7 +289,14 @@ const DashboardManager = () => {
                         new Date(String(val)).toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" })
                       }
                     />
-                    <Line type="monotone" dataKey="total" stroke="#0d6efd" strokeWidth={2} />
+                    <Line
+                      type="monotone"
+                      dataKey="total"
+                      stroke="#006492"
+                      strokeWidth={2.5}
+                      dot={{ r: 3, fill: "#006492" }}
+                      activeDot={{ r: 5 }}
+                    />
                   </LineChart>
                 </ResponsiveContainer>
               )}
@@ -286,9 +310,9 @@ const DashboardManager = () => {
               {aktivitas.length === 0 ? (
                 <p className="text-secondary small mb-0">Belum ada aktivitas.</p>
               ) : (
-                <ul className="list-unstyled mb-0" style={{ maxHeight: 260, overflowY: "auto" }}>
+                <ul className="list-unstyled mb-0 dash-list" style={{ maxHeight: 260, overflowY: "auto" }}>
                   {aktivitas.map((item, idx) => (
-                    <li key={idx} className="border-bottom py-2">
+                    <li key={idx} className="px-2 py-2 rounded">
                       <div className="d-flex justify-content-between align-items-start gap-2">
                         <span className="small">{item.deskripsi}</span>
                         <Badge bg={jenisLabel[item.jenis].color} className="flex-shrink-0">
@@ -316,9 +340,9 @@ const DashboardManager = () => {
               {alatTerpopuler.length === 0 ? (
                 <p className="text-secondary small mb-0">Belum ada data.</p>
               ) : (
-                <ul className="list-unstyled mb-0">
+                <ul className="list-unstyled mb-0 dash-list">
                   {alatTerpopuler.map((item, idx) => (
-                    <li key={idx} className="d-flex justify-content-between border-bottom py-2 small">
+                    <li key={idx} className="d-flex justify-content-between align-items-center px-2 py-2 rounded small">
                       <span>{item.nama_barang}</span>
                       <span className="fw-semibold">{item.total_transaksi}x</span>
                     </li>
@@ -335,9 +359,9 @@ const DashboardManager = () => {
               {consumableTerpopuler.length === 0 ? (
                 <p className="text-secondary small mb-0">Belum ada data.</p>
               ) : (
-                <ul className="list-unstyled mb-0">
+                <ul className="list-unstyled mb-0 dash-list">
                   {consumableTerpopuler.map((item, idx) => (
-                    <li key={idx} className="d-flex justify-content-between border-bottom py-2 small">
+                    <li key={idx} className="d-flex justify-content-between align-items-center px-2 py-2 rounded small">
                       <span>{item.nama}</span>
                       <span className="fw-semibold">{item.total_diambil} unit</span>
                     </li>

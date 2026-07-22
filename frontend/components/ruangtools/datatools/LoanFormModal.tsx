@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Modal, Form, Row, Col, Button, Spinner } from "react-bootstrap";
+import { IconClipboardList, IconCheck } from "@tabler/icons-react";
 
 import { LoanFormValues, PeminjamType, CartItemType } from "types/DataToolsTypes";
 import { getPeminta } from "services/pemintaService";
@@ -70,98 +71,125 @@ const LoanFormModal = ({
   };
 
   return (
-    <Modal show={show} onHide={submitting ? undefined : onClose} centered backdrop={submitting ? "static" : true}>
+    <Modal show={show} onHide={submitting ? undefined : onClose} centered size="lg" backdrop={submitting ? "static" : true} className="loan-form-modal">
       <Form onSubmit={handleSubmit}>
         <Modal.Header closeButton={!submitting}>
-          <Modal.Title as="h5">Form Peminjaman</Modal.Title>
+          <Modal.Title as="h5" className="d-flex align-items-center gap-2">
+            <span className="loan-form-title-icon">
+              <IconClipboardList size={20} />
+            </span>
+            Form Peminjaman
+          </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <Row className="g-3">
-            <Col md={12}>
-              <Form.Label>Tanggal Peminjaman</Form.Label>
-              <Form.Control value={form.tanggalPeminjaman} disabled readOnly />
-              <Form.Text className="text-secondary">
-                Otomatis terisi sesuai tanggal &amp; jam saat ini.
-              </Form.Text>
-            </Col>
-            <Col md={12}>
-              <Form.Label>Nama Peminjam</Form.Label>
-              <Form.Control
-                required
-                list="peminjam-options"
-                placeholder={loadingPeminjam ? "Memuat..." : "Ketik atau pilih nama peminjam..."}
-                disabled={loadingPeminjam}
-                value={form.peminjamId ? form.namaPeminjam : peminjamSearchText}
-                onChange={(e) => {
-                  const typed = e.target.value;
-                  setPeminjamSearchText(typed);
+          {/* Section: Data Peminjam */}
+          <div className="loan-form-section mb-4">
+            <div className="text-secondary small text-uppercase fw-semibold mb-3">
+              Data Peminjam
+            </div>
+            <Row className="g-3">
+              <Col md={12}>
+                <Form.Label>Tanggal Peminjaman</Form.Label>
+                <Form.Control value={form.tanggalPeminjaman} disabled readOnly />
+                <Form.Text className="text-secondary">
+                  Otomatis terisi sesuai tanggal &amp; jam saat ini.
+                </Form.Text>
+              </Col>
+              <Col md={6}>
+                <Form.Label>
+                  Nama Peminjam <span className="text-danger">*</span>
+                </Form.Label>
+                <Form.Control
+                  required
+                  list="peminjam-options"
+                  placeholder={loadingPeminjam ? "Memuat..." : "Ketik atau pilih nama peminjam..."}
+                  disabled={loadingPeminjam}
+                  value={form.peminjamId ? form.namaPeminjam : peminjamSearchText}
+                  onChange={(e) => {
+                    const typed = e.target.value;
+                    setPeminjamSearchText(typed);
 
-                  const match = peminjamList.find((p) => p.nama === typed);
-                  if (match) {
-                    handlePeminjamChange(match.id);
-                  } else {
-                    setForm((prev) => ({
-                      ...prev,
-                      peminjamId: "",
-                      namaPeminjam: "",
-                      divisi: "",
-                    }));
-                  }
-                }}
-              />
-              <datalist id="peminjam-options">
-                {peminjamList.map((p) => (
-                  <option key={p.id} value={p.nama} />
-                ))}
-              </datalist>
-            </Col>
-            <Col md={12}>
-              <Form.Label>Divisi</Form.Label>
-              <Form.Control value={form.divisi} disabled readOnly />
-              <Form.Text className="text-secondary">
-                Otomatis terisi berdasarkan peminjam yang dipilih.
-              </Form.Text>
-            </Col>
-            <Col md={12}>
-              <Form.Label>Area Kerja</Form.Label>
-              <Form.Control
-                required
-                placeholder="Contoh: Gardu Induk A"
-                value={form.areaKerja}
-                onChange={(e) => setForm((prev) => ({ ...prev, areaKerja: e.target.value }))}
-                disabled={submitting}
-              />
-            </Col>
-            <Col md={12}>
-              <Form.Label>
-                Spesifikasi <span className="text-secondary fw-normal">(opsional)</span>
-              </Form.Label>
-              <Form.Control
-                value={form.spesifikasi}
-                onChange={(e) => setForm((prev) => ({ ...prev, spesifikasi: e.target.value }))}
-                disabled={submitting}
-              />
-            </Col>
-            <Col md={12}>
-              <Form.Label>
-                Keterangan <span className="text-secondary fw-normal">(opsional)</span>
-              </Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={2}
-                placeholder="Catatan tambahan jika ada"
-                value={form.keterangan}
-                onChange={(e) => setForm((prev) => ({ ...prev, keterangan: e.target.value }))}
-                disabled={submitting}
-              />
-            </Col>
-          </Row>
+                    const match = peminjamList.find((p) => p.nama === typed);
+                    if (match) {
+                      handlePeminjamChange(match.id);
+                    } else {
+                      setForm((prev) => ({
+                        ...prev,
+                        peminjamId: "",
+                        namaPeminjam: "",
+                        divisi: "",
+                      }));
+                    }
+                  }}
+                />
+                <datalist id="peminjam-options">
+                  {peminjamList.map((p) => (
+                    <option key={p.id} value={p.nama} />
+                  ))}
+                </datalist>
+              </Col>
+              <Col md={6}>
+                <Form.Label>Divisi</Form.Label>
+                <Form.Control value={form.divisi} disabled readOnly />
+                <Form.Text className="text-secondary">
+                  Otomatis terisi berdasarkan peminjam.
+                </Form.Text>
+              </Col>
+            </Row>
+          </div>
 
-          <div className="mt-4">
-            <div className="text-secondary small text-uppercase mb-2">Ringkasan Alat</div>
-            <ul className="list-unstyled mb-0">
+          {/* Section: Detail Penggunaan */}
+          <div className="loan-form-section mb-4">
+            <div className="text-secondary small text-uppercase fw-semibold mb-3">
+              Detail Penggunaan
+            </div>
+            <Row className="g-3">
+              <Col md={12}>
+                <Form.Label>
+                  Area Kerja <span className="text-danger">*</span>
+                </Form.Label>
+                <Form.Control
+                  required
+                  placeholder="Contoh: Gardu Induk A"
+                  value={form.areaKerja}
+                  onChange={(e) => setForm((prev) => ({ ...prev, areaKerja: e.target.value }))}
+                  disabled={submitting}
+                />
+              </Col>
+              <Col md={12}>
+                <Form.Label>
+                  Spesifikasi <span className="text-secondary fw-normal">(opsional)</span>
+                </Form.Label>
+                <Form.Control
+                  value={form.spesifikasi}
+                  onChange={(e) => setForm((prev) => ({ ...prev, spesifikasi: e.target.value }))}
+                  disabled={submitting}
+                />
+              </Col>
+              <Col md={12}>
+                <Form.Label>
+                  Keterangan <span className="text-secondary fw-normal">(opsional)</span>
+                </Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={2}
+                  placeholder="Catatan tambahan jika ada"
+                  value={form.keterangan}
+                  onChange={(e) => setForm((prev) => ({ ...prev, keterangan: e.target.value }))}
+                  disabled={submitting}
+                />
+              </Col>
+            </Row>
+          </div>
+
+          {/* Section: Ringkasan Alat */}
+          <div className="loan-form-summary">
+            <div className="text-secondary small text-uppercase fw-semibold mb-2">
+              Ringkasan Alat
+            </div>
+            <ul className="list-unstyled mb-0 loan-summary-list">
               {cartItems.map((item) => (
-                <li key={item.toolId} className="d-flex justify-content-between border-bottom py-2 small">
+                <li key={item.toolId} className="d-flex justify-content-between align-items-center px-2 py-2 rounded small">
                   <span>{item.namaBarang}</span>
                   <span className="fw-semibold">{item.jumlah} unit</span>
                 </li>
@@ -173,14 +201,22 @@ const LoanFormModal = ({
           <Button variant="outline-secondary" onClick={onClose} disabled={submitting}>
             Batal
           </Button>
-          <Button variant="primary" type="submit" disabled={!form.peminjamId || submitting}>
+          <Button
+            variant="primary"
+            type="submit"
+            disabled={!form.peminjamId || submitting}
+            className="d-inline-flex align-items-center gap-2"
+          >
             {submitting ? (
               <>
-                <Spinner animation="border" size="sm" className="me-2" />
+                <Spinner animation="border" size="sm" />
                 Memproses...
               </>
             ) : (
-              "Konfirmasi Peminjaman"
+              <>
+                <IconCheck size={18} />
+                Konfirmasi Peminjaman
+              </>
             )}
           </Button>
         </Modal.Footer>
