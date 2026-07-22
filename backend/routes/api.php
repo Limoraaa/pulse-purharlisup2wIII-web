@@ -13,58 +13,37 @@ use App\Http\Controllers\Api\ConsumableMasukController;
 use App\Http\Controllers\Api\ConsumableKeluarController;
 use App\Http\Controllers\Api\LaporanKerusakanController;
 
-
 Route::post('/login', [AuthController::class, 'login']);
-
-Route::get('/dashboard', [DashboardController::class, 'index']);
 
 // 0. Users (kelola staff & super admin)
 Route::apiResource('users', UserController::class);
 
-// 1. Tools (simple CRUD)
+// 1. tools (simple CRUD)
 Route::apiResource('tools', ToolController::class);
 Route::patch('/tools/{tool}/kurangi-stok', [ToolController::class, 'kurangiStok']);
 
-// 2. Consumable (simple CRUD)
+// 2. consumable (simple CRUD)
 Route::apiResource('consumable', ConsumableController::class);
 
 // 3. Peminta (simple CRUD)
 Route::apiResource('peminta', PemintaController::class);
 Route::patch('/peminta/{id}/aktifkan', [PemintaController::class, 'aktifkan']);
 
-
-// =====================================================================
-// 4. PEMINJAMAN TOOLS (CART & TRANSAKSI)
-// =====================================================================
+// 4. Peminjaman (CRUD + tandai kembali)
+// Route khusus HARUS di atas
 Route::post('/peminjaman/scan', [PeminjamanController::class, 'scan']);
 Route::get('/peminjaman/antrean', [PeminjamanController::class, 'antrean']);
-Route::patch('/peminjaman/cart/{id}', [PeminjamanController::class, 'updateCartItem']);
-Route::delete('/peminjaman/cart/{id}', [PeminjamanController::class, 'removeCartItem']);
-
-// Route khusus HARUS di atas resource
+Route::post('/peminjaman/proses', [PeminjamanController::class, 'prosesPeminjaman']);
 Route::patch('/peminjaman/{id}/kembali', [PeminjamanController::class, 'kembali']);
 
-// CRUD dasar peminjaman (tidak butuh scoping per user)
+// Baru CRUD
 Route::apiResource('peminjaman', PeminjamanController::class);
-
-
-// =====================================================================
-// 5. CONSUMABLE MASUK & KELUAR (CART & TRANSAKSI)
-// =====================================================================
-// Route Cart & Scan Consumable Keluar
-Route::post('/consumable/scan', [ConsumableKeluarController::class, 'scan']);
-Route::get('/consumable-keluar/antrean', [ConsumableKeluarController::class, 'antrean']);
-Route::patch('/consumable-keluar/cart/{id}', [ConsumableKeluarController::class, 'updateCartItem']);
-Route::delete('/consumable-keluar/cart/{id}', [ConsumableKeluarController::class, 'removeCartItem']);
-
-// CRUD dasar Consumable Masuk & Keluar
+// 5. Consumable Masuk & Keluar (transaksi stok)
+Route::apiResource('consumable', ConsumableController::class);
 Route::apiResource('consumable-masuk', ConsumableMasukController::class);
 Route::apiResource('consumable-keluar', ConsumableKeluarController::class);
 
-
-// =====================================================================
-// 6. LAPORAN KERUSAKAN TOOLS
-// =====================================================================
+// 6. Laporan Kerusakan Tools
 Route::apiResource('laporan-kerusakan', LaporanKerusakanController::class);
 
 Route::prefix('dashboard')->group(function () {
@@ -79,9 +58,6 @@ Route::prefix('dashboard')->group(function () {
 });
 
 
-// =====================================================================
-// PROTECTED ROUTES (HANYA BISA DIAKSES JIKA LOGIN)
-// =====================================================================
 Route::middleware('auth:sanctum')->group(function () {
 
     // Proses Checkout Keranjang Peminjaman Tools
@@ -96,3 +72,4 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user();
     });
 });
+

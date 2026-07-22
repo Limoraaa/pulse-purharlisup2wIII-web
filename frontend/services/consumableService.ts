@@ -28,7 +28,7 @@ function mapConsumableFromApi(item: ConsumableApiResponse): ConsumableItemType {
     kode_barang: item.kode_barang,
     nama: item.nama,
     merk: item.merk ?? "-",
-    type: item.type ?? "-", // Ensure ConsumableItemType has 'tipe'
+    tipe: item.type ?? "-",
     er_e: item.er_e ?? "-",
     ukuran: item.ukuran ?? "-",
     stok_awal: item.stok_awal,
@@ -40,7 +40,7 @@ function mapConsumableToApi(values: ConsumableFormValues): ConsumableApiPayload 
     kode_barang: values.kode_barang,
     nama: values.nama,
     merk: values.merk,
-    type: values.type, // Ensure ConsumableFormValues has 'tipe'
+    type: values.tipe,
     er_e: values.er_e,
     ukuran: values.ukuran,
     stok_awal: values.stok_awal,

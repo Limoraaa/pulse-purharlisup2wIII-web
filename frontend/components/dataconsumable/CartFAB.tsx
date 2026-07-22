@@ -15,7 +15,7 @@ const CartFAB = ({ itemCount, onClick }: CartFABProps) => {
     <button
       type="button"
       onClick={onClick}
-      className="btn btn-primary rounded-circle shadow-lg d-flex align-items-center justify-content-center"
+      className="btn btn-primary rounded-circle shadow-lg d-flex align-items-center justify-content-center cart-fab"
       style={{
         position: "fixed",
         bottom: "2rem",
@@ -30,7 +30,7 @@ const CartFAB = ({ itemCount, onClick }: CartFABProps) => {
       <Badge
         bg="danger"
         pill
-        className="position-absolute top-0 start-100 translate-middle"
+        className="position-absolute top-0 start-100 translate-middle border border-2 border-white"
       >
         {itemCount}
       </Badge>

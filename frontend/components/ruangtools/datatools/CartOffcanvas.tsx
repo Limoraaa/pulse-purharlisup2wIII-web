@@ -1,7 +1,13 @@
 "use client";
 // import node module libraries
 import { Offcanvas, Button } from "react-bootstrap";
-import { IconTrash, IconMinus, IconPlus } from "@tabler/icons-react";
+import {
+  IconTrash,
+  IconMinus,
+  IconPlus,
+  IconShoppingCart,
+  IconArrowRight,
+} from "@tabler/icons-react";
 
 // import custom types
 import { CartItemType } from "types/DataToolsTypes";
@@ -10,8 +16,8 @@ interface CartOffcanvasProps {
   show: boolean;
   onClose: () => void;
   items: CartItemType[];
-  onUpdateQty: (cartId: string, jumlah: number) => void;
-  onRemove: (cartId: string) => void;
+  onUpdateQty: (toolId: string, jumlah: number) => void;
+  onRemove: (toolId: string) => void;
   onProceed: () => void;
 }
 
@@ -23,64 +29,79 @@ const CartOffcanvas = ({
   onRemove,
   onProceed,
 }: CartOffcanvasProps) => {
-  
+  // kurangi 1, minimal jumlah = 1 (kalau mau jadi 0, pakai tombol Hapus Barang)
   const handleDecrease = (item: CartItemType) => {
-    if (item.jumlah <= 1 || !item.cartId) return;
-    onUpdateQty(item.cartId.toString(), item.jumlah - 1);
+    if (item.jumlah <= 1) return;
+    onUpdateQty(item.toolId, item.jumlah - 1);
   };
 
+  // tambah 1, dibatasi maksimal stok tersedia
   const handleIncrease = (item: CartItemType) => {
-    if (item.jumlah >= item.maxJumlah || !item.cartId) return;
-    onUpdateQty(item.cartId.toString(), item.jumlah + 1);
+    if (item.jumlah >= item.maxJumlah) return;
+    onUpdateQty(item.toolId, item.jumlah + 1);
   };
+
+  const totalUnit = items.reduce((sum, item) => sum + item.jumlah, 0);
 
   return (
-    <Offcanvas show={show} onHide={onClose} placement="end">
+    <Offcanvas show={show} onHide={onClose} placement="end" className="cart-offcanvas">
       <Offcanvas.Header closeButton>
-        <Offcanvas.Title as="h5">Keranjang Peminjaman</Offcanvas.Title>
+        <Offcanvas.Title as="h5" className="d-flex align-items-center gap-2">
+          <span className="cart-title-icon">
+            <IconShoppingCart size={20} />
+          </span>
+          Keranjang Peminjaman
+        </Offcanvas.Title>
       </Offcanvas.Header>
       <Offcanvas.Body className="d-flex flex-column">
         {items.length === 0 ? (
-          <p className="text-secondary">Keranjang masih kosong.</p>
+          /* Empty state */
+          <div className="cart-empty text-center my-auto">
+            <div className="cart-empty-icon mb-3">
+              <IconShoppingCart size={32} />
+            </div>
+            <h6 className="mb-1">Keranjang masih kosong</h6>
+            <p className="text-secondary small mb-0">
+              Tambahkan alat dari tabel Data Tools untuk memulai peminjaman.
+            </p>
+          </div>
         ) : (
-          <div className="d-flex flex-column gap-4 flex-grow-1">
-            {/* TAMBAHKAN index DI SINI */}
-            {items.map((item, index) => (
-                <div
-                  // FALLBACK KEY: Jika cartId tidak ada, gunakan index
-                  key={item.cartId ? item.cartId.toString() : `cart-item-${index}`} 
-                  className="d-flex justify-content-between align-items-start border-bottom pb-3"
-                >
-                <div className="flex-grow-1 me-3">
-                  <div className="fw-semibold">{item.namaBarang}</div>
-                  <div className="text-secondary small mb-2">
-                    {item.kodeBarang}
+          <div className="d-flex flex-column gap-3 flex-grow-1">
+            {items.map((item) => (
+              <div key={item.toolId} className="cart-item">
+                <div className="d-flex justify-content-between align-items-start gap-2">
+                  <div className="flex-grow-1">
+                    <div className="fw-semibold">{item.namaBarang}</div>
+                    <div className="text-secondary small">{item.kodeBarang}</div>
                   </div>
+                  <Button
+                    variant="link"
+                    className="cart-item-remove text-danger p-0"
+                    onClick={() => onRemove(item.toolId)}
+                    aria-label="Hapus Barang"
+                  >
+                    <IconTrash size={18} />
+                  </Button>
+                </div>
 
-                  {/* Stepper jumlah */}
-                  <div className="d-flex align-items-center gap-2">
+                <div className="d-flex justify-content-between align-items-center mt-3">
+                  {/* Stepper jumlah: tombol minus - angka - tombol plus */}
+                  <div className="cart-stepper d-flex align-items-center">
                     <Button
                       variant="outline-secondary"
-                      size="sm"
-                      className="d-flex align-items-center justify-content-center p-0"
-                      style={{ width: "28px", height: "28px" }}
+                      className="cart-stepper-btn d-flex align-items-center justify-content-center p-0"
                       disabled={item.jumlah <= 1}
                       onClick={() => handleDecrease(item)}
                       aria-label="Kurangi Jumlah"
                     >
                       <IconMinus size={14} />
                     </Button>
-                    <span
-                      className="fw-semibold text-center"
-                      style={{ minWidth: "24px" }}
-                    >
+                    <span className="cart-stepper-value fw-semibold text-center">
                       {item.jumlah}
                     </span>
                     <Button
                       variant="outline-secondary"
-                      size="sm"
-                      className="d-flex align-items-center justify-content-center p-0"
-                      style={{ width: "28px", height: "28px" }}
+                      className="cart-stepper-btn d-flex align-items-center justify-content-center p-0"
                       disabled={item.jumlah >= item.maxJumlah}
                       onClick={() => handleIncrease(item)}
                       aria-label="Tambah Jumlah"
@@ -88,34 +109,34 @@ const CartOffcanvas = ({
                       <IconPlus size={14} />
                     </Button>
                   </div>
-
-                  <div className="text-secondary small mt-1">
-                    Maks. {item.maxJumlah} unit tersedia
-                  </div>
+                  <span className="text-secondary small">
+                    Maks. {item.maxJumlah} unit
+                  </span>
                 </div>
-                
-                {/* Tombol Hapus */}
-                <Button
-                  variant="link"
-                  className="text-danger p-0"
-                  onClick={() => item.cartId && onRemove(item.cartId.toString())}
-                  aria-label="Hapus Barang"
-                >
-                  <IconTrash size={18} />
-                </Button>
               </div>
             ))}
           </div>
         )}
 
-        <Button
-          variant="primary"
-          className="w-100 mt-4"
-          disabled={items.length === 0}
-          onClick={onProceed}
-        >
-          Lanjutkan Peminjaman
-        </Button>
+        {items.length > 0 && (
+          <div className="cart-footer mt-3 pt-3 border-top">
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <span className="text-secondary">Total item</span>
+              <span className="fw-semibold">
+                {items.length} jenis &middot; {totalUnit} unit
+              </span>
+            </div>
+            <Button
+              variant="primary"
+              className="w-100 d-flex align-items-center justify-content-center gap-2"
+              disabled={items.length === 0}
+              onClick={onProceed}
+            >
+              Lanjutkan Peminjaman
+              <IconArrowRight size={18} />
+            </Button>
+          </div>
+        )}
       </Offcanvas.Body>
     </Offcanvas>
   );
