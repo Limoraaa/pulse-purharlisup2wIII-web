@@ -80,7 +80,7 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
                 src={getAssetPath("/images/brand/logo/logo-icon.svg")}
                 alt=''
               />
-              <span className='fw-bold fs-4 site-logo-text'>PULSE-PLN</span>
+              <span className='fw-bold fs-4 site-logo-text'>Dasher</span>
             </Link>
           </div>
         )}

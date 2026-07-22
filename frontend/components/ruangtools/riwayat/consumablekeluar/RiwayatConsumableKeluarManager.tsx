@@ -136,7 +136,9 @@ const RiwayatConsumableKeluarManager = () => {
     exportToExcel(filteredList, EXPORT_COLUMNS, "riwayat-consumable-keluar");
 
   const columns = getRiwayatConsumableKeluarColumns({
+  onEdit: openEditModal,
   onDetail: openDetailModal,
+  onLihatKeterangan: openKeteranganModal,
 });
   
   return (

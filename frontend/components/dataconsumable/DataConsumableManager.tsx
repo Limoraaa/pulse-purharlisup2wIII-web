@@ -1,8 +1,25 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { Card, CardBody, Button, Spinner, Alert } from "react-bootstrap";
-import { IconPlus, IconCircleCheck } from "@tabler/icons-react";
-import { v4 as uuid } from "uuid";
+import {
+  Row,
+  Col,
+  Card,
+  CardBody,
+  Button,
+  Spinner,
+  Alert,
+  InputGroup,
+  Form,
+} from "react-bootstrap";
+import {
+  IconPlus,
+  IconCircleCheck,
+  IconSearch,
+  IconX,
+  IconPackage,
+  IconMoodEmpty,
+} from "@tabler/icons-react";
+import { submitConsumableKeluar } from "services/consumableKeluarService";
 
 import {
   ConsumableItemType,
@@ -10,15 +27,6 @@ import {
   ConsumableCartItemType,
   ConsumableOutFormValues,
 } from "types/DataConsumableTypes";
-
-// ConsumableCartItemType (dari types/DataConsumableTypes) tidak punya `id`,
-// karena CartOffcanvas cuma butuh consumable_id untuk update/remove.
-// Tapi di manager ini kita butuh `id` (row id cart di DB) untuk hit endpoint
-// PATCH/DELETE /api/consumable-keluar/cart/{id}. Extend saja supaya tetap
-// structurally compatible saat dioper ke CartOffcanvas / ConsumableOutFormModal.
-interface ConsumableCartItem extends ConsumableCartItemType {
-  id: string;
-}
 
 import TanstackTable from "components/table/TanstackTable";
 import Flex from "components/common/Flex";
@@ -33,6 +41,7 @@ import ConsumableOutFormModal from "components/dataconsumable/ConsumableOutFormM
 import AddToCartFlyEffect, {
   FlyAnimationItem,
 } from "components/dataconsumable/AddToCartFlyEffect";
+import { v4 as uuid } from "uuid";
 
 import {
   getConsumables,
@@ -40,9 +49,6 @@ import {
   updateConsumable,
   deleteConsumable,
 } from "services/consumableService";
-
-// Gunakan API wrapper kamu (sesuaikan path-nya jika berbeda)
-import api from "lib/api";
 
 // urutan natural, dipakai lagi di sini supaya urutan tetap benar tiap ada perubahan state lokal
 function sortByKode(items: ConsumableItemType[]): ConsumableItemType[] {
@@ -55,6 +61,8 @@ const DataConsumableManager = () => {
   const [consumables, setConsumables] = useState<ConsumableItemType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [submittingOut, setSubmittingOut] = useState(false);
+  const [outError, setOutError] = useState<string | null>(null);
 
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
@@ -62,93 +70,60 @@ const DataConsumableManager = () => {
   const [activeItem, setActiveItem] = useState<ConsumableItemType | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
-  // State Keranjang & Checkout
-  const [cart, setCart] = useState<ConsumableCartItem[]>([]);
-  const [cartOpen, setCartOpen] = useState(false);
-  const [loanFormOpen, setLoanFormOpen] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [isSubmittingCart, setIsSubmittingCart] = useState(false);
-  const [outError, setOutError] = useState<string | null>(null);
-
-  const [flyAnimations, setFlyAnimations] = useState<FlyAnimationItem[]>([]);
-
-  // ==========================================
-  // FETCH DATA MASTER & KERANJANG
-  // ==========================================
   const loadConsumables = async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await getConsumables();
+      const data = await getConsumables(); // sudah terurut dari service
       setConsumables(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Gagal memuat data consumable");
+      setError("Gagal memuat data consumable");
     } finally {
       setLoading(false);
     }
   };
 
-  const loadCart = async () => {
-    try {
-      // apiFetch (lib/api.ts) sudah mem-parse response jadi JSON dan langsung
-      // mengembalikannya (bukan objek Response), jadi TIDAK perlu panggil .json() lagi.
-      const json = await api<{ data: any[] }>("/consumable-keluar/antrean");
-
-      const mappedCart: ConsumableCartItem[] = json.data.map((item: any) => ({
-        id: item.id,
-        consumable_id: item.consumable_id,
-        kode_barang: item.kode_barang,
-        nama: item.nama,
-        jumlah: item.qty,
-        stok_tersedia: item.stok_tersedia,
-      }));
-
-      setCart(mappedCart);
-    } catch (err) {
-      console.error("Gagal load keranjang", err);
-    }
-  };
-
-  // ================= LOAD DATA + POLLING ANTREAN =================
   useEffect(() => {
-    // Cek apakah user sudah login (sesuaikan dengan cara kamu menyimpan sesi/token)
-    const token = localStorage.getItem("token"); // atau "userId"
-
-    if (!token) {
-      return; // Hentikan proses jika tidak ada token/belum login
-    }
-
     loadConsumables();
-    loadCart();
-
-    // polling supaya hasil scan dari Flutter app langsung muncul di web
-    const interval = setInterval(() => {
-      loadCart();
-    }, 4000);
-
-    return () => clearInterval(interval);
   }, []);
 
-  // ==========================================
-  // HANDLER MODAL MASTER DATA
-  // ==========================================
+  const [cart, setCart] = useState<ConsumableCartItemType[]>([]);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [flyAnimations, setFlyAnimations] = useState<FlyAnimationItem[]>([]);
+  const [loanFormOpen, setLoanFormOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // ---- Toolbar: pencarian (murni UI, tidak menyentuh API/data) ----
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Data turunan untuk tampilan; sumber data (consumables) tidak diubah.
+  const filteredConsumables = useMemo(() => {
+    const keyword = searchTerm.trim().toLowerCase();
+    return consumables.filter((item) => {
+      const cocokKeyword =
+        keyword === "" ||
+        item.kode_barang.toLowerCase().includes(keyword) ||
+        item.nama.toLowerCase().includes(keyword) ||
+        item.merk.toLowerCase().includes(keyword) ||
+        item.tipe.toLowerCase().includes(keyword);
+      return cocokKeyword;
+    });
+  }, [consumables, searchTerm]);
+
   const openAddModal = () => {
     setActiveItem(null);
     setFormError(null);
     setFormModalOpen(true);
   };
-
   const openEditModal = (item: ConsumableItemType) => {
     setActiveItem(item);
     setFormError(null);
     setFormModalOpen(true);
   };
-
   const openDetailModal = (item: ConsumableItemType) => {
     setActiveItem(item);
     setDetailModalOpen(true);
   };
-
   const openDeleteModal = (item: ConsumableItemType) => {
     setActiveItem(item);
     setDeleteModalOpen(true);
@@ -170,7 +145,7 @@ const DataConsumableManager = () => {
       setActiveItem(null);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Gagal menyimpan data";
-      setFormError(message);
+      setFormError(message); // ditampilkan di dalam modal, bukan alert()
     }
   };
 
@@ -179,123 +154,57 @@ const DataConsumableManager = () => {
     try {
       await deleteConsumable(activeItem.id);
       setConsumables((prev) => prev.filter((c) => c.id !== activeItem.id));
-      // kalau consumable yang dihapus ada di cart, item di temporary_cart jadi orphan
-      // -> antrean() sudah nge-skip consumable yang null, jadi tinggal refetch
-      await loadCart();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Gagal menghapus data");
-    } finally {
       setDeleteModalOpen(false);
-      setActiveItem(null);
+    } catch (err) {
+      alert("Gagal menghapus data");
     }
   };
 
-  // ==========================================
-  // HANDLER CART (BERBASIS API/DATABASE)
-  // ==========================================
-
-  // Berlaku untuk Klik Manual dari Tabel maupun dari Hasil Scan QR Code.
-  // `event` opsional: kalau dipanggil dari hasil scan (bukan klik tombol),
-  // tidak ada elemen DOM untuk dijadikan titik awal animasi.
-  const handleAddToCart = async (
+  const handleAddToCart = (
     item: ConsumableItemType,
-    event?: React.MouseEvent<HTMLButtonElement>
+    event: React.MouseEvent<HTMLButtonElement>
   ) => {
-    // 1. Cari item di keranjang untuk tahu berapa yang sudah di-scan/input
-    const itemDiKeranjang = cart.find((c) => c.consumable_id === item.id);
-    const jumlahDiKeranjang = itemDiKeranjang ? itemDiKeranjang.jumlah : 0;
+    if (item.stok_awal <= 0) return;
 
-    // 2. Validasi: Stok yang tersedia = Stok Awal - Jumlah di Keranjang
-    const tersedia = item.stok_awal - jumlahDiKeranjang;
-
-    if (tersedia <= 0) {
-      alert(`Stok untuk ${item.nama} sudah habis! (Tersedia: 0)`);
-      return;
-    }
-
-    try {
-      // 3. Scan ke API
-      await api("/consumable/scan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          consumable_id: item.id,
-          jumlah: 1,
-        }),
-      });
-
-      // 4. Update state keranjang segera setelah scan berhasil
-      await loadCart();
-      setCartOpen(true);
-
-      // Fly animation hanya jika ada event click (bukan dari scan QR otomatis)
-      if (event?.currentTarget) {
-        const rect = event.currentTarget.getBoundingClientRect();
-        setFlyAnimations((prev) => [
-          ...prev,
-          {
-            id: uuid(),
-            startX: rect.left + rect.width / 2,
-            startY: rect.top + rect.height / 2,
-          },
-        ]);
+    setCart((prev) => {
+      const existing = prev.find((c) => c.consumable_id === item.id);
+      if (existing) {
+        return prev.map((c) =>
+          c.consumable_id === item.id
+            ? { ...c, jumlah: Math.min(c.jumlah + 1, item.stok_awal) }
+            : c
+        );
       }
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Gagal menambah ke keranjang.");
-    }
+      return [
+        ...prev,
+        {
+          consumable_id: item.id,
+          kode_barang: item.kode_barang,
+          nama: item.nama,
+          jumlah: 1,
+          stok_tersedia: item.stok_awal,
+        },
+      ];
+    });
+
+    // Panel keranjang TIDAK otomatis terbuka -> cukup animasi ikon terbang ke FAB.
+    const rect = event.currentTarget.getBoundingClientRect();
+    setFlyAnimations((prev) => [
+      ...prev,
+      {
+        id: uuid(),
+        startX: rect.left + rect.width / 2,
+        startY: rect.top + rect.height / 2,
+      },
+    ]);
   };
 
   const handleAnimationEnd = (id: string) => {
     setFlyAnimations((prev) => prev.filter((a) => a.id !== id));
   };
 
-  const handleUpdateQty = async (consumableId: string, qty: number) => {
-    const item = consumables.find((c) => c.id === consumableId);
-    if (!item) return;
-
-    // Validasi: Jika qty baru > stok_awal, batasi ke stok_awal
-    if (qty > item.stok_awal) {
-      alert(`Jumlah tidak boleh melebihi stok tersedia (${item.stok_awal})`);
-      return;
-    }
-
-    try {
-      const cartItem = cart.find((c) => c.consumable_id === consumableId);
-      if (!cartItem) return;
-
-      await api(`/consumable-keluar/cart/${cartItem.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ qty }),
-      });
-      await loadCart();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Gagal mengupdate jumlah.");
-    }
-  };
-
-  const handleRemoveItem = async (consumableId: string) => {
-    // Cari row id cart berdasarkan consumable_id
-    const cartItem = cart.find((c) => c.consumable_id === consumableId);
-    if (!cartItem) return;
-
-    try {
-      await api(`/consumable-keluar/cart/${cartItem.id}`, {
-        method: "DELETE",
-      });
-      await loadCart();
-    } catch (err) {
-      console.error(err);
-      alert(err instanceof Error ? err.message : "Gagal menghapus item dari keranjang.");
-    }
-  };
-
-  // ==========================================
-  // PROSES CHECKOUT KELUAR
-  // ==========================================
   const handleLoanSubmit = async (values: ConsumableOutFormValues) => {
-    if (cart.length === 0) return;
-    setIsSubmittingCart(true);
+    setSubmittingOut(true);
     setOutError(null);
 
     try {
@@ -304,55 +213,37 @@ const DataConsumableManager = () => {
         throw new Error("Sesi login tidak ditemukan. Silakan login ulang.");
       }
 
-      const payload = {
-        peminta_id: values.pemintaId,
-        pekerjaan_area: values.areaKerja,
-        keterangan: values.keterangan || "",
-        dicatat_oleh: dicatatOleh,
-      };
+      await submitConsumableKeluar(cart, values, dicatatOleh);
 
-      // apiFetch (lib/api.ts) sudah otomatis throw Error kalau request gagal
-      // (lihat `if (!res.ok) throw ...` di dalamnya), jadi kalau baris di bawah
-      // ini berhasil dieksekusi tanpa exception, artinya checkout sudah sukses.
-      // Tidak perlu (dan tidak bisa) cek response.ok di sini.
-      await api("/consumable-keluar/proses", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      // ambil ulang data consumable, supaya kolom Stok Tersedia akurat
+      const freshData = await getConsumables();
+      setConsumables(freshData);
 
+      setCart([]);
       setLoanFormOpen(false);
-      setCartOpen(false);
-      setSuccessMessage("Pengeluaran bahan berhasil diproses!");
 
-      await loadConsumables();
-      await loadCart();
-
+      setSuccessMessage(`Pengambilan bahan oleh ${values.namaPeminta} berhasil dicatat!`);
       setTimeout(() => setSuccessMessage(null), 5000);
     } catch (err) {
-      console.error("Gagal proses keranjang:", err);
-      setOutError(
-        err instanceof Error ? err.message : "Terjadi kesalahan saat memproses pengeluaran bahan."
-      );
+      const message = err instanceof Error ? err.message : "Gagal mencatat pengambilan";
+      setOutError(message);
     } finally {
-      setIsSubmittingCart(false);
+      setSubmittingOut(false);
     }
   };
 
-  // Setup Kolom Tabel
   const columns = useMemo(
-    () =>
-      getConsumableColumns({
-        onDetail: openDetailModal,
-        onEdit: openEditModal,
-        onDelete: openDeleteModal,
-        onStockOut: handleAddToCart, // Klik keranjang di tabel masuk ke fungsi API
-      }),
-    []
-  );
-
+  () =>
+    getConsumableColumns({
+      onDetail: openDetailModal,
+      onEdit: openEditModal,
+      onDelete: openDeleteModal,
+      onStockOut: handleAddToCart,
+    }),
+  []
+);
   return (
-    <>
+    <div className="dataconsumable-page">
       {successMessage && (
         <Alert
           variant="success"
@@ -360,41 +251,133 @@ const DataConsumableManager = () => {
           dismissible
           onClose={() => setSuccessMessage(null)}
         >
-          <IconCircleCheck size={20} />
-          {successMessage}
+          <IconCircleCheck size={20} /> {successMessage}
         </Alert>
       )}
 
-      {outError && (
-        <Alert variant="danger" dismissible onClose={() => setOutError(null)}>
-          {outError}
-        </Alert>
-      )}
+      {/* ---- Page Header ---- */}
+      <Row>
+        <Col>
+          <Flex
+            justifyContent="between"
+            alignItems="center"
+            className="mb-4 w-100"
+            breakpoint="md"
+          >
+            <div>
+              <h1 className="mb-2 h2">Data Consumable</h1>
+              <p className="text-secondary mb-0">
+                Mengelola seluruh data bahan habis pakai di Ruang Tools.
+              </p>
+              <DasherBreadcrumb />
+            </div>
+            <div>
+              <Button
+                variant="primary"
+                className="d-flex align-items-center gap-2"
+                onClick={openAddModal}
+              >
+                <IconPlus size={18} /> Tambah Bahan
+              </Button>
+            </div>
+          </Flex>
+        </Col>
+      </Row>
 
-      <Flex justifyContent="between" alignItems="center" className="mb-4">
-        <div>
-          <h1 className="h2">Data Consumable</h1>
-          <DasherBreadcrumb />
+      <Card className="card-lg mb-6">
+        {/* ---- Toolbar: Search ---- */}
+        <div className="dataconsumable-toolbar border-bottom">
+          <Row className="g-2 align-items-center">
+            <Col lg={6} md={7}>
+              <InputGroup className="dataconsumable-search">
+                <InputGroup.Text>
+                  <IconSearch size={18} />
+                </InputGroup.Text>
+                <Form.Control
+                  type="search"
+                  placeholder="Cari kode, nama, merk, atau tipe..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  aria-label="Cari data consumable"
+                />
+                {searchTerm && (
+                  <Button
+                    variant="link"
+                    className="dataconsumable-search-clear"
+                    onClick={() => setSearchTerm("")}
+                    aria-label="Bersihkan pencarian"
+                  >
+                    <IconX size={16} />
+                  </Button>
+                )}
+              </InputGroup>
+            </Col>
+            <Col lg={6} md={5} className="text-md-end">
+              <span className="text-secondary small">
+                Menampilkan{" "}
+                <span className="fw-semibold text-body">
+                  {filteredConsumables.length}
+                </span>{" "}
+                dari {consumables.length} data
+              </span>
+            </Col>
+          </Row>
         </div>
-        <Button variant="primary" onClick={openAddModal}>
-          <IconPlus size={18} /> Tambah Bahan
-        </Button>
-      </Flex>
 
-      <Card>
         <CardBody>
           {error && <Alert variant="danger">{error}</Alert>}
           {loading ? (
             <div className="text-center py-6">
-              <Spinner animation="border" /> Memuat...
+              <Spinner animation="border" size="sm" className="me-2" /> Memuat...
+            </div>
+          ) : consumables.length === 0 ? (
+            /* Empty state: belum ada data sama sekali */
+            <div className="dataconsumable-empty text-center py-6">
+              <div className="dataconsumable-empty-icon mb-3">
+                <IconPackage size={32} />
+              </div>
+              <h5 className="mb-1">Belum ada data consumable</h5>
+              <p className="text-secondary mb-4">
+                Mulai dengan menambahkan bahan pertama ke Ruang Tools.
+              </p>
+              <Button
+                variant="primary"
+                className="d-inline-flex align-items-center gap-2"
+                onClick={openAddModal}
+              >
+                <IconPlus size={18} /> Tambah Bahan
+              </Button>
+            </div>
+          ) : filteredConsumables.length === 0 ? (
+            /* Empty state: hasil pencarian / filter kosong */
+            <div className="dataconsumable-empty text-center py-6">
+              <div className="dataconsumable-empty-icon mb-3">
+                <IconMoodEmpty size={32} />
+              </div>
+              <h5 className="mb-1">Tidak ada hasil</h5>
+              <p className="text-secondary mb-4">
+                Tidak ditemukan data yang cocok dengan pencarian.
+              </p>
+              <Button
+                variant="outline-secondary"
+                className="d-inline-flex align-items-center gap-2"
+                onClick={() => setSearchTerm("")}
+              >
+                <IconX size={18} /> Reset Pencarian
+              </Button>
             </div>
           ) : (
-            <TanstackTable data={consumables} columns={columns} filter pagination isSortable />
+            <TanstackTable
+              data={filteredConsumables}
+              columns={columns}
+              pagination
+              isSortable
+            />
           )}
         </CardBody>
       </Card>
 
-      <ConsumableToolFormModal
+     <ConsumableToolFormModal
         show={formModalOpen}
         onClose={() => {
           setFormModalOpen(false);
@@ -403,48 +386,34 @@ const DataConsumableManager = () => {
         onSubmit={handleFormSubmit}
         initialData={activeItem}
         error={formError}
-        existingCodes={consumables.map((c) => c.kode_barang)}
+        existingCodes={consumables.map((c) => c.kode_barang)} // ← tambahan
+      />
+      <ConsumableDetailModal show={detailModalOpen} onClose={() => setDetailModalOpen(false)} consumable={activeItem} />
+      <DeleteConfirmModal show={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} onConfirm={handleConfirmDelete} consumable={activeItem} />
+
+      <AddToCartFlyEffect
+        animations={flyAnimations}
+        onAnimationEnd={handleAnimationEnd}
       />
 
-      <ConsumableDetailModal
-        show={detailModalOpen}
-        onClose={() => setDetailModalOpen(false)}
-        consumable={activeItem}
-      />
-      <DeleteConfirmModal
-        show={deleteModalOpen}
-        onClose={() => setDeleteModalOpen(false)}
-        onConfirm={handleConfirmDelete}
-        consumable={activeItem}
-      />
-
-      {/* FLOATING ACTION BUTTON KERANJANG */}
       <CartFAB itemCount={cart.length} onClick={() => setCartOpen(true)} />
-
-      {/* OFFCANVAS KERANJANG */}
       <CartOffcanvas
         show={cartOpen}
         onClose={() => setCartOpen(false)}
         items={cart}
-        onProceed={() => {
-          setCartOpen(false);
-          setLoanFormOpen(true);
-        }}
-        onUpdateQty={handleUpdateQty}
-        onRemove={handleRemoveItem}
+        onProceed={() => setLoanFormOpen(true)}
+        onUpdateQty={(id, qty) => setCart((prev) => prev.map((c) => (c.consumable_id === id ? { ...c, jumlah: qty } : c)))}
+        onRemove={(id) => setCart((prev) => prev.filter((c) => c.consumable_id !== id))}
       />
-      <AddToCartFlyEffect animations={flyAnimations} onAnimationEnd={handleAnimationEnd} />
-
-      {/* MODAL CHECKOUT KELUAR */}
       <ConsumableOutFormModal
-        show={loanFormOpen}
-        onClose={() => setLoanFormOpen(false)}
-        onSubmit={handleLoanSubmit}
-        cartItems={cart}
-        submitting={isSubmittingCart}
-        error={outError}
-      />
-    </>
+    show={loanFormOpen}
+    onClose={() => setLoanFormOpen(false)}
+    onSubmit={handleLoanSubmit}
+    cartItems={cart}
+    submitting={submittingOut}
+    error={outError}
+  />
+    </div>
   );
 };
 

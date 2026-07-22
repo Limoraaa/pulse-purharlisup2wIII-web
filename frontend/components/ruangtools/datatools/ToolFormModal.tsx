@@ -2,6 +2,7 @@
 // import node module libraries
 import { useEffect, useState } from "react";
 import { Modal, Form, Row, Col, Button } from "react-bootstrap";
+import { IconTool, IconPencil, IconPlus } from "@tabler/icons-react";
 
 // import custom types
 import { ToolFormValues, ToolItemType, ToolCondition } from "types/DataToolsTypes";
@@ -63,15 +64,32 @@ const ToolFormModal = ({
   };
 
   return (
-    <Modal show={show} onHide={onClose} centered size="lg">
+    <Modal show={show} onHide={onClose} centered size="lg" className="tool-form-modal">
       <Form onSubmit={handleSubmit}>
         <Modal.Header closeButton>
-          <Modal.Title as="h5">
+          <Modal.Title as="h5" className="d-flex align-items-center gap-2">
+            <span className="tool-form-title-icon">
+              {isEditMode ? <IconPencil size={20} /> : <IconTool size={20} />}
+            </span>
             {isEditMode ? "Edit Data Alat" : "Tambah Data Alat"}
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <Row className="g-3">
+          {isEditMode && (
+            <div className="tool-form-hero mb-4">
+              <div className="text-secondary small">Sedang mengubah data</div>
+              <div className="fw-semibold">
+                {initialData?.namaBarang}{" "}
+                <span className="text-secondary">({initialData?.kodeBarang})</span>
+              </div>
+            </div>
+          )}
+
+          <div className="tool-form-section">
+            <div className="text-secondary small text-uppercase fw-semibold mb-3">
+              Informasi Alat
+            </div>
+            <Row className="g-3">
             <Col md={6}>
               <Form.Label>
                 Kode Barang <span className="text-danger">*</span>
@@ -161,13 +179,19 @@ const ToolFormModal = ({
                 }}
               />
             </Col>
-          </Row>
+            </Row>
+          </div>
         </Modal.Body>
         <Modal.Footer>
           <Button variant="outline-secondary" onClick={onClose}>
             Batal
           </Button>
-          <Button variant="primary" type="submit">
+          <Button
+            variant="primary"
+            type="submit"
+            className="d-inline-flex align-items-center gap-2"
+          >
+            {isEditMode ? <IconPencil size={18} /> : <IconPlus size={18} />}
             {isEditMode ? "Simpan Perubahan" : "Tambah Data"}
           </Button>
         </Modal.Footer>

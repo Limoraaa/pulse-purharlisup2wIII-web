@@ -1,7 +1,24 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { Row, Col, Card, CardBody, Button, Alert, Spinner } from "react-bootstrap";
-import { IconPlus, IconCircleCheck } from "@tabler/icons-react";
+import {
+  Row,
+  Col,
+  Card,
+  CardBody,
+  Button,
+  Alert,
+  Spinner,
+  InputGroup,
+  Form,
+} from "react-bootstrap";
+import {
+  IconPlus,
+  IconCircleCheck,
+  IconSearch,
+  IconX,
+  IconUsers,
+  IconMoodEmpty,
+} from "@tabler/icons-react";
 
 import { PeminjamType } from "types/DataToolsTypes";
 
@@ -37,6 +54,21 @@ const PeminjamManager = () => {
   const [deleting, setDeleting] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // ---- Toolbar: pencarian (murni UI, tidak menyentuh API/data) ----
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Data turunan untuk tampilan; sumber data (peminjamList) tidak diubah.
+  const filteredPeminjam = useMemo(() => {
+    const keyword = searchTerm.trim().toLowerCase();
+    return peminjamList.filter((item) => {
+      const cocokKeyword =
+        keyword === "" ||
+        item.nama.toLowerCase().includes(keyword) ||
+        item.divisi.toLowerCase().includes(keyword);
+      return cocokKeyword;
+    });
+  }, [peminjamList, searchTerm]);
 
   const loadData = async () => {
     setLoading(true);
@@ -144,7 +176,7 @@ const PeminjamManager = () => {
   );
 
   return (
-    <>
+    <div className="datapeminjam-page">
       {successMessage && (
         <Alert
           variant="success"
@@ -157,6 +189,7 @@ const PeminjamManager = () => {
         </Alert>
       )}
 
+      {/* ---- Page Header ---- */}
       <Row>
         <Col>
           <Flex justifyContent="between" alignItems="center" className="mb-4 w-100" breakpoint="md">
@@ -178,6 +211,43 @@ const PeminjamManager = () => {
       </Row>
 
       <Card className="card-lg mb-6">
+        {/* ---- Toolbar: Search ---- */}
+        <div className="datapeminjam-toolbar border-bottom">
+          <Row className="g-2 align-items-center">
+            <Col lg={6} md={7}>
+              <InputGroup className="datapeminjam-search">
+                <InputGroup.Text>
+                  <IconSearch size={18} />
+                </InputGroup.Text>
+                <Form.Control
+                  type="search"
+                  placeholder="Cari nama atau divisi..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  aria-label="Cari data peminjam"
+                />
+                {searchTerm && (
+                  <Button
+                    variant="link"
+                    className="datapeminjam-search-clear"
+                    onClick={() => setSearchTerm("")}
+                    aria-label="Bersihkan pencarian"
+                  >
+                    <IconX size={16} />
+                  </Button>
+                )}
+              </InputGroup>
+            </Col>
+            <Col lg={6} md={5} className="text-md-end">
+              <span className="text-secondary small">
+                Menampilkan{" "}
+                <span className="fw-semibold text-body">{filteredPeminjam.length}</span>{" "}
+                dari {peminjamList.length} data
+              </span>
+            </Col>
+          </Row>
+        </div>
+
         <CardBody>
           {error && <Alert variant="danger">{error}</Alert>}
 
@@ -186,14 +256,50 @@ const PeminjamManager = () => {
               <Spinner animation="border" size="sm" className="me-2" />
               Memuat data...
             </div>
+          ) : peminjamList.length === 0 ? (
+            /* Empty state: belum ada data sama sekali */
+            <div className="datapeminjam-empty text-center py-6">
+              <div className="datapeminjam-empty-icon mb-3">
+                <IconUsers size={32} />
+              </div>
+              <h5 className="mb-1">Belum ada data peminjam</h5>
+              <p className="text-secondary mb-4">
+                Mulai dengan menambahkan pegawai yang dapat meminjam alat atau mengambil bahan.
+              </p>
+              <Button
+                variant="primary"
+                className="d-inline-flex align-items-center gap-2"
+                onClick={openAddModal}
+              >
+                <IconPlus size={18} />
+                Tambah Data
+              </Button>
+            </div>
+          ) : filteredPeminjam.length === 0 ? (
+            /* Empty state: hasil pencarian / filter kosong */
+            <div className="datapeminjam-empty text-center py-6">
+              <div className="datapeminjam-empty-icon mb-3">
+                <IconMoodEmpty size={32} />
+              </div>
+              <h5 className="mb-1">Tidak ada hasil</h5>
+              <p className="text-secondary mb-4">
+                Tidak ditemukan data yang cocok dengan pencarian.
+              </p>
+              <Button
+                variant="outline-secondary"
+                className="d-inline-flex align-items-center gap-2"
+                onClick={() => setSearchTerm("")}
+              >
+                <IconX size={18} />
+                Reset Pencarian
+              </Button>
+            </div>
           ) : (
             <TanstackTable
-              data={peminjamList}
+              data={filteredPeminjam}
               columns={columns}
-              filter
               pagination
               isSortable
-              filterPlaceholder="Cari nama / divisi..."
             />
           )}
         </CardBody>
@@ -217,7 +323,7 @@ const PeminjamManager = () => {
         peminjam={activeItem}
         submitting={deleting}
       />
-    </>
+    </div>
   );
 };
 

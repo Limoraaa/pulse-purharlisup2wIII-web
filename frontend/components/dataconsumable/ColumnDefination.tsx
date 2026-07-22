@@ -42,7 +42,7 @@ export const getConsumableColumns = ({
     header: "Merk",
   },
   {
-    accessorKey: "type",
+    accessorKey: "tipe",
     header: "Tipe",
   },
   {
@@ -65,7 +65,11 @@ export const getConsumableColumns = ({
           <span className={`fw-bold ${perluRestock ? "text-danger" : "text-success"}`}>
             {stok}
           </span>
-          <Badge bg={perluRestock ? "danger-subtle" : "success-subtle"} text={perluRestock ? "danger-emphasis" : "success-emphasis"}>
+          <Badge
+            bg={perluRestock ? "danger-subtle" : "success-subtle"}
+            text={perluRestock ? "danger-emphasis" : "success-emphasis"}
+            className="fw-semibold"
+          >
             {perluRestock ? "Perlu Restock" : "Cukup"}
           </Badge>
         </div>
