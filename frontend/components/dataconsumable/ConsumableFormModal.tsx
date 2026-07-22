@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Modal, Form, Row, Col, Button, Alert } from "react-bootstrap";
+import { IconPackage, IconPencil, IconPlus } from "@tabler/icons-react";
 
 import { ConsumableFormValues, ConsumableItemType } from "types/DataConsumableTypes";
 
@@ -90,17 +91,34 @@ const ConsumableToolFormModal = ({
   };
 
   return (
-    <Modal show={show} onHide={onClose} centered size="lg">
+    <Modal show={show} onHide={onClose} centered size="lg" className="consumable-form-modal">
       <Form onSubmit={handleSubmit}>
         <Modal.Header closeButton>
-          <Modal.Title as="h5">
+          <Modal.Title as="h5" className="d-flex align-items-center gap-2">
+            <span className="consumable-form-title-icon">
+              {isEditMode ? <IconPencil size={20} /> : <IconPackage size={20} />}
+            </span>
             {isEditMode ? "Edit Data Consumable" : "Tambah Data Consumable"}
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {error && <Alert variant="danger">{error}</Alert>}
 
-          <Row className="g-3">
+          {isEditMode && (
+            <div className="consumable-form-hero mb-4">
+              <div className="text-secondary small">Sedang mengubah data</div>
+              <div className="fw-semibold">
+                {initialData?.nama}{" "}
+                <span className="text-secondary">({initialData?.kode_barang})</span>
+              </div>
+            </div>
+          )}
+
+          <div className="consumable-form-section">
+            <div className="text-secondary small text-uppercase fw-semibold mb-3">
+              Informasi Bahan
+            </div>
+            <Row className="g-3">
             <Col md={6}>
               <Form.Label>Kode Barang <span className="text-danger">*</span></Form.Label>
               <Form.Control
@@ -168,11 +186,17 @@ const ConsumableToolFormModal = ({
                 }}
               />
             </Col>
-          </Row>
+            </Row>
+          </div>
         </Modal.Body>
         <Modal.Footer>
           <Button variant="outline-secondary" onClick={onClose}>Batal</Button>
-          <Button variant="primary" type="submit">
+          <Button
+            variant="primary"
+            type="submit"
+            className="d-inline-flex align-items-center gap-2"
+          >
+            {isEditMode ? <IconPencil size={18} /> : <IconPlus size={18} />}
             {isEditMode ? "Simpan Perubahan" : "Tambah Data"}
           </Button>
         </Modal.Footer>

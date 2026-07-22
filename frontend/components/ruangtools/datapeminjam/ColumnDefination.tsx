@@ -36,7 +36,11 @@ export const getPeminjamColumns = ({
     cell: ({ row }) => {
       const aktif = row.original.aktif;
       return (
-        <Badge bg={aktif ? "success-subtle" : "secondary-subtle"} text={aktif ? "success-emphasis" : "secondary-emphasis"}>
+        <Badge
+          bg={aktif ? "success-subtle" : "secondary-subtle"}
+          text={aktif ? "success-emphasis" : "secondary-emphasis"}
+          className="fw-semibold"
+        >
           {aktif ? "Aktif" : "Nonaktif"}
         </Badge>
       );

@@ -1,8 +1,25 @@
 "use client";
 // import node module libraries
 import { useEffect, useMemo, useState } from "react";
-import { Row, Col, Card, CardBody, Button, Spinner, Alert } from "react-bootstrap";
-import { IconPlus, IconCircleCheck } from "@tabler/icons-react";
+import {
+  Row,
+  Col,
+  Card,
+  CardBody,
+  Button,
+  Spinner,
+  Alert,
+  InputGroup,
+  Form,
+} from "react-bootstrap";
+import {
+  IconPlus,
+  IconCircleCheck,
+  IconSearch,
+  IconX,
+  IconTool,
+  IconMoodEmpty,
+} from "@tabler/icons-react";
 import { v4 as uuid } from "uuid";
 
 // import redux store
@@ -78,6 +95,24 @@ const DataToolsManager = () => {
 
   // ---- Notifikasi ----
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // ---- Toolbar: pencarian (murni UI, tidak menyentuh API/data) ----
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Data yang sudah difilter untuk ditampilkan di tabel.
+  // Tidak mengubah sumber data (tools) di Redux — hanya turunan untuk tampilan.
+  const filteredTools = useMemo(() => {
+    const keyword = searchTerm.trim().toLowerCase();
+    return tools.filter((tool) => {
+      const cocokKeyword =
+        keyword === "" ||
+        tool.kodeBarang.toLowerCase().includes(keyword) ||
+        tool.namaBarang.toLowerCase().includes(keyword) ||
+        tool.merk.toLowerCase().includes(keyword) ||
+        tool.tipe.toLowerCase().includes(keyword);
+      return cocokKeyword;
+    });
+  }, [tools, searchTerm]);
 
   // ================= LOAD DATA DARI DATABASE =================
   useEffect(() => {
@@ -236,7 +271,7 @@ const DataToolsManager = () => {
   );
 
   return (
-    <>
+    <div className="datatools-page">
       {successMessage && (
         <Alert
           variant="success"
@@ -255,6 +290,7 @@ const DataToolsManager = () => {
         </Alert>
       )}
 
+      {/* ---- Page Header ---- */}
       <Row>
         <Col>
           <Flex
@@ -285,6 +321,43 @@ const DataToolsManager = () => {
       </Row>
 
       <Card className="card-lg mb-6">
+        {/* ---- Toolbar: Search ---- */}
+        <div className="datatools-toolbar border-bottom">
+          <Row className="g-2 align-items-center">
+            <Col lg={6} md={7}>
+              <InputGroup className="datatools-search">
+                <InputGroup.Text>
+                  <IconSearch size={18} />
+                </InputGroup.Text>
+                <Form.Control
+                  type="search"
+                  placeholder="Cari kode, nama, merk, atau tipe..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  aria-label="Cari data tools"
+                />
+                {searchTerm && (
+                  <Button
+                    variant="link"
+                    className="datatools-search-clear"
+                    onClick={() => setSearchTerm("")}
+                    aria-label="Bersihkan pencarian"
+                  >
+                    <IconX size={16} />
+                  </Button>
+                )}
+              </InputGroup>
+            </Col>
+            <Col lg={6} md={5} className="text-md-end">
+              <span className="text-secondary small">
+                Menampilkan{" "}
+                <span className="fw-semibold text-body">{filteredTools.length}</span>{" "}
+                dari {tools.length} data
+              </span>
+            </Col>
+          </Row>
+        </div>
+
         <CardBody>
           {toolsError && <Alert variant="danger">{toolsError}</Alert>}
 
@@ -293,14 +366,50 @@ const DataToolsManager = () => {
               <Spinner animation="border" size="sm" className="me-2" />
               Memuat data...
             </div>
+          ) : tools.length === 0 ? (
+            /* Empty state: belum ada data sama sekali */
+            <div className="datatools-empty text-center py-6">
+              <div className="datatools-empty-icon mb-3">
+                <IconTool size={32} />
+              </div>
+              <h5 className="mb-1">Belum ada data tools</h5>
+              <p className="text-secondary mb-4">
+                Mulai dengan menambahkan peralatan pertama ke Ruang Tools.
+              </p>
+              <Button
+                variant="primary"
+                className="d-inline-flex align-items-center gap-2"
+                onClick={openAddModal}
+              >
+                <IconPlus size={18} />
+                Tambah Data
+              </Button>
+            </div>
+          ) : filteredTools.length === 0 ? (
+            /* Empty state: hasil pencarian / filter kosong */
+            <div className="datatools-empty text-center py-6">
+              <div className="datatools-empty-icon mb-3">
+                <IconMoodEmpty size={32} />
+              </div>
+              <h5 className="mb-1">Tidak ada hasil</h5>
+              <p className="text-secondary mb-4">
+                Tidak ditemukan data yang cocok dengan pencarian.
+              </p>
+              <Button
+                variant="outline-secondary"
+                className="d-inline-flex align-items-center gap-2"
+                onClick={() => setSearchTerm("")}
+              >
+                <IconX size={18} />
+                Reset Pencarian
+              </Button>
+            </div>
           ) : (
             <TanstackTable
-              data={tools}
+              data={filteredTools}
               columns={columns}
-              filter
               pagination
               isSortable
-              filterPlaceholder="Cari kode / nama barang..."
             />
           )}
         </CardBody>
@@ -348,7 +457,7 @@ const DataToolsManager = () => {
         cartItems={cart}
         submitting={submittingLoan}
       />
-    </>
+    </div>
   );
 };
 

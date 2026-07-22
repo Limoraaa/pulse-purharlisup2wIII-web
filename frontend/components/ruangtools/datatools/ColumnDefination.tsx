@@ -93,13 +93,16 @@ export const getDataToolsColumns = ({
     header: "Tersedia",
     cell: ({ row }) => {
       const tersedia = row.original.stok - row.original.dipinjam;
+      const habis = tersedia <= 0;
       return (
-        <span
-          className={`text-center d-block fw-semibold ${
-            tersedia <= 0 ? "text-danger" : "text-success"
-          }`}
-        >
-          {tersedia}
+        <span className="d-flex justify-content-center">
+          <Badge
+            bg={habis ? "danger-subtle" : "success-subtle"}
+            text={habis ? "danger-emphasis" : "success-emphasis"}
+            className="fw-semibold"
+          >
+            {tersedia}
+          </Badge>
         </span>
       );
     },

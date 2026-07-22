@@ -1,7 +1,24 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { Row, Col, Card, CardBody, Button, Spinner, Alert } from "react-bootstrap";
-import { IconPlus, IconCircleCheck } from "@tabler/icons-react";
+import {
+  Row,
+  Col,
+  Card,
+  CardBody,
+  Button,
+  Spinner,
+  Alert,
+  InputGroup,
+  Form,
+} from "react-bootstrap";
+import {
+  IconPlus,
+  IconCircleCheck,
+  IconSearch,
+  IconX,
+  IconPackage,
+  IconMoodEmpty,
+} from "@tabler/icons-react";
 import { submitConsumableKeluar } from "services/consumableKeluarService";
 
 import {
@@ -75,6 +92,23 @@ const DataConsumableManager = () => {
   const [flyAnimations, setFlyAnimations] = useState<FlyAnimationItem[]>([]);
   const [loanFormOpen, setLoanFormOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // ---- Toolbar: pencarian (murni UI, tidak menyentuh API/data) ----
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Data turunan untuk tampilan; sumber data (consumables) tidak diubah.
+  const filteredConsumables = useMemo(() => {
+    const keyword = searchTerm.trim().toLowerCase();
+    return consumables.filter((item) => {
+      const cocokKeyword =
+        keyword === "" ||
+        item.kode_barang.toLowerCase().includes(keyword) ||
+        item.nama.toLowerCase().includes(keyword) ||
+        item.merk.toLowerCase().includes(keyword) ||
+        item.tipe.toLowerCase().includes(keyword);
+      return cocokKeyword;
+    });
+  }, [consumables, searchTerm]);
 
   const openAddModal = () => {
     setActiveItem(null);
@@ -209,32 +243,136 @@ const DataConsumableManager = () => {
   []
 );
   return (
-    <>
+    <div className="dataconsumable-page">
       {successMessage && (
-        <Alert variant="success" dismissible onClose={() => setSuccessMessage(null)}>
+        <Alert
+          variant="success"
+          className="d-flex align-items-center gap-2"
+          dismissible
+          onClose={() => setSuccessMessage(null)}
+        >
           <IconCircleCheck size={20} /> {successMessage}
         </Alert>
       )}
 
-      <Flex justifyContent="between" alignItems="center" className="mb-4">
-        <div>
-          <h1 className="h2">Data Consumable</h1>
-          <DasherBreadcrumb />
-        </div>
-        <Button variant="primary" onClick={openAddModal}>
-          <IconPlus size={18} /> Tambah Bahan
-        </Button>
-      </Flex>
+      {/* ---- Page Header ---- */}
+      <Row>
+        <Col>
+          <Flex
+            justifyContent="between"
+            alignItems="center"
+            className="mb-4 w-100"
+            breakpoint="md"
+          >
+            <div>
+              <h1 className="mb-2 h2">Data Consumable</h1>
+              <p className="text-secondary mb-0">
+                Mengelola seluruh data bahan habis pakai di Ruang Tools.
+              </p>
+              <DasherBreadcrumb />
+            </div>
+            <div>
+              <Button
+                variant="primary"
+                className="d-flex align-items-center gap-2"
+                onClick={openAddModal}
+              >
+                <IconPlus size={18} /> Tambah Bahan
+              </Button>
+            </div>
+          </Flex>
+        </Col>
+      </Row>
 
-      <Card>
+      <Card className="card-lg mb-6">
+        {/* ---- Toolbar: Search ---- */}
+        <div className="dataconsumable-toolbar border-bottom">
+          <Row className="g-2 align-items-center">
+            <Col lg={6} md={7}>
+              <InputGroup className="dataconsumable-search">
+                <InputGroup.Text>
+                  <IconSearch size={18} />
+                </InputGroup.Text>
+                <Form.Control
+                  type="search"
+                  placeholder="Cari kode, nama, merk, atau tipe..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  aria-label="Cari data consumable"
+                />
+                {searchTerm && (
+                  <Button
+                    variant="link"
+                    className="dataconsumable-search-clear"
+                    onClick={() => setSearchTerm("")}
+                    aria-label="Bersihkan pencarian"
+                  >
+                    <IconX size={16} />
+                  </Button>
+                )}
+              </InputGroup>
+            </Col>
+            <Col lg={6} md={5} className="text-md-end">
+              <span className="text-secondary small">
+                Menampilkan{" "}
+                <span className="fw-semibold text-body">
+                  {filteredConsumables.length}
+                </span>{" "}
+                dari {consumables.length} data
+              </span>
+            </Col>
+          </Row>
+        </div>
+
         <CardBody>
           {error && <Alert variant="danger">{error}</Alert>}
           {loading ? (
             <div className="text-center py-6">
-              <Spinner animation="border" /> Memuat...
+              <Spinner animation="border" size="sm" className="me-2" /> Memuat...
+            </div>
+          ) : consumables.length === 0 ? (
+            /* Empty state: belum ada data sama sekali */
+            <div className="dataconsumable-empty text-center py-6">
+              <div className="dataconsumable-empty-icon mb-3">
+                <IconPackage size={32} />
+              </div>
+              <h5 className="mb-1">Belum ada data consumable</h5>
+              <p className="text-secondary mb-4">
+                Mulai dengan menambahkan bahan pertama ke Ruang Tools.
+              </p>
+              <Button
+                variant="primary"
+                className="d-inline-flex align-items-center gap-2"
+                onClick={openAddModal}
+              >
+                <IconPlus size={18} /> Tambah Bahan
+              </Button>
+            </div>
+          ) : filteredConsumables.length === 0 ? (
+            /* Empty state: hasil pencarian / filter kosong */
+            <div className="dataconsumable-empty text-center py-6">
+              <div className="dataconsumable-empty-icon mb-3">
+                <IconMoodEmpty size={32} />
+              </div>
+              <h5 className="mb-1">Tidak ada hasil</h5>
+              <p className="text-secondary mb-4">
+                Tidak ditemukan data yang cocok dengan pencarian.
+              </p>
+              <Button
+                variant="outline-secondary"
+                className="d-inline-flex align-items-center gap-2"
+                onClick={() => setSearchTerm("")}
+              >
+                <IconX size={18} /> Reset Pencarian
+              </Button>
             </div>
           ) : (
-            <TanstackTable data={consumables} columns={columns} filter pagination isSortable />
+            <TanstackTable
+              data={filteredConsumables}
+              columns={columns}
+              pagination
+              isSortable
+            />
           )}
         </CardBody>
       </Card>
@@ -275,7 +413,7 @@ const DataConsumableManager = () => {
     submitting={submittingOut}
     error={outError}
   />
-    </>
+    </div>
   );
 };
 
