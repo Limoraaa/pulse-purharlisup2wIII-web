@@ -5,9 +5,8 @@ import { Modal, Form, Row, Col, Button } from "react-bootstrap";
 import { IconTool, IconPencil, IconPlus } from "@tabler/icons-react";
 
 // import custom types
-import { ToolFormValues, ToolItemType, ToolCondition } from "types/DataToolsTypes";
+import { ToolFormValues, ToolItemType} from "types/DataToolsTypes";
 
-const KONDISI_OPTIONS: ToolCondition[] = ["Baik", "Rusak"];
 
 const emptyForm: ToolFormValues = {
   kodeBarang: "",
@@ -141,26 +140,7 @@ const ToolFormModal = ({
               />
             </Col>
 
-            {/* Kondisi cuma ditampilkan saat Edit — data baru selalu mulai dari "Baik" */}
-            {isEditMode ? (
-              <Col md={6}>
-                <Form.Label>Kondisi</Form.Label>
-                <Form.Select
-                  value={form.kondisi}
-                  onChange={(e) =>
-                    handleChange("kondisi", e.target.value as ToolCondition)
-                  }
-                >
-                  {KONDISI_OPTIONS.map((opt) => (
-                    <option key={opt} value={opt}>
-                      {opt}
-                    </option>
-                  ))}
-                </Form.Select>
-              </Col>
-            ) : null}
-
-            <Col md={isEditMode ? 6 : 12}>
+            <Col md={12}>
               <Form.Label>
                 Stok <span className="text-danger">*</span>
               </Form.Label>

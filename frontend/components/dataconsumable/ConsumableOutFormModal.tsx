@@ -4,7 +4,7 @@ import { Modal, Form, Row, Col, Button, Spinner } from "react-bootstrap";
 import { IconClipboardList, IconCheck } from "@tabler/icons-react";
 import { ConsumableOutFormValues, ConsumableCartItemType } from "types/DataConsumableTypes";
 import { PeminjamType } from "types/DataToolsTypes";
-import { getPeminta } from "services/pemintaService";
+import { getPemintaAktif } from "services/pemintaService";
 
 const formatToday = () =>
   new Date().toLocaleDateString("id-ID", {
@@ -49,7 +49,7 @@ const ConsumableOutFormModal = ({
     setForm(emptyForm());
     setPemintaSearchText("");
     setLoadingPeminta(true);
-    getPeminta()
+    getPemintaAktif()
       .then(setPemintaList)
       .catch(() => setPemintaList([]))
       .finally(() => setLoadingPeminta(false));

@@ -1,6 +1,5 @@
 export type ToolCondition =
   | "Baik"
-  | "Rusak";
 
 export interface ToolItemType {
   id: string; // dipakai sebagai React key & pembanding saat edit/hapus

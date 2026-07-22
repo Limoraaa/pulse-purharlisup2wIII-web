@@ -105,7 +105,7 @@ const DataConsumableManager = () => {
         item.kode_barang.toLowerCase().includes(keyword) ||
         item.nama.toLowerCase().includes(keyword) ||
         item.merk.toLowerCase().includes(keyword) ||
-        item.tipe.toLowerCase().includes(keyword);
+        item.type.toLowerCase().includes(keyword);
       return cocokKeyword;
     });
   }, [consumables, searchTerm]);
