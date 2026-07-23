@@ -21,8 +21,8 @@ const TablePagination = <TData extends RowData>({
   return (
     <div className="border-top d-md-flex justify-content-between align-items-center p-3">
       <div>
-        Showing {pageIndex * pageSize + 1} to{" "}
-        {Math.min((pageIndex + 1) * pageSize, totalRows)} of {totalRows} entries
+        Menampilkan {totalRows === 0 ? 0 : pageIndex * pageSize + 1}–
+        {Math.min((pageIndex + 1) * pageSize, totalRows)} dari {totalRows} data
       </div>
       <Navbar className="mt-2 mt-md-0">
         <Pagination className="mb-0">

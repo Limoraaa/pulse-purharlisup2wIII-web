@@ -1,7 +1,12 @@
 "use client";
 // import node module libraries
-import { Row, Col, Form, Button } from "react-bootstrap";
-import { IconFileTypePdf, IconFileTypeXls } from "@tabler/icons-react";
+import { Form, Button, InputGroup } from "react-bootstrap";
+import {
+  IconFileTypePdf,
+  IconFileTypeXls,
+  IconCalendarMonth,
+  IconCalendar,
+} from "@tabler/icons-react";
 
 const NAMA_BULAN = [
   "Januari", "Februari", "Maret", "April", "Mei", "Juni",
@@ -29,64 +34,68 @@ const RiwayatFilterBar = ({
   onExportExcel,
 }: RiwayatFilterBarProps) => {
   return (
-    <Row className="align-items-end g-3 mb-4">
-      <Col md={3} sm={6}>
-        <Form.Label className="mb-1 small text-secondary">
-          Bulan
-        </Form.Label>
-        <Form.Select
-          size="sm"
-          value={bulanFilter}
-          onChange={(e) => onBulanFilterChange(Number(e.target.value))}
-        >
-          <option value={0}>Semua Bulan</option>
-          {NAMA_BULAN.map((nama, index) => (
-            <option key={nama} value={index + 1}>
-              {nama}
-            </option>
-          ))}
-        </Form.Select>
-      </Col>
-      <Col md={3} sm={6}>
-        <Form.Label className="mb-1 small text-secondary">
-          Tahun
-        </Form.Label>
-        <Form.Select
-          size="sm"
-          value={tahunFilter}
-          onChange={(e) => onTahunFilterChange(Number(e.target.value))}
-        >
-          <option value={0}>Semua Tahun</option>
-          {tahunOptions.map((tahun) => (
-            <option key={tahun} value={tahun}>
-              {tahun}
-            </option>
-          ))}
-        </Form.Select>
-      </Col>
-      <Col md={6} sm={12} className="d-flex gap-2">
+    <div className="riwayat-filterbar d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+      {/* Filter Bulan & Tahun */}
+      <div className="d-flex flex-wrap align-items-center gap-2">
+        <InputGroup className="riwayat-filter-group">
+          <InputGroup.Text>
+            <IconCalendarMonth size={16} />
+          </InputGroup.Text>
+          <Form.Select
+            value={bulanFilter}
+            onChange={(e) => onBulanFilterChange(Number(e.target.value))}
+            aria-label="Filter bulan"
+          >
+            <option value={0}>Semua Bulan</option>
+            {NAMA_BULAN.map((nama, index) => (
+              <option key={nama} value={index + 1}>
+                {nama}
+              </option>
+            ))}
+          </Form.Select>
+        </InputGroup>
+
+        <InputGroup className="riwayat-filter-group">
+          <InputGroup.Text>
+            <IconCalendar size={16} />
+          </InputGroup.Text>
+          <Form.Select
+            value={tahunFilter}
+            onChange={(e) => onTahunFilterChange(Number(e.target.value))}
+            aria-label="Filter tahun"
+          >
+            <option value={0}>Semua Tahun</option>
+            {tahunOptions.map((tahun) => (
+              <option key={tahun} value={tahun}>
+                {tahun}
+              </option>
+            ))}
+          </Form.Select>
+        </InputGroup>
+      </div>
+
+      {/* Tombol Export */}
+      <div className="d-flex gap-2">
         <Button
           variant="outline-danger"
-          size="sm"
-          className="d-flex align-items-center gap-1 flex-fill"
+          className="d-flex align-items-center gap-2"
           onClick={onExportPDF}
           title="Export PDF"
         >
-          <IconFileTypePdf size={16} />
-          PDF
+          <IconFileTypePdf size={18} />
+          Export PDF
         </Button>
         <Button
           variant="outline-success"
-          size="sm"
-          className="d-flex align-items-center gap-1 flex-fill"
+          className="d-flex align-items-center gap-2"
           onClick={onExportExcel}
           title="Export Excel"
         >
-          <IconFileTypeXls size={16} />
-          Excel
+          <IconFileTypeXls size={18} />
+          Export Excel
         </Button>
-      </Col>
-    </Row>
+      </div>
+    </div>
   );
 };
 
