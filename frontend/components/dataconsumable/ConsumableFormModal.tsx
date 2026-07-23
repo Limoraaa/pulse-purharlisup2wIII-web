@@ -1,7 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Modal, Form, Row, Col, Button, Alert } from "react-bootstrap";
-import { IconPackage, IconPencil, IconPlus } from "@tabler/icons-react";
 
 import { ConsumableFormValues, ConsumableItemType } from "types/DataConsumableTypes";
 
@@ -9,7 +8,7 @@ const emptyForm: ConsumableFormValues = {
   kode_barang: "",
   nama: "",
   merk: "",
-  tipe: "",
+  type: "",
   er_e: "",
   ukuran: "",
   stok_awal: 0,
@@ -66,16 +65,18 @@ const ConsumableToolFormModal = ({
   const [form, setForm] = useState<ConsumableFormValues>(emptyForm);
   const isEditMode = Boolean(initialData);
 
-  useEffect(() => {
-    if (show) {
+  const wasShown = useRef(false);
+
+useEffect(() => {
+    if (show && !wasShown.current) {
+      // modal baru saja DIBUKA (transisi dari tertutup ke terbuka) -> reset form
       if (initialData) {
-        // mode Edit: isi form sesuai data yang dipilih
         setForm({ ...initialData });
       } else {
-        // mode Tambah: kosongkan form, tapi kasih saran kode barang berikutnya
         setForm({ ...emptyForm, kode_barang: suggestNextCode(existingCodes) });
       }
     }
+    wasShown.current = show;
   }, [show, initialData, existingCodes]);
 
   const handleChange = (
@@ -91,34 +92,17 @@ const ConsumableToolFormModal = ({
   };
 
   return (
-    <Modal show={show} onHide={onClose} centered size="lg" className="consumable-form-modal">
+    <Modal show={show} onHide={onClose} centered size="lg">
       <Form onSubmit={handleSubmit}>
         <Modal.Header closeButton>
-          <Modal.Title as="h5" className="d-flex align-items-center gap-2">
-            <span className="consumable-form-title-icon">
-              {isEditMode ? <IconPencil size={20} /> : <IconPackage size={20} />}
-            </span>
+          <Modal.Title as="h5">
             {isEditMode ? "Edit Data Consumable" : "Tambah Data Consumable"}
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {error && <Alert variant="danger">{error}</Alert>}
 
-          {isEditMode && (
-            <div className="consumable-form-hero mb-4">
-              <div className="text-secondary small">Sedang mengubah data</div>
-              <div className="fw-semibold">
-                {initialData?.nama}{" "}
-                <span className="text-secondary">({initialData?.kode_barang})</span>
-              </div>
-            </div>
-          )}
-
-          <div className="consumable-form-section">
-            <div className="text-secondary small text-uppercase fw-semibold mb-3">
-              Informasi Bahan
-            </div>
-            <Row className="g-3">
+          <Row className="g-3">
             <Col md={6}>
               <Form.Label>Kode Barang <span className="text-danger">*</span></Form.Label>
               <Form.Control
@@ -152,8 +136,8 @@ const ConsumableToolFormModal = ({
             <Col md={4}>
               <Form.Label>Tipe</Form.Label>
               <Form.Control
-                value={form.tipe}
-                onChange={(e) => handleChange("tipe", e.target.value)}
+                value={form.type}
+                onChange={(e) => handleChange("type", e.target.value)}
               />
             </Col>
             <Col md={4}>
@@ -186,17 +170,11 @@ const ConsumableToolFormModal = ({
                 }}
               />
             </Col>
-            </Row>
-          </div>
+          </Row>
         </Modal.Body>
         <Modal.Footer>
           <Button variant="outline-secondary" onClick={onClose}>Batal</Button>
-          <Button
-            variant="primary"
-            type="submit"
-            className="d-inline-flex align-items-center gap-2"
-          >
-            {isEditMode ? <IconPencil size={18} /> : <IconPlus size={18} />}
+          <Button variant="primary" type="submit">
             {isEditMode ? "Simpan Perubahan" : "Tambah Data"}
           </Button>
         </Modal.Footer>

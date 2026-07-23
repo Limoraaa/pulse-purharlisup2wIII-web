@@ -20,7 +20,7 @@ class DashboardController extends Controller
         return response()->json([
             'total_tools' => Tool::count(),
             'total_consumables' => Consumable::count(),
-            'total_peminta' => Peminta::count(),
+            'total_peminta' => Peminta::where('aktif', true)->count(),
             'sedang_dipinjam' => Peminjaman::whereNull('tanggal_kembali')->sum('jumlah'),
         ]);
     }
