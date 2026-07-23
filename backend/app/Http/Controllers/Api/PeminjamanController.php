@@ -34,12 +34,8 @@ class PeminjamanController extends Controller
         $userId = $request->user('sanctum')?->id ?? '00000000-0000-0000-0000-000000000000';
         $jumlah = $request->jumlah;
 
-        // ID yang dikirim client (field mana pun yang terisi).
         $itemId = $request->filled('tools_id') ? $request->tools_id : $request->consumable_id;
 
-        // Tentukan tipe SEBENARNYA dengan mengecek langsung ke DB,
-        // bukan percaya begitu saja pada nama field yang dikirim client
-        // (app scanner HP selalu mengirim field 'tools_id' apapun yang di-scan).
         $tool = Tool::find($itemId);
         $consumable = $tool ? null : Consumable::find($itemId);
 
@@ -50,10 +46,10 @@ class PeminjamanController extends Controller
         $isTool = (bool) $tool;
         $column = $isTool ? 'tools_id' : 'consumable_id';
 
-        // Cek apakah sudah ada di cart (hanya cek pada kolom yang sesuai tipe item)
+        // PERBAIKAN: Hapus ->where('user_id', $userId) agar barang otomatis digabung
+        // terlepas dari apakah di-scan lewat HP atau ditambah manual lewat Web.
         $existing = DB::table('temporary_cart')
             ->where($column, $itemId)
-            ->where('user_id', $userId)
             ->first();
 
         $totalDiminta = ($existing->qty ?? 0) + $jumlah;
@@ -81,7 +77,7 @@ class PeminjamanController extends Controller
             } else {
                 DB::table('temporary_cart')->insert([
                     'id'         => (string) Str::uuid(),
-                    'user_id'    => $userId,
+                    'user_id'    => $userId, // Tetap catat ID pencatat pertama
                     $column      => $itemId,
                     'qty'        => $jumlah,
                     'created_at' => now(),
@@ -97,20 +93,10 @@ class PeminjamanController extends Controller
     }
 
     // GET /api/peminjaman/antrean
-    // Hanya mengembalikan item bertipe Tool. Item consumable (dari page consumable)
-    // sengaja tidak ikut supaya cart peminjaman/tools tidak tercampur.
     public function antrean(Request $request)
     {
-        $staticUserId = '00000000-0000-0000-0000-000000000000';
-        $authUserId = $request->user('sanctum')?->id;
-
+        // PERBAIKAN: Langsung ambil semua antrean tools agar sinkron antara HP dan Web
         $cartItems = DB::table('temporary_cart')
-            ->where(function ($query) use ($staticUserId, $authUserId) {
-                $query->where('user_id', $staticUserId);
-                if ($authUserId) {
-                    $query->orWhere('user_id', $authUserId);
-                }
-            })
             ->whereNotNull('tools_id')
             ->get();
 
@@ -140,8 +126,6 @@ class PeminjamanController extends Controller
     {
         $request->validate(['qty' => 'required|integer|min:1']);
 
-        // whereNotNull('tools_id') memastikan endpoint ini tidak bisa "menyentuh"
-        // cart row milik consumable walaupun id-nya cocok.
         $cart = DB::table('temporary_cart')->where('id', $id)->whereNotNull('tools_id')->first();
         if (!$cart) return response()->json(['message' => 'Item tidak ditemukan'], 404);
 
@@ -164,10 +148,18 @@ class PeminjamanController extends Controller
     // DELETE /api/peminjaman/cart/{id}
     public function removeCartItem($id)
     {
+        // Hapus berdasarkan ID cart ATAU tools_id agar aman dihapus dari mana saja
         $affected = DB::table('temporary_cart')
             ->where('id', $id)
             ->whereNotNull('tools_id')
             ->delete();
+
+        if (!$affected) {
+            $affected = DB::table('temporary_cart')
+                ->where('tools_id', $id)
+                ->whereNotNull('tools_id')
+                ->delete();
+        }
 
         if (!$affected) return response()->json(['message' => 'Item tidak ditemukan'], 404);
         return response()->json(['message' => 'Item berhasil dihapus dari antrean']);
@@ -181,14 +173,12 @@ class PeminjamanController extends Controller
             'dicatat_oleh' => 'required|uuid|exists:users,id',
         ]);
 
-        // Hanya proses cart bertipe tools
         $antrean = DB::table('temporary_cart')->whereNotNull('tools_id')->get();
 
         if ($antrean->isEmpty()) {
             return response()->json(['message' => 'Antrean kosong'], 400);
         }
 
-        // Validasi stok dulu sebelum insert, supaya tidak ada proses parsial
         foreach ($antrean as $item) {
             $tool = Tool::find($item->tools_id);
             if (!$tool) {
@@ -209,11 +199,10 @@ class PeminjamanController extends Controller
                     'peminta_id'   => $request->peminta_id,
                     'dicatat_oleh' => $request->dicatat_oleh,
                     'tanggal'      => now(),
-                    'jumlah'       => $item->qty,
+                    'jumlah'       => $item->qty, // Qty sudah digabung secara otomatis
                 ]);
             }
 
-            // Hapus HANYA cart milik tools, bukan seluruh tabel
             DB::table('temporary_cart')->whereNotNull('tools_id')->delete();
         });
 
