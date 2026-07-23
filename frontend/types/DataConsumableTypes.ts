@@ -18,6 +18,7 @@ export type ConsumableFormValues = Omit<ConsumableItemType, "id">;
 // Keranjang "Ambil Bahan" (dipakai di Data Consumable)
 // ------------------------------------------------------------------
 export interface ConsumableCartItemType {
+  id: string;              // Ditambahkan agar ID unik row cart database terbawa ke komponen
   consumable_id: string;
   kode_barang: string;
   nama: string;
