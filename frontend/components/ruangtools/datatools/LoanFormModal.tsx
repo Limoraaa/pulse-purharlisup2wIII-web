@@ -4,7 +4,7 @@ import { Modal, Form, Row, Col, Button, Spinner } from "react-bootstrap";
 import { IconClipboardList, IconCheck } from "@tabler/icons-react";
 
 import { LoanFormValues, PeminjamType, CartItemType } from "types/DataToolsTypes";
-import { getPeminta } from "services/pemintaService";
+import { getPemintaAktif } from "services/pemintaService";
 
 const formatToday = () =>
   new Date().toLocaleDateString("id-ID", {
@@ -48,7 +48,7 @@ const LoanFormModal = ({
       setForm(emptyForm());
       setPeminjamSearchText("");
       setLoadingPeminjam(true);
-      getPeminta()
+      getPemintaAktif()
         .then(setPeminjamList)
         .catch(() => setPeminjamList([]))
         .finally(() => setLoadingPeminjam(false));

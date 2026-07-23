@@ -9,15 +9,19 @@ import {
   IconArrowRight,
 } from "@tabler/icons-react";
 
-// Sesuaikan import type dengan model Consumable
 import { ConsumableCartItemType } from "types/DataConsumableTypes";
+
+// Perluas interface agar mengenali `id` unik row database
+interface ConsumableCartItemWithId extends ConsumableCartItemType {
+  id: string;
+}
 
 interface CartOffcanvasProps {
   show: boolean;
   onClose: () => void;
-  items: ConsumableCartItemType[]; // Gunakan interface khusus untuk keranjang consumable
-  onUpdateQty: (consumable_id: string, jumlah: number) => void;
-  onRemove: (consumable_id: string) => void;
+  items: ConsumableCartItemWithId[]; 
+  onUpdateQty: (id: string, jumlah: number) => void; // Menggunakan cart row id
+  onRemove: (id: string) => void; // Menggunakan cart row id
   onProceed: () => void;
 }
 
@@ -30,14 +34,13 @@ const CartOffcanvas = ({
   onProceed,
 }: CartOffcanvasProps) => {
 
-  const handleDecrease = (item: ConsumableCartItemType) => {
+  const handleDecrease = (item: ConsumableCartItemWithId) => {
     if (item.jumlah <= 1) return;
-    onUpdateQty(item.consumable_id, item.jumlah - 1);
+    onUpdateQty(item.id, item.jumlah - 1);
   };
 
-  const handleIncrease = (item: ConsumableCartItemType) => {
-    // Menambah jumlah, bisa disesuaikan jika ingin ada batas maxJumlah
-    onUpdateQty(item.consumable_id, item.jumlah + 1);
+  const handleIncrease = (item: ConsumableCartItemWithId) => {
+    onUpdateQty(item.id, item.jumlah + 1);
   };
 
   const totalUnit = items.reduce((sum, item) => sum + item.jumlah, 0);
@@ -54,7 +57,6 @@ const CartOffcanvas = ({
       </Offcanvas.Header>
       <Offcanvas.Body className="d-flex flex-column">
         {items.length === 0 ? (
-          /* Empty state */
           <div className="consumable-cart-empty text-center my-auto">
             <div className="consumable-cart-empty-icon mb-3">
               <IconShoppingCart size={32} />
@@ -67,7 +69,7 @@ const CartOffcanvas = ({
         ) : (
           <div className="d-flex flex-column gap-3 flex-grow-1">
             {items.map((item) => (
-              <div key={item.consumable_id} className="consumable-cart-item">
+              <div key={item.id} className="consumable-cart-item">
                 <div className="d-flex justify-content-between align-items-start gap-2">
                   <div className="flex-grow-1">
                     <div className="fw-semibold">{item.nama}</div>
@@ -76,7 +78,7 @@ const CartOffcanvas = ({
                   <Button
                     variant="link"
                     className="consumable-cart-item-remove text-danger p-0"
-                    onClick={() => onRemove(item.consumable_id)}
+                    onClick={() => onRemove(item.id)}
                     aria-label="Hapus Barang"
                   >
                     <IconTrash size={18} />
@@ -84,7 +86,6 @@ const CartOffcanvas = ({
                 </div>
 
                 <div className="d-flex justify-content-between align-items-center mt-3">
-                  {/* Stepper jumlah */}
                   <div className="consumable-cart-stepper d-flex align-items-center">
                     <Button
                       variant="outline-secondary"

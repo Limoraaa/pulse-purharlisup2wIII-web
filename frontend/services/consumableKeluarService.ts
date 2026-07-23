@@ -1,13 +1,97 @@
 import apiFetch from "lib/api";
 import { RiwayatConsumableKeluarType } from "types/RiwayatTypes";
-import { ConsumableCartItemType, ConsumableOutFormValues } from "types/DataConsumableTypes";
+import { 
+  ConsumableItemType, 
+  ConsumableFormValues, 
+  ConsumableOutFormValues 
+} from "types/DataConsumableTypes";
 
-// BULAN_SINGKAT dihapus karena fitur bawaan Intl.DateTimeFormat ("id-ID") sudah mendukungnya.
+// ==========================================
+// MASTER DATA CONSUMABLE (CRUD)
+// ==========================================
+
+export async function getConsumables(): Promise<ConsumableItemType[]> {
+  const response = await apiFetch<any>("/consumable");
+  // Menyesuaikan struktur response Laravel (bisa berupa array langsung atau terbungkus key 'data')
+  const data = Array.isArray(response) ? response : response.data || [];
+  
+  return data.map((item: any) => ({
+    id: item.id,
+    kode_barang: item.kode_barang,
+    nama: item.nama,
+    merk: item.merk || "-",
+    tipe: item.type || item.tipe || "-",
+    er_e: item.er_e || "-",
+    ukuran: item.ukuran || "-",
+    stok_awal: item.stok_awal ?? 0,
+  }));
+}
+
+export async function createConsumable(values: ConsumableFormValues): Promise<ConsumableItemType> {
+  const token = localStorage.getItem("token");
+  const response = await apiFetch<any>("/consumable", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(values),
+  });
+
+  const item = response.data || response;
+  return {
+    id: item.id,
+    kode_barang: item.kode_barang,
+    nama: item.nama,
+    merk: item.merk || "-",
+    tipe: item.type || item.tipe || "-",
+    er_e: item.er_e || "-",
+    ukuran: item.ukuran || "-",
+    stok_awal: item.stok_awal ?? 0,
+  };
+}
+
+export async function updateConsumable(id: string, values: ConsumableFormValues): Promise<ConsumableItemType> {
+  const token = localStorage.getItem("token");
+  const response = await apiFetch<any>(`/consumable/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(values),
+  });
+
+  const item = response.data || response;
+  return {
+    id: item.id,
+    kode_barang: item.kode_barang,
+    nama: item.nama,
+    merk: item.merk || "-",
+    tipe: item.type || item.tipe || "-",
+    er_e: item.er_e || "-",
+    ukuran: item.ukuran || "-",
+    stok_awal: item.stok_awal ?? 0,
+  };
+}
+
+export async function deleteConsumable(id: string): Promise<void> {
+  const token = localStorage.getItem("token");
+  await apiFetch(`/consumable/${id}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+}
+
+// ==========================================
+// RIWAYAT & TRANSAKSI CONSUMABLE KELUAR
+// ==========================================
 
 function formatTanggalJam(isoString: string): string {
   const d = new Date(isoString);
 
-  // Menggunakan "id-ID" agar otomatis mendapatkan format bahasa Indonesia (Mei, Agu, Okt, dst)
   const parts = new Intl.DateTimeFormat("id-ID", {
     timeZone: "Asia/Jakarta",
     day: "2-digit",
@@ -29,7 +113,6 @@ function buildNomorTransaksi(tanggalIso: string, pemintaNama: string): string {
   return `TRX-${timestamp}-${pemintaCode}`;
 }
 
-// Bentuk response index() dari Laravel, dengan relasi consumable & peminta ter-load
 interface ConsumableKeluarApiResponse {
   id: string;
   tanggal: string;
@@ -74,44 +157,33 @@ function mapRiwayatConsumableKeluarFromApi(
 }
 
 export async function getRiwayatConsumableKeluar(): Promise<RiwayatConsumableKeluarType[]> {
-  const data: ConsumableKeluarApiResponse[] = await apiFetch("/consumable-keluar");
+  const response = await apiFetch<any>("/consumable-keluar");
+  const data: ConsumableKeluarApiResponse[] = Array.isArray(response) ? response : response.data || [];
   return data.map(mapRiwayatConsumableKeluarFromApi);
 }
 
-interface CreateConsumableKeluarPayload {
-  tanggal: string;
-  consumable_id: string;
-  peminta_id: string;
-  jumlah_keluar: number;
-  pekerjaan_area: string;
-  keterangan: string;
-  dicatat_oleh: string;
-}
-
+/**
+ * Memproses pengeluaran consumable berdasarkan data antrean di database (temporary_cart).
+ * Memastikan barang dari hasil scan HP dan web terproses secara sinkron.
+ */
 export async function submitConsumableKeluar(
-  cartItems: ConsumableCartItemType[],
   values: ConsumableOutFormValues,
-  dicatatOleh: string
+  dicatatOleh: string,
+  token: string
 ): Promise<void> {
-  const tanggal = new Date().toISOString();
+  const payload = {
+    peminta_id: values.pemintaId,
+    pekerjaan_area: values.areaKerja,
+    keterangan: values.keterangan || "",
+    dicatat_oleh: dicatatOleh,
+  };
 
-  // Menggunakan Promise.all agar semua request dieksekusi secara paralel (jauh lebih cepat)
-  const submitPromises = cartItems.map((item) => {
-    const payload: CreateConsumableKeluarPayload = {
-      tanggal,
-      consumable_id: item.consumable_id,
-      peminta_id: values.pemintaId,
-      jumlah_keluar: item.jumlah,
-      pekerjaan_area: values.areaKerja,
-      keterangan: values.keterangan,
-      dicatat_oleh: dicatatOleh,
-    };
-
-    return apiFetch("/consumable-keluar", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
+  await apiFetch("/consumable-keluar/proses", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
   });
-
-  await Promise.all(submitPromises);
 }
