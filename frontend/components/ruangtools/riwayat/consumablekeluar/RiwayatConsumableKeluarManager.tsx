@@ -1,6 +1,17 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { Row, Col, Card, CardBody, Alert, Spinner } from "react-bootstrap";
+import {
+  Row,
+  Col,
+  Card,
+  CardBody,
+  Alert,
+  Spinner,
+  InputGroup,
+  Form,
+  Button,
+} from "react-bootstrap";
+import { IconHistory, IconSearch, IconX } from "@tabler/icons-react";
 
 import {
   RiwayatConsumableKeluarType,
@@ -61,6 +72,9 @@ const RiwayatConsumableKeluarManager = () => {
   const [bulanFilter, setBulanFilter] = useState(0);
   const [tahunFilter, setTahunFilter] = useState(0);
 
+  // ---- Pencarian (murni UI, tidak menyentuh API/data) ----
+  const [searchTerm, setSearchTerm] = useState("");
+
   const parseTanggal = (str: string) => {
     const bulanMap: Record<string, number> = {
       Jan: 0, Feb: 1, Mar: 2, Apr: 3, Mei: 4, Jun: 5,
@@ -84,15 +98,28 @@ const RiwayatConsumableKeluarManager = () => {
   }, [riwayatList]);
 
   const filteredList = useMemo(() => {
+    const keyword = searchTerm.trim().toLowerCase();
     return riwayatList.filter((r) => {
-      if (bulanFilter === 0 && tahunFilter === 0) return true;
-      const tanggal = parseTanggal(r.tanggal_pengambilan);
-      if (!tanggal) return true;
-      if (bulanFilter !== 0 && tanggal.getMonth() + 1 !== bulanFilter) return false;
-      if (tahunFilter !== 0 && tanggal.getFullYear() !== tahunFilter) return false;
+      // filter periode (bulan/tahun)
+      if (bulanFilter !== 0 || tahunFilter !== 0) {
+        const tanggal = parseTanggal(r.tanggal_pengambilan);
+        if (tanggal) {
+          if (bulanFilter !== 0 && tanggal.getMonth() + 1 !== bulanFilter) return false;
+          if (tahunFilter !== 0 && tanggal.getFullYear() !== tahunFilter) return false;
+        }
+      }
+      // filter pencarian
+      if (keyword !== "") {
+        const cocok =
+          r.nomor_transaksi.toLowerCase().includes(keyword) ||
+          r.kode_barang.toLowerCase().includes(keyword) ||
+          r.nama_barang.toLowerCase().includes(keyword) ||
+          r.nama_peminta.toLowerCase().includes(keyword);
+        if (!cocok) return false;
+      }
       return true;
     });
-  }, [riwayatList, bulanFilter, tahunFilter]);
+  }, [riwayatList, bulanFilter, tahunFilter, searchTerm]);
 
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -142,7 +169,8 @@ const RiwayatConsumableKeluarManager = () => {
 });
   
   return (
-    <>
+    <div className="riwayat-page">
+      {/* ---- Page Header ---- */}
       <Row>
         <Col>
           <Flex justifyContent="between" alignItems="center" className="mb-4 w-100" breakpoint="md">
@@ -158,9 +186,41 @@ const RiwayatConsumableKeluarManager = () => {
       </Row>
 
       <Card className="card-lg mb-6">
-        <CardBody>
-          {error && <Alert variant="danger">{error}</Alert>}
+        {/* ---- Toolbar: Search + Info (baris 1) & Filter + Export (baris 2) ---- */}
+        <div className="riwayat-toolbar border-bottom">
+          {/* Baris 1: Search (kiri) + Info jumlah data (kanan) */}
+          <div className="riwayat-toolbar-row">
+            <InputGroup className="riwayat-search">
+              <InputGroup.Text>
+                <IconSearch size={18} />
+              </InputGroup.Text>
+              <Form.Control
+                type="search"
+                placeholder="kode barang, nama barang, atau peminta..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                aria-label="Cari riwayat consumable keluar"
+              />
+              {searchTerm && (
+                <Button
+                  variant="link"
+                  className="riwayat-search-clear"
+                  onClick={() => setSearchTerm("")}
+                  aria-label="Bersihkan pencarian"
+                >
+                  <IconX size={16} />
+                </Button>
+              )}
+            </InputGroup>
 
+            <span className="riwayat-info text-secondary small">
+              Menampilkan{" "}
+              <span className="fw-semibold text-body">{filteredList.length}</span>{" "}
+              dari {riwayatList.length} data
+            </span>
+          </div>
+
+          {/* Baris 2: Filter Bulan/Tahun (kiri) + Export PDF/Excel (kanan) */}
           <RiwayatFilterBar
             bulanFilter={bulanFilter}
             onBulanFilterChange={setBulanFilter}
@@ -170,20 +230,44 @@ const RiwayatConsumableKeluarManager = () => {
             onExportPDF={handleExportPDF}
             onExportExcel={handleExportExcel}
           />
+        </div>
+
+        <CardBody>
+          {error && <Alert variant="danger">{error}</Alert>}
 
           {loading ? (
             <div className="text-center py-6">
               <Spinner animation="border" size="sm" className="me-2" />
               Memuat data...
             </div>
+          ) : riwayatList.length === 0 ? (
+            /* Empty state: belum ada riwayat sama sekali */
+            <div className="riwayat-empty text-center py-6">
+              <div className="riwayat-empty-icon mb-3">
+                <IconHistory size={32} />
+              </div>
+              <h5 className="mb-1">Belum ada riwayat pengambilan</h5>
+              <p className="text-secondary mb-0">
+                Transaksi pengambilan consumable akan muncul di sini.
+              </p>
+            </div>
+          ) : filteredList.length === 0 ? (
+            /* Empty state: hasil pencarian / filter kosong */
+            <div className="riwayat-empty text-center py-6">
+              <div className="riwayat-empty-icon mb-3">
+                <IconHistory size={32} />
+              </div>
+              <h5 className="mb-1">Tidak ada data yang cocok</h5>
+              <p className="text-secondary mb-0">
+                Coba ubah kata kunci pencarian atau filter bulan/tahun.
+              </p>
+            </div>
           ) : (
             <TanstackTable
               data={filteredList}
               columns={columns}
-              filter
               pagination
               isSortable
-              filterPlaceholder="Cari nomor transaksi / nama barang..."
             />
           )}
         </CardBody>
@@ -205,7 +289,7 @@ const RiwayatConsumableKeluarManager = () => {
         title={`Keterangan — ${activeItem?.nama_barang ?? ""}`}
         keterangan={activeItem?.keterangan ?? ""}
       />
-    </>
+    </div>
   );
 };
 

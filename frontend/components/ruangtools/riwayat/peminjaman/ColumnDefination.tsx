@@ -1,7 +1,7 @@
 "use client";
 // import node module libraries
 import { ColumnDef } from "@tanstack/react-table";
-import { Dropdown } from "react-bootstrap";
+import { Dropdown, Badge } from "react-bootstrap";
 import { IconDotsVertical } from "@tabler/icons-react";
 
 // import custom types
@@ -53,7 +53,11 @@ export const getRiwayatPeminjamanColumns = ({
     accessorKey: "jumlah",
     header: "Jumlah",
     cell: ({ row }) => (
-      <span className="text-center d-block">{row.original.jumlah}</span>
+      <span className="d-flex justify-content-center">
+        <Badge bg="primary-subtle" text="primary-emphasis" className="fw-semibold">
+          {row.original.jumlah}
+        </Badge>
+      </span>
     ),
   },
   {

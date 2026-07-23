@@ -2,6 +2,7 @@
 // import node module libraries
 import { useEffect, useState } from "react";
 import { Modal, Form, Row, Col, Button, Alert } from "react-bootstrap";
+import { IconTruckDelivery, IconPencil, IconPlus } from "@tabler/icons-react";
 
 // import custom types
 import {
@@ -96,16 +97,34 @@ const ConsumableMasukFormModal = ({
   };
 
   return (
-    <Modal show={show} onHide={onClose} centered size="lg">
+    <Modal show={show} onHide={onClose} centered size="lg" className="consumablemasuk-modal">
       <Form onSubmit={handleSubmit}>
         <Modal.Header closeButton>
-          <Modal.Title as="h5">
+          <Modal.Title as="h5" className="d-flex align-items-center gap-2">
+            <span className="consumablemasuk-title-icon">
+              {isEditMode ? <IconPencil size={20} /> : <IconTruckDelivery size={20} />}
+            </span>
             {isEditMode ? "Edit Consumable Masuk" : "Tambah Consumable Masuk"}
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {error && <Alert variant="danger">{error}</Alert>}
-          <Row className="g-3">
+
+          {isEditMode && (
+            <div className="consumablemasuk-hero mb-4">
+              <div className="text-secondary small">Sedang mengubah catatan</div>
+              <div className="fw-semibold">
+                {initialData?.nama}{" "}
+                <span className="text-secondary">({initialData?.kode_barang})</span>
+              </div>
+            </div>
+          )}
+
+          <div className="consumablemasuk-section">
+            <div className="text-secondary small text-uppercase fw-semibold mb-3">
+              Informasi Barang Masuk
+            </div>
+            <Row className="g-3">
             <Col md={6}>
               <Form.Label>Tanggal</Form.Label>
               {isEditMode ? (
@@ -231,7 +250,8 @@ const ConsumableMasukFormModal = ({
                 }
               />
             </Col>
-          </Row>
+            </Row>
+          </div>
         </Modal.Body>
         <Modal.Footer>
           <Button variant="outline-secondary" onClick={onClose}>
@@ -241,7 +261,9 @@ const ConsumableMasukFormModal = ({
             variant="primary"
             type="submit"
             disabled={!form.consumable_id || form.jumlah_masuk <= 0}
+            className="d-inline-flex align-items-center gap-2"
           >
+            {isEditMode ? <IconPencil size={18} /> : <IconPlus size={18} />}
             {isEditMode ? "Simpan Perubahan" : "Tambah Data"}
           </Button>
         </Modal.Footer>

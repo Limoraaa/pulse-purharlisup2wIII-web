@@ -1,7 +1,24 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { Row, Col, Card, CardBody, Button, Alert, Spinner } from "react-bootstrap";
-import { IconPlus, IconCircleCheck } from "@tabler/icons-react";
+import {
+  Row,
+  Col,
+  Card,
+  CardBody,
+  Button,
+  Alert,
+  Spinner,
+  InputGroup,
+  Form,
+} from "react-bootstrap";
+import {
+  IconPlus,
+  IconCircleCheck,
+  IconSearch,
+  IconX,
+  IconTruckDelivery,
+  IconMoodEmpty,
+} from "@tabler/icons-react";
 
 
 import {
@@ -39,6 +56,22 @@ const ConsumableMasukManager = () => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [activeItem, setActiveItem] = useState<ConsumableMasukType | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // ---- Toolbar: pencarian (murni UI, tidak menyentuh API/data) ----
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Data turunan untuk tampilan; sumber data (masukList) tidak diubah.
+  const filteredMasukList = useMemo(() => {
+    const keyword = searchTerm.trim().toLowerCase();
+    if (keyword === "") return masukList;
+    return masukList.filter(
+      (item) =>
+        item.kode_barang.toLowerCase().includes(keyword) ||
+        item.nama.toLowerCase().includes(keyword) ||
+        item.merk.toLowerCase().includes(keyword) ||
+        item.tipe.toLowerCase().includes(keyword)
+    );
+  }, [masukList, searchTerm]);
 
   const loadConsumables = async () => {
     setLoadingConsumables(true);
@@ -151,7 +184,7 @@ const ConsumableMasukManager = () => {
   );
 
   return (
-    <>
+    <div className="consumablemasuk-page">
       {successMessage && (
         <Alert
           variant="success"
@@ -169,6 +202,7 @@ const ConsumableMasukManager = () => {
         </Alert>
       )}
 
+      {/* ---- Page Header ---- */}
       <Row>
         <Col>
           <Flex
@@ -200,6 +234,43 @@ const ConsumableMasukManager = () => {
       </Row>
 
       <Card className="card-lg mb-6">
+        {/* ---- Toolbar: Search ---- */}
+        <div className="consumablemasuk-toolbar border-bottom">
+          <Row className="g-2 align-items-center">
+            <Col lg={6} md={7}>
+              <InputGroup className="consumablemasuk-search">
+                <InputGroup.Text>
+                  <IconSearch size={18} />
+                </InputGroup.Text>
+                <Form.Control
+                  type="search"
+                  placeholder="Cari kode, nama, merk, atau tipe..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  aria-label="Cari consumable masuk"
+                />
+                {searchTerm && (
+                  <Button
+                    variant="link"
+                    className="consumablemasuk-search-clear"
+                    onClick={() => setSearchTerm("")}
+                    aria-label="Bersihkan pencarian"
+                  >
+                    <IconX size={16} />
+                  </Button>
+                )}
+              </InputGroup>
+            </Col>
+            <Col lg={6} md={5} className="text-md-end">
+              <span className="text-secondary small">
+                Menampilkan{" "}
+                <span className="fw-semibold text-body">{filteredMasukList.length}</span>{" "}
+                dari {masukList.length} data
+              </span>
+            </Col>
+          </Row>
+        </div>
+
         <CardBody>
           {loadingList ? (
             <div className="text-center py-6">
@@ -207,17 +278,50 @@ const ConsumableMasukManager = () => {
               Memuat data...
             </div>
           ) : masukList.length === 0 ? (
-            <p className="text-secondary text-center py-6 mb-0">
-              Belum ada catatan barang masuk. Klik &quot;Tambah&quot; untuk mulai mencatat.
-            </p>
+            /* Empty state: belum ada catatan */
+            <div className="consumablemasuk-empty text-center py-6">
+              <div className="consumablemasuk-empty-icon mb-3">
+                <IconTruckDelivery size={32} />
+              </div>
+              <h5 className="mb-1">Belum ada catatan barang masuk</h5>
+              <p className="text-secondary mb-4">
+                Mulai mencatat penambahan stok consumable dengan menekan tombol Tambah.
+              </p>
+              <Button
+                variant="primary"
+                className="d-inline-flex align-items-center gap-2"
+                onClick={openAddModal}
+                disabled={loadingConsumables}
+              >
+                <IconPlus size={18} />
+                Tambah
+              </Button>
+            </div>
+          ) : filteredMasukList.length === 0 ? (
+            /* Empty state: hasil pencarian kosong */
+            <div className="consumablemasuk-empty text-center py-6">
+              <div className="consumablemasuk-empty-icon mb-3">
+                <IconMoodEmpty size={32} />
+              </div>
+              <h5 className="mb-1">Tidak ada hasil</h5>
+              <p className="text-secondary mb-4">
+                Tidak ditemukan data yang cocok dengan pencarian.
+              </p>
+              <Button
+                variant="outline-secondary"
+                className="d-inline-flex align-items-center gap-2"
+                onClick={() => setSearchTerm("")}
+              >
+                <IconX size={18} />
+                Reset Pencarian
+              </Button>
+            </div>
           ) : (
             <TanstackTable
-              data={masukList}
+              data={filteredMasukList}
               columns={columns}
-              filter
               pagination
               isSortable
-              filterPlaceholder="Cari kode / nama barang..."
             />
           )}
         </CardBody>
@@ -251,7 +355,7 @@ const ConsumableMasukManager = () => {
           <span className="small text-secondary">Memuat data consumable...</span>
         </div>
       )}
-    </>
+    </div>
   );
 };
 
