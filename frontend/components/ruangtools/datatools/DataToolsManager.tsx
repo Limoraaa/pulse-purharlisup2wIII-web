@@ -115,7 +115,6 @@ const DataToolsManager = () => {
   useEffect(() => {
     if (dbCart && Array.isArray(dbCart)) {
       const groupedCart = dbCart.reduce((acc: any[], item: any) => {
-        // Pastikan item.id adalah primary key baris di temporary_cart
         const cartRecordId = item.id; 
         const toolIdVal = item.tools_id;
 
@@ -125,7 +124,7 @@ const DataToolsManager = () => {
           existingItem.jumlah += item.qty ?? 1;
         } else {
           acc.push({
-            cartId: cartRecordId, // <-- Pastikan ini diteruskan ke CartOffcanvas
+            cartId: cartRecordId,
             toolId: toolIdVal,
             namaBarang: item.nama_barang || "Nama Alat Tidak Ditemukan",
             kodeBarang: item.kode_barang || "-",
@@ -268,9 +267,9 @@ const DataToolsManager = () => {
         throw new Error("Sesi login tidak ditemukan. Silakan login ulang.");
       }
 
-      // PERBAIKI DI SINI: Ubah values.pemintaId menjadi values.peminjamId
+      // Mengirimkan ID pekerja (yang sekarang bersumber dari nomor kartu RFID langsung)
       await prosesPeminjamanApi({
-        pemintaId: values.peminjamId, // <-- Disesuaikan dengan tipe LoanFormValues
+        pemintaId: values.peminjamId, 
         dicatatOleh: dicatatOleh,
         areaKerja: values.areaKerja,
         spesifikasi: values.spesifikasi,
@@ -293,7 +292,6 @@ const DataToolsManager = () => {
     }
   };
 
-  // Di dalam map columns atau definition kolom DataTools Anda
   const columns = useMemo(
     () =>
       getDataToolsColumns({
@@ -301,11 +299,10 @@ const DataToolsManager = () => {
         onEdit: openEditModal,
         onDelete: openDeleteModal,
         onAddToCart: handleAddToCart,
-        cartItems: cart, // <-- Kirim seluruh data cart, bukan cuma ID-nya saja
+        cartItems: cart,
       }),
-    [cart] // SWR / cart update akan otomatis me-re-render kolom tabel
+    [cart]
   );
-
 
   return (
     <div className="datatools-page">

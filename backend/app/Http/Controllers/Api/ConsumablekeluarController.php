@@ -58,7 +58,6 @@ class ConsumableKeluarController extends Controller
         $isTool = (bool) $tool;
         $column = $isTool ? 'tools_id' : 'consumable_id';
 
-        // PERBAIKAN 1: Hapus where user_id agar barang yang di-scan dari device manapun langsung tergabung
         $existing = DB::table('temporary_cart')
             ->where($column, $itemId)
             ->first();
@@ -88,7 +87,7 @@ class ConsumableKeluarController extends Controller
             } else {
                 DB::table('temporary_cart')->insert([
                     'id'         => (string) Str::uuid(),
-                    'user_id'    => $userId, // Tetap simpan siapa yang scan pertama kali
+                    'user_id'    => $userId,
                     $column      => $itemId,
                     'qty'        => $jumlah,
                     'created_at' => now(),
@@ -147,7 +146,6 @@ class ConsumableKeluarController extends Controller
 
         $request->validate(['qty' => 'required|integer|min:1']);
 
-        // PERBAIKAN 2: Hapus pencarian berdasarkan user_id, cukup berdasarkan ID row cart
         $cart = DB::table('temporary_cart')
             ->where('id', $id)
             ->whereNotNull('consumable_id')
@@ -171,17 +169,13 @@ class ConsumableKeluarController extends Controller
         return response()->json(['message' => 'Jumlah diperbarui']);
     }
 
-    // DELETE /api/consumable-keluar/cart/{id} atau antrean/{id}
-    // DELETE /api/consumable-keluar/cart/{id} atau antrean/{id}
     public function hapusAntrean($id)
     {
-        // 1. Coba hapus berdasarkan ID baris cart terlebih dahulu
         $affected = DB::table('temporary_cart')
             ->where('id', $id)
             ->whereNotNull('consumable_id')
             ->delete();
 
-        // 2. Jika tidak ditemukan, coba hapus berdasarkan consumable_id
         if (!$affected) {
             $affected = DB::table('temporary_cart')
                 ->where('consumable_id', $id)
@@ -205,7 +199,8 @@ class ConsumableKeluarController extends Controller
     public function prosesCartConsumable(Request $request)
     {
         $request->validate([
-            'peminta_id'     => 'required|uuid|exists:peminta,id',
+            // Diubah dari 'uuid' menjadi 'string' agar menerima ID RFID murni
+            'peminta_id'     => 'required|string|exists:peminta,id',
             'dicatat_oleh'   => 'required|uuid|exists:users,id',
             'pekerjaan_area' => 'nullable|string|max:255',
             'keterangan'     => 'nullable|string',
@@ -273,8 +268,6 @@ class ConsumableKeluarController extends Controller
         return response()->json(['message' => 'Pengeluaran bahan berhasil diproses!'], 200);
     }
 
-    // ... (Fungsi show, store, update, destroy di bawah ini tidak ada perubahan) ...
-
     public function show(string $id)
     {
         $data = ConsumableKeluar::with(['consumable', 'peminta', 'dicatatOleh'])->find($id);
@@ -287,7 +280,8 @@ class ConsumableKeluarController extends Controller
         $validator = Validator::make($request->all(), [
             'tanggal'        => 'required|date',
             'consumable_id'  => 'required|uuid|exists:consumables,id',
-            'peminta_id'     => 'required|uuid|exists:peminta,id',
+            // Diubah dari 'uuid' menjadi 'string'
+            'peminta_id'     => 'required|string|exists:peminta,id',
             'jumlah_keluar'  => 'required|integer|min:1',
             'pekerjaan_area' => 'nullable|string|max:255',
             'keterangan'     => 'nullable|string',

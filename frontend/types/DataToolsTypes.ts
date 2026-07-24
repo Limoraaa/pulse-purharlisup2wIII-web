@@ -34,6 +34,7 @@ export interface PeminjamType {
   id: string;
   nama: string;
   divisi: string;
+  rfid_uid?: string | null; // <--- Tambahkan baris ini
   aktif: boolean;
 }
 

@@ -46,8 +46,6 @@ class PeminjamanController extends Controller
         $isTool = (bool) $tool;
         $column = $isTool ? 'tools_id' : 'consumable_id';
 
-        // PERBAIKAN: Hapus ->where('user_id', $userId) agar barang otomatis digabung
-        // terlepas dari apakah di-scan lewat HP atau ditambah manual lewat Web.
         $existing = DB::table('temporary_cart')
             ->where($column, $itemId)
             ->first();
@@ -77,7 +75,7 @@ class PeminjamanController extends Controller
             } else {
                 DB::table('temporary_cart')->insert([
                     'id'         => (string) Str::uuid(),
-                    'user_id'    => $userId, // Tetap catat ID pencatat pertama
+                    'user_id'    => $userId,
                     $column      => $itemId,
                     'qty'        => $jumlah,
                     'created_at' => now(),
@@ -95,7 +93,6 @@ class PeminjamanController extends Controller
     // GET /api/peminjaman/antrean
     public function antrean(Request $request)
     {
-        // PERBAIKAN: Langsung ambil semua antrean tools agar sinkron antara HP dan Web
         $cartItems = DB::table('temporary_cart')
             ->whereNotNull('tools_id')
             ->get();
@@ -148,7 +145,6 @@ class PeminjamanController extends Controller
     // DELETE /api/peminjaman/cart/{id}
     public function removeCartItem($id)
     {
-        // Hapus berdasarkan ID cart ATAU tools_id agar aman dihapus dari mana saja
         $affected = DB::table('temporary_cart')
             ->where('id', $id)
             ->whereNotNull('tools_id')
@@ -169,7 +165,8 @@ class PeminjamanController extends Controller
     public function prosesPeminjaman(Request $request)
     {
         $request->validate([
-            'peminta_id' => 'required|uuid|exists:peminta,id',
+            // Diubah dari 'uuid' menjadi 'string' agar menerima ID RFID murni
+            'peminta_id' => 'required|string|exists:peminta,id',
             'dicatat_oleh' => 'required|uuid|exists:users,id',
         ]);
 
@@ -199,7 +196,7 @@ class PeminjamanController extends Controller
                     'peminta_id'   => $request->peminta_id,
                     'dicatat_oleh' => $request->dicatat_oleh,
                     'tanggal'      => now(),
-                    'jumlah'       => $item->qty, // Qty sudah digabung secara otomatis
+                    'jumlah'       => $item->qty,
                 ]);
             }
 
@@ -227,7 +224,8 @@ class PeminjamanController extends Controller
         $validator = Validator::make($request->all(), [
             'tanggal' => 'required|date',
             'tool_id' => 'required|uuid|exists:tools,id',
-            'peminta_id' => 'required|uuid|exists:peminta,id',
+            // Diubah dari 'uuid' menjadi 'string'
+            'peminta_id' => 'required|string|exists:peminta,id',
             'jumlah' => 'required|integer|min:1',
             'area_pekerjaan' => 'nullable|string|max:255',
             'spesifikasi' => 'nullable|string',
