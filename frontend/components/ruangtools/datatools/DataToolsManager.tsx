@@ -1,5 +1,6 @@
 "use client";
 // import node module libraries
+import { AntreanItemResponse } from "services/peminjamanService";
 import { useEffect, useMemo, useState } from "react";
 import {
   Row,
@@ -21,7 +22,7 @@ import {
   IconMoodEmpty,
 } from "@tabler/icons-react";
 import { v4 as uuid } from "uuid";
-import useSWR, { mutate } from "swr"; 
+import useSWR, { useSWRConfig } from "swr";
 
 // Import service layer
 import {
@@ -79,6 +80,7 @@ const generateNextKodeBarang = (tools: ToolItemType[]): string => {
 
 const DataToolsManager = () => {
   const dispatch = useAppDispatch();
+  const { mutate } = useSWRConfig();
 
   // Data tools dari Redux store
   const tools = useAppSelector((state) => state.inventoryTools.tools);
@@ -114,27 +116,26 @@ const DataToolsManager = () => {
   // Sinkronisasi data dari Database ke State Frontend
   useEffect(() => {
     if (dbCart && Array.isArray(dbCart)) {
-      const groupedCart = dbCart.reduce((acc: any[], item: any) => {
-        // Pastikan item.id adalah primary key baris di temporary_cart
-        const cartRecordId = item.id; 
-        const toolIdVal = item.tools_id;
+      const groupedCart = dbCart.reduce((acc: CartItemType[], item: AntreanItemResponse) => {
+      const cartRecordId = item.id;
+      const toolIdVal = item.tools_id;
 
-        const existingItem = acc.find((c) => c.toolId === toolIdVal);
+      const existingItem = acc.find((c) => c.toolId === toolIdVal);
 
-        if (existingItem) {
-          existingItem.jumlah += item.qty ?? 1;
-        } else {
-          acc.push({
-            cartId: cartRecordId, // <-- Pastikan ini diteruskan ke CartOffcanvas
-            toolId: toolIdVal,
-            namaBarang: item.nama_barang || "Nama Alat Tidak Ditemukan",
-            kodeBarang: item.kode_barang || "-",
-            jumlah: item.qty ?? 1,
-            maxJumlah: item.max_jumlah ?? 99, 
-          });
-        }
-        return acc;
-      }, []);
+      if (existingItem) {
+        existingItem.jumlah += item.qty ?? 1;
+      } else {
+        acc.push({
+          cartId: cartRecordId,
+          toolId: toolIdVal,
+          namaBarang: item.nama_barang || "Nama Alat Tidak Ditemukan",
+          kodeBarang: item.kode_barang || "-",
+          jumlah: item.qty ?? 1,
+          maxJumlah: item.max_jumlah ?? 99,
+        });
+      }
+      return acc;
+    }, []);
 
       setCart(groupedCart);
     }
