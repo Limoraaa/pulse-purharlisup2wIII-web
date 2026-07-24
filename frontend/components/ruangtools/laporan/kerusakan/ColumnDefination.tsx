@@ -52,9 +52,11 @@ export const getLaporanKerusakanColumns = ({
     accessorKey: "jumlah_rusak",
     header: "Jumlah Rusak",
     cell: ({ row }) => (
-      <Badge bg="danger-subtle" text="danger-emphasis">
-        {row.original.jumlah_rusak}
-      </Badge>
+      <span className="d-flex justify-content-center">
+        <Badge bg="danger-subtle" text="danger-emphasis" className="fw-semibold">
+          {row.original.jumlah_rusak}
+        </Badge>
+      </span>
     ),
   },
   {

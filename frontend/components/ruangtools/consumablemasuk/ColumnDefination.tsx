@@ -1,7 +1,7 @@
 "use client";
 // import node module libraries
 import { ColumnDef } from "@tanstack/react-table";
-import { Dropdown } from "react-bootstrap";
+import { Dropdown, Badge } from "react-bootstrap";
 import { IconDotsVertical } from "@tabler/icons-react";
 
 // import custom types
@@ -73,8 +73,10 @@ export const getConsumableMasukColumns = ({
     accessorKey: "jumlah_masuk",
     header: "Jumlah Masuk",
     cell: ({ row }) => (
-      <span className="text-center d-block fw-bold text-success">
-        +{row.original.jumlah_masuk}
+      <span className="d-flex justify-content-center">
+        <Badge bg="success-subtle" text="success-emphasis" className="fw-semibold">
+          +{row.original.jumlah_masuk}
+        </Badge>
       </span>
     ),
   },
