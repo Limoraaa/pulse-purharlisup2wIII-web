@@ -14,9 +14,7 @@ const AuthLayout = ({ children }: { children: React.ReactNode }) => {
       <section>
         <Container>{children}</Container>
       </section>
-      <div className='custom-container'>
-        <span className='me-1'>© All rights reserved by <a href="https://codescandy.com/" target="_blank">Codescandy</a>. Distributed by <a href="https://themewagon.com/" target="_blank">ThemeWagon</a>.</span>
-      </div>
+      
     </Flex>
   );
 };
