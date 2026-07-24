@@ -1,5 +1,6 @@
 "use client";
 // import node module libraries
+import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
 import { AntreanItemResponse } from "services/peminjamanService";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -77,6 +78,18 @@ const generateNextKodeBarang = (tools: ToolItemType[]): string => {
   const nextNumber = maxNumber + 1;
   return `I-${String(nextNumber).padStart(3, "0")}`;
 };
+  const EXPORT_COLUMNS: ExportColumn[] = [
+    { header: "Kode Barang", key: "kodeBarang" },
+    { header: "Nama Barang", key: "namaBarang" },
+    { header: "Merk", key: "merk" },
+    { header: "Tipe", key: "tipe" },
+    { header: "Warna", key: "warna" },
+    { header: "Ukuran", key: "ukuran" },
+    { header: "Kondisi", key: "kondisi" },
+    { header: "Stok", key: "stok" },
+    { header: "Dipinjam", key: "dipinjam" },
+    { header: "Tersedia", key: "tersedia" },
+  ];
 
 const DataToolsManager = () => {
   const dispatch = useAppDispatch();
@@ -185,13 +198,30 @@ const DataToolsManager = () => {
       const message = err instanceof Error ? err.message : "Gagal menyimpan data";
       alert(message);
     }
-  };
+  }; 
+
+
 
   const openDetailModal = (tool: ToolItemType) => {
     setActiveTool(tool);
     setDetailModalOpen(true);
   };
 
+    const handleExportPDF = () => {
+      const dataWithTersedia = filteredTools.map((t) => ({
+        ...t,
+        tersedia: t.stok - t.dipinjam,
+      }));
+      exportToPDF(dataWithTersedia as unknown as Record<string, unknown>[], EXPORT_COLUMNS, "data-tools", "Data Tools");
+    };
+
+    const handleExportExcel = () => {
+      const dataWithTersedia = filteredTools.map((t) => ({
+        ...t,
+        tersedia: t.stok - t.dipinjam,
+      }));
+      exportToExcel(dataWithTersedia as unknown as Record<string, unknown>[], EXPORT_COLUMNS, "data-tools");
+  };
   const openDeleteModal = (tool: ToolItemType) => {
     setActiveTool(tool);
     setDeleteModalOpen(true);
@@ -346,31 +376,39 @@ const DataToolsManager = () => {
 
       <Card className="card-lg mb-6">
         {/* ---- Toolbar: Search ---- */}
-        <div className="datatools-toolbar border-bottom">
-          <Row className="g-2 align-items-center">
-            <Col lg={6} md={7}>
-              <InputGroup className="datatools-search">
-                <InputGroup.Text><IconSearch size={18} /></InputGroup.Text>
-                <Form.Control
-                  type="search"
-                  placeholder="Cari kode, nama, merk, atau tipe..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-                {searchTerm && (
-                  <Button variant="link" className="datatools-search-clear" onClick={() => setSearchTerm("")}>
-                    <IconX size={16} />
-                  </Button>
-                )}
-              </InputGroup>
-            </Col>
-            <Col lg={6} md={5} className="text-md-end">
-              <span className="text-secondary small">
-                Menampilkan <span className="fw-semibold text-body">{filteredTools.length}</span> dari {tools.length} data
-              </span>
-            </Col>
-          </Row>
-        </div>
+      <div className="datatools-toolbar border-bottom">
+        <Row className="g-2 align-items-center">
+          <Col lg={5} md={6}>
+            <InputGroup className="datatools-search">
+              <InputGroup.Text><IconSearch size={18} /></InputGroup.Text>
+              <Form.Control
+                type="search"
+                placeholder="Cari kode, nama, merk, atau tipe..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              {searchTerm && (
+                <Button variant="link" className="datatools-search-clear" onClick={() => setSearchTerm("")}>
+                  <IconX size={16} />
+                </Button>
+              )}
+            </InputGroup>
+          </Col>
+          <Col lg={4} md={3} className="text-md-end">
+            <span className="text-secondary small">
+              Menampilkan <span className="fw-semibold text-body">{filteredTools.length}</span> dari {tools.length} data
+            </span>
+          </Col>
+          <Col lg={3} md={3} className="d-flex justify-content-md-end gap-2">
+            <Button variant="outline-danger" size="sm" onClick={handleExportPDF}>
+              Export PDF
+            </Button>
+            <Button variant="outline-success" size="sm" onClick={handleExportExcel}>
+              Export Excel
+            </Button>
+          </Col>
+        </Row>
+      </div>
 
         <CardBody>
           {toolsError && <Alert variant="danger">{toolsError}</Alert>}

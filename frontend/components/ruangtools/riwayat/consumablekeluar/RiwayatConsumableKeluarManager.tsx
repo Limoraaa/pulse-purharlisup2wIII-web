@@ -133,20 +133,7 @@ const RiwayatConsumableKeluarManager = () => {
     setDetailModalOpen(true);
   };
 
-  const openEditModal = (item: RiwayatConsumableKeluarType) => {
-    setActiveItem(item);
-    setEditModalOpen(true);
-  };
 
-  const openKeteranganModal = (item: RiwayatConsumableKeluarType) => {
-    setActiveItem(item);
-    setKeteranganModalOpen(true);
-  };
-
-  // Catatan: masih mengubah state lokal saja (belum PUT ke API).
-  // Backend ConsumableKeluarController::update() hanya izinkan ubah
-  // tanggal & pekerjaan_area, belum jumlah_keluar (butuh recalculation stok
-  // seperti yang sudah diterapkan di ConsumableMasukController).
   const handleEditSubmit = (values: RiwayatConsumableKeluarFormValues) => {
     if (activeItem) {
       setRiwayatList((prev) =>
@@ -163,9 +150,7 @@ const RiwayatConsumableKeluarManager = () => {
     exportToExcel(filteredList, EXPORT_COLUMNS, "riwayat-consumable-keluar");
 
   const columns = getRiwayatConsumableKeluarColumns({
-  onEdit: openEditModal,
   onDetail: openDetailModal,
-  onLihatKeterangan: openKeteranganModal,
 });
   
   return (
