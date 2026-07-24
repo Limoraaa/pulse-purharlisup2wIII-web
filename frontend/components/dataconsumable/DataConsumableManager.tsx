@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
 import {
   Row,
   Col,
@@ -60,6 +61,16 @@ function sortByKode(items: ConsumableItemType[]): ConsumableItemType[] {
     a.kode_barang.localeCompare(b.kode_barang, undefined, { numeric: true })
   );
 }
+
+const EXPORT_COLUMNS: ExportColumn[] = [
+  { header: "Kode Barang", key: "kode_barang" },
+  { header: "Nama Consumable", key: "nama" },
+  { header: "Merk", key: "merk" },
+  { header: "Tipe", key: "tipe" },
+  { header: "ER/E", key: "er_e" },
+  { header: "Ukuran", key: "ukuran" },
+  { header: "Stok Tersedia", key: "stok_awal" },
+];
 
 const DataConsumableManager = () => {
   const [consumables, setConsumables] = useState<ConsumableItemType[]>([]);
@@ -193,6 +204,11 @@ const DataConsumableManager = () => {
     setDeleteModalOpen(true);
   };
 
+  const handleExportPDF = () =>
+  exportToPDF(filteredConsumables as unknown as Record<string, unknown>[], EXPORT_COLUMNS, "data-consumable", "Data Consumable");
+const handleExportExcel = () =>
+  exportToExcel(filteredConsumables as unknown as Record<string, unknown>[], EXPORT_COLUMNS, "data-consumable");
+
   const handleFormSubmit = async (values: ConsumableFormValues) => {
     setFormError(null);
     try {
@@ -212,6 +228,7 @@ const DataConsumableManager = () => {
       setFormError(message);
     }
   };
+  
 
   const handleConfirmDelete = async () => {
     if (!activeItem) return;
@@ -420,7 +437,7 @@ const DataConsumableManager = () => {
       <Card className="card-lg mb-6">
         <div className="datatools-toolbar border-bottom">
           <Row className="g-2 align-items-center">
-            <Col lg={6} md={7}>
+            <Col lg={5} md={6}>
               <InputGroup className="datatools-search">
                 <InputGroup.Text><IconSearch size={18} /></InputGroup.Text>
                 <Form.Control
@@ -436,10 +453,18 @@ const DataConsumableManager = () => {
                 )}
               </InputGroup>
             </Col>
-            <Col lg={6} md={5} className="text-md-end">
+            <Col lg={4} md={3} className="text-md-end">
               <span className="text-secondary small">
                 Menampilkan <span className="fw-semibold text-body">{filteredConsumables.length}</span> dari {consumables.length} data
               </span>
+            </Col>
+            <Col lg={3} md={3} className="d-flex justify-content-md-end gap-2">
+              <Button variant="outline-danger" size="sm" onClick={handleExportPDF}>
+                Export PDF
+              </Button>
+              <Button variant="outline-success" size="sm" onClick={handleExportExcel}>
+                Export Excel
+              </Button>
             </Col>
           </Row>
         </div>
