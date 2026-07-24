@@ -998,3 +998,678 @@
     background-color: var(--#{$prefix}gray-100);
   }
 }
+
+// ============================================================
+// Peminjaman Aktif - scoped (UI only, tidak berdampak ke halaman lain)
+// Pola sama dengan halaman data lain.
+// ============================================================
+.peminjamanaktif-page {
+  // ---- Toolbar: search ----
+  .peminjamanaktif-toolbar {
+    padding: 1rem 1.25rem;
+
+    .form-control {
+      height: 44px;
+    }
+  }
+
+  // Search dengan ikon di depan
+  .peminjamanaktif-search {
+    .input-group-text {
+      background-color: var(--#{$prefix}body-bg);
+      border-right: 0;
+      color: var(--#{$prefix}gray-600);
+    }
+
+    .form-control {
+      border-left: 0;
+      padding-left: 0;
+
+      &:focus {
+        box-shadow: none;
+        border-color: var(--#{$prefix}border-color);
+      }
+
+      &::-webkit-search-cancel-button {
+        display: none;
+      }
+    }
+
+    &:focus-within {
+      .input-group-text,
+      .form-control {
+        border-color: var(--#{$prefix}primary);
+      }
+    }
+
+    .peminjamanaktif-search-clear {
+      position: absolute;
+      right: 0;
+      top: 0;
+      z-index: 5;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      padding: 0 0.75rem;
+      color: var(--#{$prefix}gray-600);
+      text-decoration: none;
+
+      &:hover {
+        color: var(--#{$prefix}danger);
+      }
+    }
+  }
+
+  // ---- Table ----
+  .table {
+    thead th {
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.03em;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      transition: background-color 0.15s ease;
+
+      &:hover {
+        background-color: var(--#{$prefix}gray-100);
+      }
+    }
+  }
+
+  // ---- Pagination modern ----
+  .pagination {
+    gap: 0.25rem;
+
+    .page-item {
+      .page-link {
+        border: 0;
+        border-radius: $border-radius;
+        min-width: 36px;
+        text-align: center;
+        color: var(--#{$prefix}gray-600);
+        transition: background-color 0.2s ease, color 0.2s ease;
+
+        &:hover {
+          background-color: var(--#{$prefix}gray-100);
+          color: var(--#{$prefix}primary);
+        }
+      }
+
+      &.active .page-link {
+        background-color: var(--#{$prefix}primary);
+        color: #fff;
+      }
+
+      &.disabled .page-link {
+        opacity: 0.5;
+      }
+    }
+  }
+
+  // ---- Empty state ----
+  .peminjamanaktif-empty {
+    .peminjamanaktif-empty-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background-color: var(--#{$prefix}primary-subtle);
+      color: var(--#{$prefix}primary);
+    }
+  }
+
+  // ---- Responsive ----
+  @include media-breakpoint-down(md) {
+    .peminjamanaktif-toolbar {
+      padding: 1rem;
+    }
+  }
+}
+
+// ============================================================
+// Form Pengembalian Modal - scoped (UI only)
+// ============================================================
+.pengembalian-modal {
+  .pengembalian-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: $border-radius;
+    background-color: var(--#{$prefix}primary-subtle);
+    color: var(--#{$prefix}primary);
+  }
+
+  .pengembalian-hero {
+    padding: 1rem 1.25rem;
+    border-radius: $border-radius-lg;
+    background-color: var(--#{$prefix}gray-100);
+  }
+
+  .form-label {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--#{$prefix}gray-800);
+    margin-bottom: 0.375rem;
+  }
+}
+
+// ============================================================
+// Consumable Masuk - scoped (UI only, tidak berdampak ke halaman lain)
+// Pola sama dengan halaman data lain.
+// ============================================================
+.consumablemasuk-page {
+  // ---- Toolbar: search ----
+  .consumablemasuk-toolbar {
+    padding: 1rem 1.25rem;
+
+    .form-control {
+      height: 44px;
+    }
+  }
+
+  // Search dengan ikon di depan
+  .consumablemasuk-search {
+    .input-group-text {
+      background-color: var(--#{$prefix}body-bg);
+      border-right: 0;
+      color: var(--#{$prefix}gray-600);
+    }
+
+    .form-control {
+      border-left: 0;
+      padding-left: 0;
+
+      &:focus {
+        box-shadow: none;
+        border-color: var(--#{$prefix}border-color);
+      }
+
+      &::-webkit-search-cancel-button {
+        display: none;
+      }
+    }
+
+    &:focus-within {
+      .input-group-text,
+      .form-control {
+        border-color: var(--#{$prefix}primary);
+      }
+    }
+
+    .consumablemasuk-search-clear {
+      position: absolute;
+      right: 0;
+      top: 0;
+      z-index: 5;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      padding: 0 0.75rem;
+      color: var(--#{$prefix}gray-600);
+      text-decoration: none;
+
+      &:hover {
+        color: var(--#{$prefix}danger);
+      }
+    }
+  }
+
+  // ---- Table ----
+  .table {
+    thead th {
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.03em;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      transition: background-color 0.15s ease;
+
+      &:hover {
+        background-color: var(--#{$prefix}gray-100);
+      }
+    }
+  }
+
+  // ---- Pagination modern ----
+  .pagination {
+    gap: 0.25rem;
+
+    .page-item {
+      .page-link {
+        border: 0;
+        border-radius: $border-radius;
+        min-width: 36px;
+        text-align: center;
+        color: var(--#{$prefix}gray-600);
+        transition: background-color 0.2s ease, color 0.2s ease;
+
+        &:hover {
+          background-color: var(--#{$prefix}gray-100);
+          color: var(--#{$prefix}primary);
+        }
+      }
+
+      &.active .page-link {
+        background-color: var(--#{$prefix}primary);
+        color: #fff;
+      }
+
+      &.disabled .page-link {
+        opacity: 0.5;
+      }
+    }
+  }
+
+  // ---- Empty state ----
+  .consumablemasuk-empty {
+    .consumablemasuk-empty-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background-color: var(--#{$prefix}primary-subtle);
+      color: var(--#{$prefix}primary);
+    }
+  }
+
+  // ---- Responsive ----
+  @include media-breakpoint-down(md) {
+    .consumablemasuk-toolbar {
+      padding: 1rem;
+    }
+  }
+}
+
+// ============================================================
+// Consumable Masuk Form Modal (Tambah/Edit) - scoped (UI only)
+// ============================================================
+.consumablemasuk-modal {
+  .consumablemasuk-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: $border-radius;
+    background-color: var(--#{$prefix}primary-subtle);
+    color: var(--#{$prefix}primary);
+  }
+
+  .consumablemasuk-hero {
+    padding: 1rem 1.25rem;
+    border-radius: $border-radius-lg;
+    background-color: var(--#{$prefix}gray-100);
+  }
+
+  .consumablemasuk-section {
+    .form-label {
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--#{$prefix}gray-800);
+      margin-bottom: 0.375rem;
+    }
+
+    .form-control {
+      height: 44px;
+    }
+  }
+}
+
+// ============================================================
+// Consumable Masuk Delete Modal - scoped (UI only)
+// ============================================================
+.consumablemasuk-delete-modal {
+  .consumablemasuk-delete-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: $border-radius;
+    background-color: var(--#{$prefix}danger-subtle);
+    color: var(--#{$prefix}danger);
+  }
+
+  .consumablemasuk-delete-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background-color: var(--#{$prefix}danger-subtle);
+    color: var(--#{$prefix}danger);
+  }
+
+  .consumablemasuk-delete-hero {
+    padding: 1rem 1.25rem;
+    border-radius: $border-radius-lg;
+    background-color: var(--#{$prefix}gray-100);
+  }
+}
+
+// ============================================================
+// Riwayat Filter Bar (shared) - scoped (UI only)
+// Filter bulan/tahun + tombol export. Dipakai di beberapa halaman riwayat.
+// ============================================================
+.riwayat-filterbar {
+  .riwayat-filter-group {
+    .input-group-text {
+      background-color: var(--#{$prefix}body-bg);
+      border-right: 0;
+      color: var(--#{$prefix}gray-600);
+    }
+
+    .form-select {
+      height: 44px;
+      border-left: 0;
+      min-width: 160px;
+
+      &:focus {
+        box-shadow: none;
+        border-color: var(--#{$prefix}border-color);
+      }
+    }
+
+    &:focus-within {
+      .input-group-text,
+      .form-select {
+        border-color: var(--#{$prefix}primary);
+      }
+    }
+  }
+
+  .btn {
+    height: 44px;
+  }
+}
+
+// ============================================================
+// Halaman Riwayat (Peminjaman Tools) - scoped (UI only)
+// ============================================================
+.riwayat-page {
+  // ---- Toolbar: dua baris (search+info, filter+export) ----
+  .riwayat-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+
+    // filter bar tidak perlu margin bawah karena gap toolbar sudah mengatur jarak
+    .riwayat-filterbar {
+      margin-bottom: 0;
+    }
+  }
+
+  // Baris 1: Search (kiri, elemen utama ~50%) + Info jumlah (kanan)
+  .riwayat-toolbar-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  // Search dengan ikon di depan
+  .riwayat-search {
+    flex: 0 0 50%;
+    max-width: 50%;
+
+    .input-group-text {
+      background-color: var(--#{$prefix}body-bg);
+      border-right: 0;
+      color: var(--#{$prefix}gray-600);
+    }
+
+    .form-control {
+      height: 44px;
+      border-left: 0;
+      padding-left: 0;
+
+      &:focus {
+        box-shadow: none;
+        border-color: var(--#{$prefix}border-color);
+      }
+
+      &::-webkit-search-cancel-button {
+        display: none;
+      }
+    }
+
+    &:focus-within {
+      .input-group-text,
+      .form-control {
+        border-color: var(--#{$prefix}primary);
+      }
+    }
+
+    .riwayat-search-clear {
+      position: absolute;
+      right: 0;
+      top: 0;
+      z-index: 5;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      padding: 0 0.75rem;
+      color: var(--#{$prefix}gray-600);
+      text-decoration: none;
+
+      &:hover {
+        color: var(--#{$prefix}danger);
+      }
+    }
+  }
+
+  // Info jumlah data: rata kanan, sejajar vertikal dengan search
+  .riwayat-info {
+    flex-shrink: 0;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  // ---- Responsive ----
+  // Tablet: search tetap penuh, info turun di bawah search
+  @include media-breakpoint-down(lg) {
+    .riwayat-toolbar-row {
+      flex-wrap: wrap;
+    }
+
+    .riwayat-search {
+      flex: 1 1 100%;
+      max-width: 100%;
+    }
+
+    .riwayat-info {
+      text-align: left;
+    }
+  }
+
+  // ---- Table ----
+  .table {
+    thead th {
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.03em;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      transition: background-color 0.15s ease;
+
+      &:hover {
+        background-color: var(--#{$prefix}gray-100);
+      }
+    }
+  }
+
+  // ---- Pagination modern ----
+  .pagination {
+    gap: 0.25rem;
+
+    .page-item {
+      .page-link {
+        border: 0;
+        border-radius: $border-radius;
+        min-width: 36px;
+        text-align: center;
+        color: var(--#{$prefix}gray-600);
+        transition: background-color 0.2s ease, color 0.2s ease;
+
+        &:hover {
+          background-color: var(--#{$prefix}gray-100);
+          color: var(--#{$prefix}primary);
+        }
+      }
+
+      &.active .page-link {
+        background-color: var(--#{$prefix}primary);
+        color: #fff;
+      }
+
+      &.disabled .page-link {
+        opacity: 0.5;
+      }
+    }
+  }
+
+  // ---- Empty state ----
+  .riwayat-empty {
+    .riwayat-empty-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background-color: var(--#{$prefix}primary-subtle);
+      color: var(--#{$prefix}primary);
+    }
+  }
+
+  // ---- Responsive ----
+  // Mobile: semua komponen tersusun vertikal
+  @include media-breakpoint-down(md) {
+    .riwayat-toolbar {
+      padding: 1rem;
+    }
+
+    // filter bar (bulan/tahun + export) menumpuk vertikal
+    .riwayat-filterbar {
+      flex-direction: column;
+      align-items: stretch;
+
+      // grup dropdown bulan/tahun
+      > div:first-child {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      // grup tombol export
+      > div:last-child {
+        flex-direction: column;
+        align-items: stretch;
+      }
+    }
+
+    .riwayat-filter-group .form-select {
+      min-width: 0;
+      width: 100%;
+    }
+  }
+}
+
+// ============================================================
+// Detail Transaksi Modal (Riwayat Peminjaman) - scoped (UI only)
+// ============================================================
+.detail-transaksi-modal {
+  .detail-transaksi-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: $border-radius;
+    background-color: var(--#{$prefix}primary-subtle);
+    color: var(--#{$prefix}primary);
+  }
+
+  .detail-transaksi-hero {
+    padding: 1.25rem;
+    border-radius: $border-radius-lg;
+    background-color: var(--#{$prefix}gray-100);
+  }
+
+  .detail-transaksi-badge {
+    font-size: 0.8125rem;
+    padding: 0.4rem 0.75rem;
+  }
+
+  .detail-transaksi-item {
+    padding: 0.5rem 0;
+  }
+
+  .detail-transaksi-section {
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--#{$prefix}border-color);
+  }
+
+  .detail-transaksi-table {
+    thead th {
+      text-transform: uppercase;
+      font-size: 0.7rem;
+      letter-spacing: 0.03em;
+      font-weight: 600;
+      color: var(--#{$prefix}gray-600);
+      white-space: nowrap;
+    }
+  }
+}
+
+// ============================================================
+// Detail Laporan Kerusakan Modal - scoped (UI only)
+// ============================================================
+.detail-laporan-modal {
+  .detail-laporan-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: $border-radius;
+    background-color: var(--#{$prefix}danger-subtle);
+    color: var(--#{$prefix}danger);
+  }
+
+  .detail-laporan-hero {
+    padding: 1.25rem;
+    border-radius: $border-radius-lg;
+    background-color: var(--#{$prefix}gray-100);
+  }
+
+  .detail-laporan-badge {
+    font-size: 0.8125rem;
+    padding: 0.4rem 0.75rem;
+  }
+
+  .detail-laporan-item {
+    padding: 0.5rem 0;
+  }
+
+  .detail-laporan-section {
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--#{$prefix}border-color);
+  }
+}

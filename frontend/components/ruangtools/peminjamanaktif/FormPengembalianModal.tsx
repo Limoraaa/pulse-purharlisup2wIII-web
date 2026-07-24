@@ -2,6 +2,7 @@
 // import node module libraries
 import { useEffect, useState } from "react";
 import { Modal, Form, Button, Alert } from "react-bootstrap";
+import { IconRotateClockwise2, IconCheck } from "@tabler/icons-react";
 
 // import custom types
 import { PeminjamanAktifItemType } from "types/DataToolsTypes";
@@ -62,18 +63,25 @@ const FormPengembalianModal = ({
   };
 
   return (
-    <Modal show={show} onHide={submitting ? undefined : onClose} centered>
+    <Modal show={show} onHide={submitting ? undefined : onClose} centered className="pengembalian-modal">
       <Form onSubmit={handleSubmit}>
         <Modal.Header closeButton={!submitting}>
-          <Modal.Title as="h5">Form Pengembalian</Modal.Title>
+          <Modal.Title as="h5" className="d-flex align-items-center gap-2">
+            <span className="pengembalian-title-icon">
+              <IconRotateClockwise2 size={20} />
+            </span>
+            Form Pengembalian
+          </Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {error && <Alert variant="danger">{error}</Alert>}
 
-          <div className="mb-3">
+          {/* Hero: info alat yang dikembalikan */}
+          <div className="pengembalian-hero mb-4">
             <div className="text-secondary small text-uppercase mb-1">Alat</div>
             <div className="fw-semibold">
-              {item.namaBarang} ({item.kodeBarang})
+              {item.namaBarang}{" "}
+              <span className="text-secondary">({item.kodeBarang})</span>
             </div>
             <div className="text-secondary small">
               Dipinjam oleh {item.namaPeminjam} &middot; {item.jumlah} unit
@@ -128,8 +136,20 @@ const FormPengembalianModal = ({
           <Button variant="outline-secondary" onClick={onClose} disabled={submitting}>
             Batal
           </Button>
-          <Button variant="primary" type="submit" disabled={submitting}>
-            {submitting ? "Memproses..." : "Konfirmasi Pengembalian"}
+          <Button
+            variant="primary"
+            type="submit"
+            disabled={submitting}
+            className="d-inline-flex align-items-center gap-2"
+          >
+            {submitting ? (
+              "Memproses..."
+            ) : (
+              <>
+                <IconCheck size={18} />
+                Konfirmasi Pengembalian
+              </>
+            )}
           </Button>
         </Modal.Footer>
       </Form>

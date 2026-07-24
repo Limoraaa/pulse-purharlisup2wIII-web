@@ -1,6 +1,17 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { Row, Col, Card, CardBody, Alert, Spinner } from "react-bootstrap";
+import {
+  Row,
+  Col,
+  Card,
+  CardBody,
+  Alert,
+  Spinner,
+  InputGroup,
+  Form,
+  Button,
+} from "react-bootstrap";
+import { IconAlertTriangle, IconSearch, IconX } from "@tabler/icons-react";
 
 import { LaporanKerusakanType } from "types/LaporanKerusakanTypes";
 
@@ -59,6 +70,9 @@ const LaporanKerusakanManager = () => {
   const [bulanFilter, setBulanFilter] = useState(0);
   const [tahunFilter, setTahunFilter] = useState(0);
 
+  // ---- Pencarian (murni UI, tidak menyentuh API/data) ----
+  const [searchTerm, setSearchTerm] = useState("");
+
   const parseTanggal = (str: string) => {
     const bulanMap: Record<string, number> = {
       Jan: 0, Feb: 1, Mar: 2, Apr: 3, Mei: 4, Jun: 5,
@@ -82,15 +96,27 @@ const LaporanKerusakanManager = () => {
   }, [laporanList]);
 
   const filteredList = useMemo(() => {
+    const keyword = searchTerm.trim().toLowerCase();
     return laporanList.filter((r) => {
-      if (bulanFilter === 0 && tahunFilter === 0) return true;
-      const tanggal = parseTanggal(r.tanggal_pengembalian);
-      if (!tanggal) return true;
-      if (bulanFilter !== 0 && tanggal.getMonth() + 1 !== bulanFilter) return false;
-      if (tahunFilter !== 0 && tanggal.getFullYear() !== tahunFilter) return false;
+      // filter periode (bulan/tahun)
+      if (bulanFilter !== 0 || tahunFilter !== 0) {
+        const tanggal = parseTanggal(r.tanggal_pengembalian);
+        if (tanggal) {
+          if (bulanFilter !== 0 && tanggal.getMonth() + 1 !== bulanFilter) return false;
+          if (tahunFilter !== 0 && tanggal.getFullYear() !== tahunFilter) return false;
+        }
+      }
+      // filter pencarian
+      if (keyword !== "") {
+        const cocok =
+          r.kode_barang.toLowerCase().includes(keyword) ||
+          r.nama_barang.toLowerCase().includes(keyword) ||
+          r.nama_peminjam.toLowerCase().includes(keyword);
+        if (!cocok) return false;
+      }
       return true;
     });
-  }, [laporanList, bulanFilter, tahunFilter]);
+  }, [laporanList, bulanFilter, tahunFilter, searchTerm]);
 
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [activeItem, setActiveItem] = useState<LaporanKerusakanType | null>(null);
@@ -108,7 +134,8 @@ const LaporanKerusakanManager = () => {
   const columns = useMemo(() => getLaporanKerusakanColumns({ onDetail: openDetailModal }), []);
 
   return (
-    <>
+    <div className="riwayat-page">
+      {/* ---- Page Header ---- */}
       <Row>
         <Col>
           <Flex justifyContent="between" alignItems="center" className="mb-4 w-100" breakpoint="md">
@@ -124,9 +151,41 @@ const LaporanKerusakanManager = () => {
       </Row>
 
       <Card className="card-lg mb-6">
-        <CardBody>
-          {error && <Alert variant="danger">{error}</Alert>}
+        {/* ---- Toolbar: Search + Info (baris 1) & Filter + Export (baris 2) ---- */}
+        <div className="riwayat-toolbar border-bottom">
+          {/* Baris 1: Search (kiri) + Info jumlah data (kanan) */}
+          <div className="riwayat-toolbar-row">
+            <InputGroup className="riwayat-search">
+              <InputGroup.Text>
+                <IconSearch size={18} />
+              </InputGroup.Text>
+              <Form.Control
+                type="search"
+                placeholder="Cari kode, nama barang, atau nama peminjam..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                aria-label="Cari laporan kerusakan"
+              />
+              {searchTerm && (
+                <Button
+                  variant="link"
+                  className="riwayat-search-clear"
+                  onClick={() => setSearchTerm("")}
+                  aria-label="Bersihkan pencarian"
+                >
+                  <IconX size={16} />
+                </Button>
+              )}
+            </InputGroup>
 
+            <span className="riwayat-info text-secondary small">
+              Menampilkan{" "}
+              <span className="fw-semibold text-body">{filteredList.length}</span>{" "}
+              dari {laporanList.length} data
+            </span>
+          </div>
+
+          {/* Baris 2: Filter Bulan/Tahun (kiri) + Export PDF/Excel (kanan) */}
           <RiwayatFilterBar
             bulanFilter={bulanFilter}
             onBulanFilterChange={setBulanFilter}
@@ -136,27 +195,51 @@ const LaporanKerusakanManager = () => {
             onExportPDF={handleExportPDF}
             onExportExcel={handleExportExcel}
           />
+        </div>
+
+        <CardBody>
+          {error && <Alert variant="danger">{error}</Alert>}
 
           {loading ? (
             <div className="text-center py-6">
               <Spinner animation="border" size="sm" className="me-2" />
               Memuat data...
             </div>
+          ) : laporanList.length === 0 ? (
+            /* Empty state: belum ada laporan sama sekali */
+            <div className="riwayat-empty text-center py-6">
+              <div className="riwayat-empty-icon mb-3">
+                <IconAlertTriangle size={32} />
+              </div>
+              <h5 className="mb-1">Belum ada laporan kerusakan</h5>
+              <p className="text-secondary mb-0">
+                Kerusakan alat yang tercatat saat pengembalian akan muncul di sini.
+              </p>
+            </div>
+          ) : filteredList.length === 0 ? (
+            /* Empty state: hasil pencarian / filter kosong */
+            <div className="riwayat-empty text-center py-6">
+              <div className="riwayat-empty-icon mb-3">
+                <IconAlertTriangle size={32} />
+              </div>
+              <h5 className="mb-1">Tidak ada data yang cocok</h5>
+              <p className="text-secondary mb-0">
+                Coba ubah kata kunci pencarian atau filter bulan/tahun.
+              </p>
+            </div>
           ) : (
             <TanstackTable
               data={filteredList}
               columns={columns}
-              filter
               pagination
               isSortable
-              filterPlaceholder="Cari kode / nama barang / nama peminjam..."
             />
           )}
         </CardBody>
       </Card>
 
       <DetailLaporanModal show={detailModalOpen} onClose={() => setDetailModalOpen(false)} item={activeItem} />
-    </>
+    </div>
   );
 };
 
