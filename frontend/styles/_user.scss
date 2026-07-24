@@ -1673,3 +1673,129 @@
     border-top: 1px solid var(--#{$prefix}border-color);
   }
 }
+
+// ============================================================
+// Sidebar / Navbar - branding PLN (UI only)
+// Hanya menata logo PLN + warna background menu aktif.
+// Spacing menu, submenu, hover, ikon, dan dropdown arrow
+// dikembalikan mengikuti tema lama (tidak di-override di sini).
+// ============================================================
+#miniSidebar,
+.offcanvasNav {
+  // ---- Brand / Logo PLN (hanya logo, tanpa teks) ----
+  .brand-logo {
+    padding: 1rem 1.125rem 1.375rem; // atas | kiri-kanan ~18px | bawah ~22px
+  }
+
+  .pln-brand {
+    text-decoration: none;
+    width: 100%;
+  }
+
+  // Logo mengisi lebar area header secara proporsional, aspect ratio terjaga
+  .pln-logo {
+    width: 100%;
+    max-width: 160px;
+    height: auto;
+    object-fit: contain;
+  }
+}
+
+// ---- Active menu: background primary (biru), teks & ikon putih ----
+// Ikon mengikuti state active (putih saat aktif, abu-abu saat normal
+// mengikuti tema lama). Selektor menyamai tema (_navbar-vertical.scss)
+// supaya menang lewat urutan import.
+html.expanded #miniSidebar,
+html.collapsed #miniSidebar,
+.offcanvasNav {
+  .nav-link.active {
+    color: #fff;
+    background-color: var(--#{$prefix}primary);
+
+    .nav-icon {
+      color: #fff;
+    }
+  }
+
+  // ---- Submenu: kurangi indent agar lebih sejajar & konsisten ----
+  .dropdown-menu .nav-link {
+    margin-left: 2rem;
+    margin-right: 0.5rem;
+  }
+}
+
+// ============================================================
+// Header / Topbar - action area (UI only)
+// Theme toggle + avatar, gap konsisten, rata tengah vertikal.
+// ============================================================
+.header-actions {
+  gap: 12px;
+
+  > li {
+    display: flex;
+    align-items: center;
+  }
+}
+
+// Tombol Theme Toggle
+.theme-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  padding: 0;
+  background-color: #fff;
+  border: 1px solid var(--#{$prefix}gray-200);
+  color: var(--#{$prefix}gray-700);
+  transition: background-color 0.2s ease, border-color 0.2s ease,
+    color 0.2s ease;
+
+  &:hover {
+    background-color: var(--#{$prefix}gray-100);
+  }
+
+  [data-bs-theme="dark"] & {
+    background-color: #1e293b; // slate-800
+    border-color: #334155; // slate-700
+    color: var(--#{$prefix}gray-700);
+
+    &:hover {
+      background-color: #172033; // sedikit lebih gelap
+    }
+  }
+}
+
+// ============================================================
+// Halaman Profil - scoped (UI only)
+// ============================================================
+.profile-page {
+  .form-label {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--#{$prefix}gray-800);
+    margin-bottom: 0.375rem;
+  }
+
+  .form-control {
+    height: 44px;
+  }
+
+  // Ikon judul section (Ubah Password)
+  .profile-section-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: $border-radius;
+    background-color: var(--#{$prefix}primary-subtle);
+    color: var(--#{$prefix}primary);
+  }
+
+  // Bungkus avatar besar di kartu identitas
+  .profile-avatar-wrap {
+    width: fit-content;
+  }
+}
