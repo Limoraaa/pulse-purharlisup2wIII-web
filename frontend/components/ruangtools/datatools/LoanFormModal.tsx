@@ -28,7 +28,7 @@ interface LoanFormModalProps {
   onClose: () => void;
   onSubmit: (values: LoanFormValues) => void;
   cartItems: CartItemType[];
-  submitting?: boolean; // ← tambahan baru
+  submitting?: boolean;
 }
 
 const LoanFormModal = ({
@@ -70,6 +70,13 @@ const LoanFormModal = ({
     onSubmit(form);
   };
 
+  // Mencegah form tersubmit otomatis saat alat RFID mengirim tombol "Enter" di akhir scan
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+    }
+  };
+
   return (
     <Modal show={show} onHide={submitting ? undefined : onClose} centered size="lg" backdrop={submitting ? "static" : true} className="loan-form-modal">
       <Form onSubmit={handleSubmit}>
@@ -95,23 +102,38 @@ const LoanFormModal = ({
                   Otomatis terisi sesuai tanggal &amp; jam saat ini.
                 </Form.Text>
               </Col>
+              
               <Col md={6}>
                 <Form.Label>
-                  Nama Peminjam <span className="text-danger">*</span>
+                  Nama Peminjam / Tap Kartu RFID <span className="text-danger">*</span>
                 </Form.Label>
                 <Form.Control
                   required
                   list="peminjam-options"
-                  placeholder={loadingPeminjam ? "Memuat..." : "Ketik atau pilih nama peminjam..."}
-                  disabled={loadingPeminjam}
-                  value={form.peminjamId ? form.namaPeminjam : peminjamSearchText}
+                  placeholder={loadingPeminjam ? "Memuat..." : "Ketik nama atau tap kartu RFID di sini..."}
+                  disabled={loadingPeminjam || submitting}
+                  value={form.peminjamId ? `${form.namaPeminjam} (${form.peminjamId})` : peminjamSearchText}
+                  onFocus={() => {
+                    // Jika sedang fokus dan sudah terpilih, bersihkan teks agar bisa di-scan/ketik ulang jika ingin mengganti
+                    if (form.peminjamId) {
+                      setPeminjamSearchText("");
+                      setForm((prev) => ({ ...prev, peminjamId: "", namaPeminjam: "", divisi: "" }));
+                    }
+                  }}
                   onChange={(e) => {
                     const typed = e.target.value;
                     setPeminjamSearchText(typed);
 
-                    const match = peminjamList.find((p) => p.nama === typed);
+                    // PENCARIAN PINTAR: Cek apakah input cocok dengan Nama ATAU cocok dengan ID (RFID)
+                    const match = peminjamList.find(
+                      (p) => 
+                        p.nama.toLowerCase() === typed.toLowerCase() || 
+                        p.id.toLowerCase() === typed.toLowerCase()
+                    );
+
                     if (match) {
                       handlePeminjamChange(match.id);
+                      setPeminjamSearchText(""); // Reset text search jika sudah ketemu
                     } else {
                       setForm((prev) => ({
                         ...prev,
@@ -121,16 +143,25 @@ const LoanFormModal = ({
                       }));
                     }
                   }}
+                  onKeyDown={handleKeyDown}
+                  autoComplete="off"
                 />
                 <datalist id="peminjam-options">
                   {peminjamList.map((p) => (
-                    <option key={p.id} value={p.nama} />
+                    // Menampilkan opsi nama beserta nomor RFID-nya di dropdown agar admin bisa melihat keduanya
+                    <option key={p.id} value={p.nama}>
+                      {`Divisi: ${p.divisi} | RFID: ${p.id}`}
+                    </option>
                   ))}
                 </datalist>
+                <Form.Text className="text-muted small">
+                  Silakan ketik nama manual, pilih dari dropdown, atau langsung tap kartu RFID pada kolom ini.
+                </Form.Text>
               </Col>
+
               <Col md={6}>
                 <Form.Label>Divisi</Form.Label>
-                <Form.Control value={form.divisi} disabled readOnly />
+                <Form.Control value={form.divisi} disabled readOnly placeholder="Otomatis terisi..." />
                 <Form.Text className="text-secondary">
                   Otomatis terisi berdasarkan peminjam.
                 </Form.Text>
