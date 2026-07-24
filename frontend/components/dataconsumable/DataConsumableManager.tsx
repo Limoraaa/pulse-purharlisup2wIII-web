@@ -111,7 +111,6 @@ const DataConsumableManager = () => {
       const token = localStorage.getItem("token");
       const userId = localStorage.getItem("userId");
 
-      // Mengambil data antrean dari backend
       const json = await api<{ data: any[] }>("/consumable-keluar/antrean", {
         method: "GET",
         headers: { 
@@ -120,7 +119,6 @@ const DataConsumableManager = () => {
         },
       });
 
-      // Validasi struktur data yang diterima
       const rawItems = json.data || (Array.isArray(json) ? json : []);
 
       const mappedCart: ConsumableCartItem[] = rawItems.map((item: any) => ({
@@ -145,7 +143,6 @@ const DataConsumableManager = () => {
     loadConsumables();
     loadCart();
 
-    // Auto-refresh keranjang saat pengguna kembali membuka tab browser (berguna setelah scan dari HP)
     const handleFocus = () => {
       loadCart();
     };
@@ -156,7 +153,6 @@ const DataConsumableManager = () => {
     };
   }, []);
 
-  // Kalkulasi Sisa Stok Real-Time untuk Tabel
   const filteredConsumables = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
     
@@ -338,6 +334,7 @@ const handleExportExcel = () =>
     }
   };
 
+  // Disesuaikan agar menerima values dari modal form pengeluaran bahan
   const handleLoanSubmit = async (values: ConsumableOutFormValues) => {
     if (cart.length === 0) return;
     setIsSubmittingCart(true);
@@ -351,7 +348,7 @@ const handleExportExcel = () =>
       }
 
       const payload = {
-        peminta_id: values.pemintaId,
+        peminta_id: values.pemintaId, // Mengirimkan ID RFID pekerja yang dipilih/discan
         pekerjaan_area: values.areaKerja,
         keterangan: values.keterangan || "",
         dicatat_oleh: dicatatOleh,

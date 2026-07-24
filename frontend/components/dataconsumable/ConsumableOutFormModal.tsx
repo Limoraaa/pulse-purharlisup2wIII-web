@@ -45,19 +45,19 @@ const ConsumableOutFormModal = ({
   const [loadingPeminta, setLoadingPeminta] = useState(false);
 
   useEffect(() => {
-  if (show) {
-    setForm(emptyForm());
-    setPemintaSearchText("");
-    setLoadingPeminta(true);
-    getPemintaAktif()
-      .then(setPemintaList)
-      .catch(() => setPemintaList([]))
-      .finally(() => setLoadingPeminta(false));
-  }
-}, [show]);
+    if (show) {
+      setForm(emptyForm());
+      setPemintaSearchText("");
+      setLoadingPeminta(true);
+      getPemintaAktif()
+        .then(setPemintaList)
+        .catch(() => setPemintaList([]))
+        .finally(() => setLoadingPeminta(false));
+    }
+  }, [show]);
 
   const handlePemintaChange = (pemintaId: string) => {
-    const selected = pemintaList.find((p) => p.id === pemintaId);
+    const selected = pemintaList.find((p: PeminjamType) => p.id === pemintaId);
     setForm((prev) => ({
       ...prev,
       pemintaId,
@@ -69,6 +69,13 @@ const ConsumableOutFormModal = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(form, cartItems);
+  };
+
+  // Mencegah form tersubmit otomatis saat alat RFID mengirim tombol "Enter" di akhir scan
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+    }
   };
 
   return (
@@ -102,23 +109,37 @@ const ConsumableOutFormModal = ({
                   Otomatis terisi sesuai tanggal &amp; jam saat ini.
                 </Form.Text>
               </Col>
+              
               <Col md={6}>
                 <Form.Label>
-                  Dipakai Oleh (Teknisi/Staff) <span className="text-danger">*</span>
+                  Dipakai Oleh / Tap Kartu RFID <span className="text-danger">*</span>
                 </Form.Label>
                 <Form.Control
                   required
                   list="peminta-options"
-                  placeholder={loadingPeminta ? "Memuat..." : "Ketik atau pilih nama pemakai..."}
-                  disabled={loadingPeminta}
-                  value={form.pemintaId ? form.namaPeminta : pemintaSearchText}
+                  placeholder={loadingPeminta ? "Memuat..." : "Ketik nama atau tap kartu RFID di sini..."}
+                  disabled={loadingPeminta || submitting}
+                  value={form.pemintaId ? `${form.namaPeminta} (${form.pemintaId})` : pemintaSearchText}
+                  onFocus={() => {
+                    if (form.pemintaId) {
+                      setPemintaSearchText("");
+                      setForm((prev) => ({ ...prev, pemintaId: "", namaPeminta: "", divisi: "" }));
+                    }
+                  }}
                   onChange={(e) => {
                     const typed = e.target.value;
                     setPemintaSearchText(typed);
 
-                    const match = pemintaList.find((p) => p.nama === typed);
+                    // PENCARIAN PINTAR: Cek apakah input cocok dengan Nama ATAU cocok dengan ID (RFID)
+                    const match = pemintaList.find(
+                      (p: PeminjamType) =>
+                        p.nama.toLowerCase() === typed.toLowerCase() ||
+                        p.id.toLowerCase() === typed.toLowerCase()
+                    );
+
                     if (match) {
                       handlePemintaChange(match.id);
+                      setPemintaSearchText("");
                     } else {
                       setForm((prev) => ({
                         ...prev,
@@ -128,16 +149,24 @@ const ConsumableOutFormModal = ({
                       }));
                     }
                   }}
+                  onKeyDown={handleKeyDown}
+                  autoComplete="off"
                 />
                 <datalist id="peminta-options">
-                  {pemintaList.map((p) => (
-                    <option key={p.id} value={p.nama} />
+                  {pemintaList.map((p: PeminjamType) => (
+                    <option key={p.id} value={p.nama}>
+                      {`Divisi: ${p.divisi} | RFID: ${p.id}`}
+                    </option>
                   ))}
                 </datalist>
+                <Form.Text className="text-muted small">
+                  Silakan ketik nama manual, pilih dari dropdown, atau langsung tap kartu RFID pada kolom ini.
+                </Form.Text>
               </Col>
+
               <Col md={6}>
                 <Form.Label>Divisi</Form.Label>
-                <Form.Control value={form.divisi} disabled readOnly />
+                <Form.Control value={form.divisi} disabled readOnly placeholder="Otomatis terisi..." />
                 <Form.Text className="text-secondary">
                   Otomatis terisi berdasarkan pemakai.
                 </Form.Text>

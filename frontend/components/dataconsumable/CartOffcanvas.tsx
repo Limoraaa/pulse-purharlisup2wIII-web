@@ -11,7 +11,6 @@ import {
 
 import { ConsumableCartItemType } from "types/DataConsumableTypes";
 
-// Perluas interface agar mengenali `id` unik row database
 interface ConsumableCartItemWithId extends ConsumableCartItemType {
   id: string;
 }
@@ -20,8 +19,8 @@ interface CartOffcanvasProps {
   show: boolean;
   onClose: () => void;
   items: ConsumableCartItemWithId[]; 
-  onUpdateQty: (id: string, jumlah: number) => void; // Menggunakan cart row id
-  onRemove: (id: string) => void; // Menggunakan cart row id
+  onUpdateQty: (id: string, jumlah: number) => void;
+  onRemove: (id: string) => void; 
   onProceed: () => void;
 }
 
@@ -36,11 +35,13 @@ const CartOffcanvas = ({
 
   const handleDecrease = (item: ConsumableCartItemWithId) => {
     if (item.jumlah <= 1) return;
-    onUpdateQty(item.id, item.jumlah - 1);
+    // PERBAIKAN: Gunakan consumable_id agar sinkron dengan fungsi handleUpdateQty di Manager
+    onUpdateQty(item.consumable_id, item.jumlah - 1);
   };
 
   const handleIncrease = (item: ConsumableCartItemWithId) => {
-    onUpdateQty(item.id, item.jumlah + 1);
+    // PERBAIKAN: Gunakan consumable_id
+    onUpdateQty(item.consumable_id, item.jumlah + 1);
   };
 
   const totalUnit = items.reduce((sum, item) => sum + item.jumlah, 0);
@@ -78,7 +79,8 @@ const CartOffcanvas = ({
                   <Button
                     variant="link"
                     className="consumable-cart-item-remove text-danger p-0"
-                    onClick={() => onRemove(item.id)}
+                    // PERBAIKAN: Kirim consumable_id agar Manager bisa menemukan datanya
+                    onClick={() => onRemove(item.consumable_id)}
                     aria-label="Hapus Barang"
                   >
                     <IconTrash size={18} />

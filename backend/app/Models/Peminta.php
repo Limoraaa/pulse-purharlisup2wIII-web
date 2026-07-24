@@ -16,6 +16,7 @@ class Peminta extends Model
     protected $keyType = 'string';
 
     protected $fillable = [
+        'id', // <-- Kita masukkan 'id' ke sini agar bisa diisi nomor RFID dari Frontend
         'nama',
         'kategori',
         'aktif',
@@ -30,6 +31,8 @@ class Peminta extends Model
         parent::boot();
 
         static::creating(function ($model) {
+            // Jika id kosong (pekerja tidak didaftarkan pakai kartu RFID),
+            // maka Laravel otomatis membuatkan UUID acak.
             if (empty($model->id)) {
                 $model->id = (string) \Illuminate\Support\Str::uuid();
             }
