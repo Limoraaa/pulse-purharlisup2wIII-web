@@ -39,6 +39,8 @@ class PemintaController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
+            // Validasi diubah ke 'id', pastikan unik di tabel 'peminta'
+            'id' => 'nullable|string|unique:peminta,id',
             'nama' => 'required|string|max:255',
             'kategori' => 'required|string|max:255',
         ]);
@@ -47,10 +49,9 @@ class PemintaController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $peminta = Peminta::create([
-            'id' => (string) Str::uuid(),
-            ...$validator->validated(),
-        ]);
+        // Karena di model Peminta sudah ada logika UUID otomatis jika id kosong,
+        // kita bisa langsung create dari hasil validasi.
+        $peminta = Peminta::create($validator->validated());
 
         return response()->json($peminta, 201);
     }
@@ -65,6 +66,8 @@ class PemintaController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
+            // Validasi diubah ke 'id', dan abaikan pengecekan unique untuk data yang sedang diedit
+            'id' => 'nullable|string|unique:peminta,id,' . $id,
             'nama' => 'sometimes|required|string|max:255',
             'kategori' => 'sometimes|required|string|max:255',
         ]);

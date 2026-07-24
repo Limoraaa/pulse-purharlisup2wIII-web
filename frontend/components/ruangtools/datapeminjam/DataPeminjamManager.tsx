@@ -29,7 +29,6 @@ import { getPeminjamColumns } from "components/ruangtools/datapeminjam/ColumnDef
 import PeminjamFormModal, { PeminjamFormValues } from "components/ruangtools/datapeminjam/PeminjamFormModal";
 import DeleteConfirmModal from "components/ruangtools/datapeminjam/DeleteConfirmModal";
 
-
 import {
   getPeminta,
   createPeminta,
@@ -65,7 +64,10 @@ const PeminjamManager = () => {
       const cocokKeyword =
         keyword === "" ||
         item.nama.toLowerCase().includes(keyword) ||
-        item.divisi.toLowerCase().includes(keyword);
+        item.divisi.toLowerCase().includes(keyword) ||
+        // Deteksi pencarian menggunakan RFID
+        (item.rfid_uid && item.rfid_uid.toLowerCase().includes(keyword)); 
+        
       return cocokKeyword;
     });
   }, [peminjamList, searchTerm]);
@@ -221,7 +223,7 @@ const PeminjamManager = () => {
                 </InputGroup.Text>
                 <Form.Control
                   type="search"
-                  placeholder="Cari nama atau divisi..."
+                  placeholder="Cari nama, divisi, atau tap kartu RFID..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   aria-label="Cari data peminjam"

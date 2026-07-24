@@ -1,15 +1,15 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Modal, Form, Row, Col, Button, Alert } from "react-bootstrap";
-import { IconUser, IconPencil, IconPlus } from "@tabler/icons-react";
+import { IconUser, IconPencil, IconPlus, IconIdBadge2 } from "@tabler/icons-react";
 
 import { PeminjamType } from "types/DataToolsTypes";
 
-// "aktif" sengaja dikeluarkan -- status aktif/nonaktif diatur lewat
-// tombol terpisah (nonaktifkanPeminta/aktifkanPeminta), bukan form ini.
-export type PeminjamFormValues = Omit<PeminjamType, "id" | "aktif">;
+// Kita gunakan "id" untuk menyimpan kode RFID
+export type PeminjamFormValues = Omit<PeminjamType, "id" | "aktif"> & { id?: string };
 
 const emptyForm: PeminjamFormValues = {
+  id: "",
   nama: "",
   divisi: "",
 };
@@ -36,7 +36,11 @@ const PeminjamFormModal = ({
     if (show) {
       setForm(
         initialData
-          ? { nama: initialData.nama, divisi: initialData.divisi }
+          ? { 
+              id: initialData.id, // Ambil ID (RFID/UUID) dari database
+              nama: initialData.nama, 
+              divisi: initialData.divisi 
+            }
           : emptyForm
       );
     }
@@ -45,6 +49,15 @@ const PeminjamFormModal = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(form);
+  };
+
+  // Fungsi khusus untuk menangkap ketikan dari RFID Reader
+  const handleRfidKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Scanner RFID selalu mengirimkan "Enter" setelah UID selesai dibaca.
+    // Kita harus mencegahnya agar form tidak langsung tersubmit.
+    if (e.key === "Enter") {
+      e.preventDefault();
+    }
   };
 
   return (
@@ -89,6 +102,7 @@ const PeminjamFormModal = ({
                   }
                 />
               </Col>
+              
               <Col md={12}>
                 <Form.Label>
                   Divisi <span className="text-danger">*</span>
@@ -101,6 +115,35 @@ const PeminjamFormModal = ({
                     setForm((prev) => ({ ...prev, divisi: e.target.value }))
                   }
                 />
+              </Col>
+
+              <Col md={12}>
+                <hr className="my-2" />
+                <Form.Label className="d-flex align-items-center gap-2 text-primary fw-semibold">
+                  <IconIdBadge2 size={18} />
+                  ID Kartu RFID
+                </Form.Label>
+                <Form.Control
+                  type="text" // Diubah ke text agar hasil scan langsung terlihat, tidak blank!
+                  placeholder={isEditMode ? "Sudah terdaftar" : "Klik di sini, lalu tap kartu ke reader..."}
+                  value={form.id}
+                  readOnly={isEditMode} // Kalau edit, input ini dimatikan supaya ID utama tidak terubah
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, id: e.target.value }))
+                  }
+                  onKeyDown={handleRfidKeyDown}
+                  autoComplete="off"
+                  className={isEditMode ? "bg-light text-muted" : ""} // Beri efek abu-abu kalau mode edit
+                />
+                {!isEditMode ? (
+                   <Form.Text className="text-muted small">
+                     Kosongkan jika pegawai belum memiliki kartu, sistem akan membuatkan ID otomatis.
+                   </Form.Text>
+                ) : (
+                   <Form.Text className="text-muted small">
+                     ID Kartu RFID tidak dapat diubah setelah pegawai didaftarkan.
+                   </Form.Text>
+                )}
               </Col>
             </Row>
           </div>
