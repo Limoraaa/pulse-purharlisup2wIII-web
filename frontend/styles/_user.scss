@@ -1799,3 +1799,319 @@ html.collapsed #miniSidebar,
     width: fit-content;
   }
 }
+
+// ============================================================
+// Halaman Login - scoped (UI only)
+// ============================================================
+.auth-wrapper {
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+// Animasi fade-in ringan untuk kedua panel
+@keyframes loginFadeLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes loginFadeRight {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.login-page {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+
+  // Card utama dua panel
+  .login-card {
+    display: flex;
+    width: 100%;
+    max-width: 1160px;
+    min-height: 620px;
+    background-color: #fff;
+    border-radius: 28px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+  }
+
+  // Animasi masuk
+  .login-anim-left {
+    animation: loginFadeLeft 0.45s ease-out both;
+  }
+  .login-anim-right {
+    animation: loginFadeRight 0.45s ease-out both;
+  }
+
+  // ---- Panel kiri: visual ----
+  .login-visual {
+    position: relative;
+    flex: 0 0 45%;
+    max-width: 45%;
+    display: flex;
+    align-items: center; // teks center vertikal (~50%)
+
+    .login-visual-img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+    }
+
+    // Overlay gradient biru (primary) opacity ~40-50%
+    .login-visual-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        135deg,
+        rgba(0, 100, 146, 0.55) 0%,
+        rgba(0, 100, 146, 0.45) 55%,
+        rgba(0, 100, 146, 0.40) 100%
+      );
+    }
+
+    .login-visual-content {
+      position: relative;
+      z-index: 2;
+      padding: 3.5rem;
+      color: #fff;
+    }
+
+    .login-visual-title {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 1.25rem;
+      color: #fff;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .login-visual-subtitle {
+      font-size: 1.0625rem;
+      font-weight: 500;
+      margin-bottom: 0;
+      line-height: 1.7;
+      color: #fff;
+      text-shadow: 0 1px 8px rgba(0, 0, 0, 0.3);
+    }
+  }
+
+  // ---- Panel kanan: form ----
+  .login-form-panel {
+    flex: 1 1 55%;
+    max-width: 55%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3.5rem;
+  }
+
+  .login-form-inner {
+    width: 100%;
+    max-width: 400px;
+  }
+
+  // Logo PLN: tidak terlalu besar, margin bawah ~32px
+  .login-logo {
+    width: 180px;
+    height: auto;
+    object-fit: contain;
+    margin-bottom: 2rem;
+  }
+
+  // Judul & deskripsi
+  .login-title {
+    font-size: 2.15rem;
+    font-weight: 700;
+    color: var(--#{$prefix}gray-800);
+  }
+
+  .login-subtitle {
+    font-size: 1rem;
+    color: #64748b;
+  }
+
+  // ---- Label form: sejajar dengan input, spacing & tipografi konsisten ----
+  .form-label {
+    display: block;
+    margin-bottom: 0.5rem; // 8px antara label dan input
+    padding-left: 0.25rem; // sejajar visual dengan teks di dalam input
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--#{$prefix}gray-800);
+  }
+
+  // Jarak antar field (Email -> Password) ~24px, konsisten
+  form .mb-3 {
+    margin-bottom: 1.5rem !important;
+  }
+
+  // ---- Input modern: satu container utuh, ikon di dalam ----
+  .login-input {
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+    background-color: #fff;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    flex-wrap: nowrap;
+
+    .input-group-text {
+      background-color: transparent;
+      border: 0;
+      color: var(--#{$prefix}gray-600);
+      padding-left: 1rem;
+      padding-right: 0.5rem;
+    }
+
+    .form-control {
+      height: 50px;
+      border: 0;
+      background-color: transparent;
+      padding-left: 0.5rem;
+
+      &:focus {
+        box-shadow: none;
+      }
+      &::placeholder {
+        color: #94a3b8;
+      }
+    }
+
+    // Tombol show/hide password menyatu tanpa border
+    .login-password-toggle {
+      border: 0;
+      background-color: transparent;
+      color: var(--#{$prefix}gray-600);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      padding: 0 1rem;
+
+      &:hover {
+        color: var(--#{$prefix}primary);
+      }
+    }
+
+    // Hover & focus pada seluruh container
+    &:hover {
+      border-color: #94a3b8;
+    }
+    &:focus-within {
+      border-color: var(--#{$prefix}primary);
+      box-shadow: 0 0 0 3px rgba(0, 100, 146, 0.12);
+    }
+  }
+
+  // ---- Custom checkbox "Ingat saya" ----
+  .form-check {
+    .form-check-input {
+      width: 1.125rem;
+      height: 1.125rem;
+      margin-top: 0.15rem;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      cursor: pointer;
+
+      &:checked {
+        background-color: var(--#{$prefix}primary);
+        border-color: var(--#{$prefix}primary);
+      }
+      &:focus {
+        box-shadow: 0 0 0 3px rgba(0, 100, 146, 0.12);
+        border-color: var(--#{$prefix}primary);
+      }
+    }
+    .form-check-label {
+      font-size: 0.875rem;
+      color: var(--#{$prefix}gray-700);
+      cursor: pointer;
+    }
+  }
+
+  // ---- Link Lupa Password ----
+  .login-forgot {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #64748b;
+    transition: color 0.2s ease;
+
+    &:hover {
+      color: var(--#{$prefix}primary);
+    }
+  }
+
+  // ---- Tombol Masuk premium ----
+  .login-submit-btn {
+    height: 54px;
+    border-radius: 14px;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(0, 100, 146, 0.2);
+    transition: transform 0.2s ease, box-shadow 0.2s ease,
+      background-color 0.2s ease;
+
+    &:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(0, 100, 146, 0.28);
+    }
+  }
+
+  // ---- Footer ----
+  .login-footer {
+    margin-top: 2rem;
+    font-size: 0.75rem;
+    color: #94a3b8;
+    line-height: 1.6;
+  }
+
+  // ---- Responsive ----
+  // Tablet: panel kiri diperkecil
+  @include media-breakpoint-down(lg) {
+    .login-card {
+      min-height: 560px;
+    }
+    .login-visual {
+      flex-basis: 38%;
+      max-width: 38%;
+
+      .login-visual-content {
+        padding: 2rem;
+      }
+      .login-visual-title {
+        font-size: 2rem;
+      }
+    }
+    .login-form-panel {
+      flex-basis: 62%;
+      max-width: 62%;
+      padding: 2.5rem;
+    }
+  }
+
+  // Mobile: sembunyikan panel kiri, form full & center
+  @include media-breakpoint-down(md) {
+    .login-card {
+      max-width: 460px;
+      min-height: 0;
+    }
+    .login-visual {
+      display: none;
+    }
+    .login-form-panel {
+      flex-basis: 100%;
+      max-width: 100%;
+      padding: 2.5rem 1.75rem;
+    }
+  }
+}
