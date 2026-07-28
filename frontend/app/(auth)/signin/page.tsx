@@ -1,27 +1,21 @@
 "use client";
 // import node modules libraries
-import { Fragment, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Feedback from "react-bootstrap/Feedback";
 import {
-  Row,
-  Col,
-  Image,
-  Card,
-  CardBody,
   Form,
-  FormLabel,
   FormControl,
   FormCheck,
   Button,
   Alert,
   Spinner,
+  InputGroup,
 } from "react-bootstrap";
 import Link from "next/link";
-import { IconEyeOff } from "@tabler/icons-react";
+import { Image } from "react-bootstrap";
+import { IconMail, IconLock, IconEye, IconEyeOff } from "@tabler/icons-react";
 
 // import custom components
-import Flex from "components/common/Flex";
 import { getAssetPath } from "helper/assetPath";
 import apiFetch from "lib/api";
 
@@ -40,6 +34,8 @@ const SignIn = () => {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -76,91 +72,135 @@ const SignIn = () => {
     }
   };
 
-  // ...sisanya (return JSX) tetap sama persis seperti yang kamu punya, tidak perlu diubah
-
   return (
-    <Fragment>
-      <Row className="mb-8">
-        <Col xl={{ span: 4, offset: 4 }} md={12}>
-          <div className="text-center">
-            <Link
-              href="/"
-              className="fs-2 fw-bold d-flex align-items-center gap-2 justify-content-center mb-6"
-            >
-              <Image src={getAssetPath("/images/brand/logo/logo-icon.svg")} alt="Dasher" />
-              <span>Dasher</span>
-            </Link>
-            <h1 className="mb-1">Welcome Back</h1>
-            <p className="mb-0">Masuk untuk mengelola Ruang Tools</p>
+    <div className="login-page">
+      <div className="login-card">
+        {/* Panel Kiri: Visual */}
+        <div className="login-visual login-anim-left">
+          <Image
+            src={getAssetPath("/images/png/ruangtools.png")}
+            alt="Workshop Mekanik PLN Pusharlis"
+            className="login-visual-img"
+          />
+          <div className="login-visual-overlay" />
+          <div className="login-visual-content">
+            <h2 className="login-visual-title">Selamat Datang</h2>
+            <p className="login-visual-subtitle">
+              Sistem Inventaris dan Peminjaman Alat
+              <br />
+              Workshop Mekanik PLN Pusharlis
+            </p>
           </div>
-        </Col>
-      </Row>
+        </div>
 
-      <Row className="justify-content-center">
-        <Col xl={5} lg={6} md={8}>
-          <Card className="card-lg mb-6">
-            <CardBody className="p-6">
-              {error && <Alert variant="danger">{error}</Alert>}
+        {/* Panel Kanan: Form Login */}
+        <div className="login-form-panel login-anim-right">
+          <div className="login-form-inner">
+            <div className="text-center mb-4">
+              <Image
+                src={getAssetPath("/images/png/PLN-logo.png")}
+                alt="PT PLN (Persero)"
+                className="login-logo"
+              />
+            </div>
 
-              <Form className="mb-6" onSubmit={handleSubmit}>
-                <div className="mb-3">
-                  <FormLabel htmlFor="signinEmailInput">
-                    Email <span className="text-danger">*</span>
-                  </FormLabel>
+            <div className="mb-4">
+              <h1 className="login-title mb-2">Masuk</h1>
+              <p className="login-subtitle mb-0">
+                Silakan masuk menggunakan akun Anda.
+              </p>
+            </div>
+
+            {error && <Alert variant="danger">{error}</Alert>}
+
+            <Form onSubmit={handleSubmit}>
+              <div className="mb-3">
+                <Form.Label htmlFor="signinEmailInput">Email</Form.Label>
+                <InputGroup className="login-input">
+                  <InputGroup.Text>
+                    <IconMail size={18} />
+                  </InputGroup.Text>
                   <FormControl
                     type="email"
                     id="signinEmailInput"
+                    placeholder="Masukkan email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={loading}
                   />
-                  <Feedback type="invalid">Please enter email.</Feedback>
-                </div>
-                <div className="mb-3">
-                  <FormLabel htmlFor="formSignUpPassword">Password</FormLabel>
-                  <div className="password-field position-relative">
-                    <FormControl
-                      type="password"
-                      id="formSignUpPassword"
-                      className="fakePassword"
-                      required
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      disabled={loading}
-                    />
-                    <span>
-                      <IconEyeOff className="passwordToggler" size={16} />
-                    </span>
-                  </div>
-                  <Feedback type="invalid">Please enter password.</Feedback>
-                </div>
-                <Flex className="mb-4" alignItems="center" justifyContent="between">
-                  <FormCheck label="Remember me" type="checkbox" />
-                  <div>
-                    <Link href="" className="text-primary">
-                      Forgot Password
-                    </Link>
-                  </div>
-                </Flex>
-                <div className="d-grid">
-                  <Button variant="primary" type="submit" disabled={loading}>
-                    {loading ? (
-                      <>
-                        <Spinner animation="border" size="sm" className="me-2" />
-                        Memproses...
-                      </>
-                    ) : (
-                      "SignIn"
-                    )}
+                </InputGroup>
+              </div>
+
+              <div className="mb-3">
+                <Form.Label htmlFor="signinPasswordInput">Password</Form.Label>
+                <InputGroup className="login-input">
+                  <InputGroup.Text>
+                    <IconLock size={18} />
+                  </InputGroup.Text>
+                  <FormControl
+                    type={showPassword ? "text" : "password"}
+                    id="signinPasswordInput"
+                    placeholder="Masukkan password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={loading}
+                  />
+                  <Button
+                    variant="link"
+                    type="button"
+                    className="login-password-toggle"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
+                  >
+                    {showPassword ? <IconEyeOff size={18} /> : <IconEye size={18} />}
                   </Button>
-                </div>
-              </Form>
-            </CardBody>
-          </Card>
-        </Col>
-      </Row>
-    </Fragment>
+                </InputGroup>
+              </div>
+
+              <div className="d-flex align-items-center justify-content-between mb-4">
+                <FormCheck
+                  label="Ingat saya"
+                  type="checkbox"
+                  id="rememberMe"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  disabled={loading}
+                />
+                <Link href="" className="login-forgot text-decoration-none">
+                  Lupa Password?
+                </Link>
+              </div>
+
+              <div className="d-grid">
+                <Button
+                  variant="primary"
+                  type="submit"
+                  className="login-submit-btn"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <Spinner animation="border" size="sm" className="me-2" />
+                      Memverifikasi...
+                    </>
+                  ) : (
+                    "Masuk"
+                  )}
+                </Button>
+              </div>
+            </Form>
+
+            <div className="login-footer text-center">
+              © 2026 PT PLN Pusharlis
+              <br />
+              Workshop Mekanik
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 
