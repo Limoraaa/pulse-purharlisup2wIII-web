@@ -11,7 +11,7 @@ class UserController extends Controller
 {
     // Kolom yang aman ditampilkan (password tidak pernah ikut)
     private const SAFE_COLUMNS = [
-        'id', 'full_name', 'username', 'email', 'role', 'divisi', 'no_hp', 'avatar_path', 'created_at',
+        'id', 'full_name', 'email', 'role', 'divisi', 'no_hp', 'avatar_path', 'created_at',
     ];
 
     // GET /api/users
@@ -53,7 +53,6 @@ class UserController extends Controller
 
         $validator = Validator::make($request->all(), [
             'full_name' => 'sometimes|required|string|max:255',
-            'username' => 'sometimes|nullable|string|max:255|unique:users,username,' . $user->id,
             'email' => 'sometimes|required|email|unique:users,email,' . $user->id,
             'password' => 'nullable|string|min:6',
             'divisi' => 'sometimes|nullable|string|max:255',
@@ -106,7 +105,6 @@ class UserController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'full_name' => 'required|string|max:255',
-            'username' => 'nullable|string|max:255|unique:users,username',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:6',
             'role' => 'required|in:staff_inventory,super_admin',
@@ -135,7 +133,6 @@ class UserController extends Controller
 
         $validator = Validator::make($request->all(), [
             'full_name' => 'sometimes|required|string|max:255',
-            'username' => 'sometimes|nullable|string|max:255|unique:users,username,' . $user->id,
             'email' => 'sometimes|required|email|unique:users,email,' . $user->id,
             'password' => 'nullable|string|min:6',
             'role' => 'sometimes|required|in:staff_inventory,super_admin',

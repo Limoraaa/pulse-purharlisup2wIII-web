@@ -34,7 +34,6 @@ import { getProfile, updateProfile, changePassword, uploadAvatar, ProfileApiData
 
 interface ProfileData {
   namaLengkap: string;
-  username: string;
   email: string;
   role: string;
   divisi: string;
@@ -43,7 +42,6 @@ interface ProfileData {
 
 const emptyProfile: ProfileData = {
   namaLengkap: "",
-  username: "",
   email: "",
   role: "",
   divisi: "-",
@@ -91,7 +89,6 @@ const ProfileManager = () => {
       const data: ProfileApiData = await getProfile();
       const mapped: ProfileData = {
         namaLengkap: data.namaLengkap,
-        username: data.username,
         email: data.email,
         role: data.role,
         divisi: data.divisi,
@@ -140,15 +137,13 @@ const ProfileManager = () => {
     try {
       const updated = await updateProfile({
         namaLengkap: form.namaLengkap,
-        username: form.username,
         email: form.email,
         divisi: form.divisi,
         noHp: form.noHp,
       });
       const mapped: ProfileData = {
         namaLengkap: updated.namaLengkap,
-        username: updated.username,
-        email: updated.email,
+          email: updated.email,
         role: updated.role,
         divisi: updated.divisi,
         noHp: updated.noHp,
@@ -282,7 +277,6 @@ const ProfileManager = () => {
                 />
               </div>
               <h4 className="mb-1">{profile.namaLengkap}</h4>
-              <div className="text-secondary mb-1">@{profile.username || "-"}</div>
               <div className="mb-1">
                 <span className="badge bg-primary-subtle text-primary-emphasis">
                   {profile.role}
@@ -345,16 +339,6 @@ const ProfileManager = () => {
                       disabled={!isEditing || saving}
                       onChange={(e) =>
                         setForm((p) => ({ ...p, namaLengkap: e.target.value }))
-                      }
-                    />
-                  </Col>
-                  <Col md={6}>
-                    <Form.Label>Username</Form.Label>
-                    <Form.Control
-                      value={form.username}
-                      disabled={!isEditing || saving}
-                      onChange={(e) =>
-                        setForm((p) => ({ ...p, username: e.target.value }))
                       }
                     />
                   </Col>

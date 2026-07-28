@@ -4,7 +4,6 @@ import apiFetch from "lib/api";
 interface UserApiResponse {
   id: string;
   full_name: string;
-  username: string | null;
   email: string;
   role: string;
   divisi: string | null;
@@ -16,7 +15,6 @@ interface UserApiResponse {
 export interface ProfileApiData {
   id: string;
   namaLengkap: string;
-  username: string;
   email: string;
   role: string;
   divisi: string;
@@ -26,7 +24,6 @@ export interface ProfileApiData {
 
 export interface UpdateProfilePayload {
   namaLengkap: string;
-  username: string;
   email: string;
   divisi: string;
   noHp: string;
@@ -42,7 +39,6 @@ function mapProfileFromApi(item: UserApiResponse): ProfileApiData {
   return {
     id: item.id,
     namaLengkap: item.full_name,
-    username: item.username ?? "",
     email: item.email,
     role: item.role,
     divisi: item.divisi ?? "-",
@@ -61,7 +57,6 @@ export async function updateProfile(values: UpdateProfilePayload): Promise<Profi
     method: "PUT",
     body: JSON.stringify({
       full_name: values.namaLengkap,
-      username: values.username,
       email: values.email,
       divisi: values.divisi,
       no_hp: values.noHp,
