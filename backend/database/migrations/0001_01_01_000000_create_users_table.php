@@ -12,7 +12,6 @@ return new class extends Migration
         Schema::create('users', function (Blueprint $table) {
             $table->uuid('id')->default(DB::raw('gen_random_uuid()'))->primary();
             $table->string('full_name');
-            $table->string('username')->nullable()->unique();
             $table->string('email')->unique();
             $table->string('password');
             $table->string('role')->default('staff_inventory'); // admin/staff_inventory
