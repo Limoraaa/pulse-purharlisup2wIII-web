@@ -1,14 +1,46 @@
 "use client";
 //import node modules libraries
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 
 //import custom components
 import { Avatar } from "components/common/Avatar";
 import { getAssetPath } from "helper/assetPath";
+import { getProfile } from "services/profileService";
+
+const DEFAULT_AVATAR = getAssetPath("/images/avatar/avatar-1.jpg");
 
 // Avatar kini menjadi navigasi langsung ke halaman Profil (tanpa dropdown).
 const UserMenu = () => {
+  const [avatarSrc, setAvatarSrc] = useState<string>(DEFAULT_AVATAR);
+
+  useEffect(() => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    if (!token) return;
+
+    getProfile()
+      .then((data) => {
+        if (data.avatarPath) {
+          const backendOrigin = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/?$/, "");
+          setAvatarSrc(`${backendOrigin}/storage/${data.avatarPath}`);
+        }
+      })
+      .catch(() => {
+        // Gagal ambil profil (misal token expired) -- biarkan avatar default
+      });
+
+    // Dengarkan event dari ProfileManager -- update avatar seketika tanpa refresh
+    const handleAvatarUpdated = (e: Event) => {
+      const customEvent = e as CustomEvent<string>;
+      setAvatarSrc(customEvent.detail);
+    };
+    window.addEventListener("avatar-updated", handleAvatarUpdated);
+
+    return () => {
+      window.removeEventListener("avatar-updated", handleAvatarUpdated);
+    };
+  }, []);
+
   return (
     <Link
       href="/profile"
@@ -18,7 +50,7 @@ const UserMenu = () => {
     >
       <Avatar
         type="image"
-        src={getAssetPath("/images/avatar/avatar-1.jpg")}
+        src={avatarSrc}
         size="sm"
         alt="User Avatar"
         className="rounded-circle"

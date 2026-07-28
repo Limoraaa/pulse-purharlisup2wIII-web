@@ -69,7 +69,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/consumable-keluar/antrean', [ConsumableKeluarController::class, 'antrean']);
     Route::delete('/consumable-keluar/antrean/{consumable_id}', [ConsumableKeluarController::class, 'hapusAntrean']);
     Route::post('/consumable-keluar/proses', [ConsumableKeluarController::class, 'prosesCartConsumable']);
-    
+
     // PINDAHKAN KE SINI: Pastikan apiResource selalu berada di BAWAH rute kustom
     Route::apiResource('consumable-keluar', ConsumableKeluarController::class);
+
+    Route::get('/profile', [UserController::class, 'profile']);
+    Route::put('/profile', [UserController::class, 'updateProfile']);
+    Route::patch('/profile', [UserController::class, 'updateProfile']);
+    Route::post('/profile/photo', [UserController::class, 'uploadPhoto']);
+    Route::patch('/profile/password', [UserController::class, 'changePassword']);
 });

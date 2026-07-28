@@ -10,24 +10,28 @@ import {
   Button,
   Form,
   Alert,
+  Spinner,
 } from "react-bootstrap";
 import {
-  IconEdit,
+   IconEdit,
   IconDeviceFloppy,
   IconX,
   IconLock,
   IconCamera,
   IconLogout,
   IconCircleCheck,
+  IconEye,
+  IconEyeOff,
 } from "@tabler/icons-react";
 
 // import custom components
 import Flex from "components/common/Flex";
 import DasherBreadcrumb from "components/common/DasherBreadcrumb";
 import { Avatar } from "components/common/Avatar";
-import { getAssetPath } from "helper/assetPath";
 
-// Bentuk data profil (murni UI; belum terhubung ke API backend).
+// import services
+import { getProfile, updateProfile, changePassword, uploadAvatar, ProfileApiData } from "services/profileService";
+
 interface ProfileData {
   namaLengkap: string;
   username: string;
@@ -37,22 +41,25 @@ interface ProfileData {
   noHp: string;
 }
 
+const emptyProfile: ProfileData = {
+  namaLengkap: "",
+  username: "",
+  email: "",
+  role: "",
+  divisi: "-",
+  noHp: "",
+};
+
 const ProfileManager = () => {
   const router = useRouter();
 
-  // Data profil awal — diisi dari localStorage bila tersedia.
-  const [profile, setProfile] = useState<ProfileData>({
-    namaLengkap: "Admin Testing",
-    username: "@admin",
-    email: "admin@pln.co.id",
-    role: "Staff Ruang Tools",
-    divisi: "-",
-    noHp: "",
-  });
-
-  // Salinan form saat mode edit (agar Batal bisa mengembalikan nilai semula).
-  const [form, setForm] = useState<ProfileData>(profile);
+  const [profile, setProfile] = useState<ProfileData>(emptyProfile);
+  const [form, setForm] = useState<ProfileData>(emptyProfile);
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Password state
@@ -60,25 +67,53 @@ const ProfileManager = () => {
     lama: "",
     baru: "",
     konfirmasi: "",
+   });
+    const [showPassword, setShowPassword] = useState({
+    lama: false,
+    baru: false,
+    konfirmasi: false,
   });
-  const [passwordError, setPasswordError] = useState<string | null>(null);
 
-  // Foto profil (placeholder — belum upload ke server)
+  const toggleShowPassword = (field: "lama" | "baru" | "konfirmasi") => {
+    setShowPassword((prev) => ({ ...prev, [field]: !prev[field] }));
+  };
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSaving, setPasswordSaving] = useState(false);
+
+  // Foto profil (masih preview lokal -- upload ke server belum tersambung)
   const [avatarSrc, setAvatarSrc] = useState<string>("/images/avatar/avatar-1.jpg");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    const storedName = localStorage.getItem("userName");
-    const storedRole = localStorage.getItem("userRole");
-    setProfile((prev) => {
-      const next = {
-        ...prev,
-        namaLengkap: storedName || prev.namaLengkap,
-        role: storedRole || prev.role,
+  const loadProfile = async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const data: ProfileApiData = await getProfile();
+      const mapped: ProfileData = {
+        namaLengkap: data.namaLengkap,
+        username: data.username,
+        email: data.email,
+        role: data.role,
+        divisi: data.divisi,
+        noHp: data.noHp,
       };
-      setForm(next);
-      return next;
-    });
+      setProfile(mapped);
+      setForm(mapped);
+
+      if (data.avatarPath) {
+        const backendOrigin = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/?$/, "");
+        setAvatarSrc(`${backendOrigin}/storage/${data.avatarPath}`);
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Gagal memuat data profil";
+      setLoadError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadProfile();
   }, []);
 
   const showSuccess = (msg: string) => {
@@ -88,24 +123,49 @@ const ProfileManager = () => {
 
   const handleEdit = () => {
     setForm(profile);
+    setSaveError(null);
     setIsEditing(true);
   };
 
   const handleCancel = () => {
     setForm(profile);
+    setSaveError(null);
     setIsEditing(false);
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simpan lokal saja (belum ke API). Nama disinkronkan ke localStorage.
-    setProfile(form);
-    localStorage.setItem("userName", form.namaLengkap);
-    setIsEditing(false);
-    showSuccess("Profil berhasil diperbarui.");
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const updated = await updateProfile({
+        namaLengkap: form.namaLengkap,
+        username: form.username,
+        email: form.email,
+        divisi: form.divisi,
+        noHp: form.noHp,
+      });
+      const mapped: ProfileData = {
+        namaLengkap: updated.namaLengkap,
+        username: updated.username,
+        email: updated.email,
+        role: updated.role,
+        divisi: updated.divisi,
+        noHp: updated.noHp,
+      };
+      setProfile(mapped);
+      setForm(mapped);
+      setIsEditing(false);
+      showSuccess("Profil berhasil diperbarui.");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Gagal menyimpan profil";
+      setSaveError(message);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handlePasswordSubmit = (e: React.FormEvent) => {
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setPasswordError(null);
 
@@ -118,22 +178,48 @@ const ProfileManager = () => {
       return;
     }
 
-    // Belum ada API — reset form & tampilkan notifikasi.
-    setPasswordForm({ lama: "", baru: "", konfirmasi: "" });
-    showSuccess("Password berhasil diperbarui.");
+    setPasswordSaving(true);
+    try {
+      await changePassword({
+        passwordLama: passwordForm.lama,
+        passwordBaru: passwordForm.baru,
+        konfirmasiPasswordBaru: passwordForm.konfirmasi,
+      });
+      setPasswordForm({ lama: "", baru: "", konfirmasi: "" });
+      showSuccess("Password berhasil diperbarui.");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Gagal memperbarui password";
+      setPasswordError(message);
+    } finally {
+      setPasswordSaving(false);
+    }
   };
 
   const handleAvatarClick = () => {
     fileInputRef.current?.click();
   };
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    // Placeholder: pratinjau lokal saja, belum upload ke server.
-    const previewUrl = URL.createObjectURL(file);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  // Preview instan sambil upload jalan di background
+  const previewUrl = URL.createObjectURL(file);
     setAvatarSrc(previewUrl);
-    showSuccess("Foto profil dipilih (pratinjau). Simpan belum tersambung ke server.");
+
+    setAvatarUploading(true);
+    try {
+      const result = await uploadAvatar(file);
+      setAvatarSrc(result.avatar_url);
+      window.dispatchEvent(new CustomEvent("avatar-updated", { detail: result.avatar_url }));
+      showSuccess("Foto profil berhasil diperbarui.");
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Gagal mengunggah foto profil");
+    } finally {
+      setAvatarUploading(false);
+    }
   };
 
   const handleLogout = () => {
@@ -143,6 +229,15 @@ const ProfileManager = () => {
     localStorage.removeItem("userRole");
     router.push("/signin");
   };
+
+  if (loading) {
+    return (
+      <div className="text-center py-6">
+        <Spinner animation="border" size="sm" className="me-2" />
+        Memuat profil...
+      </div>
+    );
+  }
 
   return (
     <div className="profile-page">
@@ -157,6 +252,7 @@ const ProfileManager = () => {
           {successMessage}
         </Alert>
       )}
+      {loadError && <Alert variant="danger">{loadError}</Alert>}
 
       {/* ---- Page Header ---- */}
       <Row>
@@ -186,7 +282,7 @@ const ProfileManager = () => {
                 />
               </div>
               <h4 className="mb-1">{profile.namaLengkap}</h4>
-              <div className="text-secondary mb-1">{profile.username}</div>
+              <div className="text-secondary mb-1">@{profile.username || "-"}</div>
               <div className="mb-1">
                 <span className="badge bg-primary-subtle text-primary-emphasis">
                   {profile.role}
@@ -207,9 +303,14 @@ const ProfileManager = () => {
                 variant="outline-secondary"
                 className="mt-3 d-inline-flex align-items-center gap-2"
                 onClick={handleAvatarClick}
+                disabled={avatarUploading}
               >
-                <IconCamera size={18} />
-                Ganti Foto Profil
+                {avatarUploading ? (
+                  <Spinner animation="border" size="sm" />
+                ) : (
+                  <IconCamera size={18} />
+                )}
+                {avatarUploading ? "Mengunggah..." : "Ganti Foto Profil"}
               </Button>
             </CardBody>
           </Card>
@@ -233,13 +334,15 @@ const ProfileManager = () => {
                 )}
               </Flex>
 
+              {saveError && <Alert variant="danger">{saveError}</Alert>}
+
               <Form onSubmit={handleSave}>
                 <Row className="g-3">
                   <Col md={6}>
                     <Form.Label>Nama Lengkap</Form.Label>
                     <Form.Control
                       value={form.namaLengkap}
-                      disabled={!isEditing}
+                      disabled={!isEditing || saving}
                       onChange={(e) =>
                         setForm((p) => ({ ...p, namaLengkap: e.target.value }))
                       }
@@ -249,7 +352,7 @@ const ProfileManager = () => {
                     <Form.Label>Username</Form.Label>
                     <Form.Control
                       value={form.username}
-                      disabled={!isEditing}
+                      disabled={!isEditing || saving}
                       onChange={(e) =>
                         setForm((p) => ({ ...p, username: e.target.value }))
                       }
@@ -260,7 +363,7 @@ const ProfileManager = () => {
                     <Form.Control
                       type="email"
                       value={form.email}
-                      disabled={!isEditing}
+                      disabled={!isEditing || saving}
                       onChange={(e) =>
                         setForm((p) => ({ ...p, email: e.target.value }))
                       }
@@ -274,7 +377,7 @@ const ProfileManager = () => {
                     <Form.Label>Divisi</Form.Label>
                     <Form.Control
                       value={form.divisi}
-                      disabled={!isEditing}
+                      disabled={!isEditing || saving}
                       onChange={(e) =>
                         setForm((p) => ({ ...p, divisi: e.target.value }))
                       }
@@ -287,7 +390,7 @@ const ProfileManager = () => {
                     </Form.Label>
                     <Form.Control
                       value={form.noHp}
-                      disabled={!isEditing}
+                      disabled={!isEditing || saving}
                       placeholder="Contoh: 0812xxxxxxx"
                       onChange={(e) =>
                         setForm((p) => ({ ...p, noHp: e.target.value }))
@@ -301,14 +404,20 @@ const ProfileManager = () => {
                     <Button
                       variant="primary"
                       type="submit"
+                      disabled={saving}
                       className="d-inline-flex align-items-center gap-2"
                     >
-                      <IconDeviceFloppy size={18} />
+                      {saving ? (
+                        <Spinner animation="border" size="sm" />
+                      ) : (
+                        <IconDeviceFloppy size={18} />
+                      )}
                       Simpan
                     </Button>
                     <Button
                       variant="outline-secondary"
                       type="button"
+                      disabled={saving}
                       className="d-inline-flex align-items-center gap-2"
                       onClick={handleCancel}
                     >
@@ -343,41 +452,85 @@ const ProfileManager = () => {
                 <Row className="g-3">
                   <Col md={4}>
                     <Form.Label>Password Lama</Form.Label>
-                    <Form.Control
-                      type="password"
-                      value={passwordForm.lama}
-                      onChange={(e) =>
-                        setPasswordForm((p) => ({ ...p, lama: e.target.value }))
-                      }
-                    />
+                    <div className="position-relative">
+                      <Form.Control
+                        type={showPassword.lama ? "text" : "password"}
+                        value={passwordForm.lama}
+                        disabled={passwordSaving}
+                        onChange={(e) =>
+                          setPasswordForm((p) => ({ ...p, lama: e.target.value }))
+                        }
+                        style={{ paddingRight: "2.5rem" }}
+                      />
+                      <Button
+                        variant="link"
+                        className="position-absolute top-50 end-0 translate-middle-y text-secondary p-0 me-3"
+                        onClick={() => toggleShowPassword("lama")}
+                        tabIndex={-1}
+                        type="button"
+                      >
+                        {showPassword.lama ? <IconEyeOff size={18} /> : <IconEye size={18} />}
+                      </Button>
+                    </div>
                   </Col>
                   <Col md={4}>
                     <Form.Label>Password Baru</Form.Label>
-                    <Form.Control
-                      type="password"
-                      value={passwordForm.baru}
-                      onChange={(e) =>
-                        setPasswordForm((p) => ({ ...p, baru: e.target.value }))
-                      }
-                    />
+                    <div className="position-relative">
+                      <Form.Control
+                        type={showPassword.baru ? "text" : "password"}
+                        value={passwordForm.baru}
+                        disabled={passwordSaving}
+                        onChange={(e) =>
+                          setPasswordForm((p) => ({ ...p, baru: e.target.value }))
+                        }
+                        style={{ paddingRight: "2.5rem" }}
+                      />
+                      <Button
+                        variant="link"
+                        className="position-absolute top-50 end-0 translate-middle-y text-secondary p-0 me-3"
+                        onClick={() => toggleShowPassword("baru")}
+                        tabIndex={-1}
+                        type="button"
+                      >
+                        {showPassword.baru ? <IconEyeOff size={18} /> : <IconEye size={18} />}
+                      </Button>
+                    </div>
                   </Col>
                   <Col md={4}>
                     <Form.Label>Konfirmasi Password</Form.Label>
-                    <Form.Control
-                      type="password"
-                      value={passwordForm.konfirmasi}
-                      onChange={(e) =>
-                        setPasswordForm((p) => ({ ...p, konfirmasi: e.target.value }))
-                      }
-                    />
+                    <div className="position-relative">
+                      <Form.Control
+                        type={showPassword.konfirmasi ? "text" : "password"}
+                        value={passwordForm.konfirmasi}
+                        disabled={passwordSaving}
+                        onChange={(e) =>
+                          setPasswordForm((p) => ({ ...p, konfirmasi: e.target.value }))
+                        }
+                        style={{ paddingRight: "2.5rem" }}
+                      />
+                      <Button
+                        variant="link"
+                        className="position-absolute top-50 end-0 translate-middle-y text-secondary p-0 me-3"
+                        onClick={() => toggleShowPassword("konfirmasi")}
+                        tabIndex={-1}
+                        type="button"
+                      >
+                        {showPassword.konfirmasi ? <IconEyeOff size={18} /> : <IconEye size={18} />}
+                      </Button>
+                    </div>
                   </Col>
                 </Row>
                 <Button
                   variant="primary"
                   type="submit"
+                  disabled={passwordSaving}
                   className="mt-4 d-inline-flex align-items-center gap-2"
                 >
-                  <IconLock size={18} />
+                  {passwordSaving ? (
+                    <Spinner animation="border" size="sm" />
+                  ) : (
+                    <IconLock size={18} />
+                  )}
                   Simpan Password
                 </Button>
               </Form>
