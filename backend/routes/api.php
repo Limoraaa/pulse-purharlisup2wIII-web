@@ -18,7 +18,6 @@ Route::post('/login', [AuthController::class, 'login']);
 // ==========================================
 // ROUTE YANG TIDAK BUTUH AUTH (PUBLIC / GENERAL)
 // ==========================================
-Route::apiResource('users', UserController::class);
 Route::apiResource('tools', ToolController::class);
 Route::patch('/tools/{tool}/kurangi-stok', [ToolController::class, 'kurangiStok']);
 
@@ -78,4 +77,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/profile', [UserController::class, 'updateProfile']);
     Route::post('/profile/photo', [UserController::class, 'uploadPhoto']);
     Route::patch('/profile/password', [UserController::class, 'changePassword']);
+
+    Route::apiResource('users', UserController::class);
+    Route::patch('/users/{id}/reset-password', [UserController::class, 'resetPassword']);
 });

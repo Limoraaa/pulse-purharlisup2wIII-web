@@ -6,7 +6,7 @@ import {
   IconArrowsExchange,
   IconHistory,
   IconReportAnalytics,
-  IconSettings,
+  IconUsers,
 } from "@tabler/icons-react";
 
 //import custom type
@@ -77,5 +77,11 @@ export const DashboardMenu: MenuItemType[] = [
     link: "/laporan",
     icon: <IconReportAnalytics size={20} strokeWidth={1.5} />,
   },
-  
+  {
+    id: uuid(),
+    title: "Manajemen User",
+    link: "/data-user",
+    icon: <IconUsers size={20} strokeWidth={1.5} />,
+  },
+
 ];
