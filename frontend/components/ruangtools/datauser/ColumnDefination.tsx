@@ -9,14 +9,16 @@ import ActionMenu from "components/common/ActionMenu";
 interface ColumnHandlers {
   isAdmin: boolean;
   onEdit: (item: UserItemType) => void;
-  onDelete: (item: UserItemType) => void;
+  onDeactivate: (item: UserItemType) => void;
+  onActivate: (item: UserItemType) => void;
   onResetPassword: (item: UserItemType) => void;
 }
 
 export const getDataUserColumns = ({
   isAdmin,
   onEdit,
-  onDelete,
+  onDeactivate,
+  onActivate,
   onResetPassword,
 }: ColumnHandlers): ColumnDef<UserItemType>[] => [
   {
@@ -50,18 +52,28 @@ export const getDataUserColumns = ({
     cell: ({ row }) => row.original.no_hp || "-",
   },
   {
+    accessorKey: "is_active",
+    header: "Status",
+    cell: ({ row }) => (
+      <Badge
+        bg={row.original.is_active ? "success-subtle" : "secondary-subtle"}
+        text={row.original.is_active ? "success-emphasis" : "secondary-emphasis"}
+      >
+        {row.original.is_active ? "Aktif" : "Nonaktif"}
+      </Badge>
+    ),
+  },
+  {
     id: "aksi",
     header: "Aksi",
     cell: ({ row }) => {
       const target = row.original;
 
-      // Staff tidak boleh edit user ber-role admin (kecuali dirinya sendiri, tapi staff selalu ber-role staff jadi ini otomatis aman)
-        const canEdit = isAdmin;
-        const canDelete = isAdmin;
-        const canResetPassword = isAdmin;
+      const canEdit = isAdmin;
+      const canToggleActive = isAdmin;
+      const canResetPassword = isAdmin;
 
-      // Kalau staff tidak bisa lakukan apa-apa ke baris ini, jangan render menu kosong
-      if (!canEdit && !canDelete && !canResetPassword) {
+      if (!canEdit && !canToggleActive && !canResetPassword) {
         return <span className="text-secondary small">-</span>;
       }
 
@@ -72,17 +84,18 @@ export const getDataUserColumns = ({
           drop="start"
           align="start"
         >
-          {canEdit && (
-            <Dropdown.Item onClick={() => onEdit(target)}>Edit</Dropdown.Item>
-          )}
+          {canEdit && <Dropdown.Item onClick={() => onEdit(target)}>Edit</Dropdown.Item>}
           {canResetPassword && (
-            <Dropdown.Item onClick={() => onResetPassword(target)}>
-              Reset Password
+            <Dropdown.Item onClick={() => onResetPassword(target)}>Reset Password</Dropdown.Item>
+          )}
+          {canToggleActive && target.is_active && (
+            <Dropdown.Item className="text-danger" onClick={() => onDeactivate(target)}>
+              Nonaktifkan
             </Dropdown.Item>
           )}
-          {canDelete && (
-            <Dropdown.Item className="text-danger" onClick={() => onDelete(target)}>
-              Hapus
+          {canToggleActive && !target.is_active && (
+            <Dropdown.Item className="text-success" onClick={() => onActivate(target)}>
+              Aktifkan
             </Dropdown.Item>
           )}
         </ActionMenu>

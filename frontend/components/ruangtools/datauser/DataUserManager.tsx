@@ -1,6 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
-import { getProfile } from "services/profileService";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import {
   Row,
   Col,
@@ -27,8 +26,10 @@ import {
   createUser,
   updateUser,
   deleteUser,
+  activateUser,
   resetUserPassword,
 } from "services/userService";
+import { getProfile } from "services/profileService";
 
 import TanstackTable from "components/table/TanstackTable";
 import Flex from "components/common/Flex";
@@ -48,7 +49,7 @@ const DataUserManager = () => {
   const [searchTerm, setSearchTerm] = useState("");
 
   const [formModalOpen, setFormModalOpen] = useState(false);
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deactivateModalOpen, setDeactivateModalOpen] = useState(false);
   const [resetModalOpen, setResetModalOpen] = useState(false);
   const [activeUser, setActiveUser] = useState<UserItemType | null>(null);
 
@@ -60,16 +61,15 @@ const DataUserManager = () => {
 
   useEffect(() => {
     getProfile()
-        .then((data) => {
+      .then((data) => {
         setIsAdmin(data.role === "super_admin");
         localStorage.setItem("userRole", data.role);
-        })
-        .catch(() => {
-        // Fallback kalau fetch gagal (misal offline sesaat) -- pakai data lama dulu
+      })
+      .catch(() => {
         const role = localStorage.getItem("userRole");
         setIsAdmin(role === "super_admin");
-        });
-    }, []);
+      });
+  }, []);
 
   const loadUsers = async () => {
     setLoading(true);
@@ -115,9 +115,9 @@ const DataUserManager = () => {
     setFormModalOpen(true);
   };
 
-  const openDeleteModal = (user: UserItemType) => {
+  const openDeactivateModal = (user: UserItemType) => {
     setActiveUser(user);
-    setDeleteModalOpen(true);
+    setDeactivateModalOpen(true);
   };
 
   const openResetModal = (user: UserItemType) => {
@@ -145,19 +145,33 @@ const DataUserManager = () => {
     }
   };
 
-  const handleConfirmDelete = async () => {
+  const handleConfirmDeactivate = async () => {
     if (!activeUser) return;
     try {
       await deleteUser(activeUser.id);
-      setUsers((prev) => prev.filter((u) => u.id !== activeUser.id));
-      showSuccess("User berhasil dihapus.");
+      setUsers((prev) =>
+        prev.map((u) => (u.id === activeUser.id ? { ...u, is_active: false } : u))
+      );
+      showSuccess("User berhasil dinonaktifkan.");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Gagal menghapus user");
+      alert(err instanceof Error ? err.message : "Gagal menonaktifkan user");
     } finally {
-      setDeleteModalOpen(false);
+      setDeactivateModalOpen(false);
       setActiveUser(null);
     }
   };
+
+  const handleActivate = useCallback(async (user: UserItemType) => {
+  try {
+    await activateUser(user.id);
+    setUsers((prev) =>
+      prev.map((u) => (u.id === user.id ? { ...u, is_active: true } : u))
+    );
+    showSuccess(`${user.full_name} berhasil diaktifkan kembali.`);
+  } catch (err) {
+    alert(err instanceof Error ? err.message : "Gagal mengaktifkan user");
+  }
+}, []);
 
   const handleResetSubmit = async (passwordBaru: string, konfirmasi: string) => {
     if (!activeUser) return;
@@ -179,15 +193,16 @@ const DataUserManager = () => {
   };
 
   const columns = useMemo(
-    () =>
-      getDataUserColumns({
-        isAdmin,
-        onEdit: openEditModal,
-        onDelete: openDeleteModal,
-        onResetPassword: openResetModal,
-      }),
-    [isAdmin]
-  );
+  () =>
+    getDataUserColumns({
+      isAdmin,
+      onEdit: openEditModal,
+      onDeactivate: openDeactivateModal,
+      onActivate: handleActivate,
+      onResetPassword: openResetModal,
+    }),
+  [isAdmin, handleActivate]
+);
 
   return (
     <div className="datatools-page">
@@ -302,12 +317,12 @@ const DataUserManager = () => {
       />
 
       <DeleteConfirmModal
-        show={deleteModalOpen}
+        show={deactivateModalOpen}
         onClose={() => {
-          setDeleteModalOpen(false);
+          setDeactivateModalOpen(false);
           setActiveUser(null);
         }}
-        onConfirm={handleConfirmDelete}
+        onConfirm={handleConfirmDeactivate}
         user={activeUser}
       />
 

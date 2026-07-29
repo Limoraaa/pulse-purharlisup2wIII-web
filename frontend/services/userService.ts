@@ -85,3 +85,7 @@ export async function resetUserPassword(
     body: JSON.stringify(values),
   });
 }
+
+export async function activateUser(id: string): Promise<void> {
+  await apiFetch(`/users/${id}/aktifkan`, { method: "PATCH" });
+}
