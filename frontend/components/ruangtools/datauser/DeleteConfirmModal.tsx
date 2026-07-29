@@ -17,14 +17,14 @@ const DeleteConfirmModal = ({ show, onClose, onConfirm, user }: DeleteConfirmMod
       <Modal.Header closeButton>
         <Modal.Title as="h5" className="d-flex align-items-center gap-2">
           <IconTrash size={20} />
-          Hapus User
+          Nonaktifkan User
         </Modal.Title>
       </Modal.Header>
       <Modal.Body className="text-center">
         <div className="mb-3">
           <IconAlertTriangle size={32} className="text-danger" />
         </div>
-        <h5 className="mb-2">Yakin ingin menghapus user ini?</h5>
+        <h5 className="mb-2">Yakin ingin Nonaktifkan user ini?</h5>
         <p className="text-secondary mb-3">Tindakan ini tidak bisa dibatalkan.</p>
         <div className="fw-semibold">{user?.full_name}</div>
         <div className="text-secondary small">{user?.email}</div>
@@ -35,7 +35,7 @@ const DeleteConfirmModal = ({ show, onClose, onConfirm, user }: DeleteConfirmMod
         </Button>
         <Button variant="danger" onClick={onConfirm} className="d-inline-flex align-items-center gap-2">
           <IconTrash size={18} />
-          Hapus
+          Nonaktifkan
         </Button>
       </Modal.Footer>
     </Modal>

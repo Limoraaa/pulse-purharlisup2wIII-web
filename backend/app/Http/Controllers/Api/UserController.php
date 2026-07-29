@@ -11,7 +11,7 @@ class UserController extends Controller
 {
     // Kolom yang aman ditampilkan (password tidak pernah ikut)
     private const SAFE_COLUMNS = [
-        'id', 'full_name', 'email', 'role', 'divisi', 'no_hp', 'avatar_path', 'created_at',
+        'id', 'full_name', 'email', 'role', 'divisi', 'no_hp', 'avatar_path', 'is_active', 'created_at',
     ];
 
     // GET /api/users
@@ -186,13 +186,16 @@ class UserController extends Controller
     }
     // DELETE /api/users/{id}
     // Hanya Admin yang boleh menghapus user.
+    // DELETE /api/users/{id}
+// Bukan hapus permanen -- user dinonaktifkan (soft delete) supaya riwayat
+// transaksi yang masih terkait (mis. peminjaman.dicatat_oleh) tetap aman.
     public function destroy(Request $request, string $id)
     {
         $currentUser = $request->user();
 
         if (! $currentUser->hasRole('super_admin')) {
             return response()->json([
-                'message' => 'Anda tidak memiliki izin untuk menghapus user.',
+                'message' => 'Anda tidak memiliki izin untuk menonaktifkan user.',
             ], 403);
         }
 
@@ -202,11 +205,32 @@ class UserController extends Controller
             return response()->json(['message' => 'User tidak ditemukan'], 404);
         }
 
-        $user->delete();
+        $user->update(['is_active' => false]);
 
-        return response()->json(['message' => 'User berhasil dihapus']);
+        return response()->json(['message' => 'User berhasil dinonaktifkan']);
     }
 
+    // PATCH /api/users/{id}/aktifkan
+    public function activate(Request $request, string $id)
+    {
+        $currentUser = $request->user();
+
+        if (! $currentUser->hasRole('super_admin')) {
+            return response()->json([
+                'message' => 'Anda tidak memiliki izin untuk mengaktifkan user.',
+            ], 403);
+        }
+
+        $user = User::find($id);
+
+        if (! $user) {
+            return response()->json(['message' => 'User tidak ditemukan'], 404);
+        }
+
+        $user->update(['is_active' => true]);
+
+        return response()->json(['message' => 'User berhasil diaktifkan']);
+    }
     // PATCH /api/users/{id}/reset-password
     // Hanya Admin yang boleh me-reset password user lain (tanpa perlu tahu password lama).
     public function resetPassword(Request $request, string $id)

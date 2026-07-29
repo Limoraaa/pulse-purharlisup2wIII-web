@@ -14,10 +14,11 @@ return new class extends Migration
             $table->string('full_name');
             $table->string('email')->unique();
             $table->string('password');
-            $table->string('role')->default('staff_inventory'); // admin/staff_inventory
+            $table->string('role')->default('staff'); // super_admin/staff
             $table->string('divisi')->nullable();
             $table->string('no_hp')->nullable();
             $table->string('avatar_path')->nullable();
+            $table->boolean('is_active')->default(true);
             $table->rememberToken();
             $table->timestamps();
         });

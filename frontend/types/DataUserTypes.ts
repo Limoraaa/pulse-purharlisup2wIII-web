@@ -8,6 +8,7 @@ export interface UserItemType {
   divisi: string | null;
   no_hp: string | null;
   avatar_path: string | null;
+  is_active: boolean;
   created_at: string;
 }
 
