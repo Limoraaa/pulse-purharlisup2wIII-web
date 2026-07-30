@@ -119,7 +119,13 @@ const DataConsumableManager = () => {
         },
       });
 
+      // 1. TAMBAHKAN LOG INI UNTUK MELIHAT RESPON BACKEND
+      console.log("RESPON API ANTREAN:", json);
+
       const rawItems = json.data || (Array.isArray(json) ? json : []);
+
+      // 2. TAMBAHKAN LOG INI UNTUK MELIHAT DATA SEBELUM DI-MAPPING
+      console.log("DATA MENTAH (RAW ITEMS):", rawItems);
 
       const mappedCart: ConsumableCartItem[] = rawItems.map((item: any) => ({
         id: item.id,
@@ -129,6 +135,9 @@ const DataConsumableManager = () => {
         jumlah: item.qty || item.jumlah || 1,
         stok_tersedia: item.stok_tersedia ?? 0,
       }));
+
+      // 3. TAMBAHKAN LOG INI UNTUK MELIHAT HASIL AKHIR KERANJANG
+      console.log("HASIL MAPPING KERANJANG:", mappedCart);
 
       setCart(mappedCart);
     } catch (err) {
@@ -148,8 +157,18 @@ const DataConsumableManager = () => {
     };
 
     window.addEventListener("focus", handleFocus);
+
+    // ========================================================
+    // TAMBAHAN BARU: Auto-refresh keranjang setiap 3 detik
+    // agar data dari HP langsung merender di PC tanpa di-klik
+    // ========================================================
+    const autoRefresh = setInterval(() => {
+      loadCart();
+    }, 3000); 
+
     return () => {
       window.removeEventListener("focus", handleFocus);
+      clearInterval(autoRefresh); // Bersihkan timer saat komponen di-unmount
     };
   }, []);
 
@@ -201,9 +220,9 @@ const DataConsumableManager = () => {
   };
 
   const handleExportPDF = () =>
-  exportToPDF(filteredConsumables as unknown as Record<string, unknown>[], EXPORT_COLUMNS, "data-consumable", "Data Consumable");
-const handleExportExcel = () =>
-  exportToExcel(filteredConsumables as unknown as Record<string, unknown>[], EXPORT_COLUMNS, "data-consumable");
+    exportToPDF(filteredConsumables as unknown as Record<string, unknown>[], EXPORT_COLUMNS, "data-consumable", "Data Consumable");
+  const handleExportExcel = () =>
+    exportToExcel(filteredConsumables as unknown as Record<string, unknown>[], EXPORT_COLUMNS, "data-consumable");
 
   const handleFormSubmit = async (values: ConsumableFormValues) => {
     setFormError(null);
@@ -224,7 +243,6 @@ const handleExportExcel = () =>
       setFormError(message);
     }
   };
-  
 
   const handleConfirmDelete = async () => {
     if (!activeItem) return;
@@ -334,7 +352,6 @@ const handleExportExcel = () =>
     }
   };
 
-  // Disesuaikan agar menerima values dari modal form pengeluaran bahan
   const handleLoanSubmit = async (values: ConsumableOutFormValues) => {
     if (cart.length === 0) return;
     setIsSubmittingCart(true);
@@ -348,7 +365,7 @@ const handleExportExcel = () =>
       }
 
       const payload = {
-        peminta_id: values.pemintaId, // Mengirimkan ID RFID pekerja yang dipilih/discan
+        peminta_id: values.pemintaId,
         pekerjaan_area: values.areaKerja,
         keterangan: values.keterangan || "",
         dicatat_oleh: dicatatOleh,
@@ -434,7 +451,7 @@ const handleExportExcel = () =>
       <Card className="card-lg mb-6">
         <div className="datatools-toolbar border-bottom">
           <Row className="g-2 align-items-center">
-            <Col lg={5} md={6}>
+            <Col lg={6} md={7}>
               <InputGroup className="datatools-search">
                 <InputGroup.Text><IconSearch size={18} /></InputGroup.Text>
                 <Form.Control
@@ -450,18 +467,10 @@ const handleExportExcel = () =>
                 )}
               </InputGroup>
             </Col>
-            <Col lg={4} md={3} className="text-md-end">
+            <Col lg={6} md={5} className="text-md-end">
               <span className="text-secondary small">
                 Menampilkan <span className="fw-semibold text-body">{filteredConsumables.length}</span> dari {consumables.length} data
               </span>
-            </Col>
-            <Col lg={3} md={3} className="d-flex justify-content-md-end gap-2">
-              <Button variant="outline-danger" size="sm" onClick={handleExportPDF}>
-                Export PDF
-              </Button>
-              <Button variant="outline-success" size="sm" onClick={handleExportExcel}>
-                Export Excel
-              </Button>
             </Col>
           </Row>
         </div>

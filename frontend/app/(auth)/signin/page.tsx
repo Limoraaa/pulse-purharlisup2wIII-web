@@ -170,9 +170,6 @@ const SignIn = () => {
                   onChange={(e) => setRememberMe(e.target.checked)}
                   disabled={loading}
                 />
-                <Link href="" className="login-forgot text-decoration-none">
-                  Lupa Password?
-                </Link>
               </div>
 
               <div className="d-grid">
