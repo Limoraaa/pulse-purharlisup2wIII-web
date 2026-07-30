@@ -144,6 +144,12 @@ export async function getRiwayatPeminjaman(): Promise<RiwayatPeminjamanType[]> {
   const data: PeminjamanIndexApiResponse[] = await apiFetch("/peminjaman");
   return data
     .filter((item) => item.tanggal_kembali !== null)
+    .sort((a, b) => {
+      // Urutkan berdasarkan tanggal_kembali terbaru duluan
+      const dateA = new Date(a.tanggal_kembali as string).getTime();
+      const dateB = new Date(b.tanggal_kembali as string).getTime();
+      return dateB - dateA;
+    })
     .map(mapRiwayatFromApi);
 }
 

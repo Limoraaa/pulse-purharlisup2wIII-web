@@ -78,8 +78,14 @@ const ProfileManager = () => {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSaving, setPasswordSaving] = useState(false);
 
-  // Foto profil (masih preview lokal -- upload ke server belum tersambung)
-  const [avatarSrc, setAvatarSrc] = useState<string>("/images/avatar/avatar-1.jpg");
+ 
+  const [avatarSrc, setAvatarSrc] = useState<string>(() => {
+      if (typeof window !== "undefined") {
+        const cached = localStorage.getItem("userAvatarUrl");
+        if (cached) return cached;
+      }
+      return "/images/avatar/avatar-1.jpg";
+    });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadProfile = async () => {
@@ -99,7 +105,9 @@ const ProfileManager = () => {
 
       if (data.avatarPath) {
         const backendOrigin = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/?$/, "");
-        setAvatarSrc(`${backendOrigin}/storage/${data.avatarPath}`);
+        const url = `${backendOrigin}/storage/${data.avatarPath}`;
+        setAvatarSrc(url);
+        localStorage.setItem("userAvatarUrl", url);
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Gagal memuat data profil";
@@ -208,6 +216,7 @@ const ProfileManager = () => {
     try {
       const result = await uploadAvatar(file);
       setAvatarSrc(result.avatar_url);
+      localStorage.setItem("userAvatarUrl", result.avatar_url);
       window.dispatchEvent(new CustomEvent("avatar-updated", { detail: result.avatar_url }));
       showSuccess("Foto profil berhasil diperbarui.");
     } catch (err) {

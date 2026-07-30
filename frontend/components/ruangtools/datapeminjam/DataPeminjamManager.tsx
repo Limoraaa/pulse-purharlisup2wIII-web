@@ -37,9 +37,16 @@ import {
   aktifkanPeminta,
 } from "services/pemintaService";
 
-function sortByNama(items: PeminjamType[]): PeminjamType[] {
-  return [...items].sort((a, b) => a.nama.localeCompare(b.nama));
-}
+  function sortByNama(items: PeminjamType[]): PeminjamType[] {
+    return [...items].sort((a, b) => {
+      // Yang aktif selalu di atas, nonaktif selalu di bawah
+      if (a.aktif !== b.aktif) {
+        return a.aktif ? -1 : 1;
+      }
+      // Di dalam grup yang sama (sesama aktif atau sesama nonaktif), urutkan abjad
+      return a.nama.localeCompare(b.nama);
+    });
+  }
 
 const PeminjamManager = () => {
   const [peminjamList, setPeminjamList] = useState<PeminjamType[]>([]);
