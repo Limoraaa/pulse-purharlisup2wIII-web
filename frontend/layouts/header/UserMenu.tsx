@@ -12,7 +12,13 @@ const DEFAULT_AVATAR = getAssetPath("/images/avatar/avatar-1.jpg");
 
 // Avatar kini menjadi navigasi langsung ke halaman Profil (tanpa dropdown).
 const UserMenu = () => {
-  const [avatarSrc, setAvatarSrc] = useState<string>(DEFAULT_AVATAR);
+  const [avatarSrc, setAvatarSrc] = useState<string>(() => {
+  if (typeof window !== "undefined") {
+    const cached = localStorage.getItem("userAvatarUrl");
+    if (cached) return cached;
+  }
+  return DEFAULT_AVATAR;
+});
 
   useEffect(() => {
     const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
@@ -22,12 +28,12 @@ const UserMenu = () => {
       .then((data) => {
         if (data.avatarPath) {
           const backendOrigin = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/?$/, "");
-          setAvatarSrc(`${backendOrigin}/storage/${data.avatarPath}`);
+          const url = `${backendOrigin}/storage/${data.avatarPath}`;
+          setAvatarSrc(url);
+          localStorage.setItem("userAvatarUrl", url);
         }
       })
-      .catch(() => {
-        // Gagal ambil profil (misal token expired) -- biarkan avatar default
-      });
+      .catch(() => {});
 
     // Dengarkan event dari ProfileManager -- update avatar seketika tanpa refresh
     const handleAvatarUpdated = (e: Event) => {

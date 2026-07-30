@@ -95,12 +95,21 @@ const DataUserManager = () => {
 
   const filteredUsers = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
-    return users.filter(
-      (u) =>
-        keyword === "" ||
-        u.full_name.toLowerCase().includes(keyword) ||
-        u.email.toLowerCase().includes(keyword)
-    );
+    return users
+      .filter(
+        (u) =>
+          keyword === "" ||
+          u.full_name.toLowerCase().includes(keyword) ||
+          u.email.toLowerCase().includes(keyword)
+      )
+      .sort((a, b) => {
+        // Yang aktif selalu di atas, nonaktif selalu di bawah
+        if (a.is_active !== b.is_active) {
+          return a.is_active ? -1 : 1;
+        }
+        // Di dalam grup yang sama, urutkan abjad nama
+        return a.full_name.localeCompare(b.full_name);
+      });
   }, [users, searchTerm]);
 
   const openAddModal = () => {

@@ -66,6 +66,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // 2. Fitur Keranjang & Scanner Consumable Keluar
     Route::post('/consumable-keluar/scan', [ConsumableKeluarController::class, 'scan']);
     Route::get('/consumable-keluar/antrean', [ConsumableKeluarController::class, 'antrean']);
+    Route::patch('/consumable-keluar/cart/{id}', [ConsumableKeluarController::class, 'updateCartItem']);
     Route::delete('/consumable-keluar/antrean/{consumable_id}', [ConsumableKeluarController::class, 'hapusAntrean']);
     Route::post('/consumable-keluar/proses', [ConsumableKeluarController::class, 'prosesCartConsumable']);
 
