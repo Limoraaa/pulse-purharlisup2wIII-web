@@ -58,7 +58,7 @@ import api from "lib/api";
 
 function sortByKode(items: ConsumableItemType[]): ConsumableItemType[] {
   return [...items].sort((a, b) =>
-    a.kode_barang.localeCompare(b.kode_barang, undefined, { numeric: true })
+    b.kode_barang.localeCompare(a.kode_barang, undefined, { numeric: true })
   );
 }
 
