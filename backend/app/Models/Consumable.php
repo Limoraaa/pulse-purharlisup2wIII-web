@@ -21,6 +21,7 @@ class Consumable extends Model
         'er_e',
         'ukuran',
         'stok_awal',
+        'stok_awal_asli',
     ];
 
     protected static function boot()

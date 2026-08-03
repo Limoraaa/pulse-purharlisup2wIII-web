@@ -80,7 +80,7 @@ useEffect(() => {
   }, [show, initialData, existingCodes]);
 
   const handleChange = (
-    field: keyof ConsumableFormValues,
+  field: keyof ConsumableFormValues,
     value: string | number
   ) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -153,7 +153,7 @@ useEffect(() => {
                 value={form.ukuran}
                 onChange={(e) => handleChange("ukuran", e.target.value)}
               />
-            </Col>
+            </Col>           
             <Col md={6}>
               <Form.Label>Stok Awal <span className="text-danger">*</span></Form.Label>
               <Form.Control
