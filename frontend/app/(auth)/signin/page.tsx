@@ -170,6 +170,10 @@ const SignIn = () => {
                   onChange={(e) => setRememberMe(e.target.checked)}
                   disabled={loading}
                 />
+<<<<<<< HEAD
+=======
+                
+>>>>>>> 95c4ddc681e7bc2634e9cf4640ca8e12c3850d8f
               </div>
 
               <div className="d-grid">

@@ -55,6 +55,31 @@ export const getConsumableColumns = ({
     header: "Ukuran",
   },
   {
+  accessorKey: "stok_awal_asli",
+  header: "Stok Awal",
+  cell: ({ row }) => (
+    <span className="text-center d-block">{row.original.stok_awal_asli}</span>
+  ),
+},
+{
+  accessorKey: "total_masuk",
+  header: "Masuk",
+  cell: ({ row }) => (
+    <span className="text-center d-block text-success fw-semibold">
+      +{row.original.total_masuk}
+    </span>
+  ),
+},
+{
+  accessorKey: "total_keluar",
+  header: "Keluar",
+  cell: ({ row }) => (
+    <span className="text-center d-block text-danger fw-semibold">
+      -{row.original.total_keluar}
+    </span>
+  ),
+},
+  {
     accessorKey: "stok_awal",
     header: "Stok Tersedia",
     cell: ({ row }) => {
