@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
-import { Modal, Form, Button, Alert } from "react-bootstrap";
-import { IconKey } from "@tabler/icons-react";
+import { Modal, Form, Button, Alert, InputGroup } from "react-bootstrap";
+import { IconKey, IconEye, IconEyeOff } from "@tabler/icons-react";
 
 import { UserItemType } from "types/DataUserTypes";
 
@@ -24,6 +24,8 @@ const ResetPasswordModal = ({
 }: ResetPasswordModalProps) => {
   const [passwordBaru, setPasswordBaru] = useState("");
   const [konfirmasi, setKonfirmasi] = useState("");
+  const [showPasswordBaru, setShowPasswordBaru] = useState(false);
+  const [showKonfirmasi, setShowKonfirmasi] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,6 +35,8 @@ const ResetPasswordModal = ({
   const handleClose = () => {
     setPasswordBaru("");
     setKonfirmasi("");
+    setShowPasswordBaru(false);
+    setShowKonfirmasi(false);
     onClose();
   };
 
@@ -54,25 +58,49 @@ const ResetPasswordModal = ({
           </p>
           <Form.Group className="mb-3">
             <Form.Label>Password Baru</Form.Label>
-            <Form.Control
-              required
-              type="password"
-              minLength={6}
-              value={passwordBaru}
-              disabled={submitting}
-              onChange={(e) => setPasswordBaru(e.target.value)}
-            />
+            <InputGroup>
+              <Form.Control
+                required
+                type={showPasswordBaru ? "text" : "password"}
+                minLength={6}
+                value={passwordBaru}
+                disabled={submitting}
+                onChange={(e) => setPasswordBaru(e.target.value)}
+              />
+              <Button
+                variant="outline-secondary"
+                type="button"
+                onClick={() => setShowPasswordBaru((prev) => !prev)}
+                disabled={submitting}
+                aria-label={showPasswordBaru ? "Sembunyikan password" : "Tampilkan password"}
+                tabIndex={-1}
+              >
+                {showPasswordBaru ? <IconEyeOff size={18} /> : <IconEye size={18} />}
+              </Button>
+            </InputGroup>
           </Form.Group>
           <Form.Group>
             <Form.Label>Konfirmasi Password Baru</Form.Label>
-            <Form.Control
-              required
-              type="password"
-              minLength={6}
-              value={konfirmasi}
-              disabled={submitting}
-              onChange={(e) => setKonfirmasi(e.target.value)}
-            />
+            <InputGroup>
+              <Form.Control
+                required
+                type={showKonfirmasi ? "text" : "password"}
+                minLength={6}
+                value={konfirmasi}
+                disabled={submitting}
+                onChange={(e) => setKonfirmasi(e.target.value)}
+              />
+              <Button
+                variant="outline-secondary"
+                type="button"
+                onClick={() => setShowKonfirmasi((prev) => !prev)}
+                disabled={submitting}
+                aria-label={showKonfirmasi ? "Sembunyikan password" : "Tampilkan password"}
+                tabIndex={-1}
+              >
+                {showKonfirmasi ? <IconEyeOff size={18} /> : <IconEye size={18} />}
+              </Button>
+            </InputGroup>
           </Form.Group>
         </Modal.Body>
         <Modal.Footer>
