@@ -6,6 +6,7 @@ import {
   IconFileTypeXls,
   IconCalendarMonth,
   IconCalendar,
+  IconUser,
 } from "@tabler/icons-react";
 
 const NAMA_BULAN = [
@@ -20,6 +21,11 @@ interface RiwayatFilterBarProps {
   onTahunFilterChange: (v: number) => void;
   tahunOptions: number[]; // daftar tahun yang ada di data
 
+  namaFilter: string;
+  onNamaFilterChange: (v: string) => void;
+  namaOptions: string[];
+  namaLabel?: string;
+
   onExportPDF: () => void;
   onExportExcel: () => void;
 }
@@ -30,13 +36,17 @@ const RiwayatFilterBar = ({
   tahunFilter,
   onTahunFilterChange,
   tahunOptions,
+  namaFilter,          // BARU
+  onNamaFilterChange,  // BARU
+  namaOptions = [],         // BARU
+  namaLabel = "Nama",
   onExportPDF,
   onExportExcel,
 }: RiwayatFilterBarProps) => {
   return (
-    <div className="riwayat-filterbar d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div className="riwayat-filterbar">
       {/* Filter Bulan & Tahun */}
-      <div className="d-flex flex-wrap align-items-center gap-2">
+      <div className="riwayat-filter-controls">
         <InputGroup className="riwayat-filter-group">
           <InputGroup.Text>
             <IconCalendarMonth size={16} />
@@ -72,13 +82,31 @@ const RiwayatFilterBar = ({
             ))}
           </Form.Select>
         </InputGroup>
+
+        <InputGroup className="riwayat-filter-group">
+          <InputGroup.Text>
+            <IconUser size={16} />
+          </InputGroup.Text>
+          <Form.Select
+            value={namaFilter}
+            onChange={(e) => onNamaFilterChange(e.target.value)}
+            aria-label={`Filter ${namaLabel}`}
+          >
+            <option value="Semua">Semua {namaLabel}</option>
+            {namaOptions.map((nama) => (
+              <option key={nama} value={nama}>
+                {nama}
+              </option>
+            ))}
+          </Form.Select>
+        </InputGroup>
       </div>
 
       {/* Tombol Export */}
-      <div className="d-flex gap-2">
+      <div className="riwayat-export-controls">
         <Button
           variant="outline-danger"
-          className="d-flex align-items-center gap-2"
+          className="d-inline-flex align-items-center justify-content-center gap-2"
           onClick={onExportPDF}
           title="Export PDF"
         >
@@ -87,7 +115,7 @@ const RiwayatFilterBar = ({
         </Button>
         <Button
           variant="outline-success"
-          className="d-flex align-items-center gap-2"
+          className="d-inline-flex align-items-center justify-content-center gap-2"
           onClick={onExportExcel}
           title="Export Excel"
         >

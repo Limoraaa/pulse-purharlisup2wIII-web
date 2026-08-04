@@ -92,7 +92,10 @@ export const getConsumableColumns = ({
             onClick={(e) => onStockOut(row.original, e)}
           >
             <IconShoppingCartPlus size={16} />
-            Ambil Bahan
+            {/* teks disembunyikan di layar < lg (992px), sisa ikon saja
+                supaya kolom Aksi (sticky di mobile) tidak makan banyak ruang.
+                title di atas tetap kasih tooltip + aksesibilitas. */}
+            <span className="d-none d-lg-inline">Ambil Bahan</span>
           </button>
 
           {/* Menu Aksi Lainnya */}

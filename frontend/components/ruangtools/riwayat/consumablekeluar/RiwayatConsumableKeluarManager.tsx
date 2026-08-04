@@ -71,6 +71,7 @@ const RiwayatConsumableKeluarManager = () => {
 
   const [bulanFilter, setBulanFilter] = useState(0);
   const [tahunFilter, setTahunFilter] = useState(0);
+  const [namaFilter, setNamaFilter] = useState("Semua");
 
   // ---- Pencarian (murni UI, tidak menyentuh API/data) ----
   const [searchTerm, setSearchTerm] = useState("");
@@ -97,6 +98,11 @@ const RiwayatConsumableKeluarManager = () => {
     return Array.from(tahunSet).sort((a, b) => b - a);
   }, [riwayatList]);
 
+  const namaOptions = useMemo(() => {
+    const namaSet = new Set(riwayatList.map((r) => r.nama_peminta));
+    return Array.from(namaSet).sort();
+  }, [riwayatList]);
+
   const filteredList = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
     return riwayatList.filter((r) => {
@@ -108,6 +114,8 @@ const RiwayatConsumableKeluarManager = () => {
           if (tahunFilter !== 0 && tanggal.getFullYear() !== tahunFilter) return false;
         }
       }
+      // filter nama peminta -- BARU
+      if (namaFilter !== "Semua" && r.nama_peminta !== namaFilter) return false;
       // filter pencarian
       if (keyword !== "") {
         const cocok =
@@ -119,7 +127,7 @@ const RiwayatConsumableKeluarManager = () => {
       }
       return true;
     });
-  }, [riwayatList, bulanFilter, tahunFilter, searchTerm]);
+  }, [riwayatList, bulanFilter, tahunFilter, namaFilter, searchTerm]);
 
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -212,6 +220,10 @@ const RiwayatConsumableKeluarManager = () => {
             tahunFilter={tahunFilter}
             onTahunFilterChange={setTahunFilter}
             tahunOptions={tahunOptions}
+            namaFilter={namaFilter}
+            onNamaFilterChange={setNamaFilter}
+            namaOptions={namaOptions}
+            namaLabel="Nama Peminta"
             onExportPDF={handleExportPDF}
             onExportExcel={handleExportExcel}
           />

@@ -345,8 +345,8 @@
     overflow: hidden;
 
     .cart-stepper-btn {
-      width: 32px;
-      height: 32px;
+      width: 40px;
+      height: 40px;
       border: 0;
       border-radius: 0;
       background-color: transparent;
@@ -715,8 +715,8 @@
     overflow: hidden;
 
     .consumable-cart-stepper-btn {
-      width: 32px;
-      height: 32px;
+      width: 40px;
+      height: 40px;
       border: 0;
       border-radius: 0;
       background-color: transparent;
@@ -1365,6 +1365,27 @@
 // Filter bulan/tahun + tombol export. Dipakai di beberapa halaman riwayat.
 // ============================================================
 .riwayat-filterbar {
+  // Desktop: filter (kiri) & export (kanan) sejajar
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+
+  // Grup filter bulan/tahun
+  .riwayat-filter-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  // Grup tombol export
+  .riwayat-export-controls {
+    display: flex;
+    gap: 0.5rem;
+  }
+
   .riwayat-filter-group {
     .input-group-text {
       background-color: var(--#{$prefix}body-bg);
@@ -1393,6 +1414,36 @@
 
   .btn {
     height: 44px;
+  }
+
+  // ---- Mobile: semua kontrol menumpuk vertikal & full-width ----
+  @include media-breakpoint-down(md) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+
+    .riwayat-filter-controls,
+    .riwayat-export-controls {
+      flex-direction: column;
+      align-items: stretch;
+      width: 100%;
+    }
+
+    // Field full-width, tapi isi (ikon + dropdown) tetap satu baris (identik desktop)
+    .riwayat-filter-group {
+      width: 100%;
+      flex-wrap: nowrap;
+
+      .form-select {
+        min-width: 0;
+        flex: 1 1 auto;
+        width: auto;
+      }
+    }
+
+    .riwayat-export-controls .btn {
+      width: 100%;
+    }
   }
 }
 
@@ -1560,33 +1611,11 @@
   }
 
   // ---- Responsive ----
-  // Mobile: semua komponen tersusun vertikal
+  // Mobile: kecilkan padding toolbar. Susunan filter/export vertikal
+  // sudah ditangani oleh .riwayat-filterbar sendiri.
   @include media-breakpoint-down(md) {
     .riwayat-toolbar {
       padding: 1rem;
-    }
-
-    // filter bar (bulan/tahun + export) menumpuk vertikal
-    .riwayat-filterbar {
-      flex-direction: column;
-      align-items: stretch;
-
-      // grup dropdown bulan/tahun
-      > div:first-child {
-        flex-direction: column;
-        align-items: stretch;
-      }
-
-      // grup tombol export
-      > div:last-child {
-        flex-direction: column;
-        align-items: stretch;
-      }
-    }
-
-    .riwayat-filter-group .form-select {
-      min-width: 0;
-      width: 100%;
     }
   }
 }
@@ -2112,6 +2141,82 @@ html.collapsed #miniSidebar,
       flex-basis: 100%;
       max-width: 100%;
       padding: 2.5rem 1.75rem;
+    }
+  }
+}
+
+// ============================================================
+// Tabel lebar di mobile - kolom "Aksi" sticky di kanan (UI only)
+// Scoped ke wrapper halaman manager (tidak menyentuh TanstackTable shared
+// maupun halaman blog/ecommerce). Aktif hanya di layar < lg, karena di
+// desktop tabel sudah muat tanpa perlu scroll horizontal.
+// ============================================================
+@include media-breakpoint-down(lg) {
+  .datatools-page,
+  .dataconsumable-page,
+  .datapeminjam-page,
+  .peminjamanaktif-page,
+  .consumablemasuk-page,
+  .riwayat-page {
+    .table-responsive {
+      // Kolom terakhir (Aksi) selalu terlihat saat scroll horizontal
+      table {
+        thead th:last-child,
+        tbody td:last-child {
+          position: sticky;
+          right: 0;
+          z-index: 2;
+          // shadow tipis sebagai pemisah dari kolom yang tergulir di baliknya
+          box-shadow: -6px 0 8px -6px rgba(0, 0, 0, 0.15);
+        }
+
+        // Header kolom Aksi mengikuti warna header tabel
+        thead th:last-child {
+          background-color: var(--#{$prefix}gray-100);
+        }
+
+        // Sel Aksi pakai background surface (card) agar konten di belakang tidak tembus
+        tbody td:last-child {
+          background-color: var(--#{$prefix}card-bg, #fff);
+        }
+
+        // Saat baris di-hover, sel sticky ikut berubah warna agar konsisten
+        tbody tr:hover td:last-child {
+          background-color: var(--#{$prefix}gray-100);
+        }
+      }
+    }
+  }
+}
+
+// ============================================================
+// Heading responsive - judul halaman (h1.h2) mengecil di layar kecil
+// Scoped ke #content agar tidak memengaruhi heading di dalam modal/komponen lain.
+// ============================================================
+#content {
+  // Tablet portrait ke bawah
+  @include media-breakpoint-down(md) {
+    h1.h2 {
+      font-size: 1.5rem; // ~24-30px
+    }
+  }
+
+  // Mobile kecil
+  @include media-breakpoint-down(sm) {
+    h1.h2 {
+      font-size: 1.375rem;
+    }
+  }
+}
+
+// ============================================================
+// Login - polish: card fleksibel di layar pendek (hindari terpotong)
+// ============================================================
+.login-page {
+  .login-card {
+    // pada layar dengan tinggi terbatas, biarkan card mengikuti konten
+    @media (max-height: 700px) {
+      min-height: auto;
     }
   }
 }
