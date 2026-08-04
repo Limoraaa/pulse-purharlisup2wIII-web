@@ -110,14 +110,14 @@ const FormPengembalianModal = ({
               {jumlahRusak > 0 ? (
                 <span className="text-danger">*</span>
               ) : (
-                <span className="text-secondary fw-normal">(opsional)</span>
+                <span className="text-secondary fw-normal"></span>
               )}
             </Form.Label>
             <Form.Control
               as="textarea"
               rows={2}
               placeholder={
-                jumlahRusak > 0 ? "Jelaskan kerusakannya..." : "Catatan tambahan jika ada"
+                jumlahRusak > 0 ? "Jelaskan kerusakannya..." : "Catatan kerusakan"
               }
               value={catatan}
               onChange={(e) => setCatatan(e.target.value)}

@@ -46,6 +46,7 @@ export interface ConsumableOutFormValues {
   pemintaId: string;
   namaPeminta: string;
   divisi: string;
+  namaPekerjaan: string;
   areaKerja: string;
   keterangan: string;
 }

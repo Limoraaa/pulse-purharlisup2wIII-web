@@ -10,12 +10,39 @@ import {
 // MASTER DATA CONSUMABLE (CRUD)
 // ==========================================
 
+interface ConsumableApiItem {
+  id: string;
+  kode_barang: string;
+  nama: string;
+  merk?: string | null;
+  type?: string | null;
+  tipe?: string | null;
+  er_e?: string | null;
+  ukuran?: string | null;
+  stok_awal?: number;
+  stok_awal_asli?: number;
+  total_masuk?: number;
+  total_keluar?: number;
+}
+
+interface ConsumableApiListResponse {
+  data?: ConsumableApiItem[];
+}
+
+interface ConsumableApiSingleResponse {
+  data?: ConsumableApiItem;
+}
+
+interface ConsumableKeluarApiListResponse {
+  data?: ConsumableKeluarApiResponse[];
+}
+
+
 export async function getConsumables(): Promise<ConsumableItemType[]> {
-  const response = await apiFetch<any>("/consumable");
-  // Menyesuaikan struktur response Laravel (bisa berupa array langsung atau terbungkus key 'data')
-  const data = Array.isArray(response) ? response : response.data || [];
-  
-  return data.map((item: any) => ({
+  const response = await apiFetch<ConsumableApiListResponse | ConsumableApiItem[]>("/consumable");
+  const data: ConsumableApiItem[] = Array.isArray(response) ? response : response.data || [];
+
+  return data.map((item) => ({
     id: item.id,
     kode_barang: item.kode_barang,
     nama: item.nama,
@@ -24,12 +51,15 @@ export async function getConsumables(): Promise<ConsumableItemType[]> {
     er_e: item.er_e || "-",
     ukuran: item.ukuran || "-",
     stok_awal: item.stok_awal ?? 0,
+    stok_awal_asli: item.stok_awal_asli ?? item.stok_awal ?? 0,
+    total_masuk: item.total_masuk ?? 0,
+    total_keluar: item.total_keluar ?? 0,
   }));
-}
+} 
 
 export async function createConsumable(values: ConsumableFormValues): Promise<ConsumableItemType> {
   const token = localStorage.getItem("token");
-  const response = await apiFetch<any>("/consumable", {
+  const response = await apiFetch<ConsumableApiSingleResponse | ConsumableApiItem>("/consumable", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -38,7 +68,7 @@ export async function createConsumable(values: ConsumableFormValues): Promise<Co
     body: JSON.stringify(values),
   });
 
-  const item = response.data || response;
+  const item: ConsumableApiItem = "data" in response && response.data ? response.data : (response as ConsumableApiItem);
   return {
     id: item.id,
     kode_barang: item.kode_barang,
@@ -48,12 +78,15 @@ export async function createConsumable(values: ConsumableFormValues): Promise<Co
     er_e: item.er_e || "-",
     ukuran: item.ukuran || "-",
     stok_awal: item.stok_awal ?? 0,
+    stok_awal_asli: item.stok_awal_asli ?? item.stok_awal ?? 0,
+    total_masuk: item.total_masuk ?? 0,
+    total_keluar: item.total_keluar ?? 0,
   };
 }
 
 export async function updateConsumable(id: string, values: ConsumableFormValues): Promise<ConsumableItemType> {
   const token = localStorage.getItem("token");
-  const response = await apiFetch<any>(`/consumable/${id}`, {
+  const response = await apiFetch<ConsumableApiSingleResponse | ConsumableApiItem>(`/consumable/${id}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -62,7 +95,7 @@ export async function updateConsumable(id: string, values: ConsumableFormValues)
     body: JSON.stringify(values),
   });
 
-  const item = response.data || response;
+  const item: ConsumableApiItem = "data" in response && response.data ? response.data : (response as ConsumableApiItem);
   return {
     id: item.id,
     kode_barang: item.kode_barang,
@@ -72,6 +105,9 @@ export async function updateConsumable(id: string, values: ConsumableFormValues)
     er_e: item.er_e || "-",
     ukuran: item.ukuran || "-",
     stok_awal: item.stok_awal ?? 0,
+    stok_awal_asli: item.stok_awal_asli ?? item.stok_awal ?? 0,
+    total_masuk: item.total_masuk ?? 0,
+    total_keluar: item.total_keluar ?? 0,
   };
 }
 
@@ -119,6 +155,7 @@ interface ConsumableKeluarApiResponse {
   consumable_id: string;
   jumlah_keluar: number;
   pekerjaan_area: string | null;
+  nama_pekerjaan: string | null;  
   keterangan: string | null;
   consumable: {
     kode_barang: string;
@@ -130,7 +167,7 @@ interface ConsumableKeluarApiResponse {
   } | null;
   peminta: {
     nama: string;
-    kategori: string | null;
+    divisi: string | null;
   } | null;
 }
 
@@ -150,14 +187,15 @@ function mapRiwayatConsumableKeluarFromApi(
     ukuran: item.consumable?.ukuran ?? "-",
     jumlah: item.jumlah_keluar,
     nama_peminta: namaPeminta,
-    divisi: item.peminta?.kategori ?? "-",
+    divisi: item.peminta?.divisi ?? "-",
+    nama_pekerjaan: item.nama_pekerjaan ?? "-", 
     area_kerja: item.pekerjaan_area ?? "-",
     keterangan: item.keterangan ?? "-",
   };
 }
 
 export async function getRiwayatConsumableKeluar(): Promise<RiwayatConsumableKeluarType[]> {
-  const response = await apiFetch<any>("/consumable-keluar");
+  const response = await apiFetch<ConsumableKeluarApiListResponse | ConsumableKeluarApiResponse[]>("/consumable-keluar");
   const data: ConsumableKeluarApiResponse[] = Array.isArray(response) ? response : response.data || [];
   return data.map(mapRiwayatConsumableKeluarFromApi);
 }
@@ -174,6 +212,7 @@ export async function submitConsumableKeluar(
   const payload = {
     peminta_id: values.pemintaId,
     pekerjaan_area: values.areaKerja,
+    nama_pekerjaan: values.namaPekerjaan,   // ← tambahkan
     keterangan: values.keterangan || "",
     dicatat_oleh: dicatatOleh,
   };

@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('peminta_id'); // Menggunakan string untuk sesuai dengan tipe data 'id' di tabel 'peminta'
             $table->integer('jumlah_keluar');
             $table->string('pekerjaan_area')->nullable();
+            $table->string('nama_pekerjaan')->nullable();
             $table->text('keterangan')->nullable();
             $table->foreignUuid('dicatat_oleh')->constrained('users');
             $table->timestamps();

@@ -9,7 +9,8 @@ export interface PeminjamanIndexApiResponse {
   tanggal: string;
   tanggal_kembali: string | null;
   jumlah: number;
-  area_pekerjaan: string;
+  nama_pekerjaan: string;
+  area_pekerjaan?: string;
   spesifikasi?: string;
   keterangan?: string;
   tool?: {
@@ -33,6 +34,7 @@ interface CreatePeminjamanPayload {
   peminta_id: string;
   jumlah: number;
   area_pekerjaan: string;
+  nama_pekerjaan: string;
   spesifikasi?: string;
   keterangan?: string;
   dicatat_oleh: string;
@@ -76,6 +78,7 @@ function mapPeminjamanFromApi(item: PeminjamanIndexApiResponse): PeminjamanAktif
     jumlah: item.jumlah,
     namaPeminjam: item.peminta?.nama ?? "-",
     divisi: item.peminta?.divisi ?? "-",
+    namaPekerjaan: item.nama_pekerjaan ?? "-", 
     areaKerja: item.area_pekerjaan ?? "-",
     spesifikasi: item.spesifikasi ?? "-",
     keterangan: item.keterangan ?? "-",
@@ -99,6 +102,8 @@ function mapRiwayatFromApi(item: PeminjamanIndexApiResponse): RiwayatPeminjamanT
     namaPeminjam: namaPeminjam,
     nama_peminjam: namaPeminjam,
     divisi: item.peminta?.divisi ?? "-",
+    namaPekerjaan: item.nama_pekerjaan ?? "-",   
+    nama_pekerjaan: item.nama_pekerjaan ?? "-", 
     areaKerja: item.area_pekerjaan ?? "-",
     area_kerja: item.area_pekerjaan ?? "-",
     spesifikasi: item.spesifikasi ?? "-",
@@ -112,6 +117,7 @@ export async function submitPeminjaman(
   cartItems: CartItemType[],
   pemintaId: string,
   areaKerja: string,
+  namaPekerjaan: string,
   dicatatOleh: string,
   spesifikasi?: string,
   keterangan?: string
@@ -124,6 +130,7 @@ export async function submitPeminjaman(
       peminta_id: pemintaId,
       jumlah: item.jumlah,
       area_pekerjaan: areaKerja,
+      nama_pekerjaan: namaPekerjaan,
       spesifikasi,
       keterangan,
       dicatat_oleh: dicatatOleh,
@@ -194,6 +201,7 @@ export async function removeCartItem(cartId: string | number): Promise<void> {
 export async function prosesPeminjamanApi(params: {
   pemintaId: string;
   dicatatOleh: string;
+  namaPekerjaan: string;
   areaKerja?: string;
   spesifikasi?: string;
   keterangan?: string;
@@ -203,6 +211,7 @@ export async function prosesPeminjamanApi(params: {
     body: JSON.stringify({
       peminta_id: params.pemintaId,
       dicatat_oleh: params.dicatatOleh,
+      nama_pekerjaan: params.namaPekerjaan,
       area_pekerjaan: params.areaKerja,
       spesifikasi: params.spesifikasi,
       keterangan: params.keterangan,

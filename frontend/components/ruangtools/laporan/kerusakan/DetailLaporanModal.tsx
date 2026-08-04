@@ -82,6 +82,7 @@ const DetailLaporanModal = ({ show, onClose, item }: DetailLaporanModalProps) =>
             <DetailRow label="Tgl & Jam Pengembalian" value={item.tanggal_pengembalian} />
             <DetailRow label="Nama Peminjam" value={item.nama_peminjam} />
             <DetailRow label="Divisi" value={item.divisi} />
+            <DetailRow label="Nama Pekerjaan" value={item.nama_pekerjaan} />
             <DetailRow label="Area Kerja" value={item.area_kerja} />
           </Row>
         </div>

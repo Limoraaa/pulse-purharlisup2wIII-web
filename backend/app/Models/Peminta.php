@@ -18,7 +18,7 @@ class Peminta extends Model
     protected $fillable = [
         'id', // <-- Kita masukkan 'id' ke sini agar bisa diisi nomor RFID dari Frontend
         'nama',
-        'kategori',
+        'divisi',
         'aktif',
     ];
 

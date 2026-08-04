@@ -35,9 +35,10 @@ interface LaporanKerusakanApiResponse {
   } | null;
   peminjaman: {
     area_pekerjaan: string | null;
+    nama_pekerjaan: string | null;
     peminta: {
       nama: string;
-      kategori: string | null;
+      divisi: string | null;
     } | null;
   } | null;
 }
@@ -63,7 +64,8 @@ function mapLaporanFromApi(item: LaporanKerusakanApiResponse): LaporanKerusakanT
     ukuran: item.tool?.ukuran ?? "-",
     jumlah_rusak: item.jumlah,
     nama_peminjam: item.peminjaman?.peminta?.nama ?? "-",
-    divisi: item.peminjaman?.peminta?.kategori ?? "-",
+    divisi: item.peminjaman?.peminta?.divisi ?? "-",
+    nama_pekerjaan: item.peminjaman?.nama_pekerjaan ?? "-",
     area_kerja: item.peminjaman?.area_pekerjaan ?? "-",
     keterangan: item.keterangan ?? "-",
   };
