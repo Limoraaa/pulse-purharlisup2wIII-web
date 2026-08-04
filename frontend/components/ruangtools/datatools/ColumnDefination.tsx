@@ -137,8 +137,13 @@ export const getDataToolsColumns = ({
             title={habis ? "Stok habis (sudah masuk keranjang/dipinjam)" : "Tambah ke Peminjaman"}
             onClick={(e) => onAddToCart(tool, e)}
           >
-            <IconShoppingCartPlus size={16} /> {/* <-- Diperbaiki dari size5={16} menjadi size={16} */}
-            {habis ? "Stok Habis" : "Tambah ke Peminjaman"}
+            <IconShoppingCartPlus size={16} />
+            {/* teks disembunyikan di layar < lg (992px), sisa ikon saja
+                supaya kolom Aksi (sticky di mobile) tidak makan banyak ruang.
+                title di atas tetap kasih tooltip + aksesibilitas saat teks disembunyikan. */}
+            <span className="d-none d-lg-inline">
+              {habis ? "Stok Habis" : "Tambah ke Peminjaman"}
+            </span>
           </button>
           <ActionMenu
             toggleButton={<IconDotsVertical size={20} />}

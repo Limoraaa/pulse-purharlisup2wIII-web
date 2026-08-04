@@ -107,6 +107,7 @@ export const getPeminjamanAktifColumns = ({
           variant="outline-success"
           className="d-flex align-items-center gap-1"
           disabled={isReturning}
+          title="Tandai Dikembalikan"
           onClick={() => onOpenPengembalian(row.original)}
         >
           {isReturning ? (
@@ -114,7 +115,10 @@ export const getPeminjamanAktifColumns = ({
           ) : (
             <IconRotateClockwise2 size={16} />
           )}
-          Tandai Dikembalikan
+          {/* teks disembunyikan di layar < lg (992px), sisa ikon saja
+              supaya kolom Aksi (sticky di mobile) tidak makan banyak ruang.
+              title di atas tetap kasih tooltip + aksesibilitas. */}
+          <span className="d-none d-lg-inline">Tandai Dikembalikan</span>
         </Button>
       );
     },

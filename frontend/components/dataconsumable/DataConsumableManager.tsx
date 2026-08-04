@@ -244,7 +244,7 @@ const handleExportExcel = () =>
     }
   };
 
-  const handleAddToCart = async (
+    const handleAddToCart = async (
     item: ConsumableItemType,
     event?: React.MouseEvent<HTMLButtonElement>
   ) => {
@@ -253,28 +253,33 @@ const handleExportExcel = () =>
       return;
     }
 
+    // Ambil posisi tombol SEBELUM ada `await` apa pun -- SyntheticEvent React
+    // akan jadi null/basi begitu ada operasi async di antaranya, jadi kalau
+    // diambil setelah await, animasi tidak akan pernah jalan.
+    const rect = event?.currentTarget?.getBoundingClientRect();
+
     try {
       const token = localStorage.getItem("token");
       const userId = localStorage.getItem("userId");
 
       await api("/consumable-keluar/scan", {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}` 
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ 
-          consumable_id: item.id, 
+        body: JSON.stringify({
+          consumable_id: item.id,
           jumlah: 1,
-          ...(userId ? { user_id: userId } : {})
+          ...(userId ? { user_id: userId } : {}),
         }),
       });
 
       await loadCart();
-      setCartOpen(true);
 
-      if (event?.currentTarget) {
-        const rect = event.currentTarget.getBoundingClientRect();
+      // Panel keranjang TIDAK lagi auto-terbuka -- cukup animasi ikon
+      // "terbang" ke FAB, sama seperti perilaku di halaman Data Tools.
+      if (rect) {
         setFlyAnimations((prev) => [
           ...prev,
           {
@@ -288,6 +293,7 @@ const handleExportExcel = () =>
       alert(err instanceof Error ? err.message : "Gagal menambah ke keranjang.");
     }
   };
+
 
   const handleAnimationEnd = (id: string) => {
     setFlyAnimations((prev) => prev.filter((a) => a.id !== id));

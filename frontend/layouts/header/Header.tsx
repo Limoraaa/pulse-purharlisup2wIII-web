@@ -25,7 +25,7 @@ const Header = () => {
   // 1. Tambahkan state untuk mendeteksi apakah komponen sudah dimuat di browser
   const [hasMounted, setHasMounted] = useState<boolean>(false);
 
-  const isTablet = useMediaQuery({ maxWidth: 990 });
+  const isTablet = useMediaQuery({ maxWidth: 1024 });
 
   // 2. Set state menjadi true setelah render pertama (client-side)
   useEffect(() => {
@@ -41,7 +41,7 @@ const Header = () => {
             {/* 3. Gunakan hasMounted untuk mencegah render di server sebelum ukuran layar diketahui */}
             {hasMounted && isTablet && (
               <div
-                className="d-block d-lg-none"
+                className="d-flex align-items-center"
                 style={{ cursor: "pointer" }}
                 onClick={() => toggleMenuHandler(true)}
               >
