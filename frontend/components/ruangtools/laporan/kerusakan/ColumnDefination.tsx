@@ -12,10 +12,13 @@ import ActionMenu from "components/common/ActionMenu";
 
 interface ColumnHandlers {
   onDetail: (item: LaporanKerusakanType) => void;
+  onRepair: (item: LaporanKerusakanType) => void;
 }
+
 
 export const getLaporanKerusakanColumns = ({
   onDetail,
+  onRepair,
 }: ColumnHandlers): ColumnDef<LaporanKerusakanType>[] => [
   {
     accessorKey: "tanggal_pengembalian",
@@ -85,19 +88,42 @@ export const getLaporanKerusakanColumns = ({
     },
   },
   {
-    id: "aksi",
-    header: "Aksi",
+    accessorKey: "status",
+    header: "Status",
     cell: ({ row }) => (
-      <ActionMenu
-        toggleButton={<IconDotsVertical size={20} />}
-        className="btn btn-ghost btn-icon btn-sm rounded-circle"
-        drop="start"
-        align="start"
+      <Badge
+        bg={row.original.status === "diperbaiki" ? "success-subtle" : "danger-subtle"}
+        text={row.original.status === "diperbaiki" ? "success-emphasis" : "danger-emphasis"}
+        className="fw-semibold"
       >
-        <Dropdown.Item onClick={() => onDetail(row.original)}>
-          Detail Laporan
-        </Dropdown.Item>
-      </ActionMenu>
+        {row.original.status === "diperbaiki" ? "Diperbaiki" : "Rusak"}
+      </Badge>
     ),
+  },
+  {
+  id: "aksi",
+    header: "Aksi",
+    cell: ({ row }) => {
+      const item = row.original;
+      const sudahDiperbaiki = item.status === "diperbaiki";
+
+      return (
+        <ActionMenu
+          toggleButton={<IconDotsVertical size={20} />}
+          className="btn btn-ghost btn-icon btn-sm rounded-circle"
+          drop="start"
+          align="start"
+        >
+          <Dropdown.Item onClick={() => onDetail(item)}>
+            Detail Laporan
+          </Dropdown.Item>
+          {!sudahDiperbaiki && (
+            <Dropdown.Item className="text-success" onClick={() => onRepair(item)}>
+              Repair Alat
+            </Dropdown.Item>
+          )}
+        </ActionMenu>
+      );
+    },
   },
 ];
