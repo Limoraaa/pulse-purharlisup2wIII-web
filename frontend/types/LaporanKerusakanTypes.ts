@@ -13,6 +13,8 @@ export interface LaporanKerusakanType {
   nama_pekerjaan: string;
   area_kerja: string;
   keterangan: string;
+  status: "rusak" | "diperbaiki";
+  tanggal_diperbaiki: string | null;
 
   // Diperlukan agar cocok dengan constraint generic exportToPDF / exportToExcel
   [key: string]: unknown;

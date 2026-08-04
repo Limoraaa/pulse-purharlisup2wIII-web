@@ -62,6 +62,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/peminjaman/proses', [PeminjamanController::class, 'prosesPeminjaman']);
     Route::patch('/peminjaman/{id}/kembali', [PeminjamanController::class, 'kembali']);
     Route::apiResource('peminjaman', PeminjamanController::class);
+    Route::patch('/laporan-kerusakan/{id}/repair', [LaporanKerusakanController::class, 'repair']);
 
     // 2. Fitur Keranjang & Scanner Consumable Keluar
     Route::post('/consumable-keluar/scan', [ConsumableKeluarController::class, 'scan']);
