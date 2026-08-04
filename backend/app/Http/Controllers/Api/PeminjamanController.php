@@ -162,12 +162,15 @@ class PeminjamanController extends Controller
     }
 
     // POST /api/peminjaman/proses (Dalam middleware auth)
-    public function prosesPeminjaman(Request $request)
+   public function prosesPeminjaman(Request $request)
     {
         $request->validate([
-            // Diubah dari 'uuid' menjadi 'string' agar menerima ID RFID murni
             'peminta_id' => 'required|string|exists:peminta,id',
             'dicatat_oleh' => 'required|uuid|exists:users,id',
+            'nama_pekerjaan' => 'required|string|max:255',
+            'area_pekerjaan' => 'nullable|string|max:255',
+            'spesifikasi' => 'nullable|string',
+            'keterangan' => 'nullable|string',
         ]);
 
         $antrean = DB::table('temporary_cart')->whereNotNull('tools_id')->get();
@@ -191,12 +194,16 @@ class PeminjamanController extends Controller
         DB::transaction(function () use ($antrean, $request) {
             foreach ($antrean as $item) {
                 Peminjaman::create([
-                    'id'           => (string) Str::uuid(),
-                    'tool_id'      => $item->tools_id,
-                    'peminta_id'   => $request->peminta_id,
-                    'dicatat_oleh' => $request->dicatat_oleh,
-                    'tanggal'      => now(),
-                    'jumlah'       => $item->qty,
+                    'id'             => (string) Str::uuid(),
+                    'tool_id'        => $item->tools_id,
+                    'peminta_id'     => $request->peminta_id,
+                    'dicatat_oleh'   => $request->dicatat_oleh,
+                    'tanggal'        => now(),
+                    'jumlah'         => $item->qty,
+                    'nama_pekerjaan' => $request->nama_pekerjaan,
+                    'area_pekerjaan' => $request->area_pekerjaan,
+                    'spesifikasi'    => $request->spesifikasi,
+                    'keterangan'     => $request->keterangan,
                 ]);
             }
 
@@ -227,6 +234,7 @@ class PeminjamanController extends Controller
             // Diubah dari 'uuid' menjadi 'string'
             'peminta_id' => 'required|string|exists:peminta,id',
             'jumlah' => 'required|integer|min:1',
+            'nama_pekerjaan' => 'required|string|max:255',
             'area_pekerjaan' => 'nullable|string|max:255',
             'spesifikasi' => 'nullable|string',
             'keterangan' => 'nullable|string',

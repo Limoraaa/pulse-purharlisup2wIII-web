@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('peminta_id');
             $table->integer('jumlah');
             $table->string('area_pekerjaan')->nullable();
+            $table->string('nama_pekerjaan')->nullable();
             $table->string('spesifikasi')->nullable();
             $table->text('keterangan')->nullable();
             $table->timestamp('tanggal_kembali')->nullable();

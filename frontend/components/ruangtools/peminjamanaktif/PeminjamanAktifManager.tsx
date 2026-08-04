@@ -58,6 +58,7 @@ const PeminjamanAktifManager = () => {
         item.kodeBarang.toLowerCase().includes(keyword) ||
         item.namaBarang.toLowerCase().includes(keyword) ||
         item.namaPeminjam.toLowerCase().includes(keyword) ||
+        item.namaPekerjaan.toLowerCase().includes(keyword) ||
         item.areaKerja.toLowerCase().includes(keyword)
     );
   }, [items, searchTerm]);

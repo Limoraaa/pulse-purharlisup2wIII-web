@@ -18,6 +18,7 @@ const emptyForm = (): ConsumableOutFormValues => ({
   pemintaId: "",
   namaPeminta: "",
   divisi: "",
+  namaPekerjaan: "",
   areaKerja: "",
   keterangan: "",
 });
@@ -182,10 +183,21 @@ const ConsumableOutFormModal = ({
             <Row className="g-3">
               <Col md={12}>
                 <Form.Label>
-                  Area Pekerjaan <span className="text-danger">*</span>
+                  Nama Pekerjaan <span className="text-danger">*</span>
                 </Form.Label>
                 <Form.Control
                   required
+                  placeholder="Contoh: Perbaikan Trafo"
+                  value={form.namaPekerjaan}
+                  onChange={(e) => setForm((prev) => ({ ...prev, namaPekerjaan: e.target.value }))}
+                  disabled={submitting}
+                />
+              </Col>
+              <Col md={12}>
+                <Form.Label>
+                  Area Pekerjaan <span className="text-secondary fw-normal">(opsional)</span>
+                </Form.Label>
+                <Form.Control
                   placeholder="Contoh: Lab Produksi"
                   value={form.areaKerja}
                   onChange={(e) => setForm((prev) => ({ ...prev, areaKerja: e.target.value }))}

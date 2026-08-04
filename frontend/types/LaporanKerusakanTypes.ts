@@ -10,6 +10,7 @@ export interface LaporanKerusakanType {
   jumlah_rusak: number;
   nama_peminjam: string;
   divisi: string;
+  nama_pekerjaan: string;
   area_kerja: string;
   keterangan: string;
 

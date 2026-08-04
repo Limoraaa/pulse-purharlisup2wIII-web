@@ -85,8 +85,12 @@ export const getPeminjamanAktifColumns = ({
     header: "Divisi",
   },
   {
+    accessorKey: "namaPekerjaan",
+    header: "Nama Pekerjaan",
+  },
+  {
     accessorKey: "areaKerja",
-    header: "Area/Pekerjaan",
+    header: "Area Pekerjaan",
   },
   {
     accessorKey: "spesifikasi",

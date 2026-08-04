@@ -18,6 +18,7 @@ const emptyForm = (): LoanFormValues => ({
   peminjamId: "",
   namaPeminjam: "",
   divisi: "",
+  namaPekerjaan: "",
   areaKerja: "",
   spesifikasi: "",
   keterangan: "",
@@ -177,11 +178,20 @@ const LoanFormModal = ({
             <Row className="g-3">
               <Col md={12}>
                 <Form.Label>
-                  Area Kerja <span className="text-danger">*</span>
+                  Nama Pekerjaan <span className="text-danger">*</span>
                 </Form.Label>
                 <Form.Control
                   required
-                  placeholder="Contoh: Gardu Induk A"
+                  value={form.namaPekerjaan}
+                  onChange={(e) => setForm((prev) => ({ ...prev, namaPekerjaan: e.target.value }))}
+                  disabled={submitting}
+                />
+              </Col>
+              <Col md={12}>
+                <Form.Label>
+                  Area Kerja <span className="text-secondary fw-normal">(opsional)</span>
+                </Form.Label>
+                <Form.Control
                   value={form.areaKerja}
                   onChange={(e) => setForm((prev) => ({ ...prev, areaKerja: e.target.value }))}
                   disabled={submitting}
