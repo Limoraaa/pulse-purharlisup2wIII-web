@@ -16,7 +16,7 @@ return new class extends Migration
 // GANTI MENJADI INI:
             $table->string('id')->primary(); // Tipe string agar bebas menerima angka RFID
             $table->string('nama');
-            $table->string('kategori')->nullable();
+            $table->string('divisi')->nullable();
             $table->boolean('aktif')->default(true);
             $table->timestamps();
         });
