@@ -15,6 +15,7 @@ export interface RiwayatPeminjamanType {
   jumlah: number;
   nama_peminjam: string;
   divisi: string;
+  nama_pekerjaan: string;
   area_kerja: string;
   keterangan: string;
 
@@ -25,6 +26,7 @@ export interface RiwayatPeminjamanType {
 // Form edit hanya mengubah 3 field
 export interface RiwayatPeminjamanFormValues {
   jumlah: number;
+  nama_pekerjaan: string;
   area_kerja: string;
   keterangan: string;
 }
@@ -45,6 +47,7 @@ export interface RiwayatConsumableKeluarType {
   jumlah: number;
   nama_peminta: string;
   divisi: string;
+  nama_pekerjaan: string;
   area_kerja: string;
   keterangan: string;
 
@@ -53,6 +56,7 @@ export interface RiwayatConsumableKeluarType {
 
 export interface RiwayatConsumableKeluarFormValues {
   jumlah: number;
+  nama_pekerjaan: string;
   area_kerja: string;
   keterangan: string;
 }

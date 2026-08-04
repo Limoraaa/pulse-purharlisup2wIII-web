@@ -299,10 +299,10 @@ const DataToolsManager = () => {
         throw new Error("Sesi login tidak ditemukan. Silakan login ulang.");
       }
 
-      // Mengirimkan ID pekerja (yang sekarang bersumber dari nomor kartu RFID langsung)
       await prosesPeminjamanApi({
-        pemintaId: values.peminjamId, 
+        pemintaId: values.peminjamId,
         dicatatOleh: dicatatOleh,
+        namaPekerjaan: values.namaPekerjaan,
         areaKerja: values.areaKerja,
         spesifikasi: values.spesifikasi,
         keterangan: values.keterangan,

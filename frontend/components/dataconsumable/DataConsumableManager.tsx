@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
 import {
   Row,
@@ -62,6 +62,7 @@ function sortByKode(items: ConsumableItemType[]): ConsumableItemType[] {
   );
 }
 
+
 const EXPORT_COLUMNS: ExportColumn[] = [
   { header: "Kode Barang", key: "kode_barang" },
   { header: "Nama Consumable", key: "nama" },
@@ -71,6 +72,18 @@ const EXPORT_COLUMNS: ExportColumn[] = [
   { header: "Ukuran", key: "ukuran" },
   { header: "Stok Tersedia", key: "stok_awal" },
 ];
+
+interface AntreanConsumableApiItem {
+  id: string;
+  consumable_id: string;
+  kodeBarang?: string;
+  kode_barang?: string;
+  namaBarang?: string;
+  nama?: string;
+  qty?: number;
+  jumlah?: number;
+  stok_tersedia?: number;
+}
 
 const DataConsumableManager = () => {
   const [consumables, setConsumables] = useState<ConsumableItemType[]>([]);
@@ -106,19 +119,23 @@ const DataConsumableManager = () => {
     }
   };
 
-  const loadCart = async () => {
+  const loadCart = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
       const userId = localStorage.getItem("userId");
 
-      const json = await api<{ data: any[] }>("/consumable-keluar/antrean", {
-        method: "GET",
-        headers: { 
-          Authorization: `Bearer ${token}`,
-          ...(userId ? { "x-user-id": userId } : {})
-        },
-      });
+      const json = await api<{ data: AntreanConsumableApiItem[] } | AntreanConsumableApiItem[]>(
+        "/consumable-keluar/antrean",
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            ...(userId ? { "x-user-id": userId } : {}),
+          },
+        }
+      );
 
+<<<<<<< HEAD
       // 1. TAMBAHKAN LOG INI UNTUK MELIHAT RESPON BACKEND
       console.log("RESPON API ANTREAN:", json);
 
@@ -128,6 +145,11 @@ const DataConsumableManager = () => {
       console.log("DATA MENTAH (RAW ITEMS):", rawItems);
 
       const mappedCart: ConsumableCartItem[] = rawItems.map((item: any) => ({
+=======
+      const rawItems: AntreanConsumableApiItem[] = Array.isArray(json) ? json : json.data || [];
+
+      const mappedCart: ConsumableCartItem[] = rawItems.map((item) => ({
+>>>>>>> 2a7288689f276357f85adf4bc240025c4907cd09
         id: item.id,
         consumable_id: item.consumable_id,
         kode_barang: item.kodeBarang || item.kode_barang || "-",
@@ -143,8 +165,8 @@ const DataConsumableManager = () => {
     } catch (err) {
       console.error("Gagal load keranjang", err);
     }
-  };
 
+  }, []);
   useEffect(() => {
     const token = localStorage.getItem("token"); 
     if (!token) return; 
@@ -170,7 +192,7 @@ const DataConsumableManager = () => {
       window.removeEventListener("focus", handleFocus);
       clearInterval(autoRefresh); // Bersihkan timer saat komponen di-unmount
     };
-  }, []);
+  }, [loadCart]);
 
   const filteredConsumables = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
@@ -200,24 +222,21 @@ const DataConsumableManager = () => {
     setFormModalOpen(true);
   };
 
-  const openEditModal = (item: ConsumableItemType) => {
-    const originalItem = consumables.find((c) => c.id === item.id) || item;
-    setActiveItem(originalItem);
+    const openEditModal = useCallback((item: ConsumableItemType) => {
+    setActiveItem(consumables.find((c) => c.id === item.id) || item);
     setFormError(null);
     setFormModalOpen(true);
-  };
+  }, [consumables]);
 
-  const openDetailModal = (item: ConsumableItemType) => {
-    const originalItem = consumables.find((c) => c.id === item.id) || item;
-    setActiveItem(originalItem);
+   const openDetailModal = useCallback((item: ConsumableItemType) => {
+    setActiveItem(consumables.find((c) => c.id === item.id) || item);
     setDetailModalOpen(true);
-  };
+  }, [consumables]);
 
-  const openDeleteModal = (item: ConsumableItemType) => {
-    const originalItem = consumables.find((c) => c.id === item.id) || item;
-    setActiveItem(originalItem);
+  const openDeleteModal = useCallback((item: ConsumableItemType) => {
+    setActiveItem(consumables.find((c) => c.id === item.id) || item);
     setDeleteModalOpen(true);
-  };
+  }, [consumables]);
 
   const handleExportPDF = () =>
     exportToPDF(filteredConsumables as unknown as Record<string, unknown>[], EXPORT_COLUMNS, "data-consumable", "Data Consumable");
@@ -258,7 +277,7 @@ const DataConsumableManager = () => {
     }
   };
 
-  const handleAddToCart = async (
+  const handleAddToCart = useCallback(async (
     item: ConsumableItemType,
     event?: React.MouseEvent<HTMLButtonElement>
   ) => {
@@ -301,7 +320,7 @@ const DataConsumableManager = () => {
     } catch (err) {
       alert(err instanceof Error ? err.message : "Gagal menambah ke keranjang.");
     }
-  };
+  }, [loadCart]);
 
   const handleAnimationEnd = (id: string) => {
     setFlyAnimations((prev) => prev.filter((a) => a.id !== id));
@@ -366,6 +385,10 @@ const DataConsumableManager = () => {
 
       const payload = {
         peminta_id: values.pemintaId,
+<<<<<<< HEAD
+=======
+        nama_pekerjaan: values.namaPekerjaan,
+>>>>>>> 2a7288689f276357f85adf4bc240025c4907cd09
         pekerjaan_area: values.areaKerja,
         keterangan: values.keterangan || "",
         dicatat_oleh: dicatatOleh,
@@ -406,7 +429,7 @@ const DataConsumableManager = () => {
         onDelete: openDeleteModal,
         onStockOut: handleAddToCart,
       }),
-    []
+    [openDetailModal, openEditModal, openDeleteModal, handleAddToCart]
   );
 
   return (

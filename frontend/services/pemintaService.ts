@@ -5,21 +5,21 @@ import { PeminjamFormValues } from "components/ruangtools/datapeminjam/PeminjamF
 interface PemintaApiResponse {
   id: string; // Ini sekarang berisi nomor RFID atau UUID bawaan
   nama: string;
-  kategori: string | null;
+  divisi: string | null;
   aktif: boolean;
 }
 
 interface PemintaApiPayload {
   id?: string; // Tambahkan ini agar ID hasil scan dikirim ke Laravel
   nama: string;
-  kategori: string;
+  divisi: string;
 }
 
 function mapPemintaFromApi(item: PemintaApiResponse): PeminjamType {
   return {
     id: item.id,
     nama: item.nama,
-    divisi: item.kategori ?? "-",
+    divisi: item.divisi ?? "-",
     aktif: item.aktif,
   };
 }
@@ -27,7 +27,7 @@ function mapPemintaFromApi(item: PemintaApiResponse): PeminjamType {
 function mapPemintaToApi(values: PeminjamFormValues): PemintaApiPayload {
   const payload: PemintaApiPayload = {
     nama: values.nama,
-    kategori: values.divisi,
+    divisi: values.divisi,
   };
 
   // Jika kolom RFID di form diisi, masukkan ke paket data untuk dikirim ke API

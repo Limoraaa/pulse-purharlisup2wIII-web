@@ -61,6 +61,7 @@ const DetailTransaksiModal = ({
             Informasi Transaksi
           </div>
           <Row className="g-3">
+            <InfoItem label="Nama Pekerjaan" value={header.nama_pekerjaan} />
             <InfoItem label="Area Kerja" value={header.area_kerja} />
             <InfoItem label="Nama Peminjam" value={header.nama_peminjam} />
             <InfoItem label="Tanggal Pinjam" value={header.tanggal_pinjam} />

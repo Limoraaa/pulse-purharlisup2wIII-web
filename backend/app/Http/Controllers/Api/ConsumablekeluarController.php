@@ -199,9 +199,9 @@ class ConsumableKeluarController extends Controller
     public function prosesCartConsumable(Request $request)
     {
         $request->validate([
-            // Diubah dari 'uuid' menjadi 'string' agar menerima ID RFID murni
             'peminta_id'     => 'required|string|exists:peminta,id',
             'dicatat_oleh'   => 'required|uuid|exists:users,id',
+            'nama_pekerjaan' => 'required|string|max:255',
             'pekerjaan_area' => 'nullable|string|max:255',
             'keterangan'     => 'nullable|string',
         ]);
@@ -245,6 +245,7 @@ class ConsumableKeluarController extends Controller
                     'consumable_id'  => $item->consumable_id,
                     'peminta_id'     => $request->peminta_id,
                     'dicatat_oleh'   => $request->dicatat_oleh,
+                    'nama_pekerjaan' => $request->nama_pekerjaan,
                     'pekerjaan_area' => $request->pekerjaan_area,
                     'keterangan'     => $request->keterangan,
                     'tanggal'        => now(),
@@ -280,7 +281,6 @@ class ConsumableKeluarController extends Controller
         $validator = Validator::make($request->all(), [
             'tanggal'        => 'required|date',
             'consumable_id'  => 'required|uuid|exists:consumables,id',
-            // Diubah dari 'uuid' menjadi 'string'
             'peminta_id'     => 'required|string|exists:peminta,id',
             'jumlah_keluar'  => 'required|integer|min:1',
             'pekerjaan_area' => 'nullable|string|max:255',

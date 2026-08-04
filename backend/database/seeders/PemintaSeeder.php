@@ -10,14 +10,14 @@ class PemintaSeeder extends Seeder
     public function run(): void
     {
         $data = [
-            ['nama' => 'Dadang M Syam', 'kategori' => 'HL'],
-            ['nama' => 'Jaka Yudha Pamungkas', 'kategori' => 'HL'],
-            ['nama' => 'Diki Ambara', 'kategori' => 'HL'],
-            ['nama' => 'Dian Widiana', 'kategori' => 'HL'],
-            ['nama' => 'Aji Sidik', 'kategori' => 'HL'],
-            ['nama' => 'Riyanto', 'kategori' => 'MGTI'],
-            ['nama' => 'Edy Supardi', 'kategori' => 'HL'],
-            ['nama' => 'Abdul Aziz Muslim', 'kategori' => 'HL'],
+            ['nama' => 'Dadang M Syam', 'divisi' => 'HL'],
+            ['nama' => 'Jaka Yudha Pamungkas', 'divisi' => 'HL'],
+            ['nama' => 'Diki Ambara', 'divisi' => 'HL'],
+            ['nama' => 'Dian Widiana', 'divisi' => 'HL'],
+            ['nama' => 'Aji Sidik', 'divisi' => 'HL'],
+            ['nama' => 'Riyanto', 'divisi' => 'MGTI'],
+            ['nama' => 'Edy Supardi', 'divisi' => 'HL'],
+            ['nama' => 'Abdul Aziz Muslim', 'divisi' => 'HL'],
         ];
 
         foreach ($data as $item) {

@@ -42,7 +42,7 @@ class PemintaController extends Controller
             // Validasi diubah ke 'id', pastikan unik di tabel 'peminta'
             'id' => 'nullable|string|unique:peminta,id',
             'nama' => 'required|string|max:255',
-            'kategori' => 'required|string|max:255',
+            'divisi' => 'required|string|max:255',
         ]);
 
         if ($validator->fails()) {
@@ -69,7 +69,7 @@ class PemintaController extends Controller
             // Validasi diubah ke 'id', dan abaikan pengecekan unique untuk data yang sedang diedit
             'id' => 'nullable|string|unique:peminta,id,' . $id,
             'nama' => 'sometimes|required|string|max:255',
-            'kategori' => 'sometimes|required|string|max:255',
+            'divisi' => 'sometimes|required|string|max:255',
         ]);
 
         if ($validator->fails()) {
