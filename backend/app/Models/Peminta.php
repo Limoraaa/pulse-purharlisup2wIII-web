@@ -52,4 +52,8 @@ class Peminta extends Model
     {
         return $this->hasMany(ConsumableKeluar::class);
     }
+    public function consumableMasuk(): HasMany
+    {
+        return $this->hasMany(ConsumableMasuk::class, 'dicatat_oleh', 'id');
+    }
 }

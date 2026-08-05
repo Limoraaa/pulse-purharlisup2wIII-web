@@ -66,6 +66,15 @@ export interface ConsumableMasukType {
   ukuran: string;
   jumlah_masuk: number;
   keterangan: string;
+  // --- PASTikan PROPERTI INI ADA ---
+  dicatatOleh?: {
+    id: string;
+    name?: string;
+    nama?: string;
+  };
 }
 
-export type ConsumableMasukFormValues = Omit<ConsumableMasukType, "id">;
+// Jangan lupa update bagian Omit menjadi "dicatatOleh"
+export type ConsumableMasukFormValues = Omit<ConsumableMasukType, "id" | "dicatatOleh"> & {
+  id_card?: string;
+};
