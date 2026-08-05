@@ -310,7 +310,8 @@ const DataToolsManager = () => {
 
       setCart([]);
       setLoanFormOpen(false);
-      mutate("/peminjaman/antrean"); 
+      mutate("/peminjaman/antrean");
+      dispatch(fetchTools());
 
       setSuccessMessage(
         `Peminjaman untuk ${values.namaPeminjam} berhasil dibuat. Status: Sedang Dipinjam.`
