@@ -28,6 +28,8 @@ import DasherBreadcrumb from "components/common/DasherBreadcrumb";
 import { getPeminjamColumns } from "components/ruangtools/datapeminjam/ColumnDefination";
 import PeminjamFormModal, { PeminjamFormValues } from "components/ruangtools/datapeminjam/PeminjamFormModal";
 import DeleteConfirmModal from "components/ruangtools/datapeminjam/DeleteConfirmModal";
+// reuse fungsi export yang sudah ada dari fitur Riwayat / Laporan Kerusakan
+import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
 
 import {
   getPeminta,
@@ -47,6 +49,14 @@ import {
       return a.nama.localeCompare(b.nama);
     });
   }
+
+// Kolom yang dipakai untuk file Export PDF/Excel
+const EXPORT_COLUMNS: ExportColumn[] = [
+  { header: "Nama", key: "nama" },
+  { header: "Divisi", key: "divisi" },
+  { header: "RFID UID", key: "rfid_uid" },
+  { header: "Status", key: "statusLabel" },
+];
 
 const PeminjamManager = () => {
   const [peminjamList, setPeminjamList] = useState<PeminjamType[]>([]);
@@ -173,6 +183,31 @@ const PeminjamManager = () => {
     }
   };
 
+  // ---- Export PDF / Excel ----
+  // Sengaja pakai `peminjamList` (bukan `filteredPeminjam`) supaya file
+  // export SELALU berisi seluruh data, tidak terpengaruh pencarian yang
+  // sedang aktif di layar.
+  const buildExportData = () =>
+    peminjamList.map((item) => ({
+      ...item,
+      statusLabel: item.aktif ? "Aktif" : "Nonaktif",
+    }));
+
+  const handleExportPDF = () =>
+    exportToPDF(
+      buildExportData() as unknown as Record<string, unknown>[],
+      EXPORT_COLUMNS,
+      "data-peminjam",
+      "Data Peminjam"
+    );
+
+  const handleExportExcel = () =>
+    exportToExcel(
+      buildExportData() as unknown as Record<string, unknown>[],
+      EXPORT_COLUMNS,
+      "data-peminjam"
+    );
+
   const columns = useMemo(
     () =>
       getPeminjamColumns({
@@ -220,10 +255,10 @@ const PeminjamManager = () => {
       </Row>
 
       <Card className="card-lg mb-6">
-        {/* ---- Toolbar: Search ---- */}
+        {/* ---- Toolbar: Search + Info + Export ---- */}
         <div className="datapeminjam-toolbar border-bottom">
           <Row className="g-2 align-items-center">
-            <Col lg={6} md={7}>
+            <Col lg={5} md={6}>
               <InputGroup className="datapeminjam-search">
                 <InputGroup.Text>
                   <IconSearch size={18} />
@@ -247,12 +282,20 @@ const PeminjamManager = () => {
                 )}
               </InputGroup>
             </Col>
-            <Col lg={6} md={5} className="text-md-end">
+            <Col lg={4} md={3} className="text-md-end">
               <span className="text-secondary small">
                 Menampilkan{" "}
                 <span className="fw-semibold text-body">{filteredPeminjam.length}</span>{" "}
                 dari {peminjamList.length} data
               </span>
+            </Col>
+            <Col lg={3} md={3} className="d-flex justify-content-md-end gap-2">
+              <Button variant="outline-danger" size="sm" onClick={handleExportPDF}>
+                Export PDF
+              </Button>
+              <Button variant="outline-success" size="sm" onClick={handleExportExcel}>
+                Export Excel
+              </Button>
             </Col>
           </Row>
         </div>
