@@ -26,7 +26,6 @@ import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/
 import { getRiwayatPeminjaman } from "services/peminjamanService";
 
 const EXPORT_COLUMNS: ExportColumn[] = [
-  { header: "Nomor Transaksi", key: "nomor_transaksi" },
   { header: "Tanggal Pinjam", key: "tanggal_pinjam" },
   { header: "Tanggal Kembali", key: "tanggal_kembali" },
   { header: "Kode Barang", key: "kode_barang" },

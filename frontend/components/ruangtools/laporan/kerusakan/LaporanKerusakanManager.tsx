@@ -69,6 +69,7 @@ const LaporanKerusakanManager = () => {
 
   const [bulanFilter, setBulanFilter] = useState(0);
   const [tahunFilter, setTahunFilter] = useState(0);
+  const [namaFilter, setNamaFilter] = useState("Semua");
 
   // ---- Pencarian (murni UI, tidak menyentuh API/data) ----
   const [searchTerm, setSearchTerm] = useState("");
@@ -95,6 +96,11 @@ const LaporanKerusakanManager = () => {
     return Array.from(tahunSet).sort((a, b) => b - a);
   }, [laporanList]);
 
+  const namaOptions = useMemo(() => {
+    const namaSet = new Set(laporanList.map((r) => r.nama_peminjam));
+    return Array.from(namaSet).sort();
+  }, [laporanList]);
+
   const filteredList = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
     return laporanList.filter((r) => {
@@ -106,6 +112,8 @@ const LaporanKerusakanManager = () => {
           if (tahunFilter !== 0 && tanggal.getFullYear() !== tahunFilter) return false;
         }
       }
+      // filter nama peminjam -- BARU
+      if (namaFilter !== "Semua" && r.nama_peminjam !== namaFilter) return false;
       // filter pencarian
       if (keyword !== "") {
         const cocok =
@@ -116,7 +124,7 @@ const LaporanKerusakanManager = () => {
       }
       return true;
     });
-  }, [laporanList, bulanFilter, tahunFilter, searchTerm]);
+  }, [laporanList, bulanFilter, tahunFilter, namaFilter, searchTerm]);
 
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [activeItem, setActiveItem] = useState<LaporanKerusakanType | null>(null);
@@ -192,6 +200,10 @@ const LaporanKerusakanManager = () => {
             tahunFilter={tahunFilter}
             onTahunFilterChange={setTahunFilter}
             tahunOptions={tahunOptions}
+            namaFilter={namaFilter}
+            onNamaFilterChange={setNamaFilter}
+            namaOptions={namaOptions}
+            namaLabel="Nama Peminjam"
             onExportPDF={handleExportPDF}
             onExportExcel={handleExportExcel}
           />

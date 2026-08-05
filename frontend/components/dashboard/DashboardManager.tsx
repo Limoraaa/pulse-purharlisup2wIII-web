@@ -168,9 +168,9 @@ const DashboardManager = () => {
     <>
       {PageHeader}
 
-      {/* Baris 1: Ringkasan Utama */}
+            {/* Baris 1: Ringkasan Utama */}
       <Row className="g-3 mb-4">
-        <Col xl={3} md={6} sm={6}>
+        <Col xs={6} md={6} xl={3}>
           <StatCard
             icon={<IconTool size={26} />}
             title="Total Tools"
@@ -178,7 +178,7 @@ const DashboardManager = () => {
             variant="primary"
           />
         </Col>
-        <Col xl={3} md={6} sm={6}>
+        <Col xs={6} md={6} xl={3}>
           <StatCard
             icon={<IconPackage size={26} />}
             title="Total Consumable"
@@ -186,7 +186,7 @@ const DashboardManager = () => {
             variant="info"
           />
         </Col>
-        <Col xl={3} md={6} sm={6}>
+        <Col xs={6} md={6} xl={3}>
           <StatCard
             icon={<IconUsers size={26} />}
             title="Total Peminta"
@@ -194,7 +194,7 @@ const DashboardManager = () => {
             variant="success"
           />
         </Col>
-        <Col xl={3} md={6} sm={6}>
+        <Col xs={6} md={6} xl={3}>
           <StatCard
             icon={<IconClockHour4 size={26} />}
             title="Sedang Dipinjam"
@@ -203,6 +203,7 @@ const DashboardManager = () => {
           />
         </Col>
       </Row>
+
 
       {/* Baris 2: Perlu Perhatian */}
       <Row className="g-3 mb-4">
