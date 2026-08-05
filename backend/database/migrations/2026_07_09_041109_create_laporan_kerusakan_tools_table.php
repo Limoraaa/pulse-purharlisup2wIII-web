@@ -16,6 +16,8 @@ return new class extends Migration
             $table->foreignUuid('peminjaman_id')->nullable()->constrained('peminjaman'); // ← baru
             $table->integer('jumlah');
             $table->text('keterangan')->nullable();
+            $table->string('status')->default('rusak'); // rusak / diperbaiki
+            $table->timestamp('tanggal_diperbaiki')->nullable();
             $table->foreignUuid('dilaporkan_oleh')->constrained('users');
             $table->timestamps();
         });
