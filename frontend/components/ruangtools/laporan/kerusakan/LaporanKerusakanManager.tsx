@@ -46,6 +46,11 @@ const EXPORT_COLUMNS: ExportColumn[] = [
   { header: "Keterangan", key: "keterangan" },
 ];
 
+  const STATUS_ORDER: Record<string, number> = {   // ← tambahkan ini
+    bisa_diperbaiki: 0,
+    rusak_permanen: 1,
+  };
+
 const LaporanKerusakanManager = () => {
   const [laporanList, setLaporanList] = useState<LaporanKerusakanType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -141,25 +146,27 @@ const LaporanKerusakanManager = () => {
     return Array.from(tahunSet).sort((a, b) => b - a);
   }, [laporanList]);
 
-  const filteredList = useMemo(() => {
+   const filteredList = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
-    return laporanList.filter((r) => {
-      if (bulanFilter !== 0 || tahunFilter !== 0) {
-        const tanggal = parseTanggal(r.tanggal_pengembalian);
-        if (tanggal) {
-          if (bulanFilter !== 0 && tanggal.getMonth() + 1 !== bulanFilter) return false;
-          if (tahunFilter !== 0 && tanggal.getFullYear() !== tahunFilter) return false;
+    return laporanList
+      .filter((r) => {
+        if (bulanFilter !== 0 || tahunFilter !== 0) {
+          const tanggal = parseTanggal(r.tanggal_pengembalian);
+          if (tanggal) {
+            if (bulanFilter !== 0 && tanggal.getMonth() + 1 !== bulanFilter) return false;
+            if (tahunFilter !== 0 && tanggal.getFullYear() !== tahunFilter) return false;
+          }
         }
-      }
-      if (keyword !== "") {
-        const cocok =
-          r.kode_barang.toLowerCase().includes(keyword) ||
-          r.nama_barang.toLowerCase().includes(keyword) ||
-          r.nama_peminjam.toLowerCase().includes(keyword);
-        if (!cocok) return false;
-      }
-      return true;
-    });
+        if (keyword !== "") {
+          const cocok =
+            r.kode_barang.toLowerCase().includes(keyword) ||
+            r.nama_barang.toLowerCase().includes(keyword) ||
+            r.nama_peminjam.toLowerCase().includes(keyword);
+          if (!cocok) return false;
+        }
+        return true;
+      })
+      .sort((a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status]);
   }, [laporanList, bulanFilter, tahunFilter, searchTerm]);
 
   const [detailModalOpen, setDetailModalOpen] = useState(false);
