@@ -13,12 +13,14 @@ import ActionMenu from "components/common/ActionMenu";
 interface ColumnHandlers {
   onDetail: (item: LaporanKerusakanType) => void;
   onRepair: (item: LaporanKerusakanType) => void;
+  onTandaiPermanen: (item: LaporanKerusakanType) => void; 
 }
 
 
 export const getLaporanKerusakanColumns = ({
   onDetail,
   onRepair,
+  onTandaiPermanen,
 }: ColumnHandlers): ColumnDef<LaporanKerusakanType>[] => [
   {
     accessorKey: "tanggal_pengembalian",
@@ -92,20 +94,20 @@ export const getLaporanKerusakanColumns = ({
     header: "Status",
     cell: ({ row }) => (
       <Badge
-        bg={row.original.status === "diperbaiki" ? "success-subtle" : "danger-subtle"}
-        text={row.original.status === "diperbaiki" ? "success-emphasis" : "danger-emphasis"}
+        bg={row.original.status === "bisa_diperbaiki" ? "warning-subtle" : "danger-subtle"}
+        text={row.original.status === "bisa_diperbaiki" ? "warning-emphasis" : "danger-emphasis"}
         className="fw-semibold"
       >
-        {row.original.status === "diperbaiki" ? "Diperbaiki" : "Rusak"}
+        {row.original.status === "bisa_diperbaiki" ? "Bisa Diperbaiki" : "Rusak Permanen"}
       </Badge>
     ),
   },
-  {
-  id: "aksi",
+   {
+    id: "aksi",
     header: "Aksi",
     cell: ({ row }) => {
       const item = row.original;
-      const sudahDiperbaiki = item.status === "diperbaiki";
+      const bisaDiperbaiki = item.status === "bisa_diperbaiki";
 
       return (
         <ActionMenu
@@ -117,10 +119,15 @@ export const getLaporanKerusakanColumns = ({
           <Dropdown.Item onClick={() => onDetail(item)}>
             Detail Laporan
           </Dropdown.Item>
-          {!sudahDiperbaiki && (
-            <Dropdown.Item className="text-success" onClick={() => onRepair(item)}>
-              Repair Alat
-            </Dropdown.Item>
+          {bisaDiperbaiki && (
+            <>
+              <Dropdown.Item className="text-success" onClick={() => onRepair(item)}>
+                Repair Alat
+              </Dropdown.Item>
+              <Dropdown.Item className="text-danger" onClick={() => onTandaiPermanen(item)}>
+                Tandai Rusak Permanen
+              </Dropdown.Item>
+            </>
           )}
         </ActionMenu>
       );

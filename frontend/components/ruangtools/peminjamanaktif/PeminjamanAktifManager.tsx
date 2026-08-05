@@ -111,6 +111,7 @@ const PeminjamanAktifManager = () => {
         peminjaman_id: activeItem.id,
         jumlah: payload.jumlahRusak,
         keterangan: payload.catatan,
+        status: payload.jenisKerusakan as "bisa_diperbaiki" | "rusak_permanen",   // ← tambahkan
         dilaporkan_oleh: dicatatOleh,
       });
     }
