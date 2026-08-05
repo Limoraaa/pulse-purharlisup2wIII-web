@@ -69,6 +69,10 @@ export const getRiwayatPeminjamanColumns = ({
     header: "Divisi",
   },
   {
+    accessorKey: "nama_pekerjaan",
+    header: "Nama Pekerjaan",
+  },
+  {
     accessorKey: "area_kerja",
     header: "Area Kerja",
   },

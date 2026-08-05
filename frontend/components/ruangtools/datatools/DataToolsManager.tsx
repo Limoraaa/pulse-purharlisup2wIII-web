@@ -299,10 +299,10 @@ const DataToolsManager = () => {
         throw new Error("Sesi login tidak ditemukan. Silakan login ulang.");
       }
 
-      // PERBAIKI DI SINI: Ubah values.pemintaId menjadi values.peminjamId
       await prosesPeminjamanApi({
-        pemintaId: values.peminjamId, // <-- Disesuaikan dengan tipe LoanFormValues
+        pemintaId: values.peminjamId,
         dicatatOleh: dicatatOleh,
+        namaPekerjaan: values.namaPekerjaan,
         areaKerja: values.areaKerja,
         spesifikasi: values.spesifikasi,
         keterangan: values.keterangan,
@@ -324,7 +324,6 @@ const DataToolsManager = () => {
     }
   };
 
-  // Di dalam map columns atau definition kolom DataTools Anda
   const columns = useMemo(
     () =>
       getDataToolsColumns({
@@ -332,11 +331,10 @@ const DataToolsManager = () => {
         onEdit: openEditModal,
         onDelete: openDeleteModal,
         onAddToCart: handleAddToCart,
-        cartItems: cart, // <-- Kirim seluruh data cart, bukan cuma ID-nya saja
+        cartItems: cart,
       }),
-    [cart] // SWR / cart update akan otomatis me-re-render kolom tabel
+    [cart]
   );
-
 
   return (
     <div className="datatools-page">

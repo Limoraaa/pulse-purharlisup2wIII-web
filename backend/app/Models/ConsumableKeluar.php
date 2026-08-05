@@ -21,6 +21,7 @@ class ConsumableKeluar extends Model
         'peminta_id',
         'jumlah_keluar',
         'pekerjaan_area',
+        'nama_pekerjaan',
         'keterangan',
         'dicatat_oleh',
     ];

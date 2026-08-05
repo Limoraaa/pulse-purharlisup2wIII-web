@@ -78,8 +78,8 @@ const SignIn = () => {
         {/* Panel Kiri: Visual */}
         <div className="login-visual login-anim-left">
           <Image
-            src={getAssetPath("/images/png/ruangtools.png")}
-            alt="Workshop Mekanik PLN Pusharlis"
+            src={getAssetPath("/images/png/welder2.png")}
+            alt="Workshop Produksi Mekanikal PT PLN (PERSERO) PUSHARLIS UP2WIII"
             className="login-visual-img"
           />
           <div className="login-visual-overlay" />
@@ -88,7 +88,9 @@ const SignIn = () => {
             <p className="login-visual-subtitle">
               Sistem Inventaris dan Peminjaman Alat
               <br />
-              Workshop Mekanik PLN Pusharlis
+              Workshop Produksi Mekanikal
+              <br />
+              PT PLN (PERSERO) PUSHARLIS UP2WIII
             </p>
           </div>
         </div>
@@ -99,7 +101,7 @@ const SignIn = () => {
             <div className="text-center mb-4">
               <Image
                 src={getAssetPath("/images/png/PLN-logo.png")}
-                alt="PT PLN (Persero)"
+                alt="PT PLN (PERSERO) PUSHARLIS UP2WIII"
                 className="login-logo"
               />
             </div>
@@ -168,9 +170,7 @@ const SignIn = () => {
                   onChange={(e) => setRememberMe(e.target.checked)}
                   disabled={loading}
                 />
-                <Link href="" className="login-forgot text-decoration-none">
-                  Lupa Password?
-                </Link>
+                
               </div>
 
               <div className="d-grid">
@@ -193,9 +193,9 @@ const SignIn = () => {
             </Form>
 
             <div className="login-footer text-center">
-              © 2026 PT PLN Pusharlis
+              © 2026 PT PLN (PERSERO) PUSHARLIS UP2WIII
               <br />
-              Workshop Mekanik
+              Workshop Produksi Mekanikal
             </div>
           </div>
         </div>

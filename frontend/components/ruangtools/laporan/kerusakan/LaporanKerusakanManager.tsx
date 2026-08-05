@@ -26,8 +26,9 @@ import {
 } from "components/ruangtools/riwayat/common/exportUtils";
 import { getLaporanKerusakanColumns } from "components/ruangtools/laporan/kerusakan/ColumnDefination";
 import DetailLaporanModal from "components/ruangtools/laporan/kerusakan/DetailLaporanModal";
+import ConfirmActionModal from "components/ruangtools/laporan/kerusakan/ConfirmActionModal";
 
-import { getLaporanKerusakan } from "services/laporanKerusakanService";
+import { getLaporanKerusakan, repairLaporanKerusakan, tandaiPermanenLaporanKerusakan } from "services/laporanKerusakanService";
 
 const EXPORT_COLUMNS: ExportColumn[] = [
   { header: "Tgl & Jam Pengembalian", key: "tanggal_pengembalian" },
@@ -40,14 +41,21 @@ const EXPORT_COLUMNS: ExportColumn[] = [
   { header: "Jumlah Rusak", key: "jumlah_rusak" },
   { header: "Nama Peminjam", key: "nama_peminjam" },
   { header: "Divisi", key: "divisi" },
+  { header: "Nama Pekerjaan", key: "nama_pekerjaan" },
   { header: "Area Kerja", key: "area_kerja" },
   { header: "Keterangan", key: "keterangan" },
 ];
+
+  const STATUS_ORDER: Record<string, number> = {   // ← tambahkan ini
+    bisa_diperbaiki: 0,
+    rusak_permanen: 1,
+  };
 
 const LaporanKerusakanManager = () => {
   const [laporanList, setLaporanList] = useState<LaporanKerusakanType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const loadData = async () => {
     setLoading(true);
@@ -62,6 +70,51 @@ const LaporanKerusakanManager = () => {
       setLoading(false);
     }
   };
+    const [confirmModal, setConfirmModal] = useState<{
+      type: "repair" | "permanen";
+      item: LaporanKerusakanType;
+    } | null>(null);
+    const [confirmSubmitting, setConfirmSubmitting] = useState(false);
+
+    const handleRepair = (item: LaporanKerusakanType) => {
+      setConfirmModal({ type: "repair", item });
+    };
+
+    const handleTandaiPermanen = (item: LaporanKerusakanType) => {
+      setConfirmModal({ type: "permanen", item });
+    };
+
+    const handleConfirmAction = async () => {
+      if (!confirmModal) return;
+      const { type, item } = confirmModal;
+      setConfirmSubmitting(true);
+
+      try {
+        if (type === "repair") {
+          await repairLaporanKerusakan(item.id);
+          setLaporanList((prev) => prev.filter((l) => l.id !== item.id));
+          setSuccessMessage(`${item.nama_barang} berhasil ditandai selesai diperbaiki, stok telah dikembalikan.`);
+        } else {
+          await tandaiPermanenLaporanKerusakan(item.id);
+          setLaporanList((prev) =>
+            prev.map((l) => (l.id === item.id ? { ...l, status: "rusak_permanen" as const } : l))
+          );
+          setSuccessMessage(`${item.nama_barang} ditandai sebagai Rusak Permanen.`);
+        }
+        setTimeout(() => setSuccessMessage(null), 5000);
+        setConfirmModal(null);
+      } catch (err) {
+        alert(
+          err instanceof Error
+            ? err.message
+            : type === "repair"
+            ? "Gagal memproses repair alat"
+            : "Gagal menandai laporan sebagai rusak permanen"
+        );
+      } finally {
+        setConfirmSubmitting(false);
+      }
+    };
 
   useEffect(() => {
     loadData();
@@ -101,30 +154,47 @@ const LaporanKerusakanManager = () => {
     return Array.from(namaSet).sort();
   }, [laporanList]);
 
-  const filteredList = useMemo(() => {
-    const keyword = searchTerm.trim().toLowerCase();
-    return laporanList.filter((r) => {
-      // filter periode (bulan/tahun)
+ const filteredList = useMemo(() => {
+  const keyword = searchTerm.trim().toLowerCase();
+
+  return laporanList
+    .filter((r) => {
       if (bulanFilter !== 0 || tahunFilter !== 0) {
         const tanggal = parseTanggal(r.tanggal_pengembalian);
+
         if (tanggal) {
-          if (bulanFilter !== 0 && tanggal.getMonth() + 1 !== bulanFilter) return false;
-          if (tahunFilter !== 0 && tanggal.getFullYear() !== tahunFilter) return false;
+          if (bulanFilter !== 0 && tanggal.getMonth() + 1 !== bulanFilter)
+            return false;
+
+          if (tahunFilter !== 0 && tanggal.getFullYear() !== tahunFilter)
+            return false;
         }
       }
-      // filter nama peminjam -- BARU
-      if (namaFilter !== "Semua" && r.nama_peminjam !== namaFilter) return false;
-      // filter pencarian
+
+      // Filter nama peminjam
+      if (namaFilter !== "Semua" && r.nama_peminjam !== namaFilter)
+        return false;
+
+      // Filter pencarian
       if (keyword !== "") {
         const cocok =
           r.kode_barang.toLowerCase().includes(keyword) ||
           r.nama_barang.toLowerCase().includes(keyword) ||
           r.nama_peminjam.toLowerCase().includes(keyword);
+
         if (!cocok) return false;
       }
+
       return true;
-    });
-  }, [laporanList, bulanFilter, tahunFilter, namaFilter, searchTerm]);
+    })
+    .sort((a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status]);
+}, [
+  laporanList,
+  bulanFilter,
+  tahunFilter,
+  namaFilter,
+  searchTerm,
+]);
 
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [activeItem, setActiveItem] = useState<LaporanKerusakanType | null>(null);
@@ -139,10 +209,20 @@ const LaporanKerusakanManager = () => {
   const handleExportExcel = () =>
     exportToExcel(filteredList, EXPORT_COLUMNS, "laporan-kerusakan-alat");
 
-  const columns = useMemo(() => getLaporanKerusakanColumns({ onDetail: openDetailModal }), []);
+  const columns = getLaporanKerusakanColumns({
+  onDetail: openDetailModal,
+  onRepair: handleRepair,
+  onTandaiPermanen: handleTandaiPermanen,   // ← tambahkan
+});
 
   return (
     <div className="riwayat-page">
+      {successMessage && (
+        <Alert variant="success" dismissible onClose={() => setSuccessMessage(null)}>
+          {successMessage}
+        </Alert>
+      )}
+
       {/* ---- Page Header ---- */}
       <Row>
         <Col>
@@ -159,9 +239,7 @@ const LaporanKerusakanManager = () => {
       </Row>
 
       <Card className="card-lg mb-6">
-        {/* ---- Toolbar: Search + Info (baris 1) & Filter + Export (baris 2) ---- */}
         <div className="riwayat-toolbar border-bottom">
-          {/* Baris 1: Search (kiri) + Info jumlah data (kanan) */}
           <div className="riwayat-toolbar-row">
             <InputGroup className="riwayat-search">
               <InputGroup.Text>
@@ -193,7 +271,6 @@ const LaporanKerusakanManager = () => {
             </span>
           </div>
 
-          {/* Baris 2: Filter Bulan/Tahun (kiri) + Export PDF/Excel (kanan) */}
           <RiwayatFilterBar
             bulanFilter={bulanFilter}
             onBulanFilterChange={setBulanFilter}
@@ -218,7 +295,6 @@ const LaporanKerusakanManager = () => {
               Memuat data...
             </div>
           ) : laporanList.length === 0 ? (
-            /* Empty state: belum ada laporan sama sekali */
             <div className="riwayat-empty text-center py-6">
               <div className="riwayat-empty-icon mb-3">
                 <IconAlertTriangle size={32} />
@@ -229,7 +305,6 @@ const LaporanKerusakanManager = () => {
               </p>
             </div>
           ) : filteredList.length === 0 ? (
-            /* Empty state: hasil pencarian / filter kosong */
             <div className="riwayat-empty text-center py-6">
               <div className="riwayat-empty-icon mb-3">
                 <IconAlertTriangle size={32} />
@@ -250,7 +325,28 @@ const LaporanKerusakanManager = () => {
         </CardBody>
       </Card>
 
-      <DetailLaporanModal show={detailModalOpen} onClose={() => setDetailModalOpen(false)} item={activeItem} />
+     <DetailLaporanModal show={detailModalOpen} onClose={() => setDetailModalOpen(false)} item={activeItem} />
+
+      {confirmModal && (
+        <ConfirmActionModal
+          show={!!confirmModal}
+          onClose={() => setConfirmModal(null)}
+          onConfirm={handleConfirmAction}
+          submitting={confirmSubmitting}
+          variant={confirmModal.type === "repair" ? "success" : "danger"}
+          title={
+            confirmModal.type === "repair"
+              ? "Tandai Sudah Diperbaiki?"
+              : "Tandai Rusak Permanen?"
+          }
+          message={
+            confirmModal.type === "repair"
+              ? `"${confirmModal.item.nama_barang}" akan dihapus dari daftar laporan dan stok alat otomatis dikembalikan.`
+              : `"${confirmModal.item.nama_barang}" tidak akan bisa diperbaiki lagi. Opsi Repair untuk laporan ini akan hilang.`
+          }
+          confirmLabel={confirmModal.type === "repair" ? "Ya, Sudah Diperbaiki" : "Ya, Rusak Permanen"}
+        />
+      )}
     </div>
   );
 };

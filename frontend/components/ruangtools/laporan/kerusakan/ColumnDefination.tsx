@@ -12,10 +12,15 @@ import ActionMenu from "components/common/ActionMenu";
 
 interface ColumnHandlers {
   onDetail: (item: LaporanKerusakanType) => void;
+  onRepair: (item: LaporanKerusakanType) => void;
+  onTandaiPermanen: (item: LaporanKerusakanType) => void; 
 }
+
 
 export const getLaporanKerusakanColumns = ({
   onDetail,
+  onRepair,
+  onTandaiPermanen,
 }: ColumnHandlers): ColumnDef<LaporanKerusakanType>[] => [
   {
     accessorKey: "tanggal_pengembalian",
@@ -68,6 +73,10 @@ export const getLaporanKerusakanColumns = ({
     header: "Divisi",
   },
   {
+    accessorKey: "nama_pekerjaan",
+    header: "Nama Pekerjaan",
+  },
+  {
     accessorKey: "area_kerja",
     header: "Area Kerja",
   },
@@ -81,19 +90,47 @@ export const getLaporanKerusakanColumns = ({
     },
   },
   {
+    accessorKey: "status",
+    header: "Status",
+    cell: ({ row }) => (
+      <Badge
+        bg={row.original.status === "bisa_diperbaiki" ? "warning-subtle" : "danger-subtle"}
+        text={row.original.status === "bisa_diperbaiki" ? "warning-emphasis" : "danger-emphasis"}
+        className="fw-semibold"
+      >
+        {row.original.status === "bisa_diperbaiki" ? "Bisa Diperbaiki" : "Rusak Permanen"}
+      </Badge>
+    ),
+  },
+   {
     id: "aksi",
     header: "Aksi",
-    cell: ({ row }) => (
-      <ActionMenu
-        toggleButton={<IconDotsVertical size={20} />}
-        className="btn btn-ghost btn-icon btn-sm rounded-circle"
-        drop="start"
-        align="start"
-      >
-        <Dropdown.Item onClick={() => onDetail(row.original)}>
-          Detail Laporan
-        </Dropdown.Item>
-      </ActionMenu>
-    ),
+    cell: ({ row }) => {
+      const item = row.original;
+      const bisaDiperbaiki = item.status === "bisa_diperbaiki";
+
+      return (
+        <ActionMenu
+          toggleButton={<IconDotsVertical size={20} />}
+          className="btn btn-ghost btn-icon btn-sm rounded-circle"
+          drop="start"
+          align="start"
+        >
+          <Dropdown.Item onClick={() => onDetail(item)}>
+            Detail Laporan
+          </Dropdown.Item>
+          {bisaDiperbaiki && (
+            <>
+              <Dropdown.Item className="text-success" onClick={() => onRepair(item)}>
+                Repair Alat
+              </Dropdown.Item>
+              <Dropdown.Item className="text-danger" onClick={() => onTandaiPermanen(item)}>
+                Tandai Rusak Permanen
+              </Dropdown.Item>
+            </>
+          )}
+        </ActionMenu>
+      );
+    },
   },
 ];

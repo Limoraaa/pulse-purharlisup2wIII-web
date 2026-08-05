@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('er_e')->nullable();
             $table->string('ukuran')->nullable();
             $table->integer('stok_awal')->default(0);
+            $table->integer('stok_awal_asli')->default(0);
             $table->timestamps();
         });
     }

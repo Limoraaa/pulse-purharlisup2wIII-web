@@ -10,6 +10,9 @@ interface ConsumableApiResponse {
   er_e: string | null;
   ukuran: string | null;
   stok_awal: number;
+  stok_awal_asli: number;
+  total_masuk: number;
+  total_keluar: number;
 }
 
 interface ConsumableApiPayload {
@@ -20,6 +23,7 @@ interface ConsumableApiPayload {
   er_e: string;
   ukuran: string;
   stok_awal: number;
+  stok_awal_asli?: number;
 }
 
 function mapConsumableFromApi(item: ConsumableApiResponse): ConsumableItemType {
@@ -32,11 +36,14 @@ function mapConsumableFromApi(item: ConsumableApiResponse): ConsumableItemType {
     er_e: item.er_e ?? "-",
     ukuran: item.ukuran ?? "-",
     stok_awal: item.stok_awal,
+    stok_awal_asli: item.stok_awal_asli,
+    total_masuk: item.total_masuk,
+    total_keluar: item.total_keluar,
   };
 }
 
 function mapConsumableToApi(values: ConsumableFormValues): ConsumableApiPayload {
-  return {
+  const payload: ConsumableApiPayload = {
     kode_barang: values.kode_barang,
     nama: values.nama,
     merk: values.merk,
@@ -45,6 +52,12 @@ function mapConsumableToApi(values: ConsumableFormValues): ConsumableApiPayload 
     ukuran: values.ukuran,
     stok_awal: values.stok_awal,
   };
+
+  if (values.stok_awal_asli !== undefined) {
+    payload.stok_awal_asli = values.stok_awal_asli;
+  }
+
+  return payload;
 }
 
 // urutan natural: T-1, T-2, T-3, ... T-10 (bukan T-1, T-10, T-2 ala alfabetis biasa)

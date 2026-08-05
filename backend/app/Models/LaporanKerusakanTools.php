@@ -21,6 +21,8 @@ class LaporanKerusakanTools extends Model
         'peminjaman_id',
         'jumlah',
         'keterangan',
+        'status',
+        'tanggal_diperbaiki',
         'dilaporkan_oleh',
     ];
     protected static function boot()
