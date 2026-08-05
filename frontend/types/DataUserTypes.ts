@@ -16,7 +16,6 @@ export interface UserItemType {
 export interface UserFormValues {
   full_name: string;
   email: string;
-  password: string; // kosong saat edit berarti tidak diubah
   role: UserRole;
   divisi: string;
   no_hp: string;

@@ -8,7 +8,6 @@ import { UserFormValues, UserItemType, UserRole } from "types/DataUserTypes";
 const emptyForm: UserFormValues = {
   full_name: "",
   email: "",
-  password: "",
   role: "staff",
   divisi: "",
   no_hp: "",
@@ -40,7 +39,6 @@ const UserFormModal = ({
         setForm({
           full_name: initialData.full_name,
           email: initialData.email,
-          password: "",
           role: initialData.role,
           divisi: initialData.divisi || "",
           no_hp: initialData.no_hp || "",
@@ -92,25 +90,6 @@ const UserFormModal = ({
                 type="email"
                 value={form.email}
                 onChange={(e) => handleChange("email", e.target.value)}
-              />
-            </Col>
-            <Col md={6}>
-              <Form.Label>
-                Password{" "}
-                {isEditMode && (
-                  <span className="text-secondary fw-normal">
-                    (kosongkan jika tidak diubah)
-                  </span>
-                )}
-                {!isEditMode && <span className="text-danger">*</span>}
-              </Form.Label>
-              <Form.Control
-                required={!isEditMode}
-                type="password"
-                minLength={6}
-                value={form.password}
-                onChange={(e) => handleChange("password", e.target.value)}
-                placeholder={isEditMode ? "••••••" : ""}
               />
             </Col>
             <Col md={6}>
