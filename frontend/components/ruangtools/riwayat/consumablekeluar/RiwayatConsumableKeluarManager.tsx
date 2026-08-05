@@ -31,7 +31,6 @@ import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/
 import { getRiwayatConsumableKeluar } from "services/consumableKeluarService";
 
 const EXPORT_COLUMNS: ExportColumn[] = [
-  { header: "Nomor Transaksi", key: "nomor_transaksi" },
   { header: "Tanggal Pengambilan", key: "tanggal_pengambilan" },
   { header: "Kode Barang", key: "kode_barang" },
   { header: "Nama Barang", key: "nama_barang" },

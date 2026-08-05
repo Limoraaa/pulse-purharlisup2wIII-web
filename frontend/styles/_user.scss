@@ -2146,48 +2146,48 @@ html.collapsed #miniSidebar,
 }
 
 // ============================================================
-// Tabel lebar di mobile - kolom "Aksi" sticky di kanan (UI only)
+// Tabel dengan banyak kolom - kolom "Aksi" sticky di kanan (UI only)
 // Scoped ke wrapper halaman manager (tidak menyentuh TanstackTable shared
-// maupun halaman blog/ecommerce). Aktif hanya di layar < lg, karena di
-// desktop tabel sudah muat tanpa perlu scroll horizontal.
+// maupun halaman blog/ecommerce). AKTIF DI SEMUA UKURAN LAYAR (desktop
+// & mobile) -- sebelumnya cuma aktif di layar < lg, tapi sekarang tabel
+// makin banyak kolom sehingga di desktop pun perlu scroll horizontal.
 // ============================================================
-@include media-breakpoint-down(lg) {
-  .datatools-page,
-  .dataconsumable-page,
-  .datapeminjam-page,
-  .peminjamanaktif-page,
-  .consumablemasuk-page,
-  .riwayat-page {
-    .table-responsive {
-      // Kolom terakhir (Aksi) selalu terlihat saat scroll horizontal
-      table {
-        thead th:last-child,
-        tbody td:last-child {
-          position: sticky;
-          right: 0;
-          z-index: 2;
-          // shadow tipis sebagai pemisah dari kolom yang tergulir di baliknya
-          box-shadow: -6px 0 8px -6px rgba(0, 0, 0, 0.15);
-        }
+.datatools-page,
+.dataconsumable-page,
+.datapeminjam-page,
+.peminjamanaktif-page,
+.consumablemasuk-page,
+.riwayat-page {
+  .table-responsive {
+    // Kolom terakhir (Aksi) selalu terlihat saat scroll horizontal
+    table {
+      thead th:last-child,
+      tbody td:last-child {
+        position: sticky;
+        right: 0;
+        z-index: 2;
+        // shadow tipis sebagai pemisah dari kolom yang tergulir di baliknya
+        box-shadow: -6px 0 8px -6px rgba(0, 0, 0, 0.15);
+      }
 
-        // Header kolom Aksi mengikuti warna header tabel
-        thead th:last-child {
-          background-color: var(--#{$prefix}gray-100);
-        }
+      // Header kolom Aksi mengikuti warna header tabel
+      thead th:last-child {
+        background-color: var(--#{$prefix}gray-100);
+      }
 
-        // Sel Aksi pakai background surface (card) agar konten di belakang tidak tembus
-        tbody td:last-child {
-          background-color: var(--#{$prefix}card-bg, #fff);
-        }
+      // Sel Aksi pakai background surface (card) agar konten di belakang tidak tembus
+      tbody td:last-child {
+        background-color: var(--#{$prefix}card-bg, #fff);
+      }
 
-        // Saat baris di-hover, sel sticky ikut berubah warna agar konsisten
-        tbody tr:hover td:last-child {
-          background-color: var(--#{$prefix}gray-100);
-        }
+      // Saat baris di-hover, sel sticky ikut berubah warna agar konsisten
+      tbody tr:hover td:last-child {
+        background-color: var(--#{$prefix}gray-100);
       }
     }
   }
 }
+
 
 // ============================================================
 // Heading responsive - judul halaman (h1.h2) mengecil di layar kecil
