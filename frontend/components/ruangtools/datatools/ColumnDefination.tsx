@@ -174,7 +174,6 @@ export const getDataToolsColumns = ({
             <span className="d-none d-lg-inline">
               {habis ? "Stok Habis" : "Tambah ke Peminjaman"}
             </span>
-            {habis ? "Stok Habis" : "Tambah ke Peminjaman"}
           </button>
           
           <ActionMenu
