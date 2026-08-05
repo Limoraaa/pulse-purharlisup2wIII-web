@@ -2,6 +2,7 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge, Dropdown } from "react-bootstrap";
 import { IconDotsVertical, IconShoppingCartPlus } from "@tabler/icons-react";
+import QRCode from "qrcode"; // <-- Tambahkan import QRCode
 
 // import custom types
 import { ToolItemType, ToolCondition, CartItemType } from "types/DataToolsTypes";
@@ -24,7 +25,7 @@ interface ColumnHandlers {
   onEdit: (tool: ToolItemType) => void;
   onDelete: (tool: ToolItemType) => void;
   onAddToCart: (tool: ToolItemType, event: React.MouseEvent<HTMLButtonElement>) => void;
-  cartItems?: CartItemType[]; // <-- Ubah penampung menjadi array CartItemType
+  cartItems?: CartItemType[];
 }
 
 export const getDataToolsColumns = ({
@@ -128,6 +129,35 @@ export const getDataToolsColumns = ({
       const sisaStokReal = tool.stok - tool.dipinjam - qtyDiCart;
       const habis = sisaStokReal <= 0;
 
+      // <-- Fungsi untuk mendownload QR Code -->
+      const handleDownloadQR = async () => {
+        try {
+          const namaBarang = tool.namaBarang || "Tool";
+          const merkBarang = tool.merk || "Unknown";
+          
+          // Format nama file: NamaBarang_Merk.png (karakter ilegal akan diubah jadi underscore)
+          const fileName = `${namaBarang}_${merkBarang}`.replace(/[^a-zA-Z0-9_-]/g, "_") + ".png";
+
+          // Buat elemen canvas sementara
+          const canvas = document.createElement("canvas");
+          
+          // Render UUID (tool.id) ke dalam QR Code
+          // Pastikan tool.id adalah string (UUID)
+          await QRCode.toCanvas(canvas, String(tool.id), { width: 300 });
+
+          // Proses download
+          const pngUrl = canvas.toDataURL("image/png");
+          const downloadLink = document.createElement("a");
+          downloadLink.href = pngUrl;
+          downloadLink.download = fileName;
+          document.body.appendChild(downloadLink);
+          downloadLink.click();
+          document.body.removeChild(downloadLink);
+        } catch (err) {
+          console.error("Gagal membuat QR Code", err);
+        }
+      };
+
       return (
         <div className="d-flex align-items-center gap-2">
           <button
@@ -144,7 +174,9 @@ export const getDataToolsColumns = ({
             <span className="d-none d-lg-inline">
               {habis ? "Stok Habis" : "Tambah ke Peminjaman"}
             </span>
+            {habis ? "Stok Habis" : "Tambah ke Peminjaman"}
           </button>
+          
           <ActionMenu
             toggleButton={<IconDotsVertical size={20} />}
             className="btn btn-ghost btn-icon btn-sm rounded-circle"
@@ -163,6 +195,12 @@ export const getDataToolsColumns = ({
             >
               Hapus Data
             </Dropdown.Item>
+
+            {/* <-- Tambahan Menu Download QR --> */}
+            <Dropdown.Item onClick={handleDownloadQR}>
+              Download QR
+            </Dropdown.Item>
+
           </ActionMenu>
         </div>
       );

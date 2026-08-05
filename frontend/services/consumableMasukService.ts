@@ -42,7 +42,7 @@ function mapFromApi(item: ConsumableMasukApiResponse): ConsumableMasukType {
     kode_barang: item.consumable?.kode_barang ?? "",
     nama: item.consumable?.nama ?? "",
     merk: item.consumable?.merk ?? "-",
-    type: item.consumable?.type ?? "-",
+    tipe: item.consumable?.type ?? "-",
     er_e: item.consumable?.er_e ?? "-",
     ukuran: item.consumable?.ukuran ?? "-",
     jumlah_masuk: item.jumlah_masuk,

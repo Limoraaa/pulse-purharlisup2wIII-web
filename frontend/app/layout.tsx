@@ -12,7 +12,7 @@ import "swiper/css/pagination";
 import "swiper/css/scrollbar";
 
 // import main theme scss
-import "styles/theme.scss";
+import '../styles/theme.scss';
 
 const publicSans = Public_Sans({
   variable: "--font-public-sans",

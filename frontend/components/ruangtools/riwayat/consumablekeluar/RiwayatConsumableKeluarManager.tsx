@@ -41,6 +41,7 @@ const EXPORT_COLUMNS: ExportColumn[] = [
   { header: "Jumlah", key: "jumlah" },
   { header: "Nama Peminta", key: "nama_peminta" },
   { header: "Divisi", key: "divisi" },
+  { header: "Nama Pekerjaan", key: "nama_pekerjaan" },
   { header: "Area Kerja", key: "area_kerja" },
   { header: "Keterangan", key: "keterangan" },
 ];

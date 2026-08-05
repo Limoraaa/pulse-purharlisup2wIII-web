@@ -58,6 +58,7 @@ const PeminjamanAktifManager = () => {
         item.kodeBarang.toLowerCase().includes(keyword) ||
         item.namaBarang.toLowerCase().includes(keyword) ||
         item.namaPeminjam.toLowerCase().includes(keyword) ||
+        item.namaPekerjaan.toLowerCase().includes(keyword) ||
         item.areaKerja.toLowerCase().includes(keyword)
     );
   }, [items, searchTerm]);
@@ -98,28 +99,32 @@ const PeminjamanAktifManager = () => {
       // 2) kalau ada unit yang rusak, kurangi stok alat permanen sejumlah itu.
       //    Catatan: teks "catatan" belum tersimpan permanen karena belum
       //    ada tabel riwayat kerusakan di backend -- baru pengurangan stoknya saja.
-      if (payload.jumlahRusak > 0) {
-      const dicatatOleh = localStorage.getItem("userId");
-      if (!dicatatOleh) {
-        throw new Error("Sesi login tidak ditemukan. Silakan login ulang.");
-      }
+      if (payload.kerusakan.length > 0) {
+        const dicatatOleh = localStorage.getItem("userId");
+        if (!dicatatOleh) {
+          throw new Error("Sesi login tidak ditemukan. Silakan login ulang.");
+        }
 
-      await createLaporanKerusakan({
-        tanggal: new Date().toISOString(),
-        tool_id: activeItem.toolId,
-        peminjaman_id: activeItem.id,
-        jumlah: payload.jumlahRusak,
-        keterangan: payload.catatan,
-        dilaporkan_oleh: dicatatOleh,
-      });
-    }
+        for (const entry of payload.kerusakan) {
+          await createLaporanKerusakan({
+            tanggal: new Date().toISOString(),
+            tool_id: activeItem.toolId,
+            peminjaman_id: activeItem.id,
+            jumlah: entry.jumlah,
+            keterangan: entry.catatan,
+            status: entry.jenisKerusakan,
+            dilaporkan_oleh: dicatatOleh,
+          });
+        }
+      }
       setItems((prev) => prev.filter((i) => i.id !== activeItem.id));
       setReturnModalOpen(false);
       setActiveItem(null);
 
+      const totalRusak = payload.kerusakan.reduce((sum, k) => sum + k.jumlah, 0);
       setSuccessMessage(
         `${activeItem.namaBarang} (${activeItem.kodeBarang}) berhasil ditandai dikembalikan${
-          payload.jumlahRusak > 0 ? ` (${payload.jumlahRusak} unit rusak, stok dikurangi)` : ""
+          totalRusak > 0 ? ` (${totalRusak} unit rusak, stok dikurangi)` : ""
         }.`
       );
       setTimeout(() => setSuccessMessage(null), 5000);

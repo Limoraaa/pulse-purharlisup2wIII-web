@@ -34,6 +34,7 @@ export interface PeminjamType {
   id: string;
   nama: string;
   divisi: string;
+  rfid_uid?: string | null; // <--- Tambahkan baris ini
   aktif: boolean;
 }
 
@@ -45,6 +46,7 @@ export interface LoanFormValues {
   peminjamId: string;
   namaPeminjam: string;
   divisi: string;
+  namaPekerjaan: string;
   areaKerja: string;
   spesifikasi?: string;
   keterangan?: string;
@@ -117,6 +119,7 @@ export interface PeminjamanAktifItemType {
   jumlah: number;
   namaPeminjam: string;
   divisi: string;
+  namaPekerjaan: string;
   areaKerja: string;
   spesifikasi: string;
   keterangan: string;

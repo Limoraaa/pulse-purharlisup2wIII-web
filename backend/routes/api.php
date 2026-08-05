@@ -18,7 +18,6 @@ Route::post('/login', [AuthController::class, 'login']);
 // ==========================================
 // ROUTE YANG TIDAK BUTUH AUTH (PUBLIC / GENERAL)
 // ==========================================
-Route::apiResource('users', UserController::class);
 Route::apiResource('tools', ToolController::class);
 Route::patch('/tools/{tool}/kurangi-stok', [ToolController::class, 'kurangiStok']);
 
@@ -64,12 +63,26 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/peminjaman/{id}/kembali', [PeminjamanController::class, 'kembali']);
     Route::apiResource('peminjaman', PeminjamanController::class);
 
+    Route::patch('/laporan-kerusakan/{id}/tandai-permanen', [LaporanKerusakanController::class, 'tandaiPermanen']);
+    Route::patch('/laporan-kerusakan/{id}/repair', [LaporanKerusakanController::class, 'repair']);
+
     // 2. Fitur Keranjang & Scanner Consumable Keluar
     Route::post('/consumable-keluar/scan', [ConsumableKeluarController::class, 'scan']);
     Route::get('/consumable-keluar/antrean', [ConsumableKeluarController::class, 'antrean']);
+    Route::patch('/consumable-keluar/cart/{id}', [ConsumableKeluarController::class, 'updateCartItem']);
     Route::delete('/consumable-keluar/antrean/{consumable_id}', [ConsumableKeluarController::class, 'hapusAntrean']);
     Route::post('/consumable-keluar/proses', [ConsumableKeluarController::class, 'prosesCartConsumable']);
-    
+
     // PINDAHKAN KE SINI: Pastikan apiResource selalu berada di BAWAH rute kustom
     Route::apiResource('consumable-keluar', ConsumableKeluarController::class);
+
+    Route::get('/profile', [UserController::class, 'profile']);
+    Route::put('/profile', [UserController::class, 'updateProfile']);
+    Route::patch('/profile', [UserController::class, 'updateProfile']);
+    Route::post('/profile/photo', [UserController::class, 'uploadPhoto']);
+    Route::patch('/profile/password', [UserController::class, 'changePassword']);
+
+    Route::apiResource('users', UserController::class);
+    Route::patch('/users/{id}/reset-password', [UserController::class, 'resetPassword']);
+    Route::patch('/users/{id}/aktifkan', [UserController::class, 'activate']);
 });

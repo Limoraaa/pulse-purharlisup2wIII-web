@@ -8,7 +8,7 @@ const emptyForm: ConsumableFormValues = {
   kode_barang: "",
   nama: "",
   merk: "",
-  type: "",
+  tipe: "",
   er_e: "",
   ukuran: "",
   stok_awal: 0,
@@ -80,7 +80,7 @@ useEffect(() => {
   }, [show, initialData, existingCodes]);
 
   const handleChange = (
-    field: keyof ConsumableFormValues,
+  field: keyof ConsumableFormValues,
     value: string | number
   ) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -136,8 +136,8 @@ useEffect(() => {
             <Col md={4}>
               <Form.Label>Tipe</Form.Label>
               <Form.Control
-                value={form.type}
-                onChange={(e) => handleChange("type", e.target.value)}
+                value={form.tipe}
+                onChange={(e) => handleChange("tipe", e.target.value)}
               />
             </Col>
             <Col md={4}>
@@ -153,7 +153,7 @@ useEffect(() => {
                 value={form.ukuran}
                 onChange={(e) => handleChange("ukuran", e.target.value)}
               />
-            </Col>
+            </Col>           
             <Col md={6}>
               <Form.Label>Stok Awal <span className="text-danger">*</span></Form.Label>
               <Form.Control

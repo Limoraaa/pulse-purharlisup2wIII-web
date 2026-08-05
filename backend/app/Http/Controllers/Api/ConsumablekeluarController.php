@@ -15,7 +15,6 @@ class ConsumableKeluarController extends Controller
 {
     private const STATIC_USER_ID = '00000000-0000-0000-0000-000000000000';
 
-    // Helper: user_id efektif (auth user kalau login, fallback ke UUID statis)
     private function resolveUserId(Request $request): string
     {
         return $request->user('sanctum')?->id ?? self::STATIC_USER_ID;
@@ -47,12 +46,8 @@ class ConsumableKeluarController extends Controller
         $userId = $this->resolveUserId($request);
         $jumlah = $request->jumlah;
 
-        // ID yang dikirim client (field mana pun yang terisi).
         $itemId = $request->filled('tools_id') ? $request->tools_id : $request->consumable_id;
 
-        // Tentukan tipe SEBENARNYA dengan mengecek langsung ke DB,
-        // bukan percaya begitu saja pada nama field yang dikirim client
-        // (app scanner HP selalu mengirim field 'tools_id' apapun yang di-scan).
         $tool = Tool::find($itemId);
         $consumable = $tool ? null : Consumable::find($itemId);
 
@@ -63,11 +58,8 @@ class ConsumableKeluarController extends Controller
         $isTool = (bool) $tool;
         $column = $isTool ? 'tools_id' : 'consumable_id';
 
-        // Cek dulu apakah item ini sudah ada di cart milik user ini,
-        // supaya validasi stok memperhitungkan qty yang sudah ada + qty baru.
         $existing = DB::table('temporary_cart')
             ->where($column, $itemId)
-            ->where('user_id', $userId)
             ->first();
 
         $totalDiminta = ($existing->qty ?? 0) + $jumlah;
@@ -111,8 +103,6 @@ class ConsumableKeluarController extends Controller
     }
 
     // GET /api/consumable-keluar/antrean
-    // Hanya mengembalikan item bertipe Consumable milik user ini (statis atau login),
-    // agar tidak tercampur dengan cart Tools maupun cart milik user lain.
     public function antrean(Request $request)
     {
         $staticUserId = self::STATIC_USER_ID;
@@ -156,13 +146,8 @@ class ConsumableKeluarController extends Controller
 
         $request->validate(['qty' => 'required|integer|min:1']);
 
-        $userId = $this->resolveUserId($request);
-
-        // Filter user_id memastikan endpoint ini tidak bisa "menyentuh"
-        // cart row milik user lain walaupun id-nya cocok.
         $cart = DB::table('temporary_cart')
             ->where('id', $id)
-            ->where('user_id', $userId)
             ->whereNotNull('consumable_id')
             ->first();
 
@@ -184,22 +169,16 @@ class ConsumableKeluarController extends Controller
         return response()->json(['message' => 'Jumlah diperbarui']);
     }
 
-    // DELETE /api/consumable-keluar/cart/{id} atau antrean/{id}
-    // Menerima baik cart id maupun consumable_id, tapi selalu dibatasi ke cart milik user ini.
-    public function hapusAntrean(Request $request, string $consumable_id)
+    public function hapusAntrean($id)
     {
-        $userId = $this->resolveUserId($request);
-
         $affected = DB::table('temporary_cart')
-            ->where('consumable_id', $consumable_id)
-            ->where('user_id', $userId)
+            ->where('id', $id)
             ->whereNotNull('consumable_id')
             ->delete();
 
         if (!$affected) {
             $affected = DB::table('temporary_cart')
-                ->where('id', $consumable_id)
-                ->where('user_id', $userId)
+                ->where('consumable_id', $id)
                 ->whereNotNull('consumable_id')
                 ->delete();
         }
@@ -211,17 +190,18 @@ class ConsumableKeluarController extends Controller
         return response()->json(['message' => 'Item berhasil dihapus dari antrean']);
     }
 
-    public function removeCartItem(Request $request, $id)
+    public function removeCartItem($id)
     {
-        return $this->hapusAntrean($request, $id);
+        return $this->hapusAntrean($id);
     }
 
     // POST /api/consumable-keluar/proses
     public function prosesCartConsumable(Request $request)
     {
         $request->validate([
-            'peminta_id'     => 'required|uuid|exists:peminta,id',
+            'peminta_id'     => 'required|string|exists:peminta,id',
             'dicatat_oleh'   => 'required|uuid|exists:users,id',
+            'nama_pekerjaan' => 'required|string|max:255',
             'pekerjaan_area' => 'nullable|string|max:255',
             'keterangan'     => 'nullable|string',
         ]);
@@ -229,8 +209,6 @@ class ConsumableKeluarController extends Controller
         $staticUserId = self::STATIC_USER_ID;
         $authUserId = $request->user('sanctum')?->id;
 
-        // Hanya proses cart consumable milik user ini (statis atau login),
-        // supaya tidak ikut memproses/menghapus cart milik user lain.
         $antreanQuery = DB::table('temporary_cart')
             ->where(function ($query) use ($staticUserId, $authUserId) {
                 $query->where('user_id', $staticUserId);
@@ -246,7 +224,6 @@ class ConsumableKeluarController extends Controller
             return response()->json(['message' => 'Antrean kosong'], 400);
         }
 
-        // Validasi stok dulu sebelum insert, supaya tidak ada proses parsial
         foreach ($antrean as $item) {
             $consumable = Consumable::find($item->consumable_id);
             if (!$consumable) {
@@ -268,17 +245,16 @@ class ConsumableKeluarController extends Controller
                     'consumable_id'  => $item->consumable_id,
                     'peminta_id'     => $request->peminta_id,
                     'dicatat_oleh'   => $request->dicatat_oleh,
+                    'nama_pekerjaan' => $request->nama_pekerjaan,
                     'pekerjaan_area' => $request->pekerjaan_area,
                     'keterangan'     => $request->keterangan,
                     'tanggal'        => now(),
                     'jumlah_keluar'  => $item->qty,
                 ]);
 
-                // Kurangi stok_awal consumable
                 $consumable->decrement('stok_awal', $item->qty);
             }
 
-            // Hapus HANYA cart consumable milik user ini
             DB::table('temporary_cart')
                 ->where(function ($query) use ($staticUserId, $authUserId) {
                     $query->where('user_id', $staticUserId);
@@ -293,34 +269,26 @@ class ConsumableKeluarController extends Controller
         return response()->json(['message' => 'Pengeluaran bahan berhasil diproses!'], 200);
     }
 
-    // GET /api/consumable-keluar/{id}
     public function show(string $id)
     {
         $data = ConsumableKeluar::with(['consumable', 'peminta', 'dicatatOleh'])->find($id);
-
-        if (! $data) {
-            return response()->json(['message' => 'Data pengeluaran tidak ditemukan'], 404);
-        }
-
+        if (! $data) return response()->json(['message' => 'Data pengeluaran tidak ditemukan'], 404);
         return response()->json($data);
     }
 
-    // POST /api/consumable-keluar
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'tanggal'        => 'required|date',
             'consumable_id'  => 'required|uuid|exists:consumables,id',
-            'peminta_id'     => 'required|uuid|exists:peminta,id',
+            'peminta_id'     => 'required|string|exists:peminta,id',
             'jumlah_keluar'  => 'required|integer|min:1',
             'pekerjaan_area' => 'nullable|string|max:255',
             'keterangan'     => 'nullable|string',
             'dicatat_oleh'   => 'required|uuid|exists:users,id',
         ]);
 
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
+        if ($validator->fails()) return response()->json(['errors' => $validator->errors()], 422);
 
         $data = $validator->validated();
         $consumable = Consumable::findOrFail($data['consumable_id']);
@@ -332,21 +300,16 @@ class ConsumableKeluarController extends Controller
         }
 
         $data['id'] = (string) Str::uuid();
-
         $consumableKeluar = ConsumableKeluar::create($data);
         $consumable->decrement('stok_awal', $data['jumlah_keluar']);
 
         return response()->json($consumableKeluar->load(['consumable', 'peminta']), 201);
     }
 
-    // PUT/PATCH /api/consumable-keluar/{id}
     public function update(Request $request, string $id)
     {
         $consumableKeluar = ConsumableKeluar::find($id);
-
-        if (! $consumableKeluar) {
-            return response()->json(['message' => 'Data pengeluaran tidak ditemukan'], 404);
-        }
+        if (! $consumableKeluar) return response()->json(['message' => 'Data pengeluaran tidak ditemukan'], 404);
 
         $validator = Validator::make($request->all(), [
             'tanggal'        => 'sometimes|required|date',
@@ -354,26 +317,18 @@ class ConsumableKeluarController extends Controller
             'keterangan'     => 'nullable|string',
         ]);
 
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
+        if ($validator->fails()) return response()->json(['errors' => $validator->errors()], 422);
 
         $consumableKeluar->update($validator->validated());
-
         return response()->json($consumableKeluar);
     }
 
-    // DELETE /api/consumable-keluar/{id}
     public function destroy(string $id)
     {
         $consumableKeluar = ConsumableKeluar::find($id);
-
-        if (! $consumableKeluar) {
-            return response()->json(['message' => 'Data pengeluaran tidak ditemukan'], 404);
-        }
+        if (! $consumableKeluar) return response()->json(['message' => 'Data pengeluaran tidak ditemukan'], 404);
 
         $consumableKeluar->delete();
-
         return response()->json(['message' => 'Data pengeluaran berhasil dihapus']);
     }
 }

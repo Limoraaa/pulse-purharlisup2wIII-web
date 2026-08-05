@@ -13,24 +13,30 @@ class ConsumableController extends Controller
      * Tampilkan semua data consumable, plus stok akhir (computed).
      */
    public function index()
-{
-    $consumables = Consumable::orderBy('kode_barang')->get()->map(function ($item) {
-            return [
-                'id' => $item->id,
-                'kode_barang' => $item->kode_barang,
-                'nama' => $item->nama,
-                'merk' => $item->merk,
-                'er_e' => $item->er_e,
-                'type' => $item->type,
-                'ukuran' => $item->ukuran,
-                'stok_awal' => $item->stok_awal,
-                'stok_akhir' => $item->stok_awal,
-            ];
-        });
+    {
+        $consumables = Consumable::withSum('masuk as total_masuk', 'jumlah_masuk')
+            ->withSum('keluar as total_keluar', 'jumlah_keluar')
+            ->orderBy('kode_barang')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'kode_barang' => $item->kode_barang,
+                    'nama' => $item->nama,
+                    'merk' => $item->merk,
+                    'er_e' => $item->er_e,
+                    'type' => $item->type,
+                    'ukuran' => $item->ukuran,
+                    'stok_awal' => $item->stok_awal,
+                    'stok_akhir' => $item->stok_awal,
+                    'stok_awal_asli' => $item->stok_awal_asli,
+                    'total_masuk' => $item->total_masuk ?? 0,
+                    'total_keluar' => $item->total_keluar ?? 0,
+                ];
+            });
 
         return response()->json($consumables);
     }
-
     /**
      * POST /api/consumables
      * Tambah data consumable baru.
@@ -47,9 +53,24 @@ class ConsumableController extends Controller
             'stok_awal' => 'required|integer|min:0',
         ]);
 
+        $validated['stok_awal_asli'] = $validated['stok_awal'];
+
         $consumable = Consumable::create($validated);
 
-        return response()->json($consumable, 201);
+        return response()->json([
+            'id' => $consumable->id,
+            'kode_barang' => $consumable->kode_barang,
+            'nama' => $consumable->nama,
+            'merk' => $consumable->merk,
+            'er_e' => $consumable->er_e,
+            'type' => $consumable->type,
+            'ukuran' => $consumable->ukuran,
+            'stok_awal' => $consumable->stok_awal,
+            'stok_akhir' => $consumable->stok_awal,
+            'stok_awal_asli' => $consumable->stok_awal_asli,
+            'total_masuk' => 0,
+            'total_keluar' => 0,
+        ], 201);
     }
 
     /**
@@ -92,10 +113,24 @@ class ConsumableController extends Controller
         ]);
 
         $consumable->update($validated);
+        $consumable->loadSum('masuk as total_masuk', 'jumlah_masuk');
+        $consumable->loadSum('keluar as total_keluar', 'jumlah_keluar');
 
-        return response()->json($consumable);
+        return response()->json([
+            'id' => $consumable->id,
+            'kode_barang' => $consumable->kode_barang,
+            'nama' => $consumable->nama,
+            'merk' => $consumable->merk,
+            'er_e' => $consumable->er_e,
+            'type' => $consumable->type,
+            'ukuran' => $consumable->ukuran,
+            'stok_awal' => $consumable->stok_awal,
+            'stok_akhir' => $consumable->stok_awal,
+            'stok_awal_asli' => $consumable->stok_awal_asli,
+            'total_masuk' => $consumable->total_masuk ?? 0,
+            'total_keluar' => $consumable->total_keluar ?? 0,
+        ]);
     }
-
     /**
      * DELETE /api/consumables/{id}
      * Hapus data consumable.
