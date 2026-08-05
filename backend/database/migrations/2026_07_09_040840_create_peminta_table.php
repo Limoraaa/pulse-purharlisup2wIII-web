@@ -13,6 +13,10 @@ return new class extends Migration
             $table->string('id')->primary(); // Tipe string agar bebas menerima angka RFID
             $table->string('nama');
             $table->string('divisi')->nullable();
+            
+            // --- TAMBAHKAN KOLOM ROLE DI SINI ---
+            $table->string('role')->default('user'); 
+            
             $table->boolean('aktif')->default(true);
             $table->timestamps();
         });

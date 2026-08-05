@@ -55,13 +55,13 @@ class ConsumableMasukController extends Controller
         // Bersihkan string dari scanner
         $pemintaId = trim($data['peminta_id']);
 
-        // --- TAMBAHKAN DEBUG INI ---
+        // --- DEBUG SCAN RFID ---
         \Log::info('CEK SCAN RFID:', [
             'diterima_mentah' => $data['peminta_id'],
             'setelah_trim' => $pemintaId,
             'apakah_ketemu' => Peminta::find($pemintaId) ? 'YA, KETEMU' : 'TIDAK KETEMU DI DATABASE'
         ]);
-        // ---------------------------
+        // -----------------------
 
         $peminta = Peminta::find($pemintaId);
 
@@ -70,6 +70,15 @@ class ConsumableMasukController extends Controller
                 'message' => "Akses ditolak: ID Card '{$pemintaId}' tidak terdaftar sebagai peminta yang sah."
             ], 403);
         }
+
+        // =========================================================================
+        // --- VALIDASI OTORISASI: HANYA INVENTORY MAN YANG BOLEH MENAMBAH STOK ---
+        if ($peminta->role !== 'inventory man') {
+            return response()->json([
+                'message' => "Akses ditolak: Maaf {$peminta->nama}, Anda tidak memiliki otorisasi sebagai Inventory Man untuk menambah stok inventaris."
+            ], 403);
+        }
+        // =========================================================================
 
         // Masukkan ID peminta ke kolom dicatat_oleh
         $data['dicatat_oleh'] = $peminta->id; 
