@@ -20,6 +20,7 @@ class Peminta extends Model
         'nama',
         'divisi',
         'aktif',
+        'role', // <--- Tambahkan kolom role agar bisa disimpan ke database
     ];
 
     protected $casts = [
@@ -36,9 +37,15 @@ class Peminta extends Model
             if (empty($model->id)) {
                 $model->id = (string) \Illuminate\Support\Str::uuid();
             }
+            
             // default aktif kalau tidak dikirim
             if (! isset($model->aktif)) {
                 $model->aktif = true;
+            }
+
+            // default role menjadi 'user' jika saat dibuat datanya kosong
+            if (! isset($model->role)) {
+                $model->role = 'user';
             }
         });
     }
@@ -52,6 +59,7 @@ class Peminta extends Model
     {
         return $this->hasMany(ConsumableKeluar::class);
     }
+    
     public function consumableMasuk(): HasMany
     {
         return $this->hasMany(ConsumableMasuk::class, 'dicatat_oleh', 'id');
