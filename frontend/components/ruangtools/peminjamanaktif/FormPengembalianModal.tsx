@@ -10,7 +10,8 @@ export type JenisKerusakan = "bisa_diperbaiki" | "rusak_permanen";
 export interface PengembalianSubmitPayload {
   jumlahRusak: number;
   catatan: string;
-  jenisKerusakan: JenisKerusakan | null;   // ← tambahkan
+  jenisKerusakan: JenisKerusakan | null;
+  id_card: string; // ← tambahkan ID Card ke payload untuk diproses parent/service
 }
 
 interface FormPengembalianModalProps {
@@ -31,6 +32,7 @@ const FormPengembalianModal = ({
   const [jumlahRusak, setJumlahRusak] = useState(0);
   const [catatan, setCatatan] = useState("");
   const [jenisKerusakan, setJenisKerusakan] = useState<JenisKerusakan | "">("");
+  const [idCard, setIdCard] = useState(""); // State untuk menampung ID Card
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -38,6 +40,7 @@ const FormPengembalianModal = ({
       setJumlahRusak(0);
       setCatatan("");
       setJenisKerusakan("");
+      setIdCard(""); // Reset ID Card saat modal baru dibuka
       setError(null);
     }
   }, [show, item]);
@@ -67,11 +70,26 @@ const FormPengembalianModal = ({
       return;
     }
 
+    // Validasi pencegahan manual jika form lolos submit lewat enter scanner tanpa ID yg terisi
+    if (!idCard.trim()) {
+      setError("Harap scan/tap ID Card terlebih dahulu.");
+      return;
+    }
+
+    // --- VALIDASI PENCOCOKAN RFID PEMINJAM ASLI ---
+    // Memastikan ID Card yang di-scan sama dengan peminjamId dari data alat
+    if (item.peminjamId && idCard.trim() !== item.peminjamId) {
+      setError(`Akses ditolak: Kartu yang di-scan bukan milik peminjam awal (${item.namaPeminjam}).`);
+      setIdCard(""); // Kosongkan input agar bisa langsung scan ulang
+      return;
+    }
+
     setError(null);
     onSubmit({
       jumlahRusak,
       catatan,
       jenisKerusakan: jumlahRusak > 0 ? (jenisKerusakan as JenisKerusakan) : null,
+      id_card: idCard, // Sertakan ID Card ke parent component
     });
   };
 
@@ -139,23 +157,44 @@ const FormPengembalianModal = ({
             </Form.Group>
           )}
 
-          <Form.Group>
+          <Form.Group className="mb-3">
             <Form.Label>
               Catatan{" "}
-              {jumlahRusak > 0 ? (
-                <span className="text-danger">*</span>
-              ) : (
-                <span className="text-secondary fw-normal"></span>
-              )}
+              {jumlahRusak > 0 && <span className="text-danger">*</span>}
             </Form.Label>
             <Form.Control
               as="textarea"
               rows={2}
-              placeholder={jumlahRusak > 0 ? "Jelaskan kerusakannya..." : "Catatan kerusakan"}
+              placeholder={jumlahRusak > 0 ? "Jelaskan kerusakannya..." : "Catatan pengembalian (opsional)"}
               value={catatan}
               onChange={(e) => setCatatan(e.target.value)}
               disabled={submitting}
             />
+          </Form.Group>
+
+          {/* --- INPUT SCAN RFID / ID CARD --- */}
+          <Form.Group className="border-top pt-3 mt-4">
+            <Form.Label className="fw-semibold">
+              Otorisasi ID Card <span className="text-danger">*</span>
+            </Form.Label>
+            <Form.Control
+              type="password"
+              placeholder="Tap ID Card Anda disini..."
+              value={idCard}
+              onChange={(e) => setIdCard(e.target.value)}
+              onKeyDown={(e) => {
+                // Cegah double submit jika scanner otomatis mengirim enter
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                }
+              }}
+              disabled={submitting}
+              required
+              autoFocus // Membuat form ini langsung aktif ketika modal dibuka
+            />
+            <Form.Text className="text-muted">
+              Wajib melakukan tap ID Card untuk mengonfirmasi pengembalian alat.
+            </Form.Text>
           </Form.Group>
 
           {jumlahRusak > 0 && (
@@ -169,7 +208,13 @@ const FormPengembalianModal = ({
           <Button variant="outline-secondary" onClick={onClose} disabled={submitting}>
             Batal
           </Button>
-          <Button variant="primary" type="submit" disabled={submitting} className="d-inline-flex align-items-center gap-2">
+          <Button 
+            variant="primary" 
+            type="submit" 
+            // DISABLE tombol jika idCard kosong ATAU form sedang submit
+            disabled={submitting || !idCard.trim()} 
+            className="d-inline-flex align-items-center gap-2"
+          >
             {submitting ? "Memproses..." : (<><IconCheck size={18} /> Konfirmasi Pengembalian</>)}
           </Button>
         </Modal.Footer>

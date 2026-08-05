@@ -117,6 +117,7 @@ export interface PeminjamanAktifItemType {
   warna: string;
   ukuran: string;
   jumlah: number;
+  peminjamId: string;
   namaPeminjam: string;
   divisi: string;
   namaPekerjaan: string;

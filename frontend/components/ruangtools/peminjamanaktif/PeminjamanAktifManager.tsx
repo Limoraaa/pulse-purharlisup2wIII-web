@@ -94,27 +94,31 @@ const PeminjamanAktifManager = () => {
     setReturningId(activeItem.id);
     try {
       // 1) tandai peminjaman ini selesai (semua unit fisik sudah kembali)
+      // Catatan: Jika API tandaiDikembalikan Anda butuh ID penginput, Anda bisa 
+      // mengirimkan payload.id_card ke parameter fungsi ini.
       await tandaiDikembalikan(activeItem.id);
 
       // 2) kalau ada unit yang rusak, kurangi stok alat permanen sejumlah itu.
-      //    Catatan: teks "catatan" belum tersimpan permanen karena belum
-      //    ada tabel riwayat kerusakan di backend -- baru pengurangan stoknya saja.
       if (payload.jumlahRusak > 0) {
-      const dicatatOleh = localStorage.getItem("userId");
-      if (!dicatatOleh) {
-        throw new Error("Sesi login tidak ditemukan. Silakan login ulang.");
-      }
+        // Menggunakan id_card yang didapat langsung dari hasil scan form modal,
+        // alih-alih mengambil dari localStorage.
+        const dicatatOleh = payload.id_card; 
 
-      await createLaporanKerusakan({
-        tanggal: new Date().toISOString(),
-        tool_id: activeItem.toolId,
-        peminjaman_id: activeItem.id,
-        jumlah: payload.jumlahRusak,
-        keterangan: payload.catatan,
-        status: payload.jenisKerusakan as "bisa_diperbaiki" | "rusak_permanen",   // ← tambahkan
-        dilaporkan_oleh: dicatatOleh,
-      });
-    }
+        if (!dicatatOleh) {
+          throw new Error("Otorisasi gagal: ID Card wajib di-scan untuk pelaporan kerusakan.");
+        }
+
+        await createLaporanKerusakan({
+          tanggal: new Date().toISOString(),
+          tool_id: activeItem.toolId,
+          peminjaman_id: activeItem.id,
+          jumlah: payload.jumlahRusak,
+          keterangan: payload.catatan,
+          status: payload.jenisKerusakan as "bisa_diperbaiki" | "rusak_permanen",
+          dilaporkan_oleh: dicatatOleh, // <-- Menyimpan otoritas menggunakan RFID
+        });
+      }
+      
       setItems((prev) => prev.filter((i) => i.id !== activeItem.id));
       setReturnModalOpen(false);
       setActiveItem(null);
