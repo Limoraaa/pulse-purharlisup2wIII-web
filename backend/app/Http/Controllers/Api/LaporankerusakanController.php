@@ -42,6 +42,7 @@ class LaporanKerusakanController extends Controller
             'peminjaman_id' => 'nullable|uuid|exists:peminjaman,id',
             'jumlah' => 'required|integer|min:1',
             'keterangan' => 'nullable|string',
+            'status' => 'required|in:bisa_diperbaiki,rusak_permanen',   // ← diubah
             'dilaporkan_oleh' => 'required|uuid|exists:users,id',
         ]);
 
@@ -139,15 +140,11 @@ class LaporanKerusakanController extends Controller
         }
 
         DB::transaction(function () use ($laporan) {
-            // Cuma kembalikan stok kalau belum pernah direpair sebelumnya
-            // (kalau sudah diperbaiki, stok sudah dikembalikan lewat repair(), jangan dobel)
-            if ($laporan->status !== 'diperbaiki') {
-                $tool = Tool::lockForUpdate()->find($laporan->tool_id);
+            $tool = Tool::lockForUpdate()->find($laporan->tool_id);
 
-                if ($tool) {
-                    $tool->stok += $laporan->jumlah;
-                    $tool->save();
-                }
+            if ($tool) {
+                $tool->stok += $laporan->jumlah;
+                $tool->save();
             }
 
             $laporan->delete();
@@ -156,7 +153,7 @@ class LaporanKerusakanController extends Controller
         return response()->json(['message' => 'Laporan kerusakan dihapus, stok disesuaikan']);
     }
     // PATCH /api/laporan-kerusakan/{id}/repair
-    // Menandai laporan sebagai selesai diperbaiki, dan mengembalikan stok alat.
+    // Menandai alat sudah diperbaiki: stok dikembalikan, laporan dihapus dari daftar.
     public function repair(string $id)
     {
         $laporan = LaporanKerusakanTools::find($id);
@@ -165,11 +162,13 @@ class LaporanKerusakanController extends Controller
             return response()->json(['message' => 'Data laporan kerusakan tidak ditemukan'], 404);
         }
 
-        if ($laporan->status === 'diperbaiki') {
-            return response()->json(['message' => 'Laporan ini sudah ditandai selesai diperbaiki sebelumnya'], 422);
+        if ($laporan->status !== 'bisa_diperbaiki') {
+            return response()->json([
+                'message' => 'Laporan dengan status Rusak Permanen tidak bisa diproses repair.',
+            ], 422);
         }
 
-        $laporan = DB::transaction(function () use ($laporan) {
+        DB::transaction(function () use ($laporan) {
             $tool = Tool::lockForUpdate()->find($laporan->tool_id);
 
             if ($tool) {
@@ -177,19 +176,37 @@ class LaporanKerusakanController extends Controller
                 $tool->save();
             }
 
-            $laporan->update([
-                'status' => 'diperbaiki',
-                'tanggal_diperbaiki' => now(),
-            ]);
-
-            return $laporan;
+            $laporan->delete();
         });
 
         return response()->json([
-            'message' => 'Alat berhasil ditandai selesai diperbaiki, stok telah dikembalikan',
-            'data' => $laporan->load('tool'),
+            'message' => 'Alat berhasil ditandai selesai diperbaiki, stok telah dikembalikan.',
         ]);
     }
 
+    // PATCH /api/laporan-kerusakan/{id}/tandai-permanen
+    // Mengubah klasifikasi dari "bisa diperbaiki" menjadi "rusak permanen".
+    // Tidak menyentuh stok karena stok sudah dikurangi sejak laporan pertama dibuat.
+    public function tandaiPermanen(string $id)
+    {
+        $laporan = LaporanKerusakanTools::find($id);
+
+        if (! $laporan) {
+            return response()->json(['message' => 'Data laporan kerusakan tidak ditemukan'], 404);
+        }
+
+        if ($laporan->status !== 'bisa_diperbaiki') {
+            return response()->json([
+                'message' => 'Laporan ini sudah berstatus Rusak Permanen.',
+            ], 422);
+        }
+
+        $laporan->update(['status' => 'rusak_permanen']);
+
+        return response()->json([
+            'message' => 'Laporan berhasil ditandai sebagai Rusak Permanen.',
+            'data' => $laporan->load('tool'),
+        ]);
+    }
 
 }

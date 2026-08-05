@@ -1,3 +1,5 @@
+export type JenisKerusakan = "bisa_diperbaiki" | "rusak_permanen";
+
 export interface LaporanKerusakanType {
   id: string;
   tanggal_pengembalian: string;
@@ -13,8 +15,7 @@ export interface LaporanKerusakanType {
   nama_pekerjaan: string;
   area_kerja: string;
   keterangan: string;
-  status: "rusak" | "diperbaiki";
-  tanggal_diperbaiki: string | null;
+  status: JenisKerusakan;
 
   // Diperlukan agar cocok dengan constraint generic exportToPDF / exportToExcel
   [key: string]: unknown;

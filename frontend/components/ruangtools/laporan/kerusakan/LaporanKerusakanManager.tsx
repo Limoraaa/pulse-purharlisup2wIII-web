@@ -26,8 +26,9 @@ import {
 } from "components/ruangtools/riwayat/common/exportUtils";
 import { getLaporanKerusakanColumns } from "components/ruangtools/laporan/kerusakan/ColumnDefination";
 import DetailLaporanModal from "components/ruangtools/laporan/kerusakan/DetailLaporanModal";
+import ConfirmActionModal from "components/ruangtools/laporan/kerusakan/ConfirmActionModal";
 
-import { getLaporanKerusakan, repairLaporanKerusakan } from "services/laporanKerusakanService";
+import { getLaporanKerusakan, repairLaporanKerusakan, tandaiPermanenLaporanKerusakan } from "services/laporanKerusakanService";
 
 const EXPORT_COLUMNS: ExportColumn[] = [
   { header: "Tgl & Jam Pengembalian", key: "tanggal_pengembalian" },
@@ -64,24 +65,51 @@ const LaporanKerusakanManager = () => {
       setLoading(false);
     }
   };
+    const [confirmModal, setConfirmModal] = useState<{
+      type: "repair" | "permanen";
+      item: LaporanKerusakanType;
+    } | null>(null);
+    const [confirmSubmitting, setConfirmSubmitting] = useState(false);
 
-  const handleRepair = async (item: LaporanKerusakanType) => {
-    if (!confirm(`Tandai "${item.nama_barang}" sudah selesai diperbaiki? Stok alat akan otomatis dikembalikan.`)) {
-      return;
-    }
-    try {
-      await repairLaporanKerusakan(item.id);
-      setLaporanList((prev) =>
-        prev.map((l) =>
-          l.id === item.id ? { ...l, status: "diperbaiki" as const } : l
-        )
-      );
-      setSuccessMessage(`${item.nama_barang} berhasil ditandai selesai diperbaiki.`);
-      setTimeout(() => setSuccessMessage(null), 5000);
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Gagal memproses repair alat");
-    }
-  };
+    const handleRepair = (item: LaporanKerusakanType) => {
+      setConfirmModal({ type: "repair", item });
+    };
+
+    const handleTandaiPermanen = (item: LaporanKerusakanType) => {
+      setConfirmModal({ type: "permanen", item });
+    };
+
+    const handleConfirmAction = async () => {
+      if (!confirmModal) return;
+      const { type, item } = confirmModal;
+      setConfirmSubmitting(true);
+
+      try {
+        if (type === "repair") {
+          await repairLaporanKerusakan(item.id);
+          setLaporanList((prev) => prev.filter((l) => l.id !== item.id));
+          setSuccessMessage(`${item.nama_barang} berhasil ditandai selesai diperbaiki, stok telah dikembalikan.`);
+        } else {
+          await tandaiPermanenLaporanKerusakan(item.id);
+          setLaporanList((prev) =>
+            prev.map((l) => (l.id === item.id ? { ...l, status: "rusak_permanen" as const } : l))
+          );
+          setSuccessMessage(`${item.nama_barang} ditandai sebagai Rusak Permanen.`);
+        }
+        setTimeout(() => setSuccessMessage(null), 5000);
+        setConfirmModal(null);
+      } catch (err) {
+        alert(
+          err instanceof Error
+            ? err.message
+            : type === "repair"
+            ? "Gagal memproses repair alat"
+            : "Gagal menandai laporan sebagai rusak permanen"
+        );
+      } finally {
+        setConfirmSubmitting(false);
+      }
+    };
 
   useEffect(() => {
     loadData();
@@ -147,10 +175,11 @@ const LaporanKerusakanManager = () => {
   const handleExportExcel = () =>
     exportToExcel(filteredList, EXPORT_COLUMNS, "laporan-kerusakan-alat");
 
-  const columns = useMemo(
-    () => getLaporanKerusakanColumns({ onDetail: openDetailModal, onRepair: handleRepair }),
-    []
-  );
+  const columns = getLaporanKerusakanColumns({
+  onDetail: openDetailModal,
+  onRepair: handleRepair,
+  onTandaiPermanen: handleTandaiPermanen,   // ← tambahkan
+});
 
   return (
     <div className="riwayat-page">
@@ -258,7 +287,28 @@ const LaporanKerusakanManager = () => {
         </CardBody>
       </Card>
 
-      <DetailLaporanModal show={detailModalOpen} onClose={() => setDetailModalOpen(false)} item={activeItem} />
+     <DetailLaporanModal show={detailModalOpen} onClose={() => setDetailModalOpen(false)} item={activeItem} />
+
+      {confirmModal && (
+        <ConfirmActionModal
+          show={!!confirmModal}
+          onClose={() => setConfirmModal(null)}
+          onConfirm={handleConfirmAction}
+          submitting={confirmSubmitting}
+          variant={confirmModal.type === "repair" ? "success" : "danger"}
+          title={
+            confirmModal.type === "repair"
+              ? "Tandai Sudah Diperbaiki?"
+              : "Tandai Rusak Permanen?"
+          }
+          message={
+            confirmModal.type === "repair"
+              ? `"${confirmModal.item.nama_barang}" akan dihapus dari daftar laporan dan stok alat otomatis dikembalikan.`
+              : `"${confirmModal.item.nama_barang}" tidak akan bisa diperbaiki lagi. Opsi Repair untuk laporan ini akan hilang.`
+          }
+          confirmLabel={confirmModal.type === "repair" ? "Ya, Sudah Diperbaiki" : "Ya, Rusak Permanen"}
+        />
+      )}
     </div>
   );
 };
