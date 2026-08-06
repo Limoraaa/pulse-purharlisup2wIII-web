@@ -200,6 +200,7 @@ const FormPengembalianModal = ({
               type="text"
               inputMode="numeric"
               pattern="[0-9]*"
+              autoComplete="off"
               value={jumlahRusak === 0 ? "" : String(jumlahRusak)}
               placeholder="0"
               onChange={(e) => handleJumlahRusakChange(e.target.value)}
@@ -223,6 +224,7 @@ const FormPengembalianModal = ({
                       type="text"
                       inputMode="numeric"
                       pattern="[0-9]*"
+                      autoComplete="off"
                       value={jumlahBisaDiperbaiki === 0 ? "" : String(jumlahBisaDiperbaiki)}
                       placeholder="0"
                       onChange={(e) => handleBisaDiperbaikiChange(e.target.value)}
@@ -235,6 +237,7 @@ const FormPengembalianModal = ({
                       type="text"
                       inputMode="numeric"
                       pattern="[0-9]*"
+                      autoComplete="off"
                       value={jumlahRusakPermanen === 0 ? "" : String(jumlahRusakPermanen)}
                       placeholder="0"
                       onChange={(e) => handleRusakPermanenChange(e.target.value)}
@@ -296,21 +299,7 @@ const FormPengembalianModal = ({
               )}
             </>
           )}
-          <Form.Group className="mb-3">
-            <Form.Label>
-              Catatan{" "}
-              {jumlahRusak > 0 && <span className="text-danger">*</span>}
-            </Form.Label>
-            <Form.Control
-              as="textarea"
-              rows={2}
-              placeholder={jumlahRusak > 0 ? "Jelaskan kerusakannya..." : "Catatan pengembalian (opsional)"}
-              value={catatan}
-              onChange={(e) => setCatatan(e.target.value)}
-              disabled={submitting}
-            />
-          </Form.Group>
-
+          
           {/* --- INPUT SCAN RFID / ID CARD --- */}
           <Form.Group className="border-top pt-3 mt-4">
             <Form.Label className="fw-semibold">
@@ -318,6 +307,7 @@ const FormPengembalianModal = ({
             </Form.Label>
             <Form.Control
               type="password"
+              autoComplete="new-password"
               placeholder="Tap ID Card Anda disini..."
               value={idCard}
               onChange={(e) => setIdCard(e.target.value)}
