@@ -30,6 +30,7 @@ import {
 
 interface ConsumableCartItem extends ConsumableCartItemType {
   id: string;
+  cartId?: string | number;   // ← tambahkan, dipakai khusus item bertipe 'tool'
   item_type?: 'tool' | 'consumable';
 }
 
@@ -328,14 +329,16 @@ const DataConsumableManager = () => {
   };
 
   const handleUpdateQty = async (cartId: string | number, qty: number) => {
-    const targetItem = cart.find((c) => c.id === cartId || c.consumable_id === cartId);
+    const targetItem = cart.find(
+      (c) => c.id === cartId || c.consumable_id === cartId || c.cartId === cartId
+    );
     if (!targetItem) return;
 
     if (targetItem.item_type === 'tool') {
       const updatedToolCart = cart
         .filter((c) => c.item_type === 'tool')
-        .map((c) => (c.id === cartId ? { ...c, jumlah: qty } : c));
-      
+        .map((c) => (c.cartId === cartId ? { ...c, jumlah: qty } : c));
+
       localStorage.setItem("global_shared_tools_cart", JSON.stringify(updatedToolCart));
       loadCart();
       return;
@@ -366,13 +369,15 @@ const DataConsumableManager = () => {
   };
 
   const handleRemoveItem = async (cartId: string | number) => {
-    const targetItem = cart.find((c) => c.id === cartId || c.consumable_id === cartId);
+    const targetItem = cart.find(
+      (c) => c.id === cartId || c.consumable_id === cartId || c.cartId === cartId
+    );
     if (!targetItem) return;
 
     if (targetItem.item_type === 'tool') {
-      const updatedToolCart = cart.filter((c) => c.item_type === 'tool' && c.id !== cartId);
+      const updatedToolCart = cart.filter((c) => c.item_type === 'tool' && c.cartId !== cartId);
       localStorage.setItem("global_shared_tools_cart", JSON.stringify(updatedToolCart));
-      setCart((prev) => prev.filter((c) => c.id !== cartId));
+      setCart((prev) => prev.filter((c) => c.cartId !== cartId));
       return;
     }
 
@@ -537,6 +542,12 @@ const DataConsumableManager = () => {
               </InputGroup>
             </Col>
             <Col lg={6} md={5} className="text-md-end">
+              <Button variant="outline-secondary" size="sm" onClick={handleExportExcel}>
+                  Export Excel
+                </Button>
+              <Button variant="outline-secondary" size="sm" onClick={handleExportPDF}>
+                  Export PDF
+                </Button>
               <span className="text-secondary small">
                 Menampilkan <span className="fw-semibold text-body">{filteredConsumables.length}</span> dari {consumables.length} data
               </span>
