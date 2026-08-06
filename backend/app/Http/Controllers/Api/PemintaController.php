@@ -39,19 +39,25 @@ class PemintaController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            // Validasi diubah ke 'id', pastikan unik di tabel 'peminta'
-            'id' => 'nullable|string|unique:peminta,id',
-            'nama' => 'required|string|max:255',
+            'id'     => 'nullable|string|unique:peminta,id',
+            'nama'   => 'required|string|max:255',
             'divisi' => 'required|string|max:255',
+            // --- VALIDASI ROLE BARU (INVENTORY MAN) ---
+            'role'   => 'nullable|string|in:user,inventory man', 
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        // Karena di model Peminta sudah ada logika UUID otomatis jika id kosong,
-        // kita bisa langsung create dari hasil validasi.
-        $peminta = Peminta::create($validator->validated());
+        $data = $validator->validated();
+        
+        // Default role jika tidak diisi dari frontend adalah 'user'
+        if (empty($data['role'])) {
+            $data['role'] = 'user';
+        }
+
+        $peminta = Peminta::create($data);
 
         return response()->json($peminta, 201);
     }
@@ -66,10 +72,11 @@ class PemintaController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            // Validasi diubah ke 'id', dan abaikan pengecekan unique untuk data yang sedang diedit
-            'id' => 'nullable|string|unique:peminta,id,' . $id,
-            'nama' => 'sometimes|required|string|max:255',
+            'id'     => 'nullable|string|unique:peminta,id,' . $id,
+            'nama'   => 'sometimes|required|string|max:255',
             'divisi' => 'sometimes|required|string|max:255',
+            // --- VALIDASI ROLE BARU (INVENTORY MAN) ---
+            'role'   => 'sometimes|required|string|in:user,inventory man',
         ]);
 
         if ($validator->fails()) {
@@ -82,9 +89,6 @@ class PemintaController extends Controller
     }
 
     // DELETE /api/peminta/{id}
-    // Sengaja TIDAK hapus permanen -- kalau peminta sudah punya riwayat
-    // transaksi (peminjaman/consumable keluar), hapus paksa akan melanggar
-    // foreign key. Jadi "hapus" di sini artinya nonaktifkan.
     public function destroy(string $id)
     {
         $peminta = Peminta::find($id);

@@ -80,6 +80,18 @@ export const getConsumableMasukColumns = ({
       </span>
     ),
   },
+  // Kolom Penginput diperbarui menggunakan relasi dicatatOleh
+  // Kolom Penginput diperbarui menggunakan relasi dicatatOleh
+  {
+    id: "penginput",
+    header: "Penginput",
+    cell: ({ row }) => {
+      // Menangkap 'name' atau 'nama' dari relasi dicatatOleh secara fleksibel
+      const penginput = row.original.dicatatOleh;
+      const userName = penginput?.name || penginput?.nama || "Tidak Diketahui";
+      return <span className="fw-medium text-gray-700">{userName}</span>;
+    },
+  },
   {
     accessorKey: "keterangan",
     header: "Keterangan",
