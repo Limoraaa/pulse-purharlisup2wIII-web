@@ -2,7 +2,7 @@
 // import node module libraries
 import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
 import { AntreanItemResponse } from "services/peminjamanService";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback  } from "react";
 import {
   Row,
   Col,
@@ -51,7 +51,6 @@ import {
   ToolItemType,
   ToolFormValues,
   CartItemType,
-  LoanFormValues,
 } from "types/DataToolsTypes";
 
 // import custom components
@@ -69,6 +68,26 @@ import AddToCartFlyEffect, {
   FlyAnimationItem,
 } from "components/ruangtools/datatools/AddToCartFlyEffect";
 
+
+// Tipe gabungan untuk item keranjang (tools + consumable), menggantikan pemakaian `any`
+interface UnifiedCartItem extends Partial<CartItemType> {
+  cartId?: string | number;
+  id?: string | number;
+  consumable_id?: string;
+  jumlah: number;
+  item_type?: "tool" | "consumable";
+}
+
+interface LoanSubmitValues {
+  peminjamId?: string;
+  pemintaId?: string;
+  namaPeminjam?: string;
+  namaPeminta?: string;
+  namaPekerjaan: string;
+  areaKerja: string;
+  spesifikasi?: string;
+  keterangan?: string;
+}
 // ---- Helper: generate kode barang berikutnya ----
 const generateNextKodeBarang = (tools: ToolItemType[]): string => {
   if (tools.length === 0) return "I-001";
@@ -112,7 +131,7 @@ const DataToolsManager = () => {
   const [suggestedKodeBarang, setSuggestedKodeBarang] = useState("");
 
   // ---- State Keranjang Peminjaman ----
-  const [cart, setCart] = useState<CartItemType[]>([]);
+  const [cart, setCart] = useState<UnifiedCartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [loanFormOpen, setLoanFormOpen] = useState(false);
   const [submittingLoan, setSubmittingLoan] = useState(false);
@@ -135,14 +154,14 @@ const DataToolsManager = () => {
   // Sinkronisasi data Tools dari Database + Gabungkan dengan data Consumable dari LocalStorage
   // Sinkronisasi data Tools dari Database + Gabungkan dengan data Consumable dari LocalStorage
   useEffect(() => {
-    let groupedToolsCart: CartItemType[] = [];
+    let groupedToolsCart: UnifiedCartItem[] = [];
 
     if (dbCart && Array.isArray(dbCart)) {
-      groupedToolsCart = dbCart.reduce((acc: CartItemType[], item: AntreanItemResponse) => {
+      groupedToolsCart = dbCart.reduce((acc: UnifiedCartItem[], item: AntreanItemResponse) => {
         const cartRecordId = item.id;
         const toolIdVal = item.tools_id;
 
-        const existingItem = acc.find((c: any) => c.toolId === toolIdVal);
+        const existingItem = acc.find((c) => c.toolId === toolIdVal);
 
         if (existingItem) {
           existingItem.jumlah += item.qty ?? 1;
@@ -154,13 +173,12 @@ const DataToolsManager = () => {
             kodeBarang: item.kode_barang || "-",
             jumlah: item.qty ?? 1,
             maxJumlah: item.max_jumlah ?? 99,
-            item_type: 'tool',
-          } as any);
+            item_type: "tool",
+          });
         }
         return acc;
       }, []);
     }
-
     // Simpan tools ke localStorage agar halaman consumable bisa membacanya
     localStorage.setItem("global_shared_tools_cart", JSON.stringify(groupedToolsCart));
 
@@ -257,7 +275,7 @@ const DataToolsManager = () => {
   };
 
   // ================= KERANJANG PEMINJAMAN =================
-  const handleAddToCart = async (tool: ToolItemType, event: React.MouseEvent<HTMLButtonElement>) => {
+  const handleAddToCart = useCallback(async (tool: ToolItemType, event: React.MouseEvent<HTMLButtonElement>) => {
     const tersedia = tool.stok - tool.dipinjam;
     if (tersedia <= 0) return;
     
@@ -273,21 +291,21 @@ const DataToolsManager = () => {
     } catch (err) { 
       console.error("Gagal menambah ke keranjang DB", err); 
     }
-  };
+  }, [mutate]);
   
   const handleAnimationEnd = (id: string) => {
     setFlyAnimations((prev) => prev.filter((a) => a.id !== id));
   };
 
   const handleUpdateQty = async (cartId: string | number, newJumlah: number) => {
-    const targetItem = cart.find((c: any) => c.cartId === cartId || c.id === cartId);
+    const targetItem = cart.find((c) => c.cartId === cartId || c.id === cartId);
     if (!targetItem) return;
 
-    if ((targetItem as any).item_type === 'consumable') {
+    if (targetItem.item_type === "consumable") {
       const updatedConsumableCart = cart
-        .filter((c: any) => c.item_type === 'consumable')
-        .map((c: any) => (c.cartId === cartId || c.id === cartId ? { ...c, jumlah: newJumlah } : c));
-      
+        .filter((c) => c.item_type === "consumable")
+        .map((c) => (c.cartId === cartId || c.id === cartId ? { ...c, jumlah: newJumlah } : c));
+
       localStorage.setItem("global_shared_consumable_cart", JSON.stringify(updatedConsumableCart));
       setCart([...cart]);
       return;
@@ -302,17 +320,19 @@ const DataToolsManager = () => {
   };
 
   const handleRemoveFromCart = async (cartId: string | number) => {
-    const targetItem = cart.find((c: any) => c.cartId === cartId || c.id === cartId);
+    const targetItem = cart.find((c) => c.cartId === cartId || c.id === cartId);
     if (!targetItem) return;
 
-    if ((targetItem as any).item_type === 'consumable') {
-      const updatedConsumableCart = cart.filter((c: any) => c.item_type === 'consumable' && c.cartId !== cartId && c.id !== cartId);
+    if (targetItem.item_type === "consumable") {
+      const updatedConsumableCart = cart.filter(
+        (c) => c.item_type === "consumable" && c.cartId !== cartId && c.id !== cartId
+      );
       localStorage.setItem("global_shared_consumable_cart", JSON.stringify(updatedConsumableCart));
-      setCart((prev) => prev.filter((c: any) => c.cartId !== cartId && c.id !== cartId));
+      setCart((prev) => prev.filter((c) => c.cartId !== cartId && c.id !== cartId));
       return;
     }
 
-    setCart((prev) => prev.filter((c: any) => c.cartId !== cartId && c.id !== cartId));
+    setCart((prev) => prev.filter((c) => c.cartId !== cartId && c.id !== cartId));
 
     try {
       await removeCartItem(cartId);
@@ -329,7 +349,7 @@ const DataToolsManager = () => {
   };
 
   // Ubah LoanFormValues menjadi any agar kompatibel dengan UniversalFormValues dari modal universal
-  const handleLoanSubmit = async (values: any) => {
+  const handleLoanSubmit = async (values: LoanSubmitValues) => {
     setSubmittingLoan(true);
     setLoanError(null);
 
@@ -340,15 +360,20 @@ const DataToolsManager = () => {
         throw new Error("Sesi login tidak ditemukan. Silakan login ulang.");
       }
 
-      const hasToolItems = cart.some((c: any) => c.item_type === 'tool' || !c.item_type);
-      const hasConsumableItems = cart.some((c: any) => c.item_type === 'consumable');
+      const pemintaIdValue = values.peminjamId || values.pemintaId;
+      if (!pemintaIdValue) {
+        throw new Error("Data peminjam tidak ditemukan. Silakan pilih peminjam terlebih dahulu.");
+      }
+
+      const hasToolItems = cart.some((c) => c.item_type === "tool" || !c.item_type);
+      const hasConsumableItems = cart.some((c) => c.item_type === "consumable");
 
       const apiRequests = [];
 
       if (hasToolItems) {
         apiRequests.push(
           prosesPeminjamanApi({
-            pemintaId: values.peminjamId || values.pemintaId,
+            pemintaId: pemintaIdValue,
             dicatatOleh: dicatatOleh,
             namaPekerjaan: values.namaPekerjaan,
             areaKerja: values.areaKerja,
@@ -367,7 +392,7 @@ const DataToolsManager = () => {
               Authorization: `Bearer ${token}` 
             },
             body: JSON.stringify({
-              peminta_id: values.peminjamId || values.pemintaId,
+              peminta_id: pemintaIdValue,
               nama_pekerjaan: values.namaPekerjaan,
               pekerjaan_area: values.areaKerja,
               keterangan: values.keterangan || "",
@@ -401,16 +426,25 @@ const DataToolsManager = () => {
     }
   };
 
-  const columns = useMemo(
+      const columns = useMemo(
     () =>
       getDataToolsColumns({
         onDetail: openDetailModal,
         onEdit: openEditModal,
         onDelete: openDeleteModal,
         onAddToCart: handleAddToCart,
-        cartItems: cart,
+        cartItems: cart
+          .filter((c) => c.item_type !== "consumable")
+          .map((c) => ({
+            toolId: c.toolId ?? "",
+            cartId: c.cartId,
+            kodeBarang: c.kodeBarang ?? "-",
+            namaBarang: c.namaBarang ?? "-",
+            jumlah: c.jumlah,
+            maxJumlah: c.maxJumlah ?? 99,
+          })),
       }),
-    [cart]
+    [cart, handleAddToCart]
   );
 
   return (
@@ -522,10 +556,10 @@ const DataToolsManager = () => {
 
       {/* ---- Keranjang Peminjaman ---- */}
       <CartFAB itemCount={cart.length} onClick={() => setCartOpen(true)} />
-      <CartOffcanvas show={cartOpen} onClose={() => setCartOpen(false)} items={cart as any} onUpdateQty={handleUpdateQty} onRemove={handleRemoveFromCart} onProceed={handleProceedToLoanForm} />
+      <CartOffcanvas show={cartOpen} onClose={() => setCartOpen(false)} items={cart} onUpdateQty={handleUpdateQty} onRemove={handleRemoveFromCart} onProceed={handleProceedToLoanForm} />
       <AddToCartFlyEffect animations={flyAnimations} onAnimationEnd={handleAnimationEnd} />
 
-      <LoanFormModal show={loanFormOpen} onClose={() => setLoanFormOpen(false)} onSubmit={handleLoanSubmit} cartItems={cart as any} submitting={submittingLoan} />
+      <LoanFormModal show={loanFormOpen} onClose={() => setLoanFormOpen(false)} onSubmit={handleLoanSubmit} cartItems={cart} submitting={submittingLoan} />
     </div>
   );
 };
