@@ -66,7 +66,7 @@ export const getConsumableColumns = ({
   header: "Masuk",
   cell: ({ row }) => (
     <span className="text-center d-block text-success fw-semibold">
-      +{row.original.total_masuk}
+      {row.original.total_masuk}
     </span>
   ),
 },
@@ -75,7 +75,7 @@ export const getConsumableColumns = ({
   header: "Keluar",
   cell: ({ row }) => (
     <span className="text-center d-block text-danger fw-semibold">
-      -{row.original.total_keluar}
+      {row.original.total_keluar}
     </span>
   ),
 },
@@ -117,7 +117,7 @@ export const getConsumableColumns = ({
           const merkBarang = consumable.merk || "Unknown";
           
           // Format nama file: NamaBarang_Merk.png (karakter ilegal akan diubah jadi underscore)
-          const fileName = `${namaBarang}_${merkBarang}`.replace(/[^a-zA-Z0-9_-]/g, "_") + ".png";
+          const fileName = `${namaBarang}_${merkBarang}`.replace(/[^a-zA-Z0-9_-]/g, "_");
 
           // Buat elemen canvas sementara
           const canvas = document.createElement("canvas");
