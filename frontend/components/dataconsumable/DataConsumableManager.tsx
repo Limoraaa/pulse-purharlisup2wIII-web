@@ -26,11 +26,11 @@ import {
   ConsumableItemType,
   ConsumableFormValues,
   ConsumableCartItemType,
-  ConsumableOutFormValues,
 } from "types/DataConsumableTypes";
 
 interface ConsumableCartItem extends ConsumableCartItemType {
   id: string;
+  item_type?: 'tool' | 'consumable';
 }
 
 import TanstackTable from "components/table/TanstackTable";
@@ -41,8 +41,8 @@ import ConsumableToolFormModal from "components/dataconsumable/ConsumableFormMod
 import ConsumableDetailModal from "components/dataconsumable/ConsumableDetailModal";
 import DeleteConfirmModal from "components/dataconsumable/DeleteConfirmModal";
 import CartFAB from "components/dataconsumable/CartFAB";
-import CartOffcanvas from "components/dataconsumable/CartOffcanvas";
-import ConsumableOutFormModal from "components/dataconsumable/ConsumableOutFormModal";
+import CartOffcanvas from "components/common/CartOffcanvas";
+import LoanFormModal, { UniversalFormValues } from "components/common/LoanFormModal";
 import AddToCartFlyEffect, {
   FlyAnimationItem,
 } from "components/dataconsumable/AddToCartFlyEffect";
@@ -54,6 +54,8 @@ import {
   deleteConsumable,
 } from "services/consumableService";
 
+import { prosesPeminjamanApi } from "services/peminjamanService";
+
 import api from "lib/api";
 
 function sortByKode(items: ConsumableItemType[]): ConsumableItemType[] {
@@ -61,7 +63,6 @@ function sortByKode(items: ConsumableItemType[]): ConsumableItemType[] {
     b.kode_barang.localeCompare(a.kode_barang, undefined, { numeric: true })
   );
 }
-
 
 const EXPORT_COLUMNS: ExportColumn[] = [
   { header: "Kode Barang", key: "kode_barang" },
@@ -137,21 +138,28 @@ const DataConsumableManager = () => {
 
       const rawItems: AntreanConsumableApiItem[] = Array.isArray(json) ? json : json.data || [];
 
-      const mappedCart: ConsumableCartItem[] = rawItems.map((item) => ({
+      const mappedConsumableCart: ConsumableCartItem[] = rawItems.map((item) => ({
         id: item.id,
         consumable_id: item.consumable_id,
         kode_barang: item.kodeBarang || item.kode_barang || "-",
         nama: item.namaBarang || item.nama || "Bahan Dihapus",
         jumlah: item.qty || item.jumlah || 1,
         stok_tersedia: item.stok_tersedia ?? 0,
+        item_type: 'consumable',
       }));
 
-      setCart(mappedCart);
+      localStorage.setItem("global_shared_consumable_cart", JSON.stringify(mappedConsumableCart));
+
+      const savedToolCart: ConsumableCartItem[] = JSON.parse(localStorage.getItem("global_shared_tools_cart") || "[]");
+
+      const combinedCart = [...mappedConsumableCart, ...savedToolCart];
+
+      setCart(combinedCart);
     } catch (err) {
       console.error("Gagal load keranjang", err);
     }
-
   }, []);
+
   useEffect(() => {
     const token = localStorage.getItem("token"); 
     if (!token) return; 
@@ -159,12 +167,24 @@ const DataConsumableManager = () => {
     loadConsumables();
     loadCart();
 
+    // 1. Sinkronisasi instan saat localStorage berubah dari halaman lain (misal dari halaman Tools)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "global_shared_tools_cart" || e.key === "global_shared_consumable_cart") {
+        loadCart();
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+
+    // 2. Sinkronisasi saat window kembali difokuskan
     const handleFocus = () => {
       loadCart();
     };
 
     window.addEventListener("focus", handleFocus);
+
     return () => {
+      window.removeEventListener("storage", handleStorageChange);
       window.removeEventListener("focus", handleFocus);
     };
   }, [loadCart]);
@@ -174,7 +194,7 @@ const DataConsumableManager = () => {
     
     return consumables
       .map((item) => {
-        const itemDiKeranjang = cart.find((c) => c.consumable_id === item.id);
+        const itemDiKeranjang = cart.find((c) => c.consumable_id === item.id && c.item_type === 'consumable');
         const jumlahDiKeranjang = itemDiKeranjang ? itemDiKeranjang.jumlah : 0;
 
         return {
@@ -197,13 +217,13 @@ const DataConsumableManager = () => {
     setFormModalOpen(true);
   };
 
-    const openEditModal = useCallback((item: ConsumableItemType) => {
+  const openEditModal = useCallback((item: ConsumableItemType) => {
     setActiveItem(consumables.find((c) => c.id === item.id) || item);
     setFormError(null);
     setFormModalOpen(true);
   }, [consumables]);
 
-   const openDetailModal = useCallback((item: ConsumableItemType) => {
+  const openDetailModal = useCallback((item: ConsumableItemType) => {
     setActiveItem(consumables.find((c) => c.id === item.id) || item);
     setDetailModalOpen(true);
   }, [consumables]);
@@ -214,9 +234,9 @@ const DataConsumableManager = () => {
   }, [consumables]);
 
   const handleExportPDF = () =>
-  exportToPDF(filteredConsumables as unknown as Record<string, unknown>[], EXPORT_COLUMNS, "data-consumable", "Data Consumable");
-const handleExportExcel = () =>
-  exportToExcel(filteredConsumables as unknown as Record<string, unknown>[], EXPORT_COLUMNS, "data-consumable");
+    exportToPDF(filteredConsumables as unknown as Record<string, unknown>[], EXPORT_COLUMNS, "data-consumable", "Data Consumable");
+  const handleExportExcel = () =>
+    exportToExcel(filteredConsumables as unknown as Record<string, unknown>[], EXPORT_COLUMNS, "data-consumable");
 
   const handleFormSubmit = async (values: ConsumableFormValues) => {
     setFormError(null);
@@ -237,7 +257,6 @@ const handleExportExcel = () =>
       setFormError(message);
     }
   };
-  
 
   const handleConfirmDelete = async () => {
     if (!activeItem) return;
@@ -308,8 +327,21 @@ const handleExportExcel = () =>
     setFlyAnimations((prev) => prev.filter((a) => a.id !== id));
   };
 
-  const handleUpdateQty = async (consumableId: string, qty: number) => {
-    const item = consumables.find((c) => c.id === consumableId); 
+  const handleUpdateQty = async (cartId: string | number, qty: number) => {
+    const targetItem = cart.find((c) => c.id === cartId || c.consumable_id === cartId);
+    if (!targetItem) return;
+
+    if (targetItem.item_type === 'tool') {
+      const updatedToolCart = cart
+        .filter((c) => c.item_type === 'tool')
+        .map((c) => (c.id === cartId ? { ...c, jumlah: qty } : c));
+      
+      localStorage.setItem("global_shared_tools_cart", JSON.stringify(updatedToolCart));
+      loadCart();
+      return;
+    }
+
+    const item = consumables.find((c) => c.id === targetItem.consumable_id); 
     if (!item) return;
 
     if (qty > item.stok_awal) {
@@ -318,11 +350,8 @@ const handleExportExcel = () =>
     }
 
     try {
-      const cartItem = cart.find((c) => c.consumable_id === consumableId);
-      if (!cartItem) return;
-
       const token = localStorage.getItem("token");
-      await api(`/consumable-keluar/cart/${cartItem.id}`, {
+      await api(`/consumable-keluar/cart/${targetItem.id}`, {
         method: "PATCH",
         headers: { 
           "Content-Type": "application/json",
@@ -336,13 +365,20 @@ const handleExportExcel = () =>
     }
   };
 
-  const handleRemoveItem = async (consumableId: string) => {
-    const cartItem = cart.find((c) => c.consumable_id === consumableId);
-    if (!cartItem) return;
+  const handleRemoveItem = async (cartId: string | number) => {
+    const targetItem = cart.find((c) => c.id === cartId || c.consumable_id === cartId);
+    if (!targetItem) return;
+
+    if (targetItem.item_type === 'tool') {
+      const updatedToolCart = cart.filter((c) => c.item_type === 'tool' && c.id !== cartId);
+      localStorage.setItem("global_shared_tools_cart", JSON.stringify(updatedToolCart));
+      setCart((prev) => prev.filter((c) => c.id !== cartId));
+      return;
+    }
 
     try {
       const token = localStorage.getItem("token");
-      await api(`/consumable-keluar/antrean/${cartItem.consumable_id}`, {
+      await api(`/consumable-keluar/antrean/${targetItem.consumable_id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -353,8 +389,7 @@ const handleExportExcel = () =>
     }
   };
 
-  // Disesuaikan agar menerima values dari modal form pengeluaran bahan
-  const handleLoanSubmit = async (values: ConsumableOutFormValues) => {
+  const handleLoanSubmit = async (values: UniversalFormValues) => {
     if (cart.length === 0) return;
     setIsSubmittingCart(true);
     setOutError(null);
@@ -366,26 +401,57 @@ const handleExportExcel = () =>
         throw new Error("Sesi login tidak ditemukan. Silakan login ulang.");
       }
 
-      const payload = {
-        peminta_id: values.pemintaId,
-        nama_pekerjaan: values.namaPekerjaan,
-        pekerjaan_area: values.areaKerja,
-        keterangan: values.keterangan || "",
-        dicatat_oleh: dicatatOleh,
-      };
+      const pemintaIdVal = values.peminjamId || values.pemintaId || "";
+      const hasConsumableItems = cart.some((c) => c.item_type === 'consumable' || !c.item_type);
+      const hasToolItems = cart.some((c) => c.item_type === 'tool');
 
-      await api("/consumable-keluar/proses", {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}` 
-        },
-        body: JSON.stringify(payload),
-      });
+      const apiRequests = [];
+
+      if (hasConsumableItems) {
+        const payloadConsumable = {
+          peminta_id: pemintaIdVal,
+          nama_pekerjaan: values.namaPekerjaan,
+          pekerjaan_area: values.areaKerja,
+          keterangan: values.keterangan || "",
+          dicatat_oleh: dicatatOleh,
+        };
+
+        apiRequests.push(
+          api("/consumable-keluar/proses", {
+            method: "POST",
+            headers: { 
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}` 
+            },
+            body: JSON.stringify(payloadConsumable),
+          })
+        );
+      }
+
+      if (hasToolItems) {
+        apiRequests.push(
+          prosesPeminjamanApi({
+            pemintaId: pemintaIdVal,
+            dicatatOleh: dicatatOleh,
+            namaPekerjaan: values.namaPekerjaan,
+            areaKerja: values.areaKerja,
+            spesifikasi: values.spesifikasi || "",
+            keterangan: values.keterangan || "",
+          })
+        );
+      }
+
+      if (apiRequests.length > 0) {
+        await Promise.all(apiRequests);
+      }
+
+      localStorage.removeItem("global_shared_tools_cart");
+      localStorage.removeItem("global_shared_consumable_cart");
 
       setLoanFormOpen(false);
       setCartOpen(false);
-      setSuccessMessage("Pengeluaran bahan berhasil diproses!");
+      setCart([]);
+      setSuccessMessage("Pengeluaran bahan dan peminjaman alat berhasil diproses!");
 
       await loadConsumables();
       await loadCart();
@@ -394,7 +460,7 @@ const handleExportExcel = () =>
     } catch (err) {
       console.error("Gagal proses keranjang:", err);
       setOutError(
-        err instanceof Error ? err.message : "Terjadi kesalahan saat memproses pengeluaran bahan."
+        err instanceof Error ? err.message : "Terjadi kesalahan saat memproses data."
       );
     } finally {
       setIsSubmittingCart(false);
@@ -454,7 +520,7 @@ const handleExportExcel = () =>
       <Card className="card-lg mb-6">
         <div className="datatools-toolbar border-bottom">
           <Row className="g-2 align-items-center">
-            <Col lg={5} md={6}>
+            <Col lg={6} md={7}>
               <InputGroup className="datatools-search">
                 <InputGroup.Text><IconSearch size={18} /></InputGroup.Text>
                 <Form.Control
@@ -470,18 +536,10 @@ const handleExportExcel = () =>
                 )}
               </InputGroup>
             </Col>
-            <Col lg={4} md={3} className="text-md-end">
+            <Col lg={6} md={5} className="text-md-end">
               <span className="text-secondary small">
                 Menampilkan <span className="fw-semibold text-body">{filteredConsumables.length}</span> dari {consumables.length} data
               </span>
-            </Col>
-            <Col lg={3} md={3} className="d-flex justify-content-md-end gap-2">
-              <Button variant="outline-danger" size="sm" onClick={handleExportPDF}>
-                Export PDF
-              </Button>
-              <Button variant="outline-success" size="sm" onClick={handleExportExcel}>
-                Export Excel
-              </Button>
             </Col>
           </Row>
         </div>
@@ -553,7 +611,7 @@ const handleExportExcel = () =>
       <CartOffcanvas
         show={cartOpen}
         onClose={() => setCartOpen(false)}
-        items={cart}
+        items={cart as any}
         onProceed={() => {
           setCartOpen(false);
           setLoanFormOpen(true);
@@ -563,12 +621,12 @@ const handleExportExcel = () =>
       />
       <AddToCartFlyEffect animations={flyAnimations} onAnimationEnd={handleAnimationEnd} />
 
-      {/* MODAL CHECKOUT KELUAR */}
-      <ConsumableOutFormModal
+      {/* MODAL CHECKOUT KELUAR UNIVERSAL */}
+      <LoanFormModal
         show={loanFormOpen}
         onClose={() => setLoanFormOpen(false)}
         onSubmit={handleLoanSubmit}
-        cartItems={cart}
+        cartItems={cart as any}
         submitting={isSubmittingCart}
         error={outError}
       />
