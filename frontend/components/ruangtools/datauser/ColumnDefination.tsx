@@ -27,8 +27,13 @@ export const getDataUserColumns = ({
       header: "Nama Lengkap",
     },
     {
+      accessorKey: "username",
+      header: "Username",
+    },
+    {
       accessorKey: "email",
       header: "Email",
+      cell: ({ row }) => row.original.email || "-",
     },
     {
       accessorKey: "role",

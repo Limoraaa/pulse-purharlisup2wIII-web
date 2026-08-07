@@ -6,12 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 class UserController extends Controller
 {
     // Kolom yang aman ditampilkan (password tidak pernah ikut)
     private const SAFE_COLUMNS = [
-        'id', 'full_name', 'email', 'role', 'divisi', 'no_hp', 'avatar_path', 'is_active', 'created_at',
+        'id', 'full_name', 'username', 'email', 'role', 'divisi', 'no_hp', 'avatar_path', 'is_active', 'must_change_password', 'created_at',
     ];
 
     // GET /api/users
@@ -53,7 +54,8 @@ class UserController extends Controller
 
         $validator = Validator::make($request->all(), [
             'full_name' => 'sometimes|required|string|max:255',
-            'email' => 'sometimes|required|email|unique:users,email,' . $user->id,
+            'username' => 'sometimes|required|string|max:255|unique:users,username,' . $user->id,
+            'email' => 'sometimes|nullable|email|unique:users,email,' . $user->id,
             'password' => 'nullable|string|min:6',
             'divisi' => 'sometimes|nullable|string|max:255',
             'no_hp' => 'sometimes|nullable|string|max:20',
@@ -96,7 +98,10 @@ class UserController extends Controller
             ], 422);
         }
 
-        $user->update(['password' => $request->password_baru]);
+        $user->update([
+            'password' => $request->password_baru,
+            'must_change_password' => false,
+        ]);
 
         return response()->json(['message' => 'Password berhasil diperbarui']);
     }
@@ -104,13 +109,21 @@ class UserController extends Controller
     // POST /api/users
     // Staff: role selalu dipaksa jadi 'staff', apapun yang dikirim.
     // Admin: bebas menentukan role.
+    // Password TIDAK diinput manual — sistem generate random & dikembalikan sekali ke frontend.
     public function store(Request $request)
     {
         $currentUser = $request->user();
 
+        if (! $currentUser->hasRole('super_admin')) {
+            return response()->json([
+                'message' => 'Anda tidak memiliki izin untuk menambahkan user.',
+            ], 403);
+        }
+
         $rules = [
             'full_name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
+            'username' => 'required|string|max:255|unique:users,username',
+            'email' => 'nullable|email|unique:users,email',
             'password' => 'required|string|min:6',
             'divisi' => 'nullable|string|max:255',
             'no_hp' => 'nullable|string|max:20',
@@ -130,23 +143,20 @@ class UserController extends Controller
         $data = $validator->validated();
 
         // Kalau yang bikin akun adalah staff, paksa role jadi staff
-        // (mengabaikan apapun yang mungkin dikirim lewat request)
         if (! $currentUser->hasRole('super_admin')) {
             $data['role'] = 'staff';
         }
 
-        $user = User::create($data);
-
+        $data['must_change_password'] = false;
+        $data['is_active'] = true;
+        $user = User::create($data); // 'password' otomatis di-hash lewat cast 'password' => 'hashed'
         return response()->json($user->only(self::SAFE_COLUMNS), 201);
     }
 
     // PUT/PATCH /api/users/{id}
-    // Staff: hanya boleh edit user ber-role staff, dan tidak boleh ubah role.
-    // Admin: bebas edit siapa saja, termasuk ubah role.
-    // PUT/PATCH /api/users/{id}
-// Hanya Admin yang boleh mengedit user (staff sama sekali tidak punya akses edit).
+    // Hanya Admin yang boleh mengedit user (staff sama sekali tidak punya akses edit).
     public function update(Request $request, string $id)
-        {
+    {
         $currentUser = $request->user();
 
         if (! $currentUser->hasRole('super_admin')) {
@@ -163,7 +173,8 @@ class UserController extends Controller
 
         $validator = Validator::make($request->all(), [
             'full_name' => 'sometimes|required|string|max:255',
-            'email' => 'sometimes|required|email|unique:users,email,' . $targetUser->id,
+            'username' => 'sometimes|required|string|max:255|unique:users,username,' . $targetUser->id,
+            'email' => 'sometimes|nullable|email|unique:users,email,' . $targetUser->id,
             'password' => 'nullable|string|min:6',
             'role' => 'sometimes|required|in:staff,super_admin',
             'divisi' => 'sometimes|nullable|string|max:255',
@@ -184,11 +195,10 @@ class UserController extends Controller
 
         return response()->json($targetUser->only(self::SAFE_COLUMNS));
     }
+
     // DELETE /api/users/{id}
-    // Hanya Admin yang boleh menghapus user.
-    // DELETE /api/users/{id}
-// Bukan hapus permanen -- user dinonaktifkan (soft delete) supaya riwayat
-// transaksi yang masih terkait (mis. peminjaman.dicatat_oleh) tetap aman.
+    // Bukan hapus permanen -- user dinonaktifkan (soft delete) supaya riwayat
+    // transaksi yang masih terkait (mis. peminjaman.dicatat_oleh) tetap aman.
     public function destroy(Request $request, string $id)
     {
         $currentUser = $request->user();
@@ -201,11 +211,14 @@ class UserController extends Controller
 
         $user = User::find($id);
 
+       $user = User::find($id);
+
         if (! $user) {
             return response()->json(['message' => 'User tidak ditemukan'], 404);
         }
 
         $user->update(['is_active' => false]);
+        $user->tokens()->delete(); // cabut semua sesi/token aktif miliknya
 
         return response()->json(['message' => 'User berhasil dinonaktifkan']);
     }
@@ -231,6 +244,7 @@ class UserController extends Controller
 
         return response()->json(['message' => 'User berhasil diaktifkan']);
     }
+
     // PATCH /api/users/{id}/reset-password
     // Hanya Admin yang boleh me-reset password user lain (tanpa perlu tahu password lama).
     public function resetPassword(Request $request, string $id)
@@ -257,7 +271,9 @@ class UserController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $targetUser->update(['password' => $request->password_baru]);
+        $targetUser->update([
+            'password' => $request->password_baru,
+        ]);
 
         return response()->json(['message' => 'Password user berhasil direset']);
     }

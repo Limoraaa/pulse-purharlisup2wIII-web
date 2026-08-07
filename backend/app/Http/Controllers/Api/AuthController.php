@@ -12,17 +12,17 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $request->validate([
-            'email' => 'required|email',
+            'username' => 'required|string',
             'password' => 'required',
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $user = User::where('username', $request->username)->first();
 
         if (! $user || ! Hash::check($request->password, $user->password)) {
-            return response()->json(['message' => 'Email atau password salah'], 401);
+            return response()->json(['message' => 'Username atau password salah'], 401);
         }
 
-       if (! $user->is_active) {
+        if (! $user->is_active) {
             return response()->json(['message' => 'Akun Anda telah dinonaktifkan. Hubungi Admin.'], 403);
         }
 
@@ -31,6 +31,7 @@ class AuthController extends Controller
         return response()->json([
             'user' => $user,
             'token' => $token,
+            'must_change_password' => $user->must_change_password,
         ]);
     }
 
