@@ -354,9 +354,9 @@ const ProfileManager = () => {
                   <Col md={6}>
                     <Form.Label>Email</Form.Label>
                     <Form.Control
-                      type="email"
-                      value={form.email}
-                      disabled={!isEditing || saving}
+                        type="email"
+                        value={form.email ?? ""}
+                        disabled={!isEditing || saving}
                       onChange={(e) =>
                         setForm((p) => ({ ...p, email: e.target.value }))
                       }
