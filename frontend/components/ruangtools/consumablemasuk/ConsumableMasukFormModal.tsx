@@ -25,7 +25,6 @@ const formatTanggalJam = (iso: string): string => {
 };
 
 // Konversi ISO timestamp -> format yang dimengerti <input type="datetime-local">
-// ("YYYY-MM-DDTHH:mm", pakai waktu lokal browser)
 const toDatetimeLocalValue = (iso: string): string => {
   const date = new Date(iso);
   if (isNaN(date.getTime())) return "";
@@ -36,7 +35,7 @@ const toDatetimeLocalValue = (iso: string): string => {
 };
 
 const emptyForm = (): ConsumableMasukFormValues => ({
-  tanggal: new Date().toISOString(), // otomatis waktu saat ini (tanggal + jam)
+  tanggal: new Date().toISOString(),
   consumable_id: "",
   kode_barang: "",
   nama: "",
@@ -46,14 +45,15 @@ const emptyForm = (): ConsumableMasukFormValues => ({
   ukuran: "",
   jumlah_masuk: 0,
   keterangan: "",
+  id_card: "", 
 });
 
 interface ConsumableMasukFormModalProps {
   show: boolean;
   onClose: () => void;
-  onSubmit: (values: ConsumableMasukFormValues) => void;
-  initialData?: ConsumableMasukType | null; // ada isinya = mode Edit
-  consumableOptions: ConsumableItemType[]; // sumber dropdown "Kode Barang", dari Data Consumable
+  onSubmit: (values: ConsumableMasukFormValues & { peminta_id?: string }) => void;
+  initialData?: ConsumableMasukType | null;
+  consumableOptions: ConsumableItemType[];
   error?: string | null;
 }
 
@@ -67,16 +67,18 @@ const ConsumableMasukFormModal = ({
 }: ConsumableMasukFormModalProps) => {
   const [consumableSearchText, setConsumableSearchText] = useState("");
   const [form, setForm] = useState<ConsumableMasukFormValues>(emptyForm());
+  const [isSubmitting, setIsSubmitting] = useState(false); // Pengaman double submit dari scanner
   const isEditMode = Boolean(initialData);
 
   useEffect(() => {
     if (show) {
-      setForm(initialData ? { ...initialData } : emptyForm());
+      setForm(initialData ? { ...initialData, id_card: "" } : emptyForm());
       setConsumableSearchText("");
+      setIsSubmitting(false);
     }
   }, [show, initialData]);
 
-  // pilih barang dari dropdown -> auto-isi Nama, Merk, Tipe, ER/E, Ukuran
+  // Pilih barang dari dropdown -> auto-isi atribut
   const handleSelectConsumable = (consumableId: string) => {
     const selected = consumableOptions.find((c) => c.id === consumableId);
     setForm((prev) => ({
@@ -91,9 +93,20 @@ const ConsumableMasukFormModal = ({
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(form);
+    if (isSubmitting) return; // Mencegah proses dobel jalan bersamaan
+
+    setIsSubmitting(true);
+    try {
+      // Mengirim data dengan memetakan id_card ke peminta_id agar diterima backend
+      await onSubmit({
+        ...form,
+        peminta_id: form.id_card,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -125,146 +138,172 @@ const ConsumableMasukFormModal = ({
               Informasi Barang Masuk
             </div>
             <Row className="g-3">
-            <Col md={6}>
-              <Form.Label>Tanggal</Form.Label>
-              {isEditMode ? (
-                <>
-                  <Form.Control
-                    type="datetime-local"
-                    required
-                    value={toDatetimeLocalValue(form.tanggal)}
-                    onChange={(e) => {
-                      const local = e.target.value; // "YYYY-MM-DDTHH:mm"
-                      if (!local) return;
+              <Col md={6}>
+                <Form.Label>Tanggal</Form.Label>
+                {isEditMode ? (
+                  <>
+                    <Form.Control
+                      type="datetime-local"
+                      required
+                      value={toDatetimeLocalValue(form.tanggal)}
+                      onChange={(e) => {
+                        const local = e.target.value;
+                        if (!local) return;
+                        setForm((prev) => ({
+                          ...prev,
+                          tanggal: new Date(local).toISOString(),
+                        }));
+                      }}
+                    />
+                    <Form.Text className="text-secondary">
+                      Bisa dikoreksi manual kalau perlu.
+                    </Form.Text>
+                  </>
+                ) : (
+                  <>
+                    <Form.Control value={formatTanggalJam(form.tanggal)} disabled readOnly />
+                    <Form.Text className="text-secondary">
+                      Otomatis terisi sesuai tanggal &amp; jam saat ini.
+                    </Form.Text>
+                  </>
+                )}
+              </Col>
+              <Col md={6}>
+                <Form.Label>Kode Barang</Form.Label>
+                <Form.Control
+                  required
+                  list="consumable-options"
+                  placeholder="Ketik atau pilih kode barang..."
+                  disabled={isEditMode}
+                  value={
+                    form.consumable_id
+                      ? `${form.kode_barang} — ${form.nama}`
+                      : consumableSearchText
+                  }
+                  onChange={(e) => {
+                    const typed = e.target.value;
+                    setConsumableSearchText(typed);
+
+                    const match = consumableOptions.find(
+                      (c) => `${c.kode_barang} — ${c.nama}` === typed
+                    );
+                    if (match) {
+                      handleSelectConsumable(match.id);
+                    } else {
                       setForm((prev) => ({
                         ...prev,
-                        tanggal: new Date(local).toISOString(),
+                        consumable_id: "",
+                        kode_barang: "",
+                        nama: "",
+                        merk: "",
+                        tipe: "",
+                        er_e: "",
+                        ukuran: "",
                       }));
-                    }}
-                  />
-                  <Form.Text className="text-secondary">
-                    Bisa dikoreksi manual kalau perlu.
-                  </Form.Text>
-                </>
-              ) : (
-                <>
-                  <Form.Control value={formatTanggalJam(form.tanggal)} disabled readOnly />
-                  <Form.Text className="text-secondary">
-                    Otomatis terisi sesuai tanggal &amp; jam saat ini.
-                  </Form.Text>
-                </>
-              )}
-            </Col>
-            <Col md={6}>
-              <Form.Label>Kode Barang</Form.Label>
-              <Form.Control
-                required
-                list="consumable-options"
-                placeholder="Ketik atau pilih kode barang..."
-                disabled={isEditMode}
-                value={
-                  form.consumable_id
-                    ? `${form.kode_barang} — ${form.nama}`
-                    : consumableSearchText
-                }
-                onChange={(e) => {
-                  const typed = e.target.value;
-                  setConsumableSearchText(typed);
+                    }
+                  }}
+                />
+                <datalist id="consumable-options">
+                  {consumableOptions.map((c) => (
+                    <option key={c.id} value={`${c.kode_barang} — ${c.nama}`} />
+                  ))}
+                </datalist>
+              </Col>
 
-                  // cocokkan ke opsi yang persis sama teksnya (setelah dipilih dari datalist,
-                  // browser otomatis isi input dengan value yang sama persis kayak di <option>)
-                  const match = consumableOptions.find(
-                    (c) => `${c.kode_barang} — ${c.nama}` === typed
-                  );
-                  if (match) {
-                    handleSelectConsumable(match.id);
-                  } else {
-                    // ketikan belum cocok opsi manapun -> kosongkan pilihan
+              <Col md={6}>
+                <Form.Label>Nama Barang</Form.Label>
+                <Form.Control value={form.nama} disabled readOnly />
+              </Col>
+              <Col md={6}>
+                <Form.Label>Merk</Form.Label>
+                <Form.Control value={form.merk} disabled readOnly />
+              </Col>
+              <Col md={4}>
+                <Form.Label>Tipe</Form.Label>
+                <Form.Control value={form.tipe} disabled readOnly />
+              </Col>
+              <Col md={4}>
+                <Form.Label>ER / E</Form.Label>
+                <Form.Control value={form.er_e} disabled readOnly />
+              </Col>
+              <Col md={4}>
+                <Form.Label>Ukuran</Form.Label>
+                <Form.Control value={form.ukuran} disabled readOnly />
+              </Col>
+
+              <Col md={6}>
+                <Form.Label>Jumlah Masuk</Form.Label>
+                <Form.Control
+                  required
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  placeholder="0"
+                  value={form.jumlah_masuk === 0 ? "" : String(form.jumlah_masuk)}
+                  onChange={(e) => {
+                    const digitsOnly = e.target.value.replace(/[^0-9]/g, "");
+                    const withoutLeadingZero = digitsOnly.replace(/^0+(?=\d)/, "");
                     setForm((prev) => ({
                       ...prev,
-                      consumable_id: "",
-                      kode_barang: "",
-                      nama: "",
-                      merk: "",
-                      tipe: "",
-                      er_e: "",
-                      ukuran: "",
+                      jumlah_masuk:
+                        withoutLeadingZero === "" ? 0 : Number(withoutLeadingZero),
                     }));
+                  }}
+                />
+              </Col>
+              <Col md={6}>
+                <Form.Label>Keterangan</Form.Label>
+                <Form.Control
+                  value={form.keterangan}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, keterangan: e.target.value }))
                   }
-                }}
-              />
-              <datalist id="consumable-options">
-                {consumableOptions.map((c) => (
-                  <option key={c.id} value={`${c.kode_barang} — ${c.nama}`} />
-                ))}
-              </datalist>
-            </Col>
-
-            <Col md={6}>
-              <Form.Label>Nama Barang</Form.Label>
-              <Form.Control value={form.nama} disabled readOnly />
-            </Col>
-            <Col md={6}>
-              <Form.Label>Merk</Form.Label>
-              <Form.Control value={form.merk} disabled readOnly />
-            </Col>
-            <Col md={4}>
-              <Form.Label>Tipe</Form.Label>
-              <Form.Control value={form.tipe} disabled readOnly />
-            </Col>
-            <Col md={4}>
-              <Form.Label>ER / E</Form.Label>
-              <Form.Control value={form.er_e} disabled readOnly />
-            </Col>
-            <Col md={4}>
-              <Form.Label>Ukuran</Form.Label>
-              <Form.Control value={form.ukuran} disabled readOnly />
-            </Col>
-
-            <Col md={6}>
-              <Form.Label>Jumlah Masuk</Form.Label>
-              <Form.Control
-                required
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                placeholder="0"
-                value={form.jumlah_masuk === 0 ? "" : String(form.jumlah_masuk)}
-                onChange={(e) => {
-                  const digitsOnly = e.target.value.replace(/[^0-9]/g, "");
-                  const withoutLeadingZero = digitsOnly.replace(/^0+(?=\d)/, "");
-                  setForm((prev) => ({
-                    ...prev,
-                    jumlah_masuk:
-                      withoutLeadingZero === "" ? 0 : Number(withoutLeadingZero),
-                  }));
-                }}
-              />
-            </Col>
-            <Col md={6}>
-              <Form.Label>Keterangan</Form.Label>
-              <Form.Control
-                value={form.keterangan}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, keterangan: e.target.value }))
-                }
-              />
-            </Col>
+                />
+              </Col>
             </Row>
+
+            {/* Input Otorisasi ID Card / RFID */}
+            <div className="mt-4 border-top pt-3">
+              <Form.Group>
+                <Form.Label className="fw-semibold">
+                  Otorisasi ID Card <span className="text-danger">*</span>
+                </Form.Label>
+                <Form.Control
+                  type="password"
+                  placeholder="Tap ID Card Anda disini..."
+                  value={form.id_card || ""}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, id_card: e.target.value }))
+                  }
+                  onKeyDown={(e) => {
+                    // Mencegah form tersubmit otomatis dua kali saat scanner mengirim tombol Enter
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                    }
+                  }}
+                  required
+                  autoFocus 
+                />
+                <Form.Text className="text-muted">
+                  Wajib melakukan tap ID Card untuk memverifikasi penambahan data.
+                </Form.Text>
+              </Form.Group>
+            </div>
+
           </div>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="outline-secondary" onClick={onClose}>
+          <Button variant="outline-secondary" onClick={onClose} disabled={isSubmitting}>
             Batal
           </Button>
           <Button
             variant="primary"
             type="submit"
-            disabled={!form.consumable_id || form.jumlah_masuk <= 0}
+            disabled={!form.consumable_id || form.jumlah_masuk <= 0 || !form.id_card || isSubmitting}
             className="d-inline-flex align-items-center gap-2"
           >
             {isEditMode ? <IconPencil size={18} /> : <IconPlus size={18} />}
-            {isEditMode ? "Simpan Perubahan" : "Tambah Data"}
+            {isSubmitting ? "Menyimpan..." : (isEditMode ? "Simpan Perubahan" : "Tambah Data")}
           </Button>
         </Modal.Footer>
       </Form>

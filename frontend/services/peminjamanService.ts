@@ -23,9 +23,11 @@ export interface PeminjamanIndexApiResponse {
     ukuran: string;
   };
   peminta?: {
+    id?: string; // <-- ADDED: Need ID for the mapping below
     nama: string;
     divisi: string;
   };
+  peminta_id?: string; // <-- ADDED: Backup in case it's flat in the response
 }
 
 interface CreatePeminjamanPayload {
@@ -76,6 +78,11 @@ function mapPeminjamanFromApi(item: PeminjamanIndexApiResponse): PeminjamanAktif
     warna: item.tool?.warna ?? "-",
     ukuran: item.tool?.ukuran ?? "-",
     jumlah: item.jumlah,
+    
+    // --- ADDED: Map peminjamId correctly so RFID check in modal works! ---
+    peminjamId: item.peminta_id || item.peminta?.id || "", 
+    // ---------------------------------------------------------------------
+
     namaPeminjam: item.peminta?.nama ?? "-",
     divisi: item.peminta?.divisi ?? "-",
     namaPekerjaan: item.nama_pekerjaan ?? "-", 

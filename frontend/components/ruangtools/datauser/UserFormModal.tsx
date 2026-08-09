@@ -7,7 +7,9 @@ import { UserFormValues, UserItemType, UserRole } from "types/DataUserTypes";
 
 const emptyForm: UserFormValues = {
   full_name: "",
+  username: "",
   email: "",
+  password: "",
   role: "staff",
   divisi: "",
   no_hp: "",
@@ -35,17 +37,19 @@ const UserFormModal = ({
 
   useEffect(() => {
     if (show) {
-      if (initialData) {
-        setForm({
-          full_name: initialData.full_name,
-          email: initialData.email,
-          role: initialData.role,
-          divisi: initialData.divisi || "",
-          no_hp: initialData.no_hp || "",
-        });
-      } else {
-        setForm(emptyForm);
-      }
+          if (initialData) {
+          setForm({
+            full_name: initialData.full_name,
+            username: initialData.username,
+            email: initialData.email || "",
+            password: "",
+            role: initialData.role,
+            divisi: initialData.divisi || "",
+            no_hp: initialData.no_hp || "",
+          });
+        } else {
+          setForm(emptyForm);
+        }
     }
   }, [show, initialData]);
 
@@ -81,17 +85,40 @@ const UserFormModal = ({
                 onChange={(e) => handleChange("full_name", e.target.value)}
               />
             </Col>
-            <Col md={6}>
+           <Col md={6}>
               <Form.Label>
-                Email <span className="text-danger">*</span>
+                Username <span className="text-danger">*</span>
               </Form.Label>
               <Form.Control
                 required
+                type="text"
+                value={form.username}
+                onChange={(e) => handleChange("username", e.target.value)}
+              />
+            </Col>
+            <Col md={6}>
+              <Form.Label>
+                Email <span className="text-secondary fw-normal">(opsional)</span>
+              </Form.Label>
+              <Form.Control
                 type="email"
                 value={form.email}
                 onChange={(e) => handleChange("email", e.target.value)}
               />
             </Col>
+             {!isEditMode && (
+              <Col md={6}>
+                <Form.Label>
+                  Password <span className="text-danger">*</span>
+                </Form.Label>
+                <Form.Control
+                  required
+                  type="password"
+                  value={form.password}
+                  onChange={(e) => handleChange("password", e.target.value)}
+                />
+              </Col>
+            )}
             <Col md={6}>
               <Form.Label>Role</Form.Label>
               {isAdmin ? (

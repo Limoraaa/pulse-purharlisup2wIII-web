@@ -119,7 +119,7 @@ const ConsumableMasukManager = () => {
     setDeleteModalOpen(true);
   };
 
-  const handleFormSubmit = async (values: ConsumableMasukFormValues) => {
+  const handleFormSubmit = async (values: ConsumableMasukFormValues & { peminta_id?: string }) => {
     setFormError(null);
     try {
       if (activeItem) {
@@ -133,12 +133,18 @@ const ConsumableMasukManager = () => {
           );
            await loadConsumables();
       } else {
-        const dicatatOleh = localStorage.getItem("userId");
-        if (!dicatatOleh) {
-          throw new Error("Sesi login tidak ditemukan. Silakan login ulang.");
+        // 1. Pastikan id_card atau peminta_id terisi dari hasil tap kartu di modal form
+        const idCardValue = values.peminta_id || values.id_card;
+        if (!idCardValue) {
+          throw new Error("ID Card wajib di-tap untuk verifikasi.");
         }
 
-        const created = await createConsumableMasuk(values, dicatatOleh);
+        // 2. Panggil fungsi create dengan memastikan peminta_id terkirim eksplisit
+        const created = await createConsumableMasuk({
+          ...values,
+          peminta_id: idCardValue,
+        });
+        
         setMasukList((prev) => [created, ...prev]);
 
         // refresh Data Consumable supaya stok_awal yang tampil di halaman lain akurat
@@ -153,6 +159,7 @@ const ConsumableMasukManager = () => {
       setFormModalOpen(false);
       setActiveItem(null);
     } catch (err) {
+      // Tangkap pesan error dari backend
       const message = err instanceof Error ? err.message : "Gagal menyimpan data";
       setFormError(message);
     }

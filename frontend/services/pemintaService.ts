@@ -7,12 +7,14 @@ interface PemintaApiResponse {
   nama: string;
   divisi: string | null;
   aktif: boolean;
+  role?: "Pekerja" | "inventory man"; // <-- Tambahkan properti role
 }
 
 interface PemintaApiPayload {
   id?: string; // Tambahkan ini agar ID hasil scan dikirim ke Laravel
   nama: string;
   divisi: string;
+  role?: "Pekerja" | "inventory man"; // <-- Tambahkan properti role
 }
 
 function mapPemintaFromApi(item: PemintaApiResponse): PeminjamType {
@@ -21,13 +23,15 @@ function mapPemintaFromApi(item: PemintaApiResponse): PeminjamType {
     nama: item.nama,
     divisi: item.divisi ?? "-",
     aktif: item.aktif,
+    role: item.role ?? "Pekerja", // <-- Petakan role dari API
   };
 }
 
-function mapPemintaToApi(values: PeminjamFormValues): PemintaApiPayload {
+function mapPemintaToApi(values: PeminjamFormValues & { role?: "Pekerja" | "inventory man" }): PemintaApiPayload {
   const payload: PemintaApiPayload = {
     nama: values.nama,
     divisi: values.divisi,
+    role: values.role ?? "Pekerja", // <-- Kirim role ke API
   };
 
   // Jika kolom RFID di form diisi, masukkan ke paket data untuk dikirim ke API
@@ -45,7 +49,6 @@ export async function getPeminta(): Promise<PeminjamType[]> {
 }
 
 // Cuma peminjam yang AKTIF -- dipakai buat dropdown di form peminjaman
-// (biar peminjam yang sudah dinonaktifkan tidak bisa dipilih lagi)
 export async function getPemintaAktif(): Promise<PeminjamType[]> {
   const data = await apiFetch<PemintaApiResponse[]>("/peminta?aktif=1");
   return data.map(mapPemintaFromApi);
@@ -67,8 +70,16 @@ export async function updatePeminta(id: string, values: PeminjamFormValues): Pro
   return mapPemintaFromApi(data);
 }
 
-// Ganti nama dari deletePeminta -> nonaktifkanPeminta, karena backend
-// sekarang tidak lagi hapus permanen (supaya riwayat transaksi lama aman).
+// --- FUNGSI BARU: KHUSUS UNTUK MENGUBAH ROLE SAJA ---
+export async function updateRolePeminta(id: string, role: "Pekerja" | "inventory man"): Promise<PeminjamType> {
+  const data = await apiFetch<PemintaApiResponse>(`/peminta/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ role }),
+  });
+  return mapPemintaFromApi(data);
+}
+
+// Ganti nama dari deletePeminta -> nonaktifkanPeminta
 export async function nonaktifkanPeminta(id: string): Promise<PeminjamType> {
   const res = await apiFetch<{ message: string; data: PemintaApiResponse }>(
     `/peminta/${id}`,

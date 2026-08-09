@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState,  } from "react";
 import {
   Row,
   Col,
@@ -37,6 +37,7 @@ import DasherBreadcrumb from "components/common/DasherBreadcrumb";
 import { getDataUserColumns } from "components/ruangtools/datauser/ColumnDefination";
 import UserFormModal from "components/ruangtools/datauser/UserFormModal";
 import DeleteConfirmModal from "components/ruangtools/datauser/DeleteConfirmModal";
+import ActivateConfirmModal from "components/ruangtools/datauser/ActivateConfirmModal";
 import ResetPasswordModal from "components/ruangtools/datauser/ResetPasswordModal";
 
 const DataUserManager = () => {
@@ -50,6 +51,7 @@ const DataUserManager = () => {
 
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [deactivateModalOpen, setDeactivateModalOpen] = useState(false);
+  const [activateModalOpen, setActivateModalOpen] = useState(false);
   const [resetModalOpen, setResetModalOpen] = useState(false);
   const [activeUser, setActiveUser] = useState<UserItemType | null>(null);
 
@@ -100,7 +102,8 @@ const DataUserManager = () => {
         (u) =>
           keyword === "" ||
           u.full_name.toLowerCase().includes(keyword) ||
-          u.email.toLowerCase().includes(keyword)
+          u.username.toLowerCase().includes(keyword) ||
+          (u.email ?? "").toLowerCase().includes(keyword)
       )
       .sort((a, b) => {
         // Yang aktif selalu di atas, nonaktif selalu di bawah
@@ -127,6 +130,11 @@ const DataUserManager = () => {
   const openDeactivateModal = (user: UserItemType) => {
     setActiveUser(user);
     setDeactivateModalOpen(true);
+  };
+
+  const openActivateModal = (user: UserItemType) => {
+    setActiveUser(user);
+    setActivateModalOpen(true);
   };
 
   const openResetModal = (user: UserItemType) => {
@@ -170,17 +178,21 @@ const DataUserManager = () => {
     }
   };
 
-  const handleActivate = useCallback(async (user: UserItemType) => {
-  try {
-    await activateUser(user.id);
-    setUsers((prev) =>
-      prev.map((u) => (u.id === user.id ? { ...u, is_active: true } : u))
-    );
-    showSuccess(`${user.full_name} berhasil diaktifkan kembali.`);
-  } catch (err) {
-    alert(err instanceof Error ? err.message : "Gagal mengaktifkan user");
-  }
-}, []);
+  const handleConfirmActivate = async () => {
+    if (!activeUser) return;
+    try {
+      await activateUser(activeUser.id);
+      setUsers((prev) =>
+        prev.map((u) => (u.id === activeUser.id ? { ...u, is_active: true } : u))
+      );
+      showSuccess(`${activeUser.full_name} berhasil diaktifkan kembali.`);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Gagal mengaktifkan user");
+    } finally {
+      setActivateModalOpen(false);
+      setActiveUser(null);
+    }
+  };
 
   const handleResetSubmit = async (passwordBaru: string, konfirmasi: string) => {
     if (!activeUser) return;
@@ -203,14 +215,14 @@ const DataUserManager = () => {
 
   const columns = useMemo(
   () =>
-    getDataUserColumns({
+     getDataUserColumns({
       isAdmin,
       onEdit: openEditModal,
       onDeactivate: openDeactivateModal,
-      onActivate: handleActivate,
+      onActivate: openActivateModal,
       onResetPassword: openResetModal,
     }),
-  [isAdmin, handleActivate]
+  [isAdmin]
 );
 
   return (
@@ -232,19 +244,21 @@ const DataUserManager = () => {
           <Flex justifyContent="between" alignItems="center" className="mb-4 w-100" breakpoint="md">
             <div>
               <h1 className="mb-2 h2">Manajemen User</h1>
-              <p className="text-secondary mb-0">
+               <p className="text-secondary mb-0">
                 {isAdmin
                   ? "Mengelola seluruh akun pengguna sistem."
-                  : "Mengelola akun pengguna baru untuk sistem."}
+                  : "Melihat daftar akun pengguna sistem."}
               </p>
               <DasherBreadcrumb />
             </div>
-            <div>
-              <Button variant="primary" className="d-flex align-items-center gap-2" onClick={openAddModal}>
-                <IconPlus size={18} />
-                Tambah User
-              </Button>
-            </div>
+            {isAdmin && (
+              <div>
+                <Button variant="primary" className="d-flex align-items-center gap-2" onClick={openAddModal}>
+                  <IconPlus size={18} />
+                  Tambah User
+                </Button>
+              </div>
+              )}
           </Flex>
         </Col>
       </Row>
@@ -325,7 +339,7 @@ const DataUserManager = () => {
         error={formError}
       />
 
-      <DeleteConfirmModal
+       <DeleteConfirmModal
         show={deactivateModalOpen}
         onClose={() => {
           setDeactivateModalOpen(false);
@@ -335,13 +349,23 @@ const DataUserManager = () => {
         user={activeUser}
       />
 
+      <ActivateConfirmModal
+        show={activateModalOpen}
+        onClose={() => {
+          setActivateModalOpen(false);
+          setActiveUser(null);
+        }}
+        onConfirm={handleConfirmActivate}
+        user={activeUser}
+      />
+
       <ResetPasswordModal
         show={resetModalOpen}
         onClose={() => {
           setResetModalOpen(false);
           setActiveUser(null);
           setResetError(null);
-        }}
+        }}  
         onSubmit={handleResetSubmit}
         user={activeUser}
         error={resetError}

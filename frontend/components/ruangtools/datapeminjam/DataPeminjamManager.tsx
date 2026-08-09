@@ -37,18 +37,19 @@ import {
   updatePeminta,
   nonaktifkanPeminta,
   aktifkanPeminta,
+  updateRolePeminta,
 } from "services/pemintaService";
 
-  function sortByNama(items: PeminjamType[]): PeminjamType[] {
-    return [...items].sort((a, b) => {
-      // Yang aktif selalu di atas, nonaktif selalu di bawah
-      if (a.aktif !== b.aktif) {
-        return a.aktif ? -1 : 1;
-      }
-      // Di dalam grup yang sama (sesama aktif atau sesama nonaktif), urutkan abjad
-      return a.nama.localeCompare(b.nama);
-    });
-  }
+function sortByNama(items: PeminjamType[]): PeminjamType[] {
+  return [...items].sort((a, b) => {
+    // Yang aktif selalu di atas, nonaktif selalu di bawah
+    if (a.aktif !== b.aktif) {
+      return a.aktif ? -1 : 1;
+    }
+    // Di dalam grup yang sama (sesama aktif atau sesama nonaktif), urutkan abjad
+    return a.nama.localeCompare(b.nama);
+  });
+}
 
 // Kolom yang dipakai untuk file Export PDF/Excel
 const EXPORT_COLUMNS: ExportColumn[] = [
@@ -83,7 +84,7 @@ const PeminjamManager = () => {
         item.nama.toLowerCase().includes(keyword) ||
         item.divisi.toLowerCase().includes(keyword) ||
         // Deteksi pencarian menggunakan RFID
-        (item.rfid_uid && item.rfid_uid.toLowerCase().includes(keyword)); 
+        (item.id && item.id.toLowerCase().includes(keyword)); 
         
       return cocokKeyword;
     });
@@ -207,6 +208,20 @@ const PeminjamManager = () => {
       EXPORT_COLUMNS,
       "data-peminjam"
     );
+  // ---- Ganti Role (Inventory Man / Pekerja) ----
+  const handleGantiRole = async (item: PeminjamType, roleBaru: "Pekerja" | "inventory man") => {
+    try {
+      const updated = await updateRolePeminta(item.id, roleBaru);
+      setPeminjamList((prev) =>
+        sortByNama(prev.map((p) => (p.id === updated.id ? updated : p)))
+      );
+      setSuccessMessage(`Role ${updated.nama} berhasil diubah menjadi ${roleBaru === "inventory man" ? "Inventory Man" : "Pekerja"}.`);
+      setTimeout(() => setSuccessMessage(null), 5000);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Gagal mengubah role";
+      alert(message);
+    }
+  };
 
   const columns = useMemo(
     () =>
@@ -214,6 +229,7 @@ const PeminjamManager = () => {
         onEdit: openEditModal,
         onDelete: openDeleteModal,
         onAktifkan: handleAktifkan,
+        onGantiRole: handleGantiRole,
         togglingId,
       }),
     [togglingId]

@@ -13,7 +13,7 @@ import {
 } from "react-bootstrap";
 import Link from "next/link";
 import { Image } from "react-bootstrap";
-import { IconMail, IconLock, IconEye, IconEyeOff } from "@tabler/icons-react";
+import { IconUser, IconLock, IconEye, IconEyeOff } from "@tabler/icons-react";
 
 // import custom components
 import { getAssetPath } from "helper/assetPath";
@@ -23,16 +23,17 @@ interface LoginResponse {
   user: {
     id: string;
     full_name: string;
-    email: string;
+    username: string;
     role: string;
   };
   token: string;
+  must_change_password: boolean;
 }
 
 const SignIn = () => {
   const router = useRouter();
 
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
@@ -55,7 +56,7 @@ const SignIn = () => {
     try {
       const data: LoginResponse = await apiFetch("/login", {
         method: "POST",
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ username, password }),
       });
 
       localStorage.setItem("token", data.token);
@@ -65,7 +66,7 @@ const SignIn = () => {
 
       router.push("/");
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Email atau password salah";
+      const message = err instanceof Error ? err.message : "Username atau password salah";
       setError(message);
     } finally {
       setLoading(false);
@@ -117,18 +118,18 @@ const SignIn = () => {
 
             <Form onSubmit={handleSubmit}>
               <div className="mb-3">
-                <Form.Label htmlFor="signinEmailInput">Email</Form.Label>
+                <Form.Label htmlFor="signinUsernameInput">Username</Form.Label>
                 <InputGroup className="login-input">
                   <InputGroup.Text>
-                    <IconMail size={18} />
+                    <IconUser size={18} />
                   </InputGroup.Text>
                   <FormControl
-                    type="email"
-                    id="signinEmailInput"
-                    placeholder="Masukkan email"
+                    type="text"
+                    id="signinUsernameInput"
+                    placeholder="Masukkan username"
                     required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
                     disabled={loading}
                   />
                 </InputGroup>
@@ -170,7 +171,6 @@ const SignIn = () => {
                   onChange={(e) => setRememberMe(e.target.checked)}
                   disabled={loading}
                 />
-                
               </div>
 
               <div className="d-grid">

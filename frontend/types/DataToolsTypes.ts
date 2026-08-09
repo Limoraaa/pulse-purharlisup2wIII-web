@@ -30,12 +30,16 @@ export interface CartItemType {
 // ------------------------------------------------------------------
 // Data Peminjam
 // ------------------------------------------------------------------
+// ------------------------------------------------------------------
+// Data Peminjam
+// ------------------------------------------------------------------
 export interface PeminjamType {
   id: string;
   nama: string;
   divisi: string;
-  rfid_uid?: string | null; // <--- Tambahkan baris ini
+  rfid_uid?: string | null;
   aktif: boolean;
+  role?: "Pekerja" | "inventory man"; // <--- Tambahkan baris ini
 }
 
 // ------------------------------------------------------------------
@@ -117,6 +121,7 @@ export interface PeminjamanAktifItemType {
   warna: string;
   ukuran: string;
   jumlah: number;
+  peminjamId: string;
   namaPeminjam: string;
   divisi: string;
   namaPekerjaan: string;
