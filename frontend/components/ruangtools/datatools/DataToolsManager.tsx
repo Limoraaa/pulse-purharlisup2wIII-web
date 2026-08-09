@@ -2,7 +2,7 @@
 // import node module libraries
 import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
 import { AntreanItemResponse } from "services/peminjamanService";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback  } from "react";
 import {
   Row,
   Col,
@@ -26,6 +26,7 @@ import { v4 as uuid } from "uuid";
 import useSWR, { useSWRConfig } from "swr";
 
 // Import service layer
+// Import service layer
 import {
   fetchAntrean,
   scanTool,
@@ -33,6 +34,8 @@ import {
   removeCartItem,
   prosesPeminjamanApi,
 } from "services/peminjamanService";
+
+import api from "lib/api"; // <--- Tambahkan import ini di sini
 
 // import redux store
 import { useAppDispatch, useAppSelector } from "store/store";
@@ -48,7 +51,6 @@ import {
   ToolItemType,
   ToolFormValues,
   CartItemType,
-  LoanFormValues,
 } from "types/DataToolsTypes";
 
 // import custom components
@@ -60,12 +62,32 @@ import ToolFormModal from "components/ruangtools/datatools/ToolFormModal";
 import ToolDetailModal from "components/ruangtools/datatools/ToolDetailModal";
 import DeleteConfirmModal from "components/ruangtools/datatools/DeleteConfirmModal";
 import CartFAB from "components/ruangtools/datatools/CartFAB";
-import CartOffcanvas from "components/ruangtools/datatools/CartOffcanvas";
-import LoanFormModal from "components/ruangtools/datatools/LoanFormModal";
+import CartOffcanvas from "components/common/CartOffcanvas";
+import LoanFormModal from "components/common/LoanFormModal";
 import AddToCartFlyEffect, {
   FlyAnimationItem,
 } from "components/ruangtools/datatools/AddToCartFlyEffect";
 
+
+// Tipe gabungan untuk item keranjang (tools + consumable), menggantikan pemakaian `any`
+interface UnifiedCartItem extends Partial<CartItemType> {
+  cartId?: string | number;
+  id?: string | number;
+  consumable_id?: string;
+  jumlah: number;
+  item_type?: "tool" | "consumable";
+}
+
+interface LoanSubmitValues {
+  peminjamId?: string;
+  pemintaId?: string;
+  namaPeminjam?: string;
+  namaPeminta?: string;
+  namaPekerjaan: string;
+  areaKerja: string;
+  spesifikasi?: string;
+  keterangan?: string;
+}
 // ---- Helper: generate kode barang berikutnya ----
 const generateNextKodeBarang = (tools: ToolItemType[]): string => {
   if (tools.length === 0) return "I-001";
@@ -78,18 +100,19 @@ const generateNextKodeBarang = (tools: ToolItemType[]): string => {
   const nextNumber = maxNumber + 1;
   return `I-${String(nextNumber).padStart(3, "0")}`;
 };
-  const EXPORT_COLUMNS: ExportColumn[] = [
-    { header: "Kode Barang", key: "kodeBarang" },
-    { header: "Nama Barang", key: "namaBarang" },
-    { header: "Merk", key: "merk" },
-    { header: "Tipe", key: "tipe" },
-    { header: "Warna", key: "warna" },
-    { header: "Ukuran", key: "ukuran" },
-    { header: "Kondisi", key: "kondisi" },
-    { header: "Stok", key: "stok" },
-    { header: "Dipinjam", key: "dipinjam" },
-    { header: "Tersedia", key: "tersedia" },
-  ];
+
+const EXPORT_COLUMNS: ExportColumn[] = [
+  { header: "Kode Barang", key: "kodeBarang" },
+  { header: "Nama Barang", key: "namaBarang" },
+  { header: "Merk", key: "merk" },
+  { header: "Tipe", key: "tipe" },
+  { header: "Warna", key: "warna" },
+  { header: "Ukuran", key: "ukuran" },
+  { header: "Kondisi", key: "kondisi" },
+  { header: "Stok", key: "stok" },
+  { header: "Dipinjam", key: "dipinjam" },
+  { header: "Tersedia", key: "tersedia" },
+];
 
 const DataToolsManager = () => {
   const dispatch = useAppDispatch();
@@ -108,7 +131,7 @@ const DataToolsManager = () => {
   const [suggestedKodeBarang, setSuggestedKodeBarang] = useState("");
 
   // ---- State Keranjang Peminjaman ----
-  const [cart, setCart] = useState<CartItemType[]>([]);
+  const [cart, setCart] = useState<UnifiedCartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [loanFormOpen, setLoanFormOpen] = useState(false);
   const [submittingLoan, setSubmittingLoan] = useState(false);
@@ -126,32 +149,44 @@ const DataToolsManager = () => {
   // ================= FETCH KERANJANG MENGGUNAKAN SWR & SERVICE =================
   const { data: dbCart } = useSWR("/peminjaman/antrean", fetchAntrean);
 
-  // Sinkronisasi data dari Database ke State Frontend
+  // Sinkronisasi data Tools dari Database + Gabungkan dengan data Consumable dari LocalStorage
+  // Sinkronisasi data Tools dari Database + Gabungkan dengan data Consumable dari LocalStorage
+  // Sinkronisasi data Tools dari Database + Gabungkan dengan data Consumable dari LocalStorage
+  // Sinkronisasi data Tools dari Database + Gabungkan dengan data Consumable dari LocalStorage
   useEffect(() => {
+    let groupedToolsCart: UnifiedCartItem[] = [];
+
     if (dbCart && Array.isArray(dbCart)) {
-      const groupedCart = dbCart.reduce((acc: CartItemType[], item: AntreanItemResponse) => {
-      const cartRecordId = item.id;
-      const toolIdVal = item.tools_id;
+      groupedToolsCart = dbCart.reduce((acc: UnifiedCartItem[], item: AntreanItemResponse) => {
+        const cartRecordId = item.id;
+        const toolIdVal = item.tools_id;
 
-      const existingItem = acc.find((c) => c.toolId === toolIdVal);
+        const existingItem = acc.find((c) => c.toolId === toolIdVal);
 
-      if (existingItem) {
-        existingItem.jumlah += item.qty ?? 1;
-      } else {
-        acc.push({
-          cartId: cartRecordId,
-          toolId: toolIdVal,
-          namaBarang: item.nama_barang || "Nama Alat Tidak Ditemukan",
-          kodeBarang: item.kode_barang || "-",
-          jumlah: item.qty ?? 1,
-          maxJumlah: item.max_jumlah ?? 99,
-        });
-      }
-      return acc;
-    }, []);
-
-      setCart(groupedCart);
+        if (existingItem) {
+          existingItem.jumlah += item.qty ?? 1;
+        } else {
+          acc.push({
+            cartId: cartRecordId,
+            toolId: toolIdVal,
+            namaBarang: item.nama_barang || "Nama Alat Tidak Ditemukan",
+            kodeBarang: item.kode_barang || "-",
+            jumlah: item.qty ?? 1,
+            maxJumlah: item.max_jumlah ?? 99,
+            item_type: "tool",
+          });
+        }
+        return acc;
+      }, []);
     }
+    // Simpan tools ke localStorage agar halaman consumable bisa membacanya
+    localStorage.setItem("global_shared_tools_cart", JSON.stringify(groupedToolsCart));
+
+    // TAMBAHKAN INI: Ambil data consumable dari localStorage
+    const savedConsumableCart = JSON.parse(localStorage.getItem("global_shared_consumable_cart") || "[]");
+
+    // Gabungkan data tools dan consumable ke state cart utama
+    setCart([...groupedToolsCart, ...savedConsumableCart]);
   }, [dbCart]);
 
   // Data filter tabel
@@ -200,28 +235,27 @@ const DataToolsManager = () => {
     }
   }; 
 
-
-
   const openDetailModal = (tool: ToolItemType) => {
     setActiveTool(tool);
     setDetailModalOpen(true);
   };
 
-    const handleExportPDF = () => {
-      const dataWithTersedia = filteredTools.map((t) => ({
-        ...t,
-        tersedia: t.stok - t.dipinjam,
-      }));
-      exportToPDF(dataWithTersedia as unknown as Record<string, unknown>[], EXPORT_COLUMNS, "data-tools", "Data Tools");
-    };
-
-    const handleExportExcel = () => {
-      const dataWithTersedia = filteredTools.map((t) => ({
-        ...t,
-        tersedia: t.stok - t.dipinjam,
-      }));
-      exportToExcel(dataWithTersedia as unknown as Record<string, unknown>[], EXPORT_COLUMNS, "data-tools");
+  const handleExportPDF = () => {
+    const dataWithTersedia = filteredTools.map((t) => ({
+      ...t,
+      tersedia: t.stok - t.dipinjam,
+    }));
+    exportToPDF(dataWithTersedia as unknown as Record<string, unknown>[], EXPORT_COLUMNS, "data-tools", "Data Tools");
   };
+
+  const handleExportExcel = () => {
+    const dataWithTersedia = filteredTools.map((t) => ({
+      ...t,
+      tersedia: t.stok - t.dipinjam,
+    }));
+    exportToExcel(dataWithTersedia as unknown as Record<string, unknown>[], EXPORT_COLUMNS, "data-tools");
+  };
+
   const openDeleteModal = (tool: ToolItemType) => {
     setActiveTool(tool);
     setDeleteModalOpen(true);
@@ -241,7 +275,7 @@ const DataToolsManager = () => {
   };
 
   // ================= KERANJANG PEMINJAMAN =================
-  const handleAddToCart = async (tool: ToolItemType, event: React.MouseEvent<HTMLButtonElement>) => {
+  const handleAddToCart = useCallback(async (tool: ToolItemType, event: React.MouseEvent<HTMLButtonElement>) => {
     const tersedia = tool.stok - tool.dipinjam;
     if (tersedia <= 0) return;
     
@@ -257,13 +291,26 @@ const DataToolsManager = () => {
     } catch (err) { 
       console.error("Gagal menambah ke keranjang DB", err); 
     }
-  };
+  }, [mutate]);
   
   const handleAnimationEnd = (id: string) => {
     setFlyAnimations((prev) => prev.filter((a) => a.id !== id));
   };
 
   const handleUpdateQty = async (cartId: string | number, newJumlah: number) => {
+    const targetItem = cart.find((c) => c.cartId === cartId || c.id === cartId);
+    if (!targetItem) return;
+
+    if (targetItem.item_type === "consumable") {
+      const updatedConsumableCart = cart
+        .filter((c) => c.item_type === "consumable")
+        .map((c) => (c.cartId === cartId || c.id === cartId ? { ...c, jumlah: newJumlah } : c));
+
+      localStorage.setItem("global_shared_consumable_cart", JSON.stringify(updatedConsumableCart));
+      setCart([...cart]);
+      return;
+    }
+
     try {
       await updateCartItem(cartId, newJumlah);
       mutate("/peminjaman/antrean");
@@ -273,7 +320,19 @@ const DataToolsManager = () => {
   };
 
   const handleRemoveFromCart = async (cartId: string | number) => {
-    setCart((prev) => prev.filter((c) => c.cartId !== cartId));
+    const targetItem = cart.find((c) => c.cartId === cartId || c.id === cartId);
+    if (!targetItem) return;
+
+    if (targetItem.item_type === "consumable") {
+      const updatedConsumableCart = cart.filter(
+        (c) => c.item_type === "consumable" && c.cartId !== cartId && c.id !== cartId
+      );
+      localStorage.setItem("global_shared_consumable_cart", JSON.stringify(updatedConsumableCart));
+      setCart((prev) => prev.filter((c) => c.cartId !== cartId && c.id !== cartId));
+      return;
+    }
+
+    setCart((prev) => prev.filter((c) => c.cartId !== cartId && c.id !== cartId));
 
     try {
       await removeCartItem(cartId);
@@ -289,31 +348,74 @@ const DataToolsManager = () => {
     setLoanFormOpen(true);
   };
 
-  const handleLoanSubmit = async (values: LoanFormValues) => {
+  // Ubah LoanFormValues menjadi any agar kompatibel dengan UniversalFormValues dari modal universal
+  const handleLoanSubmit = async (values: LoanSubmitValues) => {
     setSubmittingLoan(true);
     setLoanError(null);
 
     try {
       const dicatatOleh = localStorage.getItem("userId"); 
-      if (!dicatatOleh) {
+      const token = localStorage.getItem("token");
+      if (!dicatatOleh || !token) {
         throw new Error("Sesi login tidak ditemukan. Silakan login ulang.");
       }
 
-      await prosesPeminjamanApi({
-        pemintaId: values.peminjamId,
-        dicatatOleh: dicatatOleh,
-        namaPekerjaan: values.namaPekerjaan,
-        areaKerja: values.areaKerja,
-        spesifikasi: values.spesifikasi,
-        keterangan: values.keterangan,
-      });
+      const pemintaIdValue = values.peminjamId || values.pemintaId;
+      if (!pemintaIdValue) {
+        throw new Error("Data peminjam tidak ditemukan. Silakan pilih peminjam terlebih dahulu.");
+      }
+
+      const hasToolItems = cart.some((c) => c.item_type === "tool" || !c.item_type);
+      const hasConsumableItems = cart.some((c) => c.item_type === "consumable");
+
+      const apiRequests = [];
+
+      if (hasToolItems) {
+        apiRequests.push(
+          prosesPeminjamanApi({
+            pemintaId: pemintaIdValue,
+            dicatatOleh: dicatatOleh,
+            namaPekerjaan: values.namaPekerjaan,
+            areaKerja: values.areaKerja,
+            spesifikasi: values.spesifikasi || "",
+            keterangan: values.keterangan,
+          })
+        );
+      }
+
+      if (hasConsumableItems) {
+        apiRequests.push(
+          api("/consumable-keluar/proses", {
+            method: "POST",
+            headers: { 
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}` 
+            },
+            body: JSON.stringify({
+              peminta_id: pemintaIdValue,
+              nama_pekerjaan: values.namaPekerjaan,
+              pekerjaan_area: values.areaKerja,
+              keterangan: values.keterangan || "",
+              dicatat_oleh: dicatatOleh,
+            }),
+          })
+        );
+      }
+
+      if (apiRequests.length > 0) {
+        await Promise.all(apiRequests);
+      }
+
+      localStorage.removeItem("global_shared_consumable_cart");
+      localStorage.removeItem("global_shared_tools_cart");
 
       setCart([]);
       setLoanFormOpen(false);
-      mutate("/peminjaman/antrean"); 
+      mutate("/peminjaman/antrean");
+      dispatch(fetchTools());
 
       setSuccessMessage(
-        `Peminjaman untuk ${values.namaPeminjam} berhasil dibuat. Status: Sedang Dipinjam.`
+        `Peminjaman untuk ${values.namaPeminjam || values.namaPeminta} berhasil dibuat. Status: Sedang Dipinjam.`
       );
       setTimeout(() => setSuccessMessage(null), 5000);
     } catch (err) {
@@ -324,16 +426,25 @@ const DataToolsManager = () => {
     }
   };
 
-  const columns = useMemo(
+      const columns = useMemo(
     () =>
       getDataToolsColumns({
         onDetail: openDetailModal,
         onEdit: openEditModal,
         onDelete: openDeleteModal,
         onAddToCart: handleAddToCart,
-        cartItems: cart,
+        cartItems: cart
+          .filter((c) => c.item_type !== "consumable")
+          .map((c) => ({
+            toolId: c.toolId ?? "",
+            cartId: c.cartId,
+            kodeBarang: c.kodeBarang ?? "-",
+            namaBarang: c.namaBarang ?? "-",
+            jumlah: c.jumlah,
+            maxJumlah: c.maxJumlah ?? 99,
+          })),
       }),
-    [cart]
+    [cart, handleAddToCart]
   );
 
   return (
@@ -374,39 +485,39 @@ const DataToolsManager = () => {
 
       <Card className="card-lg mb-6">
         {/* ---- Toolbar: Search ---- */}
-      <div className="datatools-toolbar border-bottom">
-        <Row className="g-2 align-items-center">
-          <Col lg={5} md={6}>
-            <InputGroup className="datatools-search">
-              <InputGroup.Text><IconSearch size={18} /></InputGroup.Text>
-              <Form.Control
-                type="search"
-                placeholder="Cari kode, nama, merk, atau tipe..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              {searchTerm && (
-                <Button variant="link" className="datatools-search-clear" onClick={() => setSearchTerm("")}>
-                  <IconX size={16} />
-                </Button>
-              )}
-            </InputGroup>
-          </Col>
-          <Col lg={4} md={3} className="text-md-end">
-            <span className="text-secondary small">
-              Menampilkan <span className="fw-semibold text-body">{filteredTools.length}</span> dari {tools.length} data
-            </span>
-          </Col>
-          <Col lg={3} md={3} className="d-flex justify-content-md-end gap-2">
-            <Button variant="outline-danger" size="sm" onClick={handleExportPDF}>
-              Export PDF
-            </Button>
-            <Button variant="outline-success" size="sm" onClick={handleExportExcel}>
-              Export Excel
-            </Button>
-          </Col>
-        </Row>
-      </div>
+        <div className="datatools-toolbar border-bottom">
+          <Row className="g-2 align-items-center">
+            <Col lg={5} md={6}>
+              <InputGroup className="datatools-search">
+                <InputGroup.Text><IconSearch size={18} /></InputGroup.Text>
+                <Form.Control
+                  type="search"
+                  placeholder="Cari kode, nama, merk, atau tipe..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                {searchTerm && (
+                  <Button variant="link" className="datatools-search-clear" onClick={() => setSearchTerm("")}>
+                    <IconX size={16} />
+                  </Button>
+                )}
+              </InputGroup>
+            </Col>
+            <Col lg={4} md={3} className="text-md-end">
+              <span className="text-secondary small">
+                Menampilkan <span className="fw-semibold text-body">{filteredTools.length}</span> dari {tools.length} data
+              </span>
+            </Col>
+            <Col lg={3} md={3} className="d-flex justify-content-md-end gap-2">
+              <Button variant="outline-danger" size="sm" onClick={handleExportPDF}>
+                Export PDF
+              </Button>
+              <Button variant="outline-success" size="sm" onClick={handleExportExcel}>
+                Export Excel
+              </Button>
+            </Col>
+          </Row>
+        </div>
 
         <CardBody>
           {toolsError && <Alert variant="danger">{toolsError}</Alert>}

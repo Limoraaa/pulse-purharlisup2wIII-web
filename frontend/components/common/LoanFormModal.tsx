@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { Modal, Form, Row, Col, Button, Spinner } from "react-bootstrap";
 import { IconClipboardList, IconCheck } from "@tabler/icons-react";
-import { ConsumableOutFormValues, ConsumableCartItemType } from "types/DataConsumableTypes";
+
 import { PeminjamType } from "types/DataToolsTypes";
 import { getPemintaAktif } from "services/pemintaService";
 
@@ -13,55 +13,72 @@ const formatToday = () =>
     year: "numeric",
   });
 
-const emptyForm = (): ConsumableOutFormValues => ({
-  tanggalPengambilan: formatToday(),
-  pemintaId: "",
-  namaPeminta: "",
+export interface UniversalFormValues {
+  tanggalPeminjaman?: string;
+  tanggalPengambilan?: string;
+  peminjamId?: string;
+  pemintaId?: string;
+  namaPeminjam?: string;
+  namaPeminta?: string;
+  divisi: string;
+  namaPekerjaan: string;
+  areaKerja: string;
+  spesifikasi?: string;
+  keterangan: string;
+}
+
+const emptyForm = (): UniversalFormValues => ({
+  tanggalPeminjaman: formatToday(),
+  peminjamId: "",
+  namaPeminjam: "",
   divisi: "",
   namaPekerjaan: "",
   areaKerja: "",
+  spesifikasi: "",
   keterangan: "",
 });
 
-interface ConsumableOutFormModalProps {
+interface LoanFormModalProps {
   show: boolean;
   onClose: () => void;
-  onSubmit: (values: ConsumableOutFormValues, items: ConsumableCartItemType[]) => void;
-  cartItems: ConsumableCartItemType[];
+  onSubmit: (values: UniversalFormValues) => void;
+  cartItems: any[];
   submitting?: boolean;
   error?: string | null;
 }
 
-const ConsumableOutFormModal = ({
+const LoanFormModal = ({
   show,
   onClose,
   onSubmit,
   cartItems,
   submitting = false,
   error = null,
-}: ConsumableOutFormModalProps) => {
-  const [pemintaSearchText, setPemintaSearchText] = useState("");
-  const [form, setForm] = useState<ConsumableOutFormValues>(emptyForm());
-  const [pemintaList, setPemintaList] = useState<PeminjamType[]>([]);
-  const [loadingPeminta, setLoadingPeminta] = useState(false);
+}: LoanFormModalProps) => {
+  const [searchText, setSearchText] = useState("");
+  const [form, setForm] = useState<UniversalFormValues>(emptyForm());
+  const [peminjamList, setPeminjamList] = useState<PeminjamType[]>([]);
+  const [loadingPeminjam, setLoadingPeminjam] = useState(false);
 
   useEffect(() => {
     if (show) {
       setForm(emptyForm());
-      setPemintaSearchText("");
-      setLoadingPeminta(true);
+      setSearchText("");
+      setLoadingPeminjam(true);
       getPemintaAktif()
-        .then(setPemintaList)
-        .catch(() => setPemintaList([]))
-        .finally(() => setLoadingPeminta(false));
+        .then(setPeminjamList)
+        .catch(() => setPeminjamList([]))
+        .finally(() => setLoadingPeminjam(false));
     }
   }, [show]);
 
-  const handlePemintaChange = (pemintaId: string) => {
-    const selected = pemintaList.find((p: PeminjamType) => p.id === pemintaId);
+  const handleSelectPeminjam = (id: string) => {
+    const selected = peminjamList.find((p) => p.id === id);
     setForm((prev) => ({
       ...prev,
-      pemintaId,
+      peminjamId: id,
+      pemintaId: id, // Mapping ganda untuk support kedua tipe manager
+      namaPeminjam: selected?.nama || "",
       namaPeminta: selected?.nama || "",
       divisi: selected?.divisi || "",
     }));
@@ -69,10 +86,9 @@ const ConsumableOutFormModal = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(form, cartItems);
+    onSubmit(form);
   };
 
-  // Mencegah form tersubmit otomatis saat alat RFID mengirim tombol "Enter" di akhir scan
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -80,14 +96,14 @@ const ConsumableOutFormModal = ({
   };
 
   return (
-    <Modal show={show} onHide={submitting ? undefined : onClose} centered size="lg" backdrop={submitting ? "static" : true} className="consumable-out-modal">
+    <Modal show={show} onHide={submitting ? undefined : onClose} centered size="lg" backdrop={submitting ? "static" : true} className="loan-form-modal">
       <Form onSubmit={handleSubmit}>
         <Modal.Header closeButton={!submitting}>
           <Modal.Title as="h5" className="d-flex align-items-center gap-2">
-            <span className="consumable-out-title-icon">
+            <span className="loan-form-title-icon">
               <IconClipboardList size={20} />
             </span>
-            Form Pengambilan Bahan
+            Form Peminjaman &amp; Pengambilan Inventaris
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
@@ -97,15 +113,15 @@ const ConsumableOutFormModal = ({
             </div>
           )}
 
-          {/* Section: Data Pemakai */}
-          <div className="consumable-out-section mb-4">
+          {/* Section: Data Peminjam / Pemakai */}
+          <div className="loan-form-section mb-4">
             <div className="text-secondary small text-uppercase fw-semibold mb-3">
-              Data Pemakai
+              Data Peminjam / Pemakai
             </div>
             <Row className="g-3">
               <Col md={12}>
-                <Form.Label>Tanggal Pengambilan</Form.Label>
-                <Form.Control value={form.tanggalPengambilan} disabled readOnly />
+                <Form.Label>Tanggal Transaksi</Form.Label>
+                <Form.Control value={form.tanggalPeminjaman} disabled readOnly />
                 <Form.Text className="text-secondary">
                   Otomatis terisi sesuai tanggal &amp; jam saat ini.
                 </Form.Text>
@@ -113,38 +129,39 @@ const ConsumableOutFormModal = ({
               
               <Col md={6}>
                 <Form.Label>
-                  Dipakai Oleh / Tap Kartu RFID <span className="text-danger">*</span>
+                  Nama Peminjam / Tap Kartu RFID <span className="text-danger">*</span>
                 </Form.Label>
                 <Form.Control
                   required
-                  list="peminta-options"
-                  placeholder={loadingPeminta ? "Memuat..." : "Ketik nama atau tap kartu RFID di sini..."}
-                  disabled={loadingPeminta || submitting}
-                  value={form.pemintaId ? `${form.namaPeminta} (${form.pemintaId})` : pemintaSearchText}
+                  list="peminjam-options"
+                  placeholder={loadingPeminjam ? "Memuat..." : "Ketik nama atau tap kartu RFID di sini..."}
+                  disabled={loadingPeminjam || submitting}
+                  value={form.peminjamId ? `${form.namaPeminjam} (${form.peminjamId})` : searchText}
                   onFocus={() => {
-                    if (form.pemintaId) {
-                      setPemintaSearchText("");
-                      setForm((prev) => ({ ...prev, pemintaId: "", namaPeminta: "", divisi: "" }));
+                    if (form.peminjamId) {
+                      setSearchText("");
+                      setForm((prev) => ({ ...prev, peminjamId: "", pemintaId: "", namaPeminjam: "", namaPeminta: "", divisi: "" }));
                     }
                   }}
                   onChange={(e) => {
                     const typed = e.target.value;
-                    setPemintaSearchText(typed);
+                    setSearchText(typed);
 
-                    // PENCARIAN PINTAR: Cek apakah input cocok dengan Nama ATAU cocok dengan ID (RFID)
-                    const match = pemintaList.find(
-                      (p: PeminjamType) =>
-                        p.nama.toLowerCase() === typed.toLowerCase() ||
+                    const match = peminjamList.find(
+                      (p) => 
+                        p.nama.toLowerCase() === typed.toLowerCase() || 
                         p.id.toLowerCase() === typed.toLowerCase()
                     );
 
                     if (match) {
-                      handlePemintaChange(match.id);
-                      setPemintaSearchText("");
+                      handleSelectPeminjam(match.id);
+                      setSearchText("");
                     } else {
                       setForm((prev) => ({
                         ...prev,
+                        peminjamId: "",
                         pemintaId: "",
+                        namaPeminjam: "",
                         namaPeminta: "",
                         divisi: "",
                       }));
@@ -153,15 +170,15 @@ const ConsumableOutFormModal = ({
                   onKeyDown={handleKeyDown}
                   autoComplete="off"
                 />
-                <datalist id="peminta-options">
-                  {pemintaList.map((p: PeminjamType) => (
+                <datalist id="peminjam-options">
+                  {peminjamList.map((p) => (
                     <option key={p.id} value={p.nama}>
                       {`Divisi: ${p.divisi} | RFID: ${p.id}`}
                     </option>
                   ))}
                 </datalist>
                 <Form.Text className="text-muted small">
-                  Silakan ketik nama manual, pilih dari dropdown, atau langsung tap kartu RFID pada kolom ini.
+                  Silakan ketik nama manual, pilih dari dropdown, atau langsung tap kartu RFID.
                 </Form.Text>
               </Col>
 
@@ -169,14 +186,14 @@ const ConsumableOutFormModal = ({
                 <Form.Label>Divisi</Form.Label>
                 <Form.Control value={form.divisi} disabled readOnly placeholder="Otomatis terisi..." />
                 <Form.Text className="text-secondary">
-                  Otomatis terisi berdasarkan pemakai.
+                  Otomatis terisi berdasarkan peminjam.
                 </Form.Text>
               </Col>
             </Row>
           </div>
 
           {/* Section: Detail Pekerjaan */}
-          <div className="consumable-out-section mb-4">
+          <div className="loan-form-section mb-4">
             <div className="text-secondary small text-uppercase fw-semibold mb-3">
               Detail Pekerjaan
             </div>
@@ -187,7 +204,7 @@ const ConsumableOutFormModal = ({
                 </Form.Label>
                 <Form.Control
                   required
-                  placeholder="Contoh: Perbaikan Trafo"
+                  placeholder="Contoh: Perbaikan Mesin / Proyek"
                   value={form.namaPekerjaan}
                   onChange={(e) => setForm((prev) => ({ ...prev, namaPekerjaan: e.target.value }))}
                   disabled={submitting}
@@ -195,10 +212,10 @@ const ConsumableOutFormModal = ({
               </Col>
               <Col md={12}>
                 <Form.Label>
-                  Area Pekerjaan <span className="text-secondary fw-normal">(opsional)</span>
+                  Area Kerja <span className="text-secondary fw-normal">(opsional)</span>
                 </Form.Label>
                 <Form.Control
-                  placeholder="Contoh: Lab Produksi"
+                  placeholder="Contoh: Workshop Mekanik"
                   value={form.areaKerja}
                   onChange={(e) => setForm((prev) => ({ ...prev, areaKerja: e.target.value }))}
                   disabled={submitting}
@@ -220,18 +237,34 @@ const ConsumableOutFormModal = ({
             </Row>
           </div>
 
-          {/* Section: Ringkasan Bahan */}
-          <div className="consumable-out-summary">
+          {/* Section: Ringkasan Item */}
+          <div className="loan-form-summary">
             <div className="text-secondary small text-uppercase fw-semibold mb-2">
-              Ringkasan Bahan yang Diambil
+              Ringkasan Item Dipilih ({cartItems.length} jenis)
             </div>
-            <ul className="list-unstyled mb-0 consumable-out-summary-list">
-              {cartItems.map((item) => (
-                <li key={item.consumable_id} className="d-flex justify-content-between align-items-center px-2 py-2 rounded small">
-                  <span className="fw-medium">{item.nama}</span>
-                  <span className="fw-semibold">{item.jumlah} unit</span>
-                </li>
-              ))}
+            <ul className="list-unstyled mb-0 loan-summary-list" style={{ maxHeight: '180px', overflowY: 'auto' }}>
+              {cartItems.map((item, index) => {
+                const displayName = item.namaBarang || item.nama || "Nama Barang Tidak Diketahui";
+                const displayCode = item.kodeBarang || item.kode_barang || "";
+                const uniqueKey = item.toolId || item.consumable_id || item.cartId || item.id || index;
+
+                return (
+                  <li key={uniqueKey} className="d-flex justify-content-between align-items-center px-2 py-2 rounded small border-bottom">
+                    <div className="d-flex flex-column">
+                      <span className="fw-semibold">{displayName}</span>
+                      {displayCode && <span className="text-secondary" style={{ fontSize: "11px" }}>{displayCode}</span>}
+                    </div>
+                    <div className="d-flex align-items-center gap-2">
+                      {item.item_type && (
+                        <span className={`badge bg-${item.item_type === 'tool' ? 'info' : 'warning'} text-dark`} style={{ fontSize: '9px' }}>
+                          {item.item_type.toUpperCase()}
+                        </span>
+                      )}
+                      <span className="fw-semibold">{item.jumlah || item.qty} unit</span>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         </Modal.Body>
@@ -242,7 +275,7 @@ const ConsumableOutFormModal = ({
           <Button
             variant="primary"
             type="submit"
-            disabled={cartItems.length === 0 || !form.pemintaId || submitting}
+            disabled={!form.peminjamId || submitting || cartItems.length === 0}
             className="d-inline-flex align-items-center gap-2"
           >
             {submitting ? (
@@ -253,7 +286,7 @@ const ConsumableOutFormModal = ({
             ) : (
               <>
                 <IconCheck size={18} />
-                Konfirmasi Pengambilan
+                Konfirmasi Transaksi
               </>
             )}
           </Button>
@@ -263,4 +296,4 @@ const ConsumableOutFormModal = ({
   );
 };
 
-export default ConsumableOutFormModal;
+export default LoanFormModal;

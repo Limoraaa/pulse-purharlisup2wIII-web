@@ -7,7 +7,6 @@ interface ConsumableMasukApiResponse {
   consumable_id: string;
   jumlah_masuk: number;
   keterangan: string | null;
-  dicatat_oleh: string;
   consumable?: {
     id: string;
     kode_barang: string;
@@ -18,6 +17,24 @@ interface ConsumableMasukApiResponse {
     ukuran: string | null;
     stok_awal: number;
   };
+  // Digabung menjadi satu deklarasi fleksibel yang bisa berupa string ID atau objek relasi dari Laravel
+  dicatat_oleh?: string | {
+    id: string;
+    nama?: string;
+    name?: string;
+    nama_lengkap?: string;
+    nama_pegawai?: string;
+  };
+  dicatatOleh?: {
+    id: string;
+    nama?: string;
+    name?: string;
+  };
+  dicatat_oleh_rel?: {
+    id: string;
+    nama?: string;
+    name?: string;
+  };
 }
 
 interface CreateConsumableMasukPayload {
@@ -25,16 +42,22 @@ interface CreateConsumableMasukPayload {
   consumable_id: string;
   jumlah_masuk: number;
   keterangan: string;
-  dicatat_oleh: string;
+  peminta_id: string; 
 }
 
 interface UpdateConsumableMasukPayload {
   tanggal?: string;
-    jumlah_masuk?: number;
+  jumlah_masuk?: number;
   keterangan?: string;
 }
 
 function mapFromApi(item: ConsumableMasukApiResponse): ConsumableMasukType {
+  // Menangkap objek relasi secara aman dari berbagai kemungkinan format key API backend
+  const relasiUser = 
+    item.dicatatOleh || 
+    item.dicatat_oleh_rel || 
+    (typeof item.dicatat_oleh === "object" ? item.dicatat_oleh : null);
+
   return {
     id: item.id,
     tanggal: item.tanggal,
@@ -47,6 +70,11 @@ function mapFromApi(item: ConsumableMasukApiResponse): ConsumableMasukType {
     ukuran: item.consumable?.ukuran ?? "-",
     jumlah_masuk: item.jumlah_masuk,
     keterangan: item.keterangan ?? "",
+    
+    dicatatOleh: relasiUser ? {
+      id: relasiUser.id ?? "",
+      name: relasiUser.nama ?? relasiUser.name ?? (relasiUser as any).nama_lengkap ?? (relasiUser as any).nama_pegawai ?? "Tidak Diketahui",
+    } : undefined,
   };
 }
 
@@ -58,15 +86,14 @@ export async function getConsumableMasuk(): Promise<ConsumableMasukType[]> {
 }
 
 export async function createConsumableMasuk(
-  values: ConsumableMasukFormValues,
-  dicatatOleh: string
+  values: ConsumableMasukFormValues & { peminta_id?: string; id_card?: string }
 ): Promise<ConsumableMasukType> {
   const payload: CreateConsumableMasukPayload = {
     tanggal: values.tanggal,
     consumable_id: values.consumable_id,
     jumlah_masuk: values.jumlah_masuk,
     keterangan: values.keterangan,
-    dicatat_oleh: dicatatOleh,
+    peminta_id: values.peminta_id || values.id_card || "", 
   };
 
   const data: ConsumableMasukApiResponse = await apiFetch("/consumable-masuk", {
@@ -76,8 +103,6 @@ export async function createConsumableMasuk(
   return mapFromApi(data);
 }
 
-// Backend cuma izinkan ubah tanggal & keterangan (jumlah_masuk butuh recalculation,
-// jadi sengaja tidak bisa diubah lewat update biasa)
 export async function updateConsumableMasuk(
   id: string,
   values: { tanggal: string; jumlah_masuk: number; keterangan: string }

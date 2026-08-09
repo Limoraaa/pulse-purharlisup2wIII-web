@@ -93,13 +93,9 @@ const PeminjamanAktifManager = () => {
 
     setReturningId(activeItem.id);
     try {
-      // 1) tandai peminjaman ini selesai (semua unit fisik sudah kembali)
       await tandaiDikembalikan(activeItem.id);
 
-      // 2) kalau ada unit yang rusak, kurangi stok alat permanen sejumlah itu.
-      //    Catatan: teks "catatan" belum tersimpan permanen karena belum
-      //    ada tabel riwayat kerusakan di backend -- baru pengurangan stoknya saja.
-      if (payload.kerusakan.length > 0) {
+     if (payload.kerusakan.length > 0) {
         const dicatatOleh = localStorage.getItem("userId");
         if (!dicatatOleh) {
           throw new Error("Sesi login tidak ditemukan. Silakan login ulang.");
