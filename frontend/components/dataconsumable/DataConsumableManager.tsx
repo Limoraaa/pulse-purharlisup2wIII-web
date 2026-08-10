@@ -161,6 +161,8 @@ const DataConsumableManager = () => {
     }
   }, []);
 
+
+  
   useEffect(() => {
     const token = localStorage.getItem("token"); 
     if (!token) return; 
@@ -522,10 +524,10 @@ const DataConsumableManager = () => {
         </Col>
       </Row>
 
-      <Card className="card-lg mb-6">
+            <Card className="card-lg mb-6">
         <div className="datatools-toolbar border-bottom">
           <Row className="g-2 align-items-center">
-            <Col lg={6} md={7}>
+            <Col lg={5} md={6}>
               <InputGroup className="datatools-search">
                 <InputGroup.Text><IconSearch size={18} /></InputGroup.Text>
                 <Form.Control
@@ -541,19 +543,22 @@ const DataConsumableManager = () => {
                 )}
               </InputGroup>
             </Col>
-            <Col lg={6} md={5} className="text-md-end">
-              <Button variant="outline-secondary" size="sm" onClick={handleExportExcel}>
-                  Export Excel
-                </Button>
-              <Button variant="outline-secondary" size="sm" onClick={handleExportPDF}>
-                  Export PDF
-                </Button>
+            <Col lg={4} md={3} className="text-md-end">
               <span className="text-secondary small">
                 Menampilkan <span className="fw-semibold text-body">{filteredConsumables.length}</span> dari {consumables.length} data
               </span>
             </Col>
+            <Col lg={3} md={3} className="d-flex justify-content-md-end gap-2">
+              <Button variant="outline-danger" size="sm" onClick={handleExportPDF}>
+                Export PDF
+              </Button>
+              <Button variant="outline-success" size="sm" onClick={handleExportExcel}>
+                Export Excel
+              </Button>
+            </Col>
           </Row>
         </div>
+
 
         <CardBody>
           {error && <Alert variant="danger">{error}</Alert>}
