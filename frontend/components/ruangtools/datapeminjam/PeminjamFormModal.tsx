@@ -5,13 +5,17 @@ import { IconUser, IconPencil, IconPlus, IconIdBadge2 } from "@tabler/icons-reac
 
 import { PeminjamType } from "types/DataToolsTypes";
 
-// Kita gunakan "id" untuk menyimpan kode RFID
-export type PeminjamFormValues = Omit<PeminjamType, "id" | "aktif"> & { id?: string };
+// Kita gunakan "id" untuk menyimpan kode RFID dan menambahkan opsi role
+export type PeminjamFormValues = Omit<PeminjamType, "id" | "aktif"> & { 
+  id?: string;
+  role?: "Pekerja" | "inventory man";
+};
 
 const emptyForm: PeminjamFormValues = {
   id: "",
   nama: "",
   divisi: "",
+  role: "Pekerja",
 };
 
 interface PeminjamFormModalProps {
@@ -39,7 +43,8 @@ const PeminjamFormModal = ({
           ? { 
               id: initialData.id, // Ambil ID (RFID/UUID) dari database
               nama: initialData.nama, 
-              divisi: initialData.divisi 
+              divisi: initialData.divisi,
+              role: initialData.role || "Pekerja", // Masukkan data role
             }
           : emptyForm
       );
@@ -115,6 +120,28 @@ const PeminjamFormModal = ({
                     setForm((prev) => ({ ...prev, divisi: e.target.value }))
                   }
                 />
+              </Col>
+
+              <Col md={12}>
+                <Form.Label>
+                  Role Akses <span className="text-danger">*</span>
+                </Form.Label>
+                <Form.Select
+                  required
+                  value={form.role}
+                  onChange={(e) =>
+                    setForm((prev) => ({ 
+                      ...prev, 
+                      role: e.target.value as "Pekerja" | "inventory man" 
+                    }))
+                  }
+                >
+                  <option value="Pekerja">Pekerja (User Biasa)</option>
+                  <option value="inventory man">Inventory Man</option>
+                </Form.Select>
+                <Form.Text className="text-muted small">
+                  Inventory man memiliki hak akses tambahan untuk melakukan input stok Consumable Masuk.
+                </Form.Text>
               </Col>
 
               <Col md={12}>
