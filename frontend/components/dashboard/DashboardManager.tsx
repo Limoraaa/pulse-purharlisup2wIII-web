@@ -121,7 +121,6 @@ const DashboardManager = () => {
     loadAll();
   }, []);
 
-  // Page header konsisten dengan halaman lain (breadcrumb + judul + deskripsi)
   const PageHeader = (
     <Row>
       <Col>
@@ -168,7 +167,7 @@ const DashboardManager = () => {
     <>
       {PageHeader}
 
-            {/* Baris 1: Ringkasan Utama */}
+      {/* Baris 1: Ringkasan Utama */}
       <Row className="g-3 mb-4">
         <Col xs={6} md={6} xl={3}>
           <StatCard
@@ -221,11 +220,13 @@ const DashboardManager = () => {
                   {stokMenipis.map((item) => (
                     <li
                       key={item.id}
-                      className="d-flex justify-content-between align-items-center px-2 py-2 rounded small"
+                      className="d-flex justify-content-between align-items-center px-2 py-2 rounded small border-bottom"
                     >
-                      <span>
-                        {item.nama} <span className="text-secondary">({item.kode_barang})</span>
-                      </span>
+                      <div>
+                        <div className="fw-semibold text-dark">
+                          {item.nama} <span className="text-secondary fw-normal">({item.kode_barang})</span>
+                        </div>
+                      </div>
                       <Badge bg={item.stok_awal === 0 ? "danger" : "warning"}>
                         {item.stok_awal} unit
                       </Badge>
@@ -248,7 +249,7 @@ const DashboardManager = () => {
               ) : (
                 <ul className="list-unstyled mb-0 dash-list">
                   {telatKembali.map((item) => (
-                    <li key={item.id} className="d-flex justify-content-between align-items-center px-2 py-2 rounded small">
+                    <li key={item.id} className="d-flex justify-content-between align-items-center px-2 py-2 rounded small border-bottom">
                       <span>
                         {item.nama_barang} — {item.nama_peminjam}
                       </span>
@@ -313,7 +314,7 @@ const DashboardManager = () => {
               ) : (
                 <ul className="list-unstyled mb-0 dash-list" style={{ maxHeight: 260, overflowY: "auto" }}>
                   {aktivitas.map((item, idx) => (
-                    <li key={idx} className="px-2 py-2 rounded">
+                    <li key={idx} className="px-2 py-2 rounded border-bottom">
                       <div className="d-flex justify-content-between align-items-start gap-2">
                         <span className="small">{item.deskripsi}</span>
                         <Badge bg={jenisLabel[item.jenis].color} className="flex-shrink-0">
@@ -343,9 +344,16 @@ const DashboardManager = () => {
               ) : (
                 <ul className="list-unstyled mb-0 dash-list">
                   {alatTerpopuler.map((item, idx) => (
-                    <li key={idx} className="d-flex justify-content-between align-items-center px-2 py-2 rounded small">
-                      <span>{item.nama_barang}</span>
-                      <span className="fw-semibold">{item.total_transaksi}x</span>
+                    <li key={idx} className="d-flex justify-content-between align-items-center px-2 py-2 rounded small border-bottom">
+                      <div>
+                        <div className="fw-semibold text-dark">
+                          {item.nama_barang} <span className="text-secondary fw-normal">({item.kode_barang || '-'})</span>
+                        </div>
+                        <div className="text-muted" style={{ fontSize: '0.75rem' }}>
+                          {item.merk || '-'} {item.ukuran ? ` • ${item.ukuran}` : ''}
+                        </div>
+                      </div>
+                      <Badge bg="primary" className="rounded-pill px-2">{item.total_transaksi}x</Badge>
                     </li>
                   ))}
                 </ul>
@@ -362,9 +370,16 @@ const DashboardManager = () => {
               ) : (
                 <ul className="list-unstyled mb-0 dash-list">
                   {consumableTerpopuler.map((item, idx) => (
-                    <li key={idx} className="d-flex justify-content-between align-items-center px-2 py-2 rounded small">
-                      <span>{item.nama}</span>
-                      <span className="fw-semibold">{item.total_diambil} unit</span>
+                    <li key={idx} className="d-flex justify-content-between align-items-center px-2 py-2 rounded small border-bottom">
+                      <div>
+                        <div className="fw-semibold text-dark">
+                          {item.nama || item.nama_barang} <span className="text-secondary fw-normal">({item.kode_barang || '-'})</span>
+                        </div>
+                        <div className="text-muted" style={{ fontSize: '0.75rem' }}>
+                          {item.merk || '-'} {item.ukuran ? ` • ${item.ukuran}` : ''}
+                        </div>
+                      </div>
+                      <Badge bg="info" className="rounded-pill px-2">{item.total_diambil} unit</Badge>
                     </li>
                   ))}
                 </ul>
