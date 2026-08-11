@@ -39,10 +39,8 @@ class DashboardController extends Controller
 
     // GET /api/dashboard/telat-kembali
     // Peminjaman aktif yang sudah lewat expected_return_date...
-    // Catatan: skema kita belum punya expected_return_date, jadi pakai ambang
-    // "sudah lebih dari 7 hari sejak tanggal pinjam dan belum kembali"
-   public function telatKembali()
-{
+    public function telatKembali()
+    {
         $batasHari = 14;
 
         $data = Peminjaman::with(['tool', 'peminta'])
@@ -72,12 +70,16 @@ class DashboardController extends Controller
             ->groupBy('tool_id')
             ->orderByDesc('total_transaksi')
             ->limit(5)
-            ->with('tool:id,kode_barang,nama_barang')
+            // Tambahkan merk dan ukuran di pemanggilan relasi 'with'
+            ->with('tool:id,kode_barang,nama_barang,merk,ukuran') 
             ->get()
             ->map(function ($row) {
                 return [
                     'kode_barang' => $row->tool->kode_barang ?? '-',
                     'nama_barang' => $row->tool->nama_barang ?? '-',
+                    // Petakan merk dan ukuran agar terkirim ke frontend
+                    'merk' => $row->tool->merk ?? null, 
+                    'ukuran' => $row->tool->ukuran ?? null,
                     'total_transaksi' => $row->total_transaksi,
                     'total_unit' => $row->total_unit,
                 ];
@@ -94,12 +96,16 @@ class DashboardController extends Controller
             ->groupBy('consumable_id')
             ->orderByDesc('total_diambil')
             ->limit(5)
-            ->with('consumable:id,kode_barang,nama')
+            // Tambahkan merk dan ukuran di pemanggilan relasi 'with'
+            ->with('consumable:id,kode_barang,nama,merk,ukuran')
             ->get()
             ->map(function ($row) {
                 return [
                     'kode_barang' => $row->consumable->kode_barang ?? '-',
                     'nama' => $row->consumable->nama ?? '-',
+                    // Petakan merk dan ukuran agar terkirim ke frontend
+                    'merk' => $row->consumable->merk ?? null,
+                    'ukuran' => $row->consumable->ukuran ?? null,
                     'total_diambil' => $row->total_diambil,
                 ];
             });
