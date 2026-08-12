@@ -209,7 +209,7 @@ const PeminjamManager = () => {
       "data-peminjam"
     );
   // ---- Ganti Role (Inventory Man / Pekerja) ----
-  const handleGantiRole = async (item: PeminjamType, roleBaru: "Pekerja" | "inventory man") => {
+  const handleGantiRole = async (item: PeminjamType, roleBaru: "user" | "inventory man") => { 
     try {
       const updated = await updateRolePeminta(item.id, roleBaru);
       setPeminjamList((prev) =>

@@ -10,7 +10,7 @@ interface ColumnHandlers {
   onEdit: (item: PeminjamType) => void;
   onDelete: (item: PeminjamType) => void; // nonaktifkan
   onAktifkan: (item: PeminjamType) => void;
-  onGantiRole: (item: PeminjamType, roleBaru: "Pekerja" | "inventory man") => void; // <-- Handler baru untuk ubah role
+  onGantiRole: (item: PeminjamType, roleBaru: "user" | "inventory man") => void; // <-- Handler baru untuk ubah role // <-- Handler baru untuk ubah role // <-- Handler baru untuk ubah role
   togglingId?: string | null; // id yang sedang diproses aktifkan/nonaktifkan
   togglingRoleId?: string | null; // id yang sedang diproses ubah role (opsional jika ingin pakai loading)
 }
@@ -87,8 +87,8 @@ export const getPeminjamColumns = ({
           </Dropdown.Item>
 
           {/* --- PILIHAN UBAH ROLE --- */}
-          {isInventoryMan ? (
-            <Dropdown.Item onClick={() => onGantiRole(item, "Pekerja")}>
+         {isInventoryMan ? (
+            <Dropdown.Item onClick={() => onGantiRole(item, "user")}>
               Jadikan Pekerja Biasa
             </Dropdown.Item>
           ) : (

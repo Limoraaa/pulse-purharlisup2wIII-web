@@ -4,7 +4,7 @@ namespace App\Http\Controllers\API;
 
 use App\Models\Consumable;
 use App\Models\ConsumableMasuk;
-use App\Models\Peminta; 
+use App\Models\Peminta;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -51,7 +51,7 @@ class ConsumableMasukController extends Controller
         }
 
         $data = $validator->validated();
-        
+
         // Bersihkan string dari scanner
         $pemintaId = trim($data['peminta_id']);
 
@@ -81,15 +81,22 @@ class ConsumableMasukController extends Controller
         // =========================================================================
 
         // Masukkan ID peminta ke kolom dicatat_oleh
-        $data['dicatat_oleh'] = $peminta->id; 
-        
+        $data['dicatat_oleh'] = $peminta->id;
+
         // Hapus peminta_id karena kolomnya di tabel consumable_masuk bernama dicatat_oleh
         unset($data['peminta_id']);
-        
+
         $data['id'] = (string) Str::uuid();
 
         $consumableMasuk = DB::transaction(function () use ($data) {
             $consumable = Consumable::lockForUpdate()->findOrFail($data['consumable_id']);
+
+            // Auto-isi stok_awal_asli dari transaksi masuk PERTAMA saja
+            // (selama masih 0 / belum pernah diisi manual).
+            if ($consumable->stok_awal_asli == 0) {
+                $consumable->stok_awal_asli = $data['jumlah_masuk'];
+            }
+
             $consumable->stok_awal += $data['jumlah_masuk'];
             $consumable->save();
 

@@ -71,7 +71,7 @@ useEffect(() => {
     if (show && !wasShown.current) {
       // modal baru saja DIBUKA (transisi dari tertutup ke terbuka) -> reset form
       if (initialData) {
-        setForm({ ...initialData });
+        setForm({ ...initialData, stok_awal: initialData.stok_awal_asli });
       } else {
         setForm({ ...emptyForm, kode_barang: suggestNextCode(existingCodes) });
       }
@@ -162,7 +162,7 @@ useEffect(() => {
                 inputMode="numeric"
                 pattern="[0-9]*"
                 placeholder="0"
-                value={form.stok_awal === 0 ? "" : String(form.stok_awal)}
+                value={String(form.stok_awal)}
                 onChange={(e) => {
                   const digitsOnly = e.target.value.replace(/[^0-9]/g, "");
                   const withoutLeadingZero = digitsOnly.replace(/^0+(?=\d)/, "");

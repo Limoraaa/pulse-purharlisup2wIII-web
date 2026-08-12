@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Tool;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class ToolController extends Controller
 {
@@ -14,7 +15,7 @@ class ToolController extends Controller
      */
     public function index()
     {
-        $tools = Tool::orderBy('kode_barang')->get()->map(function ($tool) {
+       $tools = Tool::active()->orderBy('kode_barang')->get()->map(function ($tool) {
             return [
                 'id' => $tool->id,
                 'kode_barang' => $tool->kode_barang,
@@ -39,8 +40,8 @@ class ToolController extends Controller
      */
         public function store(Request $request)
     {
-        $validated = $request->validate([
-            'kode_barang' => 'required|string|unique:tools,kode_barang',
+          $validated = $request->validate([
+            'kode_barang' => 'required|string|unique:consumables,kode_barang',
             'nama_barang' => 'required|string',
             'merk' => 'nullable|string',
             'type' => 'nullable|string',
@@ -96,7 +97,7 @@ class ToolController extends Controller
      */
     public function update(Request $request, Tool $tool)
         {
-            $validated = $request->validate([
+             $validated = $request->validate([
                 'kode_barang' => 'sometimes|string|unique:tools,kode_barang,' . $tool->id,
                 'nama_barang' => 'sometimes|string',
                 'merk' => 'nullable|string',
@@ -129,7 +130,7 @@ class ToolController extends Controller
      */
     public function destroy(Tool $tool)
     {
-        $tool->delete();
+        $tool->update(['is_active' => false]);
 
         return response()->json(['message' => 'Alat berhasil dihapus']);
     }

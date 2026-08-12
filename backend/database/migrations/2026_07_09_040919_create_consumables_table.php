@@ -19,11 +19,12 @@ return new class extends Migration
             $table->string('ukuran')->nullable();
             $table->integer('stok_awal')->default(0);
             $table->integer('stok_awal_asli')->default(0);
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
     }
 
-    public function down(): void
+     public function down(): void
     {
         Schema::dropIfExists('consumables');
     }

@@ -23,6 +23,7 @@ class Tool extends Model
         'ukuran',
         'stok',
         'keadaan',
+        'is_active',
     ];
 
     protected static function boot()
@@ -62,5 +63,9 @@ class Tool extends Model
     public function tersedia(): int
     {
         return $this->stok - $this->sedangDipinjam();
+    }
+     public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
     }
 }
