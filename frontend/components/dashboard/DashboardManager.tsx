@@ -203,7 +203,6 @@ const DashboardManager = () => {
         </Col>
       </Row>
 
-
       {/* Baris 2: Perlu Perhatian */}
       <Row className="g-3 mb-4">
         <Col md={6}>
@@ -242,7 +241,8 @@ const DashboardManager = () => {
             <CardBody>
               <div className="d-flex align-items-center gap-2 mb-3">
                 <IconClockHour4 className="text-warning" size={20} />
-                <h5 className="mb-0">Belum Dikembalikan &gt; 14 Hari</h5>
+                {/* REVISI 2: Ubah teks menjadi 30 Hari */}
+                <h5 className="mb-0">Belum Dikembalikan &gt; 30 Hari</h5>
               </div>
               {telatKembali.length === 0 ? (
                 <p className="text-secondary small mb-0">Tidak ada yang terlambat.</p>
@@ -387,21 +387,34 @@ const DashboardManager = () => {
             </CardBody>
           </Card>
         </Col>
+
         <Col md={4}>
           <Card className="card-lg h-100">
             <CardBody>
-              <h6 className="mb-3">Total Kerusakan</h6>
-              <div className="mb-2">
-                <div className="text-secondary small">Bulan Ini</div>
-                <div className="h3 mb-0 text-danger">{kerusakan?.bulan_ini ?? 0} unit</div>
-              </div>
-              <div>
-                <div className="text-secondary small">Total Keseluruhan</div>
-                <div className="h5 mb-0">{kerusakan?.total_semua ?? 0} unit</div>
-              </div>
+              {/* REVISI 1: Menambahkan Status Sedang Diperbaiki bersebelahan dengan Rusak */}
+              <h6 className="mb-3">Status Kerusakan Alat</h6>
+              <Row>
+                <Col xs={6} className="border-end">
+                  <div className="mb-3">
+                    <div className="text-secondary small">Rusak Bulan Ini</div>
+                    <div className="h3 mb-0 text-danger">{kerusakan?.bulan_ini ?? 0} unit</div>
+                  </div>
+                  <div>
+                    <div className="text-secondary small">Total Rusak</div>
+                    <div className="h5 mb-0">{kerusakan?.total_semua ?? 0} unit</div>
+                  </div>
+                </Col>
+                <Col xs={6}>
+                  <div className="mb-3">
+                    <div className="text-secondary small">Sedang Diperbaiki</div>
+                    <div className="h3 mb-0 text-warning">{kerusakan?.sedang_diperbaiki ?? 0} unit</div>
+                  </div>
+                </Col>
+              </Row>
             </CardBody>
           </Card>
         </Col>
+
       </Row>
     </>
   );
