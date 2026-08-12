@@ -41,7 +41,7 @@ class DashboardController extends Controller
     // Peminjaman aktif yang sudah lewat expected_return_date...
     public function telatKembali()
     {
-        $batasHari = 14;
+        $batasHari = 30;
 
         $data = Peminjaman::with(['tool', 'peminta'])
             ->whereNull('tanggal_kembali')
@@ -114,6 +114,7 @@ class DashboardController extends Controller
     }
 
     // GET /api/dashboard/kerusakan-summary
+    // GET /api/dashboard/kerusakan-summary
     public function kerusakanSummary()
     {
         $bulanIni = LaporanKerusakanTools::whereMonth('tanggal', now()->month)
@@ -122,9 +123,14 @@ class DashboardController extends Controller
 
         $totalSemua = LaporanKerusakanTools::sum('jumlah');
 
+        // GUNAKAN 'status' DENGAN VALUE 'bisa_diperbaiki' 
+        // (Sesuai dengan validator di LaporanKerusakanController)
+        $sedangDiperbaiki = LaporanKerusakanTools::where('status', 'bisa_diperbaiki')->sum('jumlah');
+
         return response()->json([
             'bulan_ini' => $bulanIni,
             'total_semua' => $totalSemua,
+            'sedang_diperbaiki' => $sedangDiperbaiki,
         ]);
     }
 
