@@ -16,7 +16,7 @@ export interface KerusakanEntry {
 export interface PengembalianSubmitPayload {
   kerusakan: KerusakanEntry[];
   catatan: string;
-  id_card: string; // ← tambahkan ID Card ke payload untuk diproses parent/service
+  id_card: string; 
 }
 
 interface FormPengembalianModalProps {
@@ -47,7 +47,7 @@ const FormPengembalianModal = ({
   const [catatanBisaDiperbaiki, setCatatanBisaDiperbaiki] = useState<string[]>([]);
   const [catatanRusakPermanen, setCatatanRusakPermanen] = useState<string[]>([]);
   const [catatan, setCatatan] = useState("");
-  const [idCard, setIdCard] = useState(""); // State untuk menampung ID Card
+  const [idCard, setIdCard] = useState(""); 
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -132,18 +132,13 @@ const FormPengembalianModal = ({
       }
     }
 
-    // Validasi pencegahan manual jika form lolos submit lewat enter scanner tanpa ID yg terisi
-    if (!idCard.trim()) {
-      setError("Harap scan/tap ID Card terlebih dahulu.");
-      return;
-    }
-
-    // --- VALIDASI PENCOCOKAN RFID PEMINJAM ASLI ---
-    // Memastikan ID Card yang di-scan sama dengan peminjamId dari data alat
-    if (item.peminjamId && idCard.trim() !== item.peminjamId) {
-      setError(`Akses ditolak: Kartu yang di-scan bukan milik peminjam awal (${item.namaPeminjam}).`);
-      setIdCard(""); // Kosongkan input agar bisa langsung scan ulang
-      return;
+    // --- VALIDASI PENCOCOKAN RFID (Hanya jika ID Card diisi) ---
+    if (idCard.trim() !== "") {
+      if (item.peminjamId && idCard.trim() !== item.peminjamId) {
+        setError(`Akses ditolak: Kartu yang di-scan bukan milik peminjam awal (${item.namaPeminjam}).`);
+        setIdCard(""); // Kosongkan input agar bisa langsung scan ulang
+        return;
+      }
     }
 
     setError(null);
@@ -162,12 +157,12 @@ const FormPengembalianModal = ({
       })),
     ];
 
-      onSubmit({
-        kerusakan,
-        catatan,
-        id_card: idCard,
-      });
-    };
+    onSubmit({
+      kerusakan,
+      catatan,
+      id_card: idCard, // Akan mengirim string kosong jika tidak di-tap
+    });
+  };
 
   return (
     <Modal show={show} onHide={submitting ? undefined : onClose} centered className="pengembalian-modal">
@@ -300,15 +295,15 @@ const FormPengembalianModal = ({
             </>
           )}
           
-          {/* --- INPUT SCAN RFID / ID CARD --- */}
+          {/* --- INPUT SCAN RFID / ID CARD (OPSIONAL) --- */}
           <Form.Group className="border-top pt-3 mt-4">
             <Form.Label className="fw-semibold">
-              Otorisasi ID Card <span className="text-danger">*</span>
+              Otorisasi ID Card <span className="text-muted fw-normal">(Opsional)</span>
             </Form.Label>
             <Form.Control
               type="password"
               autoComplete="new-password"
-              placeholder="Tap ID Card Anda disini..."
+              placeholder="Tap ID Card Anda disini (jika ada)..."
               value={idCard}
               onChange={(e) => setIdCard(e.target.value)}
               onKeyDown={(e) => {
@@ -318,11 +313,10 @@ const FormPengembalianModal = ({
                 }
               }}
               disabled={submitting}
-              required
-              autoFocus // Membuat form ini langsung aktif ketika modal dibuka
+              // Dihapus atribut required-nya
             />
             <Form.Text className="text-muted">
-              Wajib melakukan tap ID Card untuk mengonfirmasi pengembalian alat.
+              Anda bisa langsung menekan tombol Konfirmasi di bawah jika tidak menggunakan kartu.
             </Form.Text>
           </Form.Group>
 
@@ -340,8 +334,7 @@ const FormPengembalianModal = ({
           <Button 
             variant="primary" 
             type="submit" 
-            // DISABLE tombol jika idCard kosong ATAU form sedang submit
-            disabled={submitting || !idCard.trim()} 
+            disabled={submitting} // Dihapus validasi disable dari input idCard
             className="d-inline-flex align-items-center gap-2"
           >
             {submitting ? "Memproses..." : (<><IconCheck size={18} /> Konfirmasi Pengembalian</>)}

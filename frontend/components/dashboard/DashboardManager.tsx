@@ -121,7 +121,6 @@ const DashboardManager = () => {
     loadAll();
   }, []);
 
-  // Page header konsisten dengan halaman lain (breadcrumb + judul + deskripsi)
   const PageHeader = (
     <Row>
       <Col>
@@ -168,7 +167,7 @@ const DashboardManager = () => {
     <>
       {PageHeader}
 
-            {/* Baris 1: Ringkasan Utama */}
+      {/* Baris 1: Ringkasan Utama */}
       <Row className="g-3 mb-4">
         <Col xs={6} md={6} xl={3}>
           <StatCard
@@ -204,7 +203,6 @@ const DashboardManager = () => {
         </Col>
       </Row>
 
-
       {/* Baris 2: Perlu Perhatian */}
       <Row className="g-3 mb-4">
         <Col md={6}>
@@ -221,11 +219,13 @@ const DashboardManager = () => {
                   {stokMenipis.map((item) => (
                     <li
                       key={item.id}
-                      className="d-flex justify-content-between align-items-center px-2 py-2 rounded small"
+                      className="d-flex justify-content-between align-items-center px-2 py-2 rounded small border-bottom"
                     >
-                      <span>
-                        {item.nama} <span className="text-secondary">({item.kode_barang})</span>
-                      </span>
+                      <div>
+                        <div className="fw-semibold text-dark">
+                          {item.nama} <span className="text-secondary fw-normal">({item.kode_barang})</span>
+                        </div>
+                      </div>
                       <Badge bg={item.stok_awal === 0 ? "danger" : "warning"}>
                         {item.stok_awal} unit
                       </Badge>
@@ -241,14 +241,15 @@ const DashboardManager = () => {
             <CardBody>
               <div className="d-flex align-items-center gap-2 mb-3">
                 <IconClockHour4 className="text-warning" size={20} />
-                <h5 className="mb-0">Belum Dikembalikan &gt; 14 Hari</h5>
+                {/* REVISI 2: Ubah teks menjadi 30 Hari */}
+                <h5 className="mb-0">Belum Dikembalikan &gt; 30 Hari</h5>
               </div>
               {telatKembali.length === 0 ? (
                 <p className="text-secondary small mb-0">Tidak ada yang terlambat.</p>
               ) : (
                 <ul className="list-unstyled mb-0 dash-list">
                   {telatKembali.map((item) => (
-                    <li key={item.id} className="d-flex justify-content-between align-items-center px-2 py-2 rounded small">
+                    <li key={item.id} className="d-flex justify-content-between align-items-center px-2 py-2 rounded small border-bottom">
                       <span>
                         {item.nama_barang} — {item.nama_peminjam}
                       </span>
@@ -313,7 +314,7 @@ const DashboardManager = () => {
               ) : (
                 <ul className="list-unstyled mb-0 dash-list" style={{ maxHeight: 260, overflowY: "auto" }}>
                   {aktivitas.map((item, idx) => (
-                    <li key={idx} className="px-2 py-2 rounded">
+                    <li key={idx} className="px-2 py-2 rounded border-bottom">
                       <div className="d-flex justify-content-between align-items-start gap-2">
                         <span className="small">{item.deskripsi}</span>
                         <Badge bg={jenisLabel[item.jenis].color} className="flex-shrink-0">
@@ -343,9 +344,16 @@ const DashboardManager = () => {
               ) : (
                 <ul className="list-unstyled mb-0 dash-list">
                   {alatTerpopuler.map((item, idx) => (
-                    <li key={idx} className="d-flex justify-content-between align-items-center px-2 py-2 rounded small">
-                      <span>{item.nama_barang}</span>
-                      <span className="fw-semibold">{item.total_transaksi}x</span>
+                    <li key={idx} className="d-flex justify-content-between align-items-center px-2 py-2 rounded small border-bottom">
+                      <div>
+                        <div className="fw-semibold text-dark">
+                          {item.nama_barang} <span className="text-secondary fw-normal">({item.kode_barang || '-'})</span>
+                        </div>
+                        <div className="text-muted" style={{ fontSize: '0.75rem' }}>
+                          {item.merk || '-'} {item.ukuran ? ` • ${item.ukuran}` : ''}
+                        </div>
+                      </div>
+                      <Badge bg="primary" className="rounded-pill px-2">{item.total_transaksi}x</Badge>
                     </li>
                   ))}
                 </ul>
@@ -362,9 +370,16 @@ const DashboardManager = () => {
               ) : (
                 <ul className="list-unstyled mb-0 dash-list">
                   {consumableTerpopuler.map((item, idx) => (
-                    <li key={idx} className="d-flex justify-content-between align-items-center px-2 py-2 rounded small">
-                      <span>{item.nama}</span>
-                      <span className="fw-semibold">{item.total_diambil} unit</span>
+                    <li key={idx} className="d-flex justify-content-between align-items-center px-2 py-2 rounded small border-bottom">
+                      <div>
+                        <div className="fw-semibold text-dark">
+                          {item.nama || item.nama_barang} <span className="text-secondary fw-normal">({item.kode_barang || '-'})</span>
+                        </div>
+                        <div className="text-muted" style={{ fontSize: '0.75rem' }}>
+                          {item.merk || '-'} {item.ukuran ? ` • ${item.ukuran}` : ''}
+                        </div>
+                      </div>
+                      <Badge bg="info" className="rounded-pill px-2">{item.total_diambil} unit</Badge>
                     </li>
                   ))}
                 </ul>
@@ -372,21 +387,34 @@ const DashboardManager = () => {
             </CardBody>
           </Card>
         </Col>
+
         <Col md={4}>
           <Card className="card-lg h-100">
             <CardBody>
-              <h6 className="mb-3">Total Kerusakan</h6>
-              <div className="mb-2">
-                <div className="text-secondary small">Bulan Ini</div>
-                <div className="h3 mb-0 text-danger">{kerusakan?.bulan_ini ?? 0} unit</div>
-              </div>
-              <div>
-                <div className="text-secondary small">Total Keseluruhan</div>
-                <div className="h5 mb-0">{kerusakan?.total_semua ?? 0} unit</div>
-              </div>
+              {/* REVISI 1: Menambahkan Status Sedang Diperbaiki bersebelahan dengan Rusak */}
+              <h6 className="mb-3">Status Kerusakan Alat</h6>
+              <Row>
+                <Col xs={6} className="border-end">
+                  <div className="mb-3">
+                    <div className="text-secondary small">Rusak Bulan Ini</div>
+                    <div className="h3 mb-0 text-danger">{kerusakan?.bulan_ini ?? 0} unit</div>
+                  </div>
+                  <div>
+                    <div className="text-secondary small">Total Rusak</div>
+                    <div className="h5 mb-0">{kerusakan?.total_semua ?? 0} unit</div>
+                  </div>
+                </Col>
+                <Col xs={6}>
+                  <div className="mb-3">
+                    <div className="text-secondary small">Sedang Diperbaiki</div>
+                    <div className="h3 mb-0 text-warning">{kerusakan?.sedang_diperbaiki ?? 0} unit</div>
+                  </div>
+                </Col>
+              </Row>
             </CardBody>
           </Card>
         </Col>
+
       </Row>
     </>
   );

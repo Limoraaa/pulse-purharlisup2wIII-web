@@ -24,6 +24,8 @@ export interface TelatKembaliItem {
 export interface AlatTerpopulerItem {
   kode_barang: string;
   nama_barang: string;
+  merk?: string | null;    // Tambahan baru
+  ukuran?: string | null;  // Tambahan baru
   total_transaksi: number;
   total_unit: number;
 }
@@ -31,12 +33,16 @@ export interface AlatTerpopulerItem {
 export interface ConsumableTerpopulerItem {
   kode_barang: string;
   nama: string;
+  nama_barang?: string | null; // Tambahan baru (jaga-jaga jika backend pakai key ini)
+  merk?: string | null;        // Tambahan baru
+  ukuran?: string | null;      // Tambahan baru
   total_diambil: number;
 }
 
 export interface KerusakanSummary {
   bulan_ini: number;
   total_semua: number;
+  sedang_diperbaiki?: number;
 }
 
 export interface AktivitasItem {
