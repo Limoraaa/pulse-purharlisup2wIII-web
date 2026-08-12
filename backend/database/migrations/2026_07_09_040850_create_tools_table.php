@@ -19,9 +19,11 @@ return new class extends Migration
             $table->string('ukuran')->nullable();
             $table->integer('stok')->default(0);
             $table->string('keadaan')->default('B'); // B = Baik, R = Rusak
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
     }
+
 
     public function down(): void
     {

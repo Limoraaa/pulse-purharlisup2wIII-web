@@ -39,7 +39,7 @@ export interface PeminjamType {
   divisi: string;
   rfid_uid?: string | null;
   aktif: boolean;
-  role?: "Pekerja" | "inventory man"; // <--- Tambahkan baris ini
+  role?: "user" | "inventory man"; // <--- Tambahkan baris ini
 }
 
 // ------------------------------------------------------------------

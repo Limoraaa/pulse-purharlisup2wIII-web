@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Consumable;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class ConsumableController extends Controller
 {
@@ -14,7 +15,8 @@ class ConsumableController extends Controller
      */
    public function index()
     {
-        $consumables = Consumable::withSum('masuk as total_masuk', 'jumlah_masuk')
+        $consumables = Consumable::active()
+            ->withSum('masuk as total_masuk', 'jumlah_masuk')
             ->withSum('keluar as total_keluar', 'jumlah_keluar')
             ->orderBy('kode_barang')
             ->get()
@@ -43,7 +45,7 @@ class ConsumableController extends Controller
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
+          $validated = $request->validate([
             'kode_barang' => 'required|string|unique:consumables,kode_barang',
             'nama' => 'required|string',
             'merk' => 'nullable|string',
@@ -112,6 +114,17 @@ class ConsumableController extends Controller
             'stok_awal' => 'sometimes|integer|min:0',
         ]);
 
+        if (array_key_exists('stok_awal', $validated)) {
+            // Input "Stok Awal" dari form merepresentasikan stok_awal_asli
+            // (nilai stok awal yang sebenarnya), bukan field live "stok_awal".
+            // stok_awal (live) dihitung ulang: stok_awal_asli + masuk - keluar.
+            $totalMasuk = $consumable->masuk()->sum('jumlah_masuk');
+            $totalKeluar = $consumable->keluar()->sum('jumlah_keluar');
+
+            $validated['stok_awal_asli'] = $validated['stok_awal'];
+            $validated['stok_awal'] = $validated['stok_awal_asli'] + $totalMasuk - $totalKeluar;
+        }
+
         $consumable->update($validated);
         $consumable->loadSum('masuk as total_masuk', 'jumlah_masuk');
         $consumable->loadSum('keluar as total_keluar', 'jumlah_keluar');
@@ -137,7 +150,7 @@ class ConsumableController extends Controller
      */
     public function destroy(Consumable $consumable)
     {
-        $consumable->delete();
+        $consumable->update(['is_active' => false]);
 
         return response()->json(['message' => 'Data consumable berhasil dihapus']);
     }

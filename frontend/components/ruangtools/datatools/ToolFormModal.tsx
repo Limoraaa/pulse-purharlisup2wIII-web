@@ -150,7 +150,7 @@ const ToolFormModal = ({
                 inputMode="numeric"
                 pattern="[0-9]*"
                 placeholder="0"
-                value={form.stok === 0 ? "" : String(form.stok)}
+                value={String(form.stok)}
                 onChange={(e) => {
                   // hanya izinkan digit, buang leading zero otomatis
                   const digitsOnly = e.target.value.replace(/[^0-9]/g, "");
