@@ -42,6 +42,9 @@ import {
   deleteConsumableMasuk,
 } from "services/consumableMasukService";
 
+// IMPORT INI UNTUK VALIDASI ROLE
+import { getPemintaAktif } from "services/pemintaService"; 
+
 const ConsumableMasukManager = () => {
   const [consumables, setConsumables] = useState<ConsumableItemType[]>([]);
   const [loadingConsumables, setLoadingConsumables] = useState(true);
@@ -133,13 +136,26 @@ const ConsumableMasukManager = () => {
           );
            await loadConsumables();
       } else {
-        // 1. Pastikan id_card atau peminta_id terisi dari hasil tap kartu di modal form
+        // 1. Pastikan id_card atau peminta_id terisi dari hasil tap kartu
         const idCardValue = values.peminta_id || values.id_card;
         if (!idCardValue) {
           throw new Error("ID Card wajib di-tap untuk verifikasi.");
         }
 
-        // 2. Panggil fungsi create dengan memastikan peminta_id terkirim eksplisit
+        // 2. VALIDASI ROLE SEBELUM SUBMIT
+        // Kita periksa apakah pemilik kartu ini benar-benar punya role "inventory man"
+        const pegawaiAktif = await getPemintaAktif();
+        const pegawaiTerkait = pegawaiAktif.find((p) => p.id === idCardValue);
+
+        if (!pegawaiTerkait) {
+          throw new Error("Pegawai dengan ID tersebut tidak ditemukan atau sedang tidak aktif.");
+        }
+
+        if (pegawaiTerkait.role !== "inventory man") {
+          throw new Error("Akses Ditolak! Hanya Inventory Man yang boleh menginput stok Consumable Masuk.");
+        }
+
+        // 3. Panggil fungsi create dengan memastikan peminta_id terkirim eksplisit
         const created = await createConsumableMasuk({
           ...values,
           peminta_id: idCardValue,
@@ -159,7 +175,7 @@ const ConsumableMasukManager = () => {
       setFormModalOpen(false);
       setActiveItem(null);
     } catch (err) {
-      // Tangkap pesan error dari backend
+      // Tangkap pesan error dari backend atau validasi role
       const message = err instanceof Error ? err.message : "Gagal menyimpan data";
       setFormError(message);
     }
