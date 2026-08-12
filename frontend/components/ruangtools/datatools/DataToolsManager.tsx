@@ -2,7 +2,7 @@
 // import node module libraries
 import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
 import { AntreanItemResponse } from "services/peminjamanService";
-import { useEffect, useMemo, useState, useCallback  } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import {
   Row,
   Col,
@@ -26,7 +26,6 @@ import { v4 as uuid } from "uuid";
 import useSWR, { useSWRConfig } from "swr";
 
 // Import service layer
-// Import service layer
 import {
   fetchAntrean,
   scanTool,
@@ -35,7 +34,7 @@ import {
   prosesPeminjamanApi,
 } from "services/peminjamanService";
 
-import api from "lib/api"; // <--- Tambahkan import ini di sini
+import api from "lib/api";
 
 // import redux store
 import { useAppDispatch, useAppSelector } from "store/store";
@@ -68,8 +67,7 @@ import AddToCartFlyEffect, {
   FlyAnimationItem,
 } from "components/ruangtools/datatools/AddToCartFlyEffect";
 
-
-// Tipe gabungan untuk item keranjang (tools + consumable), menggantikan pemakaian `any`
+// Tipe gabungan untuk item keranjang (tools + consumable)
 interface UnifiedCartItem extends Partial<CartItemType> {
   cartId?: string | number;
   id?: string | number;
@@ -88,6 +86,7 @@ interface LoanSubmitValues {
   spesifikasi?: string;
   keterangan?: string;
 }
+
 // ---- Helper: generate kode barang berikutnya ----
 const generateNextKodeBarang = (tools: ToolItemType[]): string => {
   if (tools.length === 0) return "I-001";
@@ -150,9 +149,6 @@ const DataToolsManager = () => {
   const { data: dbCart } = useSWR("/peminjaman/antrean", fetchAntrean);
 
   // Sinkronisasi data Tools dari Database + Gabungkan dengan data Consumable dari LocalStorage
-  // Sinkronisasi data Tools dari Database + Gabungkan dengan data Consumable dari LocalStorage
-  // Sinkronisasi data Tools dari Database + Gabungkan dengan data Consumable dari LocalStorage
-  // Sinkronisasi data Tools dari Database + Gabungkan dengan data Consumable dari LocalStorage
   useEffect(() => {
     let groupedToolsCart: UnifiedCartItem[] = [];
 
@@ -182,7 +178,7 @@ const DataToolsManager = () => {
     // Simpan tools ke localStorage agar halaman consumable bisa membacanya
     localStorage.setItem("global_shared_tools_cart", JSON.stringify(groupedToolsCart));
 
-    // TAMBAHKAN INI: Ambil data consumable dari localStorage
+    // Ambil data consumable dari localStorage
     const savedConsumableCart = JSON.parse(localStorage.getItem("global_shared_consumable_cart") || "[]");
 
     // Gabungkan data tools dan consumable ke state cart utama
@@ -297,49 +293,69 @@ const DataToolsManager = () => {
     setFlyAnimations((prev) => prev.filter((a) => a.id !== id));
   };
 
+  // --- PERBAIKAN BUG OPTIMISTIC UPDATE: handleUpdateQty ---
   const handleUpdateQty = async (cartId: string | number, newJumlah: number) => {
-    const targetItem = cart.find((c) => c.cartId === cartId || c.id === cartId);
+    if (newJumlah < 1) return;
+
+    // 1. Update state lokal secara instan (UI merespons tanpa lag)
+    setCart((prevCart) =>
+      prevCart.map((c) =>
+        c.cartId === cartId || c.id === cartId || c.consumable_id === cartId ? { ...c, jumlah: newJumlah } : c
+      )
+    );
+
+    const targetItem = cart.find((c) => c.cartId === cartId || c.id === cartId || c.consumable_id === cartId);
     if (!targetItem) return;
 
+    // 2. Jika item tersebut adalah Consumable
     if (targetItem.item_type === "consumable") {
-      const updatedConsumableCart = cart
-        .filter((c) => c.item_type === "consumable")
-        .map((c) => (c.cartId === cartId || c.id === cartId ? { ...c, jumlah: newJumlah } : c));
-
-      localStorage.setItem("global_shared_consumable_cart", JSON.stringify(updatedConsumableCart));
-      setCart([...cart]);
+      const savedCons = JSON.parse(localStorage.getItem("global_shared_consumable_cart") || "[]");
+      const updated = savedCons.map((c: any) => 
+        c.id === cartId || c.consumable_id === cartId ? { ...c, jumlah: newJumlah } : c
+      );
+      localStorage.setItem("global_shared_consumable_cart", JSON.stringify(updated));
       return;
     }
 
+    // 3. Jika item tersebut adalah Tool (kirim ke backend di latar belakang)
     try {
       await updateCartItem(cartId, newJumlah);
-      mutate("/peminjaman/antrean");
+      // Mutate secara silent agar UI tidak jumpy
+      mutate("/peminjaman/antrean", async (currentData: any) => {
+        if (!currentData) return currentData;
+        return currentData.map((item: any) => 
+          item.id === cartId ? { ...item, qty: newJumlah } : item
+        );
+      }, false);
     } catch (err) {
       console.error("Gagal memperbarui jumlah item:", err);
+      mutate("/peminjaman/antrean"); // Revert jika gagal
     }
   };
 
+  // --- PERBAIKAN BUG OPTIMISTIC UPDATE: handleRemoveFromCart ---
   const handleRemoveFromCart = async (cartId: string | number) => {
-    const targetItem = cart.find((c) => c.cartId === cartId || c.id === cartId);
+    const targetItem = cart.find((c) => c.cartId === cartId || c.id === cartId || c.consumable_id === cartId);
     if (!targetItem) return;
 
+    // 1. Hapus secara instan dari state lokal
+    setCart((prev) => prev.filter((c) => c.cartId !== cartId && c.id !== cartId && c.consumable_id !== cartId));
+
+    // 2. Jika item tersebut adalah Consumable
     if (targetItem.item_type === "consumable") {
-      const updatedConsumableCart = cart.filter(
-        (c) => c.item_type === "consumable" && c.cartId !== cartId && c.id !== cartId
-      );
-      localStorage.setItem("global_shared_consumable_cart", JSON.stringify(updatedConsumableCart));
-      setCart((prev) => prev.filter((c) => c.cartId !== cartId && c.id !== cartId));
+      const savedCons = JSON.parse(localStorage.getItem("global_shared_consumable_cart") || "[]");
+      const updated = savedCons.filter((c: any) => c.id !== cartId && c.consumable_id !== cartId);
+      localStorage.setItem("global_shared_consumable_cart", JSON.stringify(updated));
       return;
     }
 
-    setCart((prev) => prev.filter((c) => c.cartId !== cartId && c.id !== cartId));
-
+    // 3. Jika item tersebut adalah Tool
     try {
       await removeCartItem(cartId);
       mutate("/peminjaman/antrean"); 
     } catch (err) {
       console.error("Gagal menghapus dari keranjang DB", err);
-      mutate("/peminjaman/antrean"); 
+      mutate("/peminjaman/antrean"); // Revert jika gagal
     }
   };
 
@@ -348,7 +364,6 @@ const DataToolsManager = () => {
     setLoanFormOpen(true);
   };
 
-  // Ubah LoanFormValues menjadi any agar kompatibel dengan UniversalFormValues dari modal universal
   const handleLoanSubmit = async (values: LoanSubmitValues) => {
     setSubmittingLoan(true);
     setLoanError(null);
@@ -426,7 +441,7 @@ const DataToolsManager = () => {
     }
   };
 
-      const columns = useMemo(
+  const columns = useMemo(
     () =>
       getDataToolsColumns({
         onDetail: openDetailModal,
