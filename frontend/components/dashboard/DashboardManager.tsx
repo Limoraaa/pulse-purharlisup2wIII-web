@@ -1,5 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
+// Menggunakan Link bawaan Next.js yang aman dari hydration crash
+import Link from "next/link"; 
 import { Row, Col, Card, CardBody, Spinner, Alert, Badge } from "react-bootstrap";
 import {
   IconTool,
@@ -167,39 +169,63 @@ const DashboardManager = () => {
     <>
       {PageHeader}
 
-      {/* Baris 1: Ringkasan Utama */}
+      {/* Baris 1: Ringkasan Utama dengan komponen Link menggunakan URL yang tepat */}
       <Row className="g-3 mb-4">
         <Col xs={6} md={6} xl={3}>
-          <StatCard
-            icon={<IconTool size={26} />}
-            title="Total Tools"
-            value={summary?.total_tools ?? 0}
-            variant="primary"
-          />
+          <Link 
+            href="/inventaris/data-tools" 
+            style={{ textDecoration: "none", color: "inherit", display: "block" }} 
+            title="Menuju halaman Data Tools"
+          >
+            <StatCard
+              icon={<IconTool size={26} />}
+              title="Total Tools"
+              value={summary?.total_tools ?? 0}
+              variant="primary"
+            />
+          </Link>
         </Col>
         <Col xs={6} md={6} xl={3}>
-          <StatCard
-            icon={<IconPackage size={26} />}
-            title="Total Consumable"
-            value={summary?.total_consumables ?? 0}
-            variant="info"
-          />
+          <Link 
+            href="/inventaris/data-consumable" 
+            style={{ textDecoration: "none", color: "inherit", display: "block" }} 
+            title="Menuju halaman Data Consumable"
+          >
+            <StatCard
+              icon={<IconPackage size={26} />}
+              title="Total Consumable"
+              value={summary?.total_consumables ?? 0}
+              variant="info"
+            />
+          </Link>
         </Col>
         <Col xs={6} md={6} xl={3}>
-          <StatCard
-            icon={<IconUsers size={26} />}
-            title="Total Peminta"
-            value={summary?.total_peminta ?? 0}
-            variant="success"
-          />
+          <Link 
+            href="/inventaris/data-peminjam" 
+            style={{ textDecoration: "none", color: "inherit", display: "block" }} 
+            title="Menuju halaman Data Peminjam"
+          >
+            <StatCard
+              icon={<IconUsers size={26} />}
+              title="Total Peminta"
+              value={summary?.total_peminta ?? 0}
+              variant="success"
+            />
+          </Link>
         </Col>
         <Col xs={6} md={6} xl={3}>
-          <StatCard
-            icon={<IconClockHour4 size={26} />}
-            title="Sedang Dipinjam"
-            value={summary?.sedang_dipinjam ?? 0}
-            variant="warning"
-          />
+          <Link 
+            href="/transaksi/peminjaman-aktif" 
+            style={{ textDecoration: "none", color: "inherit", display: "block" }} 
+            title="Menuju halaman Peminjaman Aktif"
+          >
+            <StatCard
+              icon={<IconClockHour4 size={26} />}
+              title="Sedang Dipinjam"
+              value={summary?.sedang_dipinjam ?? 0}
+              variant="warning"
+            />
+          </Link>
         </Col>
       </Row>
 
@@ -241,7 +267,6 @@ const DashboardManager = () => {
             <CardBody>
               <div className="d-flex align-items-center gap-2 mb-3">
                 <IconClockHour4 className="text-warning" size={20} />
-                {/* REVISI 2: Ubah teks menjadi 30 Hari */}
                 <h5 className="mb-0">Belum Dikembalikan &gt; 30 Hari</h5>
               </div>
               {telatKembali.length === 0 ? (
@@ -391,7 +416,6 @@ const DashboardManager = () => {
         <Col md={4}>
           <Card className="card-lg h-100">
             <CardBody>
-              {/* REVISI 1: Menambahkan Status Sedang Diperbaiki bersebelahan dengan Rusak */}
               <h6 className="mb-3">Status Kerusakan Alat</h6>
               <Row>
                 <Col xs={6} className="border-end">
@@ -414,7 +438,6 @@ const DashboardManager = () => {
             </CardBody>
           </Card>
         </Col>
-
       </Row>
     </>
   );
