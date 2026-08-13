@@ -92,7 +92,7 @@ const RiwayatFilterBar = ({
             onChange={(e) => onNamaFilterChange(e.target.value)}
             aria-label={`Filter ${namaLabel}`}
           >
-            <option value="Semua">Semua {namaLabel}</option>
+            <option value="">Semua {namaLabel}</option>
             {namaOptions.map((nama) => (
               <option key={nama} value={nama}>
                 {nama}
