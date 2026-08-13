@@ -23,6 +23,7 @@ import {
   exportToExcel,
   exportToPDF,
   ExportColumn,
+  getFilteredExportFileName,
 } from "components/ruangtools/riwayat/common/exportUtils";
 import { getLaporanKerusakanColumns } from "components/ruangtools/laporan/kerusakan/ColumnDefination";
 import DetailLaporanModal from "components/ruangtools/laporan/kerusakan/DetailLaporanModal";
@@ -205,9 +206,9 @@ const LaporanKerusakanManager = () => {
   };
 
   const handleExportPDF = () =>
-    exportToPDF(filteredList, EXPORT_COLUMNS, "laporan-kerusakan-alat", "Laporan Kerusakan Alat");
+    exportToPDF(filteredList, EXPORT_COLUMNS, getFilteredExportFileName("Laporan_Kerusakan_Alat", namaFilter), "Laporan Kerusakan Alat");
   const handleExportExcel = () =>
-    exportToExcel(filteredList, EXPORT_COLUMNS, "laporan-kerusakan-alat");
+    exportToExcel(filteredList, EXPORT_COLUMNS, getFilteredExportFileName("Laporan_Kerusakan_Alat", namaFilter));
 
   const columns = getLaporanKerusakanColumns({
   onDetail: openDetailModal,

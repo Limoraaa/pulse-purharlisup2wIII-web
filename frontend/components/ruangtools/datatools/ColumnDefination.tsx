@@ -159,29 +159,32 @@ export const getDataToolsColumns = ({
       };
 
       return (
-        <div className="d-flex align-items-center gap-2">
-          <button
-            type="button"
-            className="btn btn-primary btn-sm d-flex align-items-center gap-1"
-            disabled={habis} 
-            title={habis ? "Stok habis (sudah masuk keranjang/dipinjam)" : "Tambah ke Peminjaman"}
-            onClick={(e) => onAddToCart(tool, e)}
-          >
-            <IconShoppingCartPlus size={16} />
-            {/* teks disembunyikan di layar < lg (992px), sisa ikon saja
-                supaya kolom Aksi (sticky di mobile) tidak makan banyak ruang.
-                title di atas tetap kasih tooltip + aksesibilitas saat teks disembunyikan. */}
-            <span className="d-none d-lg-inline">
-              {habis ? "Stok Habis" : "Tambah ke Peminjaman"}
-            </span>
-          </button>
-          
-          <ActionMenu
-            toggleButton={<IconDotsVertical size={20} />}
-            className="btn btn-ghost btn-icon btn-sm rounded-circle"
-            drop="start"
-            align="start"
-          >
+        <div className="datatools-action-cell">
+          <div className="datatools-action-main">
+            <button
+              type="button"
+              className="btn btn-primary btn-sm d-flex align-items-center gap-1"
+              disabled={habis} 
+              title={habis ? "Stok habis (sudah masuk keranjang/dipinjam)" : "Tambah ke Peminjaman"}
+              onClick={(e) => onAddToCart(tool, e)}
+            >
+              <IconShoppingCartPlus size={16} />
+              {/* teks disembunyikan di layar < lg (992px), sisa ikon saja
+                  supaya kolom Aksi (sticky di mobile) tidak makan banyak ruang.
+                  title di atas tetap kasih tooltip + aksesibilitas saat teks disembunyikan. */}
+              <span className="d-none d-lg-inline">
+                {habis ? "Stok Habis" : "Tambah ke Peminjaman"}
+              </span>
+            </button>
+          </div>
+          <div className="datatools-action-menu">
+            <ActionMenu
+              toggleButton={<IconDotsVertical size={20} />}
+              className="btn btn-ghost btn-icon btn-sm rounded-circle"
+              drop="start"
+              align="start"
+              closeOnScroll
+            >
             <Dropdown.Item onClick={() => onDetail(tool)}>
               Detail Alat
             </Dropdown.Item>
@@ -200,7 +203,8 @@ export const getDataToolsColumns = ({
               Download QR
             </Dropdown.Item>
 
-          </ActionMenu>
+            </ActionMenu>
+          </div>
         </div>
       );
     },
