@@ -32,6 +32,8 @@ import TanstackTable from "components/table/TanstackTable";
 import Flex from "components/common/Flex";
 import DasherBreadcrumb from "components/common/DasherBreadcrumb";
 import { getPeminjamanAktifColumns } from "components/ruangtools/peminjamanaktif/ColumnDefination";
+import RiwayatFilterBar from "components/ruangtools/riwayat/common/RiwayatFilterBar";
+import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
 import FormPengembalianModal, {
   PengembalianSubmitPayload,
 } from "components/ruangtools/peminjamanaktif/FormPengembalianModal";
@@ -48,20 +50,45 @@ const PeminjamanAktifManager = () => {
 
   // ---- Toolbar: pencarian (murni UI, tidak menyentuh API/data) ----
   const [searchTerm, setSearchTerm] = useState("");
+  const [bulanFilter, setBulanFilter] = useState(0);
+  const [tahunFilter, setTahunFilter] = useState(0);
+  const [namaFilter, setNamaFilter] = useState("");
+
+  const parseTanggal = (value: string) => {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  };
+
+  const EXPORT_COLUMNS: ExportColumn[] = [
+    { header: "Tanggal", key: "tanggal" }, { header: "Kode Barang", key: "kodeBarang" },
+    { header: "Nama Barang", key: "namaBarang" }, { header: "Jumlah", key: "jumlah" },
+    { header: "Nama Peminjam", key: "namaPeminjam" }, { header: "Divisi", key: "divisi" },
+    { header: "Area Kerja", key: "areaKerja" },
+  ];
 
   // Data turunan untuk tampilan; sumber data (items) tidak diubah.
   const filteredItems = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
-    if (keyword === "") return items;
-    return items.filter(
-      (item) =>
+    return items.filter((item) => {
+      const date = parseTanggal(item.tanggal);
+      const cocokPeriode = (!date || bulanFilter === 0 || date.getMonth() + 1 === bulanFilter) &&
+        (!date || tahunFilter === 0 || date.getFullYear() === tahunFilter);
+      const cocokNama = namaFilter === "" || item.namaPeminjam === namaFilter;
+      const cocokKeyword =
         item.kodeBarang.toLowerCase().includes(keyword) ||
         item.namaBarang.toLowerCase().includes(keyword) ||
         item.namaPeminjam.toLowerCase().includes(keyword) ||
         item.namaPekerjaan.toLowerCase().includes(keyword) ||
-        item.areaKerja.toLowerCase().includes(keyword)
-    );
-  }, [items, searchTerm]);
+        item.areaKerja.toLowerCase().includes(keyword);
+      return cocokPeriode && cocokNama && (keyword === "" || cocokKeyword);
+    });
+  }, [items, searchTerm, bulanFilter, tahunFilter, namaFilter]);
+
+  const tahunOptions = useMemo(() => Array.from(new Set(items.map((item) => parseTanggal(item.tanggal)?.getFullYear()).filter((year): year is number => Boolean(year)))).sort((a, b) => b - a), [items]);
+  const namaOptions = useMemo(() => Array.from(new Set(items.map((item) => item.namaPeminjam))).sort(), [items]);
+  const exportRows = useMemo(() => filteredItems.map((item) => ({ ...item })), [filteredItems]);
+  const handleExportPdf = () => exportToPDF(exportRows, EXPORT_COLUMNS, "peminjaman-aktif", "Peminjaman Aktif");
+  const handleExportExcel = () => exportToExcel(exportRows, EXPORT_COLUMNS, "peminjaman-aktif", "Peminjaman Aktif");
 
   const loadData = async () => {
     setLoading(true);
@@ -173,10 +200,9 @@ const PeminjamanAktifManager = () => {
 
       <Card className="card-lg mb-6">
         {/* ---- Toolbar: Search ---- */}
-        <div className="peminjamanaktif-toolbar border-bottom">
-          <Row className="g-2 align-items-center">
-            <Col lg={6} md={7}>
-              <InputGroup className="peminjamanaktif-search">
+        <div className="riwayat-toolbar border-bottom">
+          <div className="riwayat-toolbar-row">
+            <InputGroup className="riwayat-search">
                 <InputGroup.Text>
                   <IconSearch size={18} />
                 </InputGroup.Text>
@@ -190,23 +216,33 @@ const PeminjamanAktifManager = () => {
                 {searchTerm && (
                   <Button
                     variant="link"
-                    className="peminjamanaktif-search-clear"
+                    className="riwayat-search-clear"
                     onClick={() => setSearchTerm("")}
                     aria-label="Bersihkan pencarian"
                   >
                     <IconX size={16} />
                   </Button>
                 )}
-              </InputGroup>
-            </Col>
-            <Col lg={6} md={5} className="text-md-end">
-              <span className="text-secondary small">
+            </InputGroup>
+            <span className="riwayat-info text-secondary small">
                 Menampilkan{" "}
                 <span className="fw-semibold text-body">{filteredItems.length}</span>{" "}
                 dari {items.length} data
-              </span>
-            </Col>
-          </Row>
+            </span>
+          </div>
+          <RiwayatFilterBar
+            bulanFilter={bulanFilter}
+            onBulanFilterChange={setBulanFilter}
+            tahunFilter={tahunFilter}
+            onTahunFilterChange={setTahunFilter}
+            tahunOptions={tahunOptions}
+            namaFilter={namaFilter}
+            onNamaFilterChange={setNamaFilter}
+            namaOptions={namaOptions}
+            namaLabel="Peminjam"
+            onExportPDF={handleExportPdf}
+            onExportExcel={handleExportExcel}
+          />
         </div>
 
         <CardBody>

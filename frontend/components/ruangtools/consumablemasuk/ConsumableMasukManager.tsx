@@ -30,6 +30,8 @@ import {
 import TanstackTable from "components/table/TanstackTable";
 import Flex from "components/common/Flex";
 import DasherBreadcrumb from "components/common/DasherBreadcrumb";
+import RiwayatFilterBar from "components/ruangtools/riwayat/common/RiwayatFilterBar";
+import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
 import { getConsumableMasukColumns } from "components/ruangtools/consumablemasuk/ColumnDefination";
 import ConsumableMasukFormModal from "components/ruangtools/consumablemasuk/ConsumableMasukFormModal";
 import DeleteConfirmModal from "components/ruangtools/consumablemasuk/DeleteConfirmModal";
@@ -62,19 +64,50 @@ const ConsumableMasukManager = () => {
 
   // ---- Toolbar: pencarian (murni UI, tidak menyentuh API/data) ----
   const [searchTerm, setSearchTerm] = useState("");
+  const [bulanFilter, setBulanFilter] = useState(0);
+  const [tahunFilter, setTahunFilter] = useState(0);
+  const [namaFilter, setNamaFilter] = useState("");
+
+  const parseTanggal = (value: string) => {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  };
+
+  const getNamaPencatat = (item: ConsumableMasukType) =>
+    item.dicatatOleh?.nama || item.dicatatOleh?.name || "Tidak diketahui";
+
+  const EXPORT_COLUMNS: ExportColumn[] = [
+    { header: "Tanggal", key: "tanggal" }, { header: "Kode Barang", key: "kode_barang" },
+    { header: "Nama Barang", key: "nama" }, { header: "Jumlah Masuk", key: "jumlah_masuk" },
+    { header: "Pencatat", key: "nama_pencatat" }, { header: "Keterangan", key: "keterangan" },
+  ];
 
   // Data turunan untuk tampilan; sumber data (masukList) tidak diubah.
   const filteredMasukList = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
-    if (keyword === "") return masukList;
-    return masukList.filter(
-      (item) =>
+    return masukList.filter((item) => {
+      const date = parseTanggal(item.tanggal);
+      const cocokPeriode = (!date || bulanFilter === 0 || date.getMonth() + 1 === bulanFilter) &&
+        (!date || tahunFilter === 0 || date.getFullYear() === tahunFilter);
+      const cocokNama = namaFilter === "" || getNamaPencatat(item) === namaFilter;
+      const cocokKeyword =
         item.kode_barang.toLowerCase().includes(keyword) ||
         item.nama.toLowerCase().includes(keyword) ||
         item.merk.toLowerCase().includes(keyword) ||
-        item.tipe.toLowerCase().includes(keyword)
-    );
-  }, [masukList, searchTerm]);
+        item.tipe.toLowerCase().includes(keyword) ||
+        getNamaPencatat(item).toLowerCase().includes(keyword);
+      return cocokPeriode && cocokNama && (keyword === "" || cocokKeyword);
+    });
+  }, [masukList, searchTerm, bulanFilter, tahunFilter, namaFilter]);
+
+  const tahunOptions = useMemo(() => Array.from(new Set(masukList.map((item) => parseTanggal(item.tanggal)?.getFullYear()).filter((year): year is number => Boolean(year)))).sort((a, b) => b - a), [masukList]);
+  const namaOptions = useMemo(() => Array.from(new Set(masukList.map(getNamaPencatat))).sort(), [masukList]);
+  const exportRows = useMemo(() => filteredMasukList.map((item) => ({
+    ...item,
+    nama_pencatat: getNamaPencatat(item),
+  })), [filteredMasukList]);
+  const handleExportPdf = () => exportToPDF(exportRows, EXPORT_COLUMNS, "consumable-masuk", "Consumable Masuk");
+  const handleExportExcel = () => exportToExcel(exportRows, EXPORT_COLUMNS, "consumable-masuk", "Consumable Masuk");
 
   const loadConsumables = async () => {
     setLoadingConsumables(true);
@@ -258,10 +291,9 @@ const ConsumableMasukManager = () => {
 
       <Card className="card-lg mb-6">
         {/* ---- Toolbar: Search ---- */}
-        <div className="consumablemasuk-toolbar border-bottom">
-          <Row className="g-2 align-items-center">
-            <Col lg={6} md={7}>
-              <InputGroup className="consumablemasuk-search">
+        <div className="riwayat-toolbar border-bottom">
+          <div className="riwayat-toolbar-row">
+            <InputGroup className="riwayat-search">
                 <InputGroup.Text>
                   <IconSearch size={18} />
                 </InputGroup.Text>
@@ -275,23 +307,33 @@ const ConsumableMasukManager = () => {
                 {searchTerm && (
                   <Button
                     variant="link"
-                    className="consumablemasuk-search-clear"
+                    className="riwayat-search-clear"
                     onClick={() => setSearchTerm("")}
                     aria-label="Bersihkan pencarian"
                   >
                     <IconX size={16} />
                   </Button>
                 )}
-              </InputGroup>
-            </Col>
-            <Col lg={6} md={5} className="text-md-end">
-              <span className="text-secondary small">
+            </InputGroup>
+            <span className="riwayat-info text-secondary small">
                 Menampilkan{" "}
                 <span className="fw-semibold text-body">{filteredMasukList.length}</span>{" "}
                 dari {masukList.length} data
-              </span>
-            </Col>
-          </Row>
+            </span>
+          </div>
+          <RiwayatFilterBar
+            bulanFilter={bulanFilter}
+            onBulanFilterChange={setBulanFilter}
+            tahunFilter={tahunFilter}
+            onTahunFilterChange={setTahunFilter}
+            tahunOptions={tahunOptions}
+            namaFilter={namaFilter}
+            onNamaFilterChange={setNamaFilter}
+            namaOptions={namaOptions}
+            namaLabel="Pencatat"
+            onExportPDF={handleExportPdf}
+            onExportExcel={handleExportExcel}
+          />
         </div>
 
         <CardBody>
