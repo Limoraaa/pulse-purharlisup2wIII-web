@@ -26,7 +26,7 @@ import KeteranganModal from "components/ruangtools/riwayat/common/KeteranganModa
 import { getRiwayatConsumableKeluarColumns } from "components/ruangtools/riwayat/consumablekeluar/ColumnDefination";
 import DetailTransaksiModal from "components/ruangtools/riwayat/consumablekeluar/DetailTransaksiModal";
 import EditRiwayatModal from "components/ruangtools/riwayat/consumablekeluar/EditRiwayatModal";
-import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
+import { exportToExcel, exportToPDF, ExportColumn, getFilteredExportFileName } from "components/ruangtools/riwayat/common/exportUtils";
 
 import { getRiwayatConsumableKeluar } from "services/consumableKeluarService";
 
@@ -153,9 +153,9 @@ const RiwayatConsumableKeluarManager = () => {
   };
 
   const handleExportPDF = () =>
-    exportToPDF(filteredList, EXPORT_COLUMNS, "riwayat-consumable-keluar", "Riwayat Consumable Keluar");
+    exportToPDF(filteredList, EXPORT_COLUMNS, getFilteredExportFileName("Riwayat_Consumable_Keluar", namaFilter), "Riwayat Consumable Keluar");
   const handleExportExcel = () =>
-    exportToExcel(filteredList, EXPORT_COLUMNS, "riwayat-consumable-keluar");
+    exportToExcel(filteredList, EXPORT_COLUMNS, getFilteredExportFileName("Riwayat_Consumable_Keluar", namaFilter));
 
   const columns = getRiwayatConsumableKeluarColumns({
   onDetail: openDetailModal,

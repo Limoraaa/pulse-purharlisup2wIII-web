@@ -9,6 +9,21 @@ export interface ExportColumn {
   key: string; // nama field pada object data (top-level)
 }
 
+// Tambahkan nama filter ke filename hanya bila user memilih nama tertentu.
+// Karakter ilegal untuk nama file dihapus dan spasi dijadikan underscore.
+export function getFilteredExportFileName(baseName: string, selectedName?: string): string {
+  const name = selectedName?.trim();
+  if (!name || name === "Semua" || /^semua\s/i.test(name)) return baseName;
+
+  const safeName = name
+    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, "")
+    .trim()
+    .replace(/\s+/g, "_")
+    .replace(/_+/g, "_");
+
+  return safeName ? `${baseName}_${safeName}` : baseName;
+}
+
 // Path logo PLN -- taruh file logo di folder public/ project kamu,
 // sesuaikan path ini kalau nama/lokasi filenya beda.
 const LOGO_PATH = "/images/brand/Logo-PLN-polos.png";

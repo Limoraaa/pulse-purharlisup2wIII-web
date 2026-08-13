@@ -33,7 +33,7 @@ import Flex from "components/common/Flex";
 import DasherBreadcrumb from "components/common/DasherBreadcrumb";
 import { getPeminjamanAktifColumns } from "components/ruangtools/peminjamanaktif/ColumnDefination";
 import RiwayatFilterBar from "components/ruangtools/riwayat/common/RiwayatFilterBar";
-import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
+import { exportToExcel, exportToPDF, ExportColumn, getFilteredExportFileName } from "components/ruangtools/riwayat/common/exportUtils";
 import FormPengembalianModal, {
   PengembalianSubmitPayload,
 } from "components/ruangtools/peminjamanaktif/FormPengembalianModal";
@@ -87,8 +87,9 @@ const PeminjamanAktifManager = () => {
   const tahunOptions = useMemo(() => Array.from(new Set(items.map((item) => parseTanggal(item.tanggal)?.getFullYear()).filter((year): year is number => Boolean(year)))).sort((a, b) => b - a), [items]);
   const namaOptions = useMemo(() => Array.from(new Set(items.map((item) => item.namaPeminjam))).sort(), [items]);
   const exportRows = useMemo(() => filteredItems.map((item) => ({ ...item })), [filteredItems]);
-  const handleExportPdf = () => exportToPDF(exportRows, EXPORT_COLUMNS, "peminjaman-aktif", "Peminjaman Aktif");
-  const handleExportExcel = () => exportToExcel(exportRows, EXPORT_COLUMNS, "peminjaman-aktif", "Peminjaman Aktif");
+  const getExportName = () => getFilteredExportFileName("Peminjaman_Aktif", namaFilter);
+  const handleExportPdf = () => exportToPDF(exportRows, EXPORT_COLUMNS, getExportName(), "Peminjaman Aktif");
+  const handleExportExcel = () => exportToExcel(exportRows, EXPORT_COLUMNS, getExportName(), "Peminjaman Aktif");
 
   const loadData = async () => {
     setLoading(true);
