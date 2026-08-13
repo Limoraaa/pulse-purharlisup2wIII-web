@@ -2159,6 +2159,229 @@ html.collapsed #miniSidebar,
   }
 }
 
+// Filter toolbar operasional: visual identik dengan toolbar Riwayat/Laporan.
+.operational-filterbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+
+  .operational-filter-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .operational-export-controls {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .operational-filter-group {
+    flex-wrap: nowrap;
+
+    .input-group-text {
+      height: 44px;
+      background-color: var(--#{$prefix}body-bg);
+      border-right: 0;
+      color: var(--#{$prefix}gray-600);
+    }
+
+    .form-select {
+      height: 44px;
+      min-width: 160px;
+      border-left: 0;
+
+      &:focus {
+        box-shadow: none;
+        border-color: var(--#{$prefix}border-color);
+      }
+    }
+
+    &:focus-within {
+      .input-group-text,
+      .form-select {
+        border-color: var(--#{$prefix}primary);
+      }
+    }
+  }
+
+  .btn {
+    height: 44px;
+  }
+
+  @include media-breakpoint-down(md) {
+    flex-direction: column;
+    align-items: stretch;
+
+    .operational-filter-controls,
+    .operational-export-controls {
+      flex-direction: column;
+      align-items: stretch;
+      width: 100%;
+    }
+
+    .operational-filter-group {
+      width: 100%;
+
+      .form-select {
+        min-width: 0;
+        flex: 1 1 auto;
+        width: auto;
+      }
+    }
+
+    .operational-export-controls .btn {
+      width: 100%;
+    }
+  }
+}
+
+// Toolbar operasional & riwayat: satu layout referensi untuk Search, Filter,
+// dan Export. Semua halaman memakai struktur vertikal yang sama.
+.peminjamanaktif-page,
+.consumablemasuk-page,
+.riwayat-page {
+  .riwayat-toolbar {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+  }
+
+  .riwayat-toolbar-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    width: 100%;
+  }
+
+  .riwayat-search {
+    flex: 0 0 50%;
+    max-width: 50%;
+
+    .input-group-text {
+      background-color: var(--#{$prefix}body-bg);
+      border-right: 0;
+      color: var(--#{$prefix}gray-600);
+    }
+
+    .form-control {
+      height: 44px;
+      border-left: 0;
+      padding-left: 0;
+
+      &:focus {
+        box-shadow: none;
+        border-color: var(--#{$prefix}border-color);
+      }
+    }
+
+    &:focus-within {
+      .input-group-text,
+      .form-control {
+        border-color: var(--#{$prefix}primary);
+      }
+    }
+
+    .riwayat-search-clear {
+      position: absolute;
+      right: 0;
+      top: 0;
+      z-index: 5;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      padding: 0 0.75rem;
+      color: var(--#{$prefix}gray-600);
+      text-decoration: none;
+    }
+  }
+
+  .riwayat-info {
+    flex: 1 1 auto;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  // Filter berada tepat di bawah search, satu kolom dengan lebar sama.
+  .riwayat-filterbar {
+    width: 50%;
+    margin-top: 0;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 0.75rem;
+  }
+
+  .riwayat-filter-controls {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 0.75rem;
+  }
+
+  .riwayat-filter-group {
+    width: 100%;
+    flex-wrap: nowrap;
+
+    .form-select {
+      min-width: 0;
+      flex: 1 1 auto;
+      width: auto;
+    }
+  }
+
+  // Export berada di bawah semua filter, tetap horizontal.
+  .riwayat-export-controls {
+    display: flex;
+    flex-direction: row;
+    gap: 0.5rem;
+    width: 100%;
+
+    .btn {
+      flex: 1 1 0;
+      width: auto;
+    }
+  }
+
+  @include media-breakpoint-down(md) {
+    .riwayat-toolbar {
+      padding: 1rem;
+    }
+
+    .riwayat-toolbar-row {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.5rem;
+    }
+
+    .riwayat-search,
+    .riwayat-filterbar {
+      width: 100%;
+      max-width: 100%;
+      flex-basis: auto;
+    }
+
+    .riwayat-info {
+      text-align: left;
+    }
+
+    .riwayat-export-controls {
+      flex-direction: column;
+
+      .btn {
+        width: 100%;
+      }
+    }
+  }
+}
+
 // Action cell Data Tools / Data Consumable: slot tetap menjaga tombol titik tiga
 // berada pada koordinat horizontal yang sama meski tombol utama disabled.
 .datatools-action-cell,
