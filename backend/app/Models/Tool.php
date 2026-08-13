@@ -46,7 +46,10 @@ class Tool extends Model
     {
         return $this->hasMany(LaporanKerusakanTools::class, 'tool_id');
     }
-
+    public function masuk(): HasMany
+    {
+        return $this->hasMany(ToolMasuk::class);
+    }
     /**
      * Hitung berapa unit alat ini sedang dipinjam (belum kembali).
      * Pemakaian: $tool->sedangDipinjam()

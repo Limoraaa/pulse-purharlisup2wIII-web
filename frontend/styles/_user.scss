@@ -1178,7 +1178,8 @@
 // Consumable Masuk - scoped (UI only, tidak berdampak ke halaman lain)
 // Pola sama dengan halaman data lain.
 // ============================================================
-.consumablemasuk-page {
+.consumablemasuk-page
+.toolsmasuk-page {
   // ---- Toolbar: search ----
   .consumablemasuk-toolbar {
     padding: 1rem 1.25rem;
@@ -2244,6 +2245,7 @@ html.collapsed #miniSidebar,
 // dan Export. Semua halaman memakai struktur vertikal yang sama.
 .peminjamanaktif-page,
 .consumablemasuk-page,
+.toolsmasuk-page,
 .riwayat-page {
   .riwayat-toolbar {
     display: flex;
@@ -2502,6 +2504,7 @@ html.collapsed #miniSidebar,
 .datapeminjam-page,
 .peminjamanaktif-page,
 .consumablemasuk-page,
+.toolsmasuk-page,
 .riwayat-page {
   .table-responsive {
     // Kolom terakhir (Aksi) selalu terlihat saat scroll horizontal

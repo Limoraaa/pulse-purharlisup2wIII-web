@@ -142,7 +142,7 @@ const ToolFormModal = ({
 
             <Col md={12}>
               <Form.Label>
-                Stok <span className="text-danger">*</span>
+                Stok <span className="text-danger"></span>
               </Form.Label>
               <Form.Control
                 required
