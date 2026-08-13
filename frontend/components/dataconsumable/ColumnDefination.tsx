@@ -140,7 +140,8 @@ export const getConsumableColumns = ({
       };
 
       return (
-        <div className="d-flex align-items-center gap-2">
+        <div className="dataconsumable-action-cell">
+          <div className="dataconsumable-action-main">
           {/* Tombol Utama: Ambil Bahan */}
           <button
             type="button"
@@ -155,14 +156,17 @@ export const getConsumableColumns = ({
                 title di atas tetap kasih tooltip + aksesibilitas. */}
             <span className="d-none d-lg-inline">Ambil Bahan</span>
           </button>
+          </div>
 
           {/* Menu Aksi Lainnya */}
-          <ActionMenu
-            toggleButton={<IconDotsVertical size={20} />}
-            className="btn btn-ghost btn-icon btn-sm rounded-circle"
-            drop="start"
-            align="start"
-          >
+          <div className="dataconsumable-action-menu">
+            <ActionMenu
+              toggleButton={<IconDotsVertical size={20} />}
+              className="btn btn-ghost btn-icon btn-sm rounded-circle"
+              drop="start"
+              align="start"
+              closeOnScroll
+            >
             <Dropdown.Item onClick={() => onDetail(consumable)}>
               Detail Bahan
             </Dropdown.Item>
@@ -181,7 +185,8 @@ export const getConsumableColumns = ({
               Download QR
             </Dropdown.Item>
             
-          </ActionMenu>
+            </ActionMenu>
+          </div>
         </div>
       );
     },

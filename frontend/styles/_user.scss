@@ -2159,6 +2159,114 @@ html.collapsed #miniSidebar,
   }
 }
 
+// Action cell Data Tools / Data Consumable: slot tetap menjaga tombol titik tiga
+// berada pada koordinat horizontal yang sama meski tombol utama disabled.
+.datatools-action-cell,
+.dataconsumable-action-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+}
+
+.datatools-action-main,
+.dataconsumable-action-main {
+  display: flex;
+  align-items: center;
+  flex: 0 0 190px;
+  min-width: 190px;
+
+  // Tombol utama tetap memiliki lebar yang sama saat teks berubah
+  // dari "Tambah ..." menjadi "Stok Habis".
+  > button {
+    width: 190px;
+    height: 38px;
+    padding: 0 0.75rem;
+    justify-content: flex-start;
+    white-space: nowrap;
+  }
+}
+
+// Label consumable lebih pendek; gunakan slot proporsional tanpa menggeser menu.
+.dataconsumable-action-main {
+  flex-basis: 128px;
+  min-width: 128px;
+
+  > button {
+    width: 128px;
+  }
+}
+
+.datatools-action-menu,
+.dataconsumable-action-menu {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 36px;
+  min-width: 36px;
+}
+
+@include media-breakpoint-down(lg) {
+  .datatools-action-main,
+  .dataconsumable-action-main {
+    flex-basis: 40px;
+    min-width: 40px;
+
+    > button {
+      width: 40px;
+      height: 38px;
+      padding: 0;
+      justify-content: center;
+    }
+  }
+
+  .dataconsumable-action-main {
+    flex-basis: 40px;
+    min-width: 40px;
+
+    > button {
+      width: 40px;
+    }
+  }
+}
+
+// Action dropdown berada di atas row/table tanpa mengubah tinggi baris.
+.datatools-action-menu,
+.dataconsumable-action-menu {
+  z-index: 10;
+
+  .dropdown-menu {
+    z-index: 1080;
+  }
+}
+
+// Saat dropdown terbuka, naikkan row/cell pemiliknya di atas row lain.
+.datatools-action-cell:has(.dropdown-menu.show),
+.dataconsumable-action-cell:has(.dropdown-menu.show) {
+  z-index: 20;
+}
+
+// table-responsive memotong dropdown karena overflow:auto. Lepaskan clipping
+// hanya selama menu terbuka; horizontal scrolling tetap aktif saat tertutup.
+.datatools-page .table-responsive:has(.dropdown-menu.show),
+.dataconsumable-page .table-responsive:has(.dropdown-menu.show) {
+  overflow: visible;
+}
+
+// Naikkan cell sticky pemilik dropdown, bukan hanya wrapper action.
+// Sticky td membentuk stacking context sendiri; z-index pada child saja tidak cukup.
+.datatools-page .table-responsive tbody td:has(.dropdown-menu.show),
+.dataconsumable-page .table-responsive tbody td:has(.dropdown-menu.show) {
+  z-index: 1000 !important;
+}
+
+.datatools-page .table-responsive tbody tr:has(.dropdown-menu.show),
+.dataconsumable-page .table-responsive tbody tr:has(.dropdown-menu.show) {
+  position: relative;
+  z-index: 1000;
+}
+
 // ============================================================
 // Tabel dengan banyak kolom - kolom "Aksi" sticky di kanan (UI only)
 // Scoped ke wrapper halaman manager (tidak menyentuh TanstackTable shared
