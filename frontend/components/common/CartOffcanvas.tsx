@@ -1,6 +1,6 @@
 "use client";
 // import node module libraries
-import { Offcanvas, Button } from "react-bootstrap";
+import { Offcanvas, Button, Form } from "react-bootstrap";
 import {
   IconTrash,
   IconMinus,
@@ -42,6 +42,7 @@ const CartOffcanvas = ({
   onRemove,
   onProceed,
 }: CartOffcanvasProps) => {
+
   const handleDecrease = (item: UnifiedCartItem) => {
     if (item.jumlah <= 1) return;
     const targetId = item.cartId ?? item.id ?? "";
@@ -53,6 +54,30 @@ const CartOffcanvas = ({
     if (item.jumlah >= maxLimit) return;
     const targetId = item.cartId ?? item.id ?? "";
     onUpdateQty(targetId, item.jumlah + 1); 
+  };
+
+  // Fungsi baru untuk menangani input angka manual
+  const handleInputChange = (item: UnifiedCartItem, value: string) => {
+    // Hanya izinkan angka
+    const digitsOnly = value.replace(/[^0-9]/g, "");
+    
+    // Jika input dikosongkan sementara oleh user (saat menghapus angka), 
+    // kita biarkan saja / kirim 1 agar tidak error, tapi jangan langsung panggil update jika empty string
+    if (digitsOnly === "") {
+        // Bisa dibiarkan saja karena akan dikoreksi saat onBlur, 
+        // atau kita tembak angka 1 sementara.
+        return; 
+    }
+
+    let num = Number(digitsOnly);
+    const maxLimit = item.maxJumlah ?? item.stok_tersedia ?? 99;
+
+    // Batasi nilai agar tidak lebih dari stok dan tidak kurang dari 1
+    if (num > maxLimit) num = maxLimit;
+    if (num < 1) num = 1;
+
+    const targetId = item.cartId ?? item.id ?? "";
+    onUpdateQty(targetId, num);
   };
 
   const totalUnit = items.reduce((sum, item) => sum + item.jumlah, 0);
@@ -122,9 +147,24 @@ const CartOffcanvas = ({
                       >
                         <IconMinus size={14} />
                       </Button>
-                      <span className="cart-stepper-value fw-semibold text-center">
-                        {item.jumlah}
-                      </span>
+                      
+                      {/* INPUT MANUAL QUANTITY */}
+                      <Form.Control
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        className="cart-stepper-input text-center fw-semibold mx-1 p-0 border-0"
+                        style={{ width: "40px", boxShadow: "none", backgroundColor: "transparent" }}
+                        value={item.jumlah}
+                        onChange={(e) => handleInputChange(item, e.target.value)}
+                        // Tambahkan onBlur untuk memastikan jika input kosong saat ditinggalkan, di-reset ke 1
+                        onBlur={(e) => {
+                            if(e.target.value === "" || Number(e.target.value) < 1) {
+                                handleInputChange(item, "1");
+                            }
+                        }}
+                      />
+
                       <Button
                         variant="outline-secondary"
                         className="cart-stepper-btn d-flex align-items-center justify-content-center p-0"
