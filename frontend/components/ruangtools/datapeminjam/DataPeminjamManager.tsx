@@ -76,17 +76,36 @@ const PeminjamManager = () => {
   const [searchTerm, setSearchTerm] = useState("");
 
   // Data turunan untuk tampilan; sumber data (peminjamList) tidak diubah.
+  // Data turunan untuk tampilan; sumber data (peminjamList) tidak diubah.
+  // Data turunan untuk tampilan; sumber data (peminjamList) tidak diubah.
+  // Data turunan untuk tampilan; sumber data (peminjamList) tidak diubah.
   const filteredPeminjam = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
+    
+    // Jika kolom pencarian kosong, langsung kembalikan semua data
+    if (!keyword) return peminjamList;
+
     return peminjamList.filter((item) => {
-      const cocokKeyword =
-        keyword === "" ||
-        item.nama.toLowerCase().includes(keyword) ||
-        item.divisi.toLowerCase().includes(keyword) ||
-        // Deteksi pencarian menggunakan RFID
-        (item.id && item.id.toLowerCase().includes(keyword)); 
-        
-      return cocokKeyword;
+      // 1. Amankan data dari nilai null/undefined (Null-Safety)
+      const nama = (item.nama || "").toLowerCase();
+      const divisi = (item.divisi || "").toLowerCase();
+      const rfid = (item.id || "").toLowerCase();
+      
+      // 2. TERJEMAHKAN ROLE: Jika dari DB adalah "user", anggap sebagai "pekerja"
+      const rawRole = (item.role || "").toLowerCase();
+      const role = rawRole === "user" ? "pekerja" : rawRole;
+      
+      // 3. Terjemahkan boolean aktif menjadi teks agar bisa dicari
+      const status = item.aktif ? "aktif" : "nonaktif";
+
+      // 4. Cocokkan keyword dengan semua properti
+      return (
+        nama.includes(keyword) ||
+        divisi.includes(keyword) ||
+        role.includes(keyword) ||
+        rfid.includes(keyword) ||
+        status.includes(keyword)
+      );
     });
   }, [peminjamList, searchTerm]);
 
