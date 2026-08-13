@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\PemintaController;
 use App\Http\Controllers\Api\PeminjamanController;
 use App\Http\Controllers\Api\ConsumableMasukController;
 use App\Http\Controllers\Api\ConsumableKeluarController;
+use App\Http\Controllers\Api\ToolMasukController;
 use App\Http\Controllers\Api\LaporanKerusakanController;
 
 Route::post('/login', [AuthController::class, 'login']);
@@ -26,6 +27,7 @@ Route::apiResource('peminta', PemintaController::class);
 Route::patch('/peminta/{id}/aktifkan', [PemintaController::class, 'aktifkan']);
 
 Route::apiResource('consumable-masuk', ConsumableMasukController::class);
+Route::apiResource('tools-masuk', ToolMasukController::class);
 // HAPUS Route::apiResource('consumable-keluar') DARI SINI
 Route::apiResource('laporan-kerusakan', LaporanKerusakanController::class);
 

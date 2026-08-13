@@ -155,7 +155,7 @@ useEffect(() => {
               />
             </Col>           
             <Col md={6}>
-              <Form.Label>Stok Awal <span className="text-danger">*</span></Form.Label>
+              <Form.Label>Stok Awal <span className="text-danger"></span></Form.Label>
               <Form.Control
                 required
                 type="text"

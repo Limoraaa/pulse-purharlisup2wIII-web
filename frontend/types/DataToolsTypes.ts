@@ -16,6 +16,40 @@ export interface ToolItemType {
 export type ToolFormValues = Omit<ToolItemType, "id">;
 
 // ------------------------------------------------------------------
+// Tools Masuk (riwayat alat masuk)
+// ------------------------------------------------------------------
+export interface ToolMasukType {
+  id: string;
+  tanggal: string;
+  tool_id: string;
+  kode_barang: string;
+  nama_barang: string;
+  merk: string;
+  tipe: string;
+  warna: string;
+  ukuran: string;
+  jumlah_masuk: number;
+  keterangan: string;
+  dicatatOleh?: {
+    id: string;
+    name: string;
+  };
+}
+
+export interface ToolMasukFormValues {
+  tanggal: string;
+  tool_id: string;
+  kode_barang: string;
+  nama_barang: string;
+  merk: string;
+  tipe: string;
+  warna: string;
+  ukuran: string;
+  jumlah_masuk: number;
+  keterangan: string;
+  id_card?: string;
+}
+// ------------------------------------------------------------------
 // Keranjang Peminjaman
 // ------------------------------------------------------------------
 export interface CartItemType {

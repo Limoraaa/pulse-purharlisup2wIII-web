@@ -52,6 +52,11 @@ export const DashboardMenu: MenuItemType[] = [
         name: "Consumable Masuk",
         link: "/transaksi/consumable-masuk",
       },
+      {
+        id: uuid(),
+        name: "Tools Masuk",
+        link: "/transaksi/tools-masuk",
+      },
     ],
   },
   {
