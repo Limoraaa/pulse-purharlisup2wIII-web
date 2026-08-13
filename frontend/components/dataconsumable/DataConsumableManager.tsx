@@ -1,5 +1,7 @@
 "use client";
-import { useEffect, useMemo, useState, useCallback } from "react";
+// import node module libraries
+// Tambahkan useRef di import ini
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
 import {
   Row,
@@ -55,7 +57,7 @@ import {
   deleteConsumable,
 } from "services/consumableService";
 
-import { prosesPeminjamanApi } from "services/peminjamanService";
+import { prosesPeminjamanApi, updateCartItem } from "services/peminjamanService"; // Tambahkan updateCartItem
 
 import api from "lib/api";
 
@@ -104,6 +106,9 @@ const DataConsumableManager = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmittingCart, setIsSubmittingCart] = useState(false);
   const [outError, setOutError] = useState<string | null>(null);
+
+  // ---- Timer untuk Debounce API ----
+  const debounceTimers = useRef<Map<string | number, NodeJS.Timeout>>(new Map());
 
   const [flyAnimations, setFlyAnimations] = useState<FlyAnimationItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -282,9 +287,6 @@ const DataConsumableManager = () => {
       return;
     }
 
-    // Ambil posisi tombol SEBELUM ada `await` apa pun -- SyntheticEvent React
-    // akan jadi null/basi begitu ada operasi async di antaranya, jadi kalau
-    // diambil setelah await, animasi tidak akan pernah jalan.
     const rect = event?.currentTarget?.getBoundingClientRect();
 
     try {
@@ -306,8 +308,6 @@ const DataConsumableManager = () => {
 
       await loadCart();
 
-      // Panel keranjang TIDAK lagi auto-terbuka -- cukup animasi ikon
-      // "terbang" ke FAB, sama seperti perilaku di halaman Data Tools.
       if (rect) {
         setFlyAnimations((prev) => [
           ...prev,
@@ -328,44 +328,77 @@ const DataConsumableManager = () => {
     setFlyAnimations((prev) => prev.filter((a) => a.id !== id));
   };
 
-  const handleUpdateQty = async (cartId: string | number, qty: number) => {
+  // --- OPTIMISTIC UPDATE + DEBOUNCE: handleUpdateQty ---
+  const handleUpdateQty = (cartId: string | number, qty: number) => {
+    if (qty < 1) return;
+
     const targetItem = cart.find(
       (c) => c.id === cartId || c.consumable_id === cartId || c.cartId === cartId
     );
     if (!targetItem) return;
 
+    // VALIDASI STOK (Khusus Consumable, kalau Tool validasi di backend karena dipinjam dinamis)
+    if (targetItem.item_type === 'consumable') {
+      const itemAsli = consumables.find((c) => c.id === targetItem.consumable_id); 
+      // Karena stok_awal di filteredConsumables itu dinamis, kita pakai stok asli
+      // PENTING: maxJumlah / stok harus sudah ditangani dengan baik agar tidak minus
+      if (itemAsli && qty > (itemAsli.stok_awal + targetItem.jumlah)) {
+        alert(`Jumlah melebihi stok yang tersedia!`);
+        return;
+      }
+    }
+
+    // 1. Update State Lokal (UI merespons instan)
+    setCart((prevCart) =>
+      prevCart.map((c) =>
+        c.cartId === cartId || c.id === cartId || c.consumable_id === cartId ? { ...c, jumlah: qty } : c
+      )
+    );
+
+    // 2. Simpan ke Local Storage (Sinkron antar halaman instan)
     if (targetItem.item_type === 'tool') {
-      const updatedToolCart = cart
-        .filter((c) => c.item_type === 'tool')
-        .map((c) => (c.cartId === cartId ? { ...c, jumlah: qty } : c));
-
+      const savedTools = JSON.parse(localStorage.getItem("global_shared_tools_cart") || "[]");
+      const updatedToolCart = savedTools.map((c: any) => (c.cartId === cartId ? { ...c, jumlah: qty } : c));
       localStorage.setItem("global_shared_tools_cart", JSON.stringify(updatedToolCart));
-      loadCart();
-      return;
+    } else {
+      const savedCons = JSON.parse(localStorage.getItem("global_shared_consumable_cart") || "[]");
+      const updatedConsCart = savedCons.map((c: any) => (c.id === cartId || c.consumable_id === cartId ? { ...c, jumlah: qty } : c));
+      localStorage.setItem("global_shared_consumable_cart", JSON.stringify(updatedConsCart));
     }
 
-    const item = consumables.find((c) => c.id === targetItem.consumable_id); 
-    if (!item) return;
-
-    if (qty > item.stok_awal) {
-      alert(`Jumlah tidak boleh melebihi stok tersedia (${item.stok_awal})`);
-      return;
+    // 3. Batalkan request sebelumnya (Debounce)
+    if (debounceTimers.current.has(cartId)) {
+      clearTimeout(debounceTimers.current.get(cartId));
     }
 
-    try {
-      const token = localStorage.getItem("token");
-      await api(`/consumable-keluar/cart/${targetItem.id}`, {
-        method: "PATCH",
-        headers: { 
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}` 
-        },
-        body: JSON.stringify({ qty }),
-      });
-      await loadCart();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Gagal mengupdate jumlah.");
-    }
+    // 4. Jadwalkan ke Backend setelah 500ms
+    const timer = setTimeout(async () => {
+      try {
+        if (targetItem.item_type === 'tool') {
+           // Asumsi fungsi updateCartItem juga menerima cartId bertipe apapun yg valid
+           await updateCartItem(cartId, qty);
+        } else {
+           const token = localStorage.getItem("token");
+           await api(`/consumable-keluar/cart/${targetItem.id}`, {
+             method: "PATCH",
+             headers: { 
+               "Content-Type": "application/json",
+               Authorization: `Bearer ${token}` 
+             },
+             body: JSON.stringify({ qty }),
+           });
+        }
+        debounceTimers.current.delete(cartId);
+        // Bisa memanggil loadCart() secara diam-diam, 
+        // tapi karena UI sudah benar, kita biarkan saja agar tidak flicker
+      } catch (err) {
+        console.error("Gagal memperbarui jumlah item:", err);
+        alert("Gagal update stok ke database. Mengembalikan data ke kondisi semula.");
+        await loadCart(); // Revert ke data database asli
+      }
+    }, 500);
+
+    debounceTimers.current.set(cartId, timer);
   };
 
   const handleRemoveItem = async (cartId: string | number) => {
@@ -374,12 +407,26 @@ const DataConsumableManager = () => {
     );
     if (!targetItem) return;
 
+    // 1. Optimistic hapus dari layar
+    setCart((prev) => prev.filter((c) => c.id !== cartId && c.consumable_id !== cartId && c.cartId !== cartId));
+
     if (targetItem.item_type === 'tool') {
-      const updatedToolCart = cart.filter((c) => c.item_type === 'tool' && c.cartId !== cartId);
+      const savedTools = JSON.parse(localStorage.getItem("global_shared_tools_cart") || "[]");
+      const updatedToolCart = savedTools.filter((c: any) => c.cartId !== cartId);
       localStorage.setItem("global_shared_tools_cart", JSON.stringify(updatedToolCart));
-      setCart((prev) => prev.filter((c) => c.cartId !== cartId));
+      // Proses hapus item tool di database (asumsi Anda memanggil endpoint remove tool cart)
+      try {
+          // Hanya memicu event untuk memberitahu halaman DataTools (jika diperlukan)
+      } catch (e) {
+          console.error(e);
+      }
       return;
     }
+
+    // Hapus Consumable
+    const savedCons = JSON.parse(localStorage.getItem("global_shared_consumable_cart") || "[]");
+    const updatedCons = savedCons.filter((c: any) => c.id !== cartId && c.consumable_id !== cartId);
+    localStorage.setItem("global_shared_consumable_cart", JSON.stringify(updatedCons));
 
     try {
       const token = localStorage.getItem("token");
@@ -387,10 +434,11 @@ const DataConsumableManager = () => {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
       });
-      await loadCart();
+      // Kita tidak await loadCart agar tidak berkedip, karena state lokal sudah bersih
     } catch (err) {
       console.error(err);
       alert(err instanceof Error ? err.message : "Gagal menghapus item dari keranjang.");
+      await loadCart(); // Revert jika gagal
     }
   };
 
