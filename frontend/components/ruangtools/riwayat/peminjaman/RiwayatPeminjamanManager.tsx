@@ -21,7 +21,7 @@ import DasherBreadcrumb from "components/common/DasherBreadcrumb";
 import RiwayatFilterBar from "components/ruangtools/riwayat/common/RiwayatFilterBar";
 import { getRiwayatPeminjamanColumns } from "components/ruangtools/riwayat/peminjaman/ColumnDefination";
 import DetailTransaksiModal from "components/ruangtools/riwayat/peminjaman/DetailTransaksiModal";
-import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
+import { exportToExcel, exportToPDF, ExportColumn, getFilteredExportFileName } from "components/ruangtools/riwayat/common/exportUtils";
 
 import { getRiwayatPeminjaman } from "services/peminjamanService";
 
@@ -138,9 +138,9 @@ const RiwayatPeminjamanManager = () => {
   };
 
   const handleExportPDF = () =>
-    exportToPDF(filteredList, EXPORT_COLUMNS, "riwayat-peminjaman-tools", "Riwayat Peminjaman Tools");
+    exportToPDF(filteredList, EXPORT_COLUMNS, getFilteredExportFileName("Riwayat_Peminjaman_Tools", namaFilter), "Riwayat Peminjaman Tools");
   const handleExportExcel = () =>
-    exportToExcel(filteredList, EXPORT_COLUMNS, "riwayat-peminjaman-tools");
+    exportToExcel(filteredList, EXPORT_COLUMNS, getFilteredExportFileName("Riwayat_Peminjaman_Tools", namaFilter));
 
   const columns = getRiwayatPeminjamanColumns({
     onDetail: openDetailModal,

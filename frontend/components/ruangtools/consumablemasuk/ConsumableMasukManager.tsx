@@ -31,7 +31,7 @@ import TanstackTable from "components/table/TanstackTable";
 import Flex from "components/common/Flex";
 import DasherBreadcrumb from "components/common/DasherBreadcrumb";
 import RiwayatFilterBar from "components/ruangtools/riwayat/common/RiwayatFilterBar";
-import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
+import { exportToExcel, exportToPDF, ExportColumn, getFilteredExportFileName } from "components/ruangtools/riwayat/common/exportUtils";
 import { getConsumableMasukColumns } from "components/ruangtools/consumablemasuk/ColumnDefination";
 import ConsumableMasukFormModal from "components/ruangtools/consumablemasuk/ConsumableMasukFormModal";
 import DeleteConfirmModal from "components/ruangtools/consumablemasuk/DeleteConfirmModal";
@@ -106,8 +106,9 @@ const ConsumableMasukManager = () => {
     ...item,
     nama_pencatat: getNamaPencatat(item),
   })), [filteredMasukList]);
-  const handleExportPdf = () => exportToPDF(exportRows, EXPORT_COLUMNS, "consumable-masuk", "Consumable Masuk");
-  const handleExportExcel = () => exportToExcel(exportRows, EXPORT_COLUMNS, "consumable-masuk", "Consumable Masuk");
+  const getExportName = () => getFilteredExportFileName("Consumable_Masuk", namaFilter);
+  const handleExportPdf = () => exportToPDF(exportRows, EXPORT_COLUMNS, getExportName(), "Consumable Masuk");
+  const handleExportExcel = () => exportToExcel(exportRows, EXPORT_COLUMNS, getExportName(), "Consumable Masuk");
 
   const loadConsumables = async () => {
     setLoadingConsumables(true);
