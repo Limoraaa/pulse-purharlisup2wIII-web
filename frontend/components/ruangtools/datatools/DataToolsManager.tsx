@@ -2,7 +2,8 @@
 // import node module libraries
 import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
 import { AntreanItemResponse } from "services/peminjamanService";
-import { useEffect, useMemo, useState, useCallback } from "react";
+// Tambahkan useRef di sini
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import {
   Row,
   Col,
@@ -135,6 +136,9 @@ const DataToolsManager = () => {
   const [loanFormOpen, setLoanFormOpen] = useState(false);
   const [submittingLoan, setSubmittingLoan] = useState(false);
   const [loanError, setLoanError] = useState<string | null>(null);
+
+  // ---- Timer untuk Debounce API ----
+  const debounceTimers = useRef<Map<string | number, NodeJS.Timeout>>(new Map());
 
   // ---- Animasi "fly to cart" ----
   const [flyAnimations, setFlyAnimations] = useState<FlyAnimationItem[]>([]);
@@ -293,8 +297,8 @@ const DataToolsManager = () => {
     setFlyAnimations((prev) => prev.filter((a) => a.id !== id));
   };
 
-  // --- PERBAIKAN BUG OPTIMISTIC UPDATE: handleUpdateQty ---
-  const handleUpdateQty = async (cartId: string | number, newJumlah: number) => {
+  // --- OPTIMISTIC UPDATE + DEBOUNCE: handleUpdateQty ---
+  const handleUpdateQty = (cartId: string | number, newJumlah: number) => {
     if (newJumlah < 1) return;
 
     // 1. Update state lokal secara instan (UI merespons tanpa lag)
@@ -307,30 +311,56 @@ const DataToolsManager = () => {
     const targetItem = cart.find((c) => c.cartId === cartId || c.id === cartId || c.consumable_id === cartId);
     if (!targetItem) return;
 
-    // 2. Jika item tersebut adalah Consumable
+    // 2. Simpan juga ke Local Storage seketika agar sinkron
     if (targetItem.item_type === "consumable") {
       const savedCons = JSON.parse(localStorage.getItem("global_shared_consumable_cart") || "[]");
       const updated = savedCons.map((c: any) => 
         c.id === cartId || c.consumable_id === cartId ? { ...c, jumlah: newJumlah } : c
       );
       localStorage.setItem("global_shared_consumable_cart", JSON.stringify(updated));
-      return;
+    } else {
+      const savedTools = JSON.parse(localStorage.getItem("global_shared_tools_cart") || "[]");
+      const updated = savedTools.map((c: any) =>
+        c.cartId === cartId || c.id === cartId ? { ...c, jumlah: newJumlah } : c
+      );
+      localStorage.setItem("global_shared_tools_cart", JSON.stringify(updated));
     }
 
-    // 3. Jika item tersebut adalah Tool (kirim ke backend di latar belakang)
-    try {
-      await updateCartItem(cartId, newJumlah);
-      // Mutate secara silent agar UI tidak jumpy
-      mutate("/peminjaman/antrean", async (currentData: any) => {
-        if (!currentData) return currentData;
-        return currentData.map((item: any) => 
-          item.id === cartId ? { ...item, qty: newJumlah } : item
-        );
-      }, false);
-    } catch (err) {
-      console.error("Gagal memperbarui jumlah item:", err);
-      mutate("/peminjaman/antrean"); // Revert jika gagal
+    // 3. Batalkan request API sebelumnya jika user masih asyik mengetik/ngeklik
+    if (debounceTimers.current.has(cartId)) {
+      clearTimeout(debounceTimers.current.get(cartId));
     }
+
+    // 4. Jadwalkan pengiriman API setelah user berhenti 500ms
+    const timer = setTimeout(async () => {
+      try {
+        if (targetItem.item_type === "consumable") {
+          const token = localStorage.getItem("token");
+          await api(`/consumable-keluar/cart/${targetItem.id}`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ qty: newJumlah }),
+          });
+        } else {
+          // Update item jenis Tool ke backend
+          await updateCartItem(cartId, newJumlah);
+        }
+
+        debounceTimers.current.delete(cartId);
+        
+        // Mutate secara silent agar UI tidak jumpy, karena layar sudah benar angkanya
+        mutate("/peminjaman/antrean"); // Sinkronisasi senyap tanpa mengosongkan layar
+      } catch (err) {
+        console.error("Gagal memperbarui jumlah item:", err);
+        // Jika backend menolak (misal error server/stok limit), paksa ambil nilai asli dari database
+        mutate("/peminjaman/antrean");
+      }
+    }, 500);
+
+    debounceTimers.current.set(cartId, timer);
   };
 
   // --- PERBAIKAN BUG OPTIMISTIC UPDATE: handleRemoveFromCart ---
