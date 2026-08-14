@@ -127,12 +127,14 @@ class DashboardController extends Controller
         // (Sesuai dengan validator di LaporanKerusakanController)
         $sedangDiperbaiki = LaporanKerusakanTools::where('status', 'bisa_diperbaiki')->sum('jumlah');
         $sudahDiperbaiki = LaporanKerusakanTools::where('status', 'selesai_diperbaiki')->sum('jumlah');
+        $rusakPermanen = LaporanKerusakanTools::where('status', 'rusak_permanen')->sum('jumlah');
 
         return response()->json([
             'bulan_ini' => $bulanIni,
             'total_semua' => $totalSemua,
             'sedang_diperbaiki' => $sedangDiperbaiki,
             'sudah_diperbaiki' => $sudahDiperbaiki,
+            'rusak_permanen' => $rusakPermanen,
         ]);
     }
 
