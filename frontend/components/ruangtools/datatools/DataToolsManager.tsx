@@ -190,15 +190,40 @@ const DataToolsManager = () => {
   }, [dbCart]);
 
   // Data filter tabel
+  // Data filter tabel (Diperbarui untuk mencari di semua kolom & Null-Safety)
   const filteredTools = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
+    
+    // Jika kolom pencarian kosong, langsung kembalikan semua data
+    if (!keyword) return tools;
+
     return tools.filter((tool) => {
+      // 1. Amankan teks dari nilai null/undefined (Null-Safety)
+      const kodeBarang = (tool.kodeBarang || "").toLowerCase();
+      const namaBarang = (tool.namaBarang || "").toLowerCase();
+      const merk = (tool.merk || "").toLowerCase();
+      const tipe = (tool.tipe || "").toLowerCase();
+      const warna = (tool.warna || "").toLowerCase();
+      const ukuran = (tool.ukuran || "").toLowerCase();
+      const kondisi = (tool.kondisi || "").toLowerCase();
+
+      // 2. Konversi tipe data angka menjadi teks agar bisa di-search
+      const stok = String(tool.stok || 0);
+      const dipinjam = String(tool.dipinjam || 0);
+      const tersedia = String((tool.stok || 0) - (tool.dipinjam || 0));
+
+      // 3. Cocokkan keyword dengan semua properti yang ada di tabel
       return (
-        keyword === "" ||
-        tool.kodeBarang.toLowerCase().includes(keyword) ||
-        tool.namaBarang.toLowerCase().includes(keyword) ||
-        tool.merk.toLowerCase().includes(keyword) ||
-        tool.tipe.toLowerCase().includes(keyword)
+        kodeBarang.includes(keyword) ||
+        namaBarang.includes(keyword) ||
+        merk.includes(keyword) ||
+        tipe.includes(keyword) ||
+        warna.includes(keyword) ||
+        ukuran.includes(keyword) ||
+        kondisi.includes(keyword) ||
+        stok.includes(keyword) ||
+        dipinjam.includes(keyword) ||
+        tersedia.includes(keyword)
       );
     });
   }, [tools, searchTerm]);
@@ -537,7 +562,7 @@ const DataToolsManager = () => {
                 <InputGroup.Text><IconSearch size={18} /></InputGroup.Text>
                 <Form.Control
                   type="search"
-                  placeholder="Cari kode, nama, merk, atau tipe..."
+                  placeholder="Cari kode, nama, merk, ukuran, warna, kondisi..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />

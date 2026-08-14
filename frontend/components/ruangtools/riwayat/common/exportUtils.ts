@@ -9,21 +9,6 @@ export interface ExportColumn {
   key: string; // nama field pada object data (top-level)
 }
 
-// Tambahkan nama filter ke filename hanya bila user memilih nama tertentu.
-// Karakter ilegal untuk nama file dihapus dan spasi dijadikan underscore.
-export function getFilteredExportFileName(baseName: string, selectedName?: string): string {
-  const name = selectedName?.trim();
-  if (!name || name === "Semua" || /^semua\s/i.test(name)) return baseName;
-
-  const safeName = name
-    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, "")
-    .trim()
-    .replace(/\s+/g, "_")
-    .replace(/_+/g, "_");
-
-  return safeName ? `${baseName}_${safeName}` : baseName;
-}
-
 // Path logo PLN -- taruh file logo di folder public/ project kamu,
 // sesuaikan path ini kalau nama/lokasi filenya beda.
 const LOGO_PATH = "/images/brand/Logo-PLN-polos.png";
@@ -141,16 +126,27 @@ export async function exportToPDF<T extends Record<string, unknown>>(
   fileName: string,
   title: string
 ) {
-  const doc = new jsPDF({ orientation: "landscape" });
+  // PERBAIKAN 1: Tambahkan properti compress: true
+  const doc = new jsPDF({ orientation: "landscape", compress: true });
 
   let startY = 15;
   const logoBuffer = await getLogoBuffer();
 
   if (logoBuffer) {
     const base64 = arrayBufferToBase64(logoBuffer);
-    // posisi & ukuran logo -- sesuaikan angkanya kalau logo terlihat
-    // gepeng/kekecilan/kebesaran (satuan: mm, karena default unit jsPDF)
-    doc.addImage(`data:image/png;base64,${base64}`, "PNG", 14, 8, 20, 20);
+    
+    // PERBAIKAN 2: Tambahkan alias "LOGO" dan metode kompresi "FAST"
+    doc.addImage(
+      `data:image/png;base64,${base64}`, 
+      "PNG", 
+      14, 
+      8, 
+      20, 
+      20, 
+      "LOGO", 
+      "FAST"
+    );
+    
     doc.setFontSize(14);
     doc.text(title, 40, 20);
     startY = 34;
@@ -168,4 +164,21 @@ export async function exportToPDF<T extends Record<string, unknown>>(
   });
 
   doc.save(`${fileName}.pdf`);
+}
+
+// ---- Helper: Generate Nama File Export Dinamis ----
+export function getFilteredExportFileName(baseName: string, filterName?: string): string {
+  // Ambil tanggal hari ini (Format: YYYY-MM-DD)
+  const dateStr = new Date().toISOString().split("T")[0];
+  let fileName = baseName;
+
+  // Jika ada filter nama dan bukan "Semua", tambahkan nama tersebut ke file
+  if (filterName && filterName !== "Semua") {
+    // Ganti spasi dengan underscore agar nama file rapi
+    const sanitizedFilter = filterName.replace(/\s+/g, "_");
+    fileName += `_${sanitizedFilter}`;
+  }
+
+  // Gabungkan semua menjadi: BaseName_NamaPeminjam_Tanggal
+  return `${fileName}_${dateStr}`;
 }
