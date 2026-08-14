@@ -417,7 +417,7 @@ const DashboardManager = () => {
           <Card className="card-lg h-100">
             <CardBody>
               <h6 className="mb-3">Status Kerusakan Alat</h6>
-              <Row>
+               <Row>
                 <Col xs={6} className="border-end">
                   <div className="mb-3">
                     <div className="text-secondary small">Rusak Bulan Ini</div>
@@ -432,6 +432,10 @@ const DashboardManager = () => {
                   <div className="mb-3">
                     <div className="text-secondary small">Sedang Diperbaiki</div>
                     <div className="h3 mb-0 text-warning">{kerusakan?.sedang_diperbaiki ?? 0} unit</div>
+                  </div>
+                  <div>
+                    <div className="text-secondary small">Sudah Diperbaiki</div>
+                    <div className="h5 mb-0 text-success">{kerusakan?.sudah_diperbaiki ?? 0} unit</div>
                   </div>
                 </Col>
               </Row>

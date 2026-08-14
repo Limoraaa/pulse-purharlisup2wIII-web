@@ -1,4 +1,4 @@
-export type JenisKerusakan = "bisa_diperbaiki" | "rusak_permanen";
+export type JenisKerusakan = "bisa_diperbaiki" | "rusak_permanen" | "selesai_diperbaiki";
 
 export interface LaporanKerusakanType {
   id: string;

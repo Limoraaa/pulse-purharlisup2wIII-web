@@ -1,7 +1,7 @@
 "use client";
 // import node module libraries
 import { Modal, Button, Row, Col, Badge } from "react-bootstrap";
-import { IconAlertTriangle } from "@tabler/icons-react";
+import { IconAlertTriangle, IconCircleCheck } from "@tabler/icons-react";
 
 // import custom types
 import { LaporanKerusakanType } from "types/LaporanKerusakanTypes";
@@ -50,12 +50,16 @@ const DetailLaporanModal = ({ show, onClose, item }: DetailLaporanModalProps) =>
               </div>
             </div>
             <Badge
-              bg="danger-subtle"
-              text="danger-emphasis"
+              bg={item.status === "selesai_diperbaiki" ? "success-subtle" : "danger-subtle"}
+              text={item.status === "selesai_diperbaiki" ? "success-emphasis" : "danger-emphasis"}
               className="detail-laporan-badge d-inline-flex align-items-center gap-1"
             >
-              <IconAlertTriangle size={16} />
-              {item.jumlah_rusak} unit rusak
+              {item.status === "selesai_diperbaiki" ? (
+                <IconCircleCheck size={16} />
+              ) : (
+                <IconAlertTriangle size={16} />
+              )}
+              {item.jumlah_rusak} unit {item.status === "selesai_diperbaiki" ? "diperbaiki" : "rusak"}
             </Badge>
           </div>
         </div>
