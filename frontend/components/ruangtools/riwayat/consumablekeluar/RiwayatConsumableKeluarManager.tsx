@@ -105,8 +105,9 @@ const RiwayatConsumableKeluarManager = () => {
 
   const filteredList = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
+    
     return riwayatList.filter((r) => {
-      // filter periode (bulan/tahun)
+      // 1. Filter periode (bulan/tahun)
       if (bulanFilter !== 0 || tahunFilter !== 0) {
         const tanggal = parseTanggal(r.tanggal_pengambilan);
         if (tanggal) {
@@ -114,17 +115,46 @@ const RiwayatConsumableKeluarManager = () => {
           if (tahunFilter !== 0 && tanggal.getFullYear() !== tahunFilter) return false;
         }
       }
-      // filter nama peminta -- BARU
+      
+      // 2. Filter nama peminta (dari dropdown FilterBar)
       if (namaFilter !== "Semua" && r.nama_peminta !== namaFilter) return false;
-      // filter pencarian
+      
+      // 3. Filter pencarian teks (Diperluas ke SEMUA kolom tabel + Null-Safety)
       if (keyword !== "") {
+        const tglPengambilan = (r.tanggal_pengambilan || "").toLowerCase();
+        const noTransaksi = (r.nomor_transaksi || "").toLowerCase();
+        const kodeBarang = (r.kode_barang || "").toLowerCase();
+        const namaBarang = (r.nama_barang || "").toLowerCase();
+        const merk = (r.merk || "").toLowerCase();
+        const tipe = (r.tipe || "").toLowerCase();
+        const erE = (r.er_e || "").toLowerCase();
+        const ukuran = (r.ukuran || "").toLowerCase();
+        const jumlah = String(r.jumlah ?? 0);
+        const namaPeminta = (r.nama_peminta || "").toLowerCase();
+        const divisi = (r.divisi || "").toLowerCase();
+        const namaPekerjaan = (r.nama_pekerjaan || "").toLowerCase();
+        const areaKerja = (r.area_kerja || "").toLowerCase();
+        const keterangan = (r.keterangan || "").toLowerCase();
+
         const cocok =
-          r.nomor_transaksi.toLowerCase().includes(keyword) ||
-          r.kode_barang.toLowerCase().includes(keyword) ||
-          r.nama_barang.toLowerCase().includes(keyword) ||
-          r.nama_peminta.toLowerCase().includes(keyword);
+          tglPengambilan.includes(keyword) ||
+          noTransaksi.includes(keyword) ||
+          kodeBarang.includes(keyword) ||
+          namaBarang.includes(keyword) ||
+          merk.includes(keyword) ||
+          tipe.includes(keyword) ||
+          erE.includes(keyword) ||
+          ukuran.includes(keyword) ||
+          jumlah.includes(keyword) ||
+          namaPeminta.includes(keyword) ||
+          divisi.includes(keyword) ||
+          namaPekerjaan.includes(keyword) ||
+          areaKerja.includes(keyword) ||
+          keterangan.includes(keyword);
+
         if (!cocok) return false;
       }
+      
       return true;
     });
   }, [riwayatList, bulanFilter, tahunFilter, namaFilter, searchTerm]);

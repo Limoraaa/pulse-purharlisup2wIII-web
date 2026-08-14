@@ -57,10 +57,7 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => 'prefer',
-            'options' => [
-                // Tambahkan baris ini untuk mengatasi error prepared statement Supabase Pooler
-                PDO::ATTR_EMULATE_PREPARES => true,
-            ],
+            'prepare' => false,
         ],
 
         'mariadb' => [

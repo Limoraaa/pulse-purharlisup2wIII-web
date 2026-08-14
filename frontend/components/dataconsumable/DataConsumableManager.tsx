@@ -202,6 +202,7 @@ const DataConsumableManager = () => {
     
     return consumables
       .map((item) => {
+        // Hitung sisa stok jika barang sedang ada di keranjang
         const itemDiKeranjang = cart.find((c) => c.consumable_id === item.id && c.item_type === 'consumable');
         const jumlahDiKeranjang = itemDiKeranjang ? itemDiKeranjang.jumlah : 0;
 
@@ -211,10 +212,42 @@ const DataConsumableManager = () => {
         };
       })
       .filter((item) => {
+        // Jika kolom pencarian kosong, loloskan semua data
+        if (!keyword) return true;
+
+        // 1. Amankan teks dari nilai null/undefined (Null-Safety)
+        const kodeBarang = (item.kode_barang || "").toLowerCase();
+        const nama = (item.nama || "").toLowerCase();
+        const merk = (item.merk || "").toLowerCase();
+        const tipe = (item.tipe || "").toLowerCase();
+        const erE = (item.er_e || "").toLowerCase();
+        const ukuran = (item.ukuran || "").toLowerCase();
+
+        // 2. Konversi angka stok ke string agar bisa dicari
+        // (Pakai as any untuk jaga-jaga jika tipe properti masuk/keluar ada di object aslinya)
+        const stokAwal = String(item.stok_awal ?? 0);
+        const masuk = String((item as any).masuk ?? 0);
+        const keluar = String((item as any).keluar ?? 0);
+        const stokTersedia = String((item as any).stok_tersedia ?? item.stok_awal ?? 0);
+
+        // 3. Tambahkan alias untuk status "Cukup" atau "Perlu Restock" 
+        // (Berdasarkan gambar, stok 4 = Perlu Restock. Asumsi batasnya <= 5)
+        const sisaStok = Number(item.stok_awal); 
+        const statusLabel = sisaStok <= 5 ? "perlu restock" : "cukup";
+
+        // 4. Cocokkan keyword dengan semua properti yang ada di tabel
         return (
-          keyword === "" ||
-          item.kode_barang.toLowerCase().includes(keyword) ||
-          item.nama.toLowerCase().includes(keyword)
+          kodeBarang.includes(keyword) ||
+          nama.includes(keyword) ||
+          merk.includes(keyword) ||
+          tipe.includes(keyword) ||
+          erE.includes(keyword) ||
+          ukuran.includes(keyword) ||
+          stokAwal.includes(keyword) ||
+          masuk.includes(keyword) ||
+          keluar.includes(keyword) ||
+          stokTersedia.includes(keyword) ||
+          statusLabel.includes(keyword)
         );
       });
   }, [consumables, searchTerm, cart]);
@@ -580,7 +613,7 @@ const DataConsumableManager = () => {
                 <InputGroup.Text><IconSearch size={18} /></InputGroup.Text>
                 <Form.Control
                   type="search"
-                  placeholder="Cari kode atau nama bahan..."
+                  placeholder="Cari kode, nama, merk, ukuran, atau status..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
