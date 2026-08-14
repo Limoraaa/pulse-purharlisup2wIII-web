@@ -24,7 +24,7 @@ interface LaporanKerusakanApiResponse {
   peminjaman_id: string | null;
   jumlah: number;
   keterangan: string | null;
-  status: "bisa_diperbaiki" | "rusak_permanen";   // ← diubah
+  status: "bisa_diperbaiki" | "rusak_permanen" | "selesai_diperbaiki";  // ← diubah
   dilaporkan_oleh: string;
   tool: {
     kode_barang: string;

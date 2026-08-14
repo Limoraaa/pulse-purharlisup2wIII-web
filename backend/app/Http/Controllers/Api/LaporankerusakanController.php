@@ -154,6 +154,9 @@ class LaporanKerusakanController extends Controller
     }
     // PATCH /api/laporan-kerusakan/{id}/repair
     // Menandai alat sudah diperbaiki: stok dikembalikan, laporan dihapus dari daftar.
+    // PATCH /api/laporan-kerusakan/{id}/repair
+    // Menandai alat sudah diperbaiki: stok dikembalikan, laporan TETAP ada
+    // sebagai riwayat dengan status "selesai_diperbaiki".
     public function repair(string $id)
     {
         $laporan = LaporanKerusakanTools::find($id);
@@ -168,7 +171,7 @@ class LaporanKerusakanController extends Controller
             ], 422);
         }
 
-        DB::transaction(function () use ($laporan) {
+        $laporan = DB::transaction(function () use ($laporan) {
             $tool = Tool::lockForUpdate()->find($laporan->tool_id);
 
             if ($tool) {
@@ -176,11 +179,17 @@ class LaporanKerusakanController extends Controller
                 $tool->save();
             }
 
-            $laporan->delete();
+            $laporan->update([
+                'status' => 'selesai_diperbaiki',
+                'tanggal_diperbaiki' => now(),
+            ]);
+
+            return $laporan;
         });
 
         return response()->json([
             'message' => 'Alat berhasil ditandai selesai diperbaiki, stok telah dikembalikan.',
+            'data' => $laporan->load('tool'),
         ]);
     }
 

@@ -71,14 +71,14 @@ class DashboardController extends Controller
             ->orderByDesc('total_transaksi')
             ->limit(5)
             // Tambahkan merk dan ukuran di pemanggilan relasi 'with'
-            ->with('tool:id,kode_barang,nama_barang,merk,ukuran') 
+            ->with('tool:id,kode_barang,nama_barang,merk,ukuran')
             ->get()
             ->map(function ($row) {
                 return [
                     'kode_barang' => $row->tool->kode_barang ?? '-',
                     'nama_barang' => $row->tool->nama_barang ?? '-',
                     // Petakan merk dan ukuran agar terkirim ke frontend
-                    'merk' => $row->tool->merk ?? null, 
+                    'merk' => $row->tool->merk ?? null,
                     'ukuran' => $row->tool->ukuran ?? null,
                     'total_transaksi' => $row->total_transaksi,
                     'total_unit' => $row->total_unit,
@@ -123,14 +123,16 @@ class DashboardController extends Controller
 
         $totalSemua = LaporanKerusakanTools::sum('jumlah');
 
-        // GUNAKAN 'status' DENGAN VALUE 'bisa_diperbaiki' 
+        // GUNAKAN 'status' DENGAN VALUE 'bisa_diperbaiki'
         // (Sesuai dengan validator di LaporanKerusakanController)
         $sedangDiperbaiki = LaporanKerusakanTools::where('status', 'bisa_diperbaiki')->sum('jumlah');
+        $sudahDiperbaiki = LaporanKerusakanTools::where('status', 'selesai_diperbaiki')->sum('jumlah');
 
         return response()->json([
             'bulan_ini' => $bulanIni,
             'total_semua' => $totalSemua,
             'sedang_diperbaiki' => $sedangDiperbaiki,
+            'sudah_diperbaiki' => $sudahDiperbaiki,
         ]);
     }
 

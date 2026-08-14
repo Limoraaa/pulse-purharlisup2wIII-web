@@ -47,7 +47,7 @@ const EXPORT_COLUMNS: ExportColumn[] = [
   { header: "Keterangan", key: "keterangan" },
 ];
 
-  const STATUS_ORDER: Record<string, number> = {   // ← tambahkan ini
+   const STATUS_ORDER: Record<string, number> = {
     bisa_diperbaiki: 0,
     rusak_permanen: 1,
   };
@@ -63,7 +63,7 @@ const LaporanKerusakanManager = () => {
     setError(null);
     try {
       const data = await getLaporanKerusakan();
-      setLaporanList(data);
+      setLaporanList(data.filter((item) => item.status !== "selesai_diperbaiki"));
     } catch (err) {
       const message = err instanceof Error ? err.message : "Gagal memuat laporan kerusakan";
       setError(message);
@@ -342,7 +342,7 @@ const LaporanKerusakanManager = () => {
           }
           message={
             confirmModal.type === "repair"
-              ? `"${confirmModal.item.nama_barang}" akan dihapus dari daftar laporan dan stok alat otomatis dikembalikan.`
+              ? `"${confirmModal.item.nama_barang}" akan ditandai selesai diperbaiki dan stok alat otomatis dikembalikan. Riwayatnya bisa dilihat di menu Riwayat > Riwayat Perbaikan.`
               : `"${confirmModal.item.nama_barang}" tidak akan bisa diperbaiki lagi. Opsi Repair untuk laporan ini akan hilang.`
           }
           confirmLabel={confirmModal.type === "repair" ? "Ya, Sudah Diperbaiki" : "Ya, Rusak Permanen"}
