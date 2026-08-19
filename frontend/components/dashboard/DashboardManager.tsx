@@ -417,22 +417,28 @@ const DashboardManager = () => {
           <Card className="card-lg h-100">
             <CardBody>
               <h6 className="mb-3">Status Kerusakan Alat</h6>
-              <Row>
-                <Col xs={6} className="border-end">
-                  <div className="mb-3">
-                    <div className="text-secondary small">Rusak Bulan Ini</div>
-                    <div className="h3 mb-0 text-danger">{kerusakan?.bulan_ini ?? 0} unit</div>
-                  </div>
-                  <div>
-                    <div className="text-secondary small">Total Rusak</div>
-                    <div className="h5 mb-0">{kerusakan?.total_semua ?? 0} unit</div>
-                  </div>
+               <Row className="mb-3 pb-3 border-bottom">
+                <Col xs={6}>
+                  <div className="text-secondary small">Rusak Bulan Ini</div>
+                  <div className="h4 mb-0">{kerusakan?.bulan_ini ?? 0} unit</div>
                 </Col>
                 <Col xs={6}>
-                  <div className="mb-3">
-                    <div className="text-secondary small">Sedang Diperbaiki</div>
-                    <div className="h3 mb-0 text-warning">{kerusakan?.sedang_diperbaiki ?? 0} unit</div>
-                  </div>
+                  <div className="text-secondary small">Total Rusak (semua waktu)</div>
+                  <div className="h4 mb-0">{kerusakan?.total_semua ?? 0} unit</div>
+                </Col>
+              </Row>
+              <Row>
+                <Col xs={4}>
+                  <div className="text-secondary small">Diperbaiki</div>
+                  <div className="h5 mb-0 text-warning">{kerusakan?.sedang_diperbaiki ?? 0} unit</div>
+                </Col>
+                <Col xs={4}>
+                  <div className="text-secondary small">Selesai</div>
+                  <div className="h5 mb-0 text-success">{kerusakan?.sudah_diperbaiki ?? 0} unit</div>
+                </Col>
+                <Col xs={4}>
+                  <div className="text-secondary small">Permanen</div>
+                  <div className="h5 mb-0 text-danger">{kerusakan?.rusak_permanen ?? 0} unit</div>
                 </Col>
               </Row>
             </CardBody>

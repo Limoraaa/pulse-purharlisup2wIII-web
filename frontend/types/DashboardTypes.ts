@@ -43,6 +43,8 @@ export interface KerusakanSummary {
   bulan_ini: number;
   total_semua: number;
   sedang_diperbaiki?: number;
+  sudah_diperbaiki?: number;
+  rusak_permanen?: number;
 }
 
 export interface AktivitasItem {
