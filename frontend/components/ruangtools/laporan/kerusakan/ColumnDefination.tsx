@@ -89,18 +89,24 @@ export const getLaporanKerusakanColumns = ({
       return <span className="text-secondary small">{truncated || "-"}</span>;
     },
   },
-  {
+   {
     accessorKey: "status",
     header: "Status",
-    cell: ({ row }) => (
-      <Badge
-        bg={row.original.status === "bisa_diperbaiki" ? "warning-subtle" : "danger-subtle"}
-        text={row.original.status === "bisa_diperbaiki" ? "warning-emphasis" : "danger-emphasis"}
-        className="fw-semibold"
-      >
-        {row.original.status === "bisa_diperbaiki" ? "Bisa Diperbaiki" : "Rusak Permanen"}
-      </Badge>
-    ),
+    cell: ({ row }) => {
+      const status = row.original.status;
+      const config = {
+        bisa_diperbaiki: { bg: "warning-subtle", text: "warning-emphasis", label: "Bisa Diperbaiki" },
+        rusak_permanen: { bg: "danger-subtle", text: "danger-emphasis", label: "Rusak Permanen" },
+        selesai_diperbaiki: { bg: "success-subtle", text: "success-emphasis", label: "Sudah Diperbaiki" },
+        rusak: { bg: "danger-subtle", text: "danger-emphasis", label: "Rusak Permanen" },
+      }[status] ?? { bg: "secondary-subtle", text: "secondary-emphasis", label: status };
+
+      return (
+        <Badge bg={config.bg} text={config.text} className="fw-semibold">
+          {config.label}
+        </Badge>
+      );
+    },
   },
    {
     id: "aksi",
@@ -116,7 +122,7 @@ export const getLaporanKerusakanColumns = ({
           drop="start"
           align="start"
         >
-          <Dropdown.Item onClick={() => onDetail(item)}>
+           <Dropdown.Item onClick={() => onDetail(item)}>
             Detail Laporan
           </Dropdown.Item>
           {bisaDiperbaiki && (
