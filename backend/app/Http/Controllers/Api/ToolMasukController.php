@@ -72,13 +72,24 @@ class ToolMasukController extends Controller
 
         $data['id'] = (string) Str::uuid();
 
-        $toolMasuk = DB::transaction(function () use ($data) {
-            $tool = Tool::lockForUpdate()->findOrFail($data['tool_id']);
-            $tool->stok += $data['jumlah_masuk'];
-            $tool->save();
+                try {
+            $toolMasuk = DB::transaction(function () use ($data) {
+                $tool = Tool::lockForUpdate()->findOrFail($data['tool_id']);
 
-            return ToolMasuk::create($data);
-        });
+                if ($tool->kategori === 'mesin' && ($tool->stok + $data['jumlah_masuk']) > 1) {
+                    throw new \RuntimeException(
+                        "Alat ini berkategori Mesin (1 kode = 1 unit fisik), stok tidak boleh melebihi 1. Stok saat ini: {$tool->stok}."
+                    );
+                }
+
+                $tool->stok += $data['jumlah_masuk'];
+                $tool->save();
+
+                return ToolMasuk::create($data);
+            });
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
 
         return response()->json($toolMasuk->load(['tool', 'dicatatOleh']), 201);
     }

@@ -76,8 +76,12 @@ const ToolMasukFormModal = ({
   }, [show, initialData]);
 
   // Pilih alat dari dropdown -> auto-isi atribut
+    const [selectedTool, setSelectedTool] = useState<ToolItemType | null>(null);
+
+  // Pilih alat dari dropdown -> auto-isi atribut
   const handleSelectTool = (toolId: string) => {
     const selected = toolOptions.find((t) => t.id === toolId);
+    setSelectedTool(selected || null);
     setForm((prev) => ({
       ...prev,
       tool_id: toolId,
@@ -89,6 +93,8 @@ const ToolMasukFormModal = ({
       ukuran: selected?.ukuran || "",
     }));
   };
+
+  const isMesinStokPenuh = selectedTool?.kategori === "mesin" && selectedTool.stok >= 1;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -119,6 +125,11 @@ const ToolMasukFormModal = ({
         </Modal.Header>
         <Modal.Body>
           {error && <Alert variant="danger">{error}</Alert>}
+          {isMesinStokPenuh && (
+            <Alert variant="warning">
+              Alat ini berkategori Mesin dan stoknya sudah 1 (penuh). Mesin dicatat 1 kode = 1 unit fisik, jadi tidak bisa direstock lagi lewat kode yang sama.
+            </Alert>
+          )}
 
           {isEditMode && (
             <div className="toolsmasuk-hero mb-4">
@@ -295,7 +306,7 @@ const ToolMasukFormModal = ({
           <Button
             variant="primary"
             type="submit"
-            disabled={!form.tool_id || form.jumlah_masuk <= 0 || !form.id_card || isSubmitting}
+            disabled={!form.tool_id || form.jumlah_masuk <= 0 || !form.id_card || isSubmitting || isMesinStokPenuh}
             className="d-inline-flex align-items-center gap-2"
           >
             {isEditMode ? <IconPencil size={18} /> : <IconPlus size={18} />}

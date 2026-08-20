@@ -18,6 +18,7 @@ const emptyForm: ToolFormValues = {
   kondisi: "Baik",
   stok: 0,
   dipinjam: 0,
+  kategori: "alat_biasa",
 };
 
 interface ToolFormModalProps {
@@ -140,7 +141,7 @@ const ToolFormModal = ({
               />
             </Col>
 
-            <Col md={12}>
+                        <Col md={6}>
               <Form.Label>
                 Stok <span className="text-danger"></span>
               </Form.Label>
@@ -155,9 +156,38 @@ const ToolFormModal = ({
                   // hanya izinkan digit, buang leading zero otomatis
                   const digitsOnly = e.target.value.replace(/[^0-9]/g, "");
                   const withoutLeadingZero = digitsOnly.replace(/^0+(?=\d)/, "");
-                  handleChange("stok", withoutLeadingZero === "" ? 0 : Number(withoutLeadingZero));
+                  let nilai = withoutLeadingZero === "" ? 0 : Number(withoutLeadingZero);
+
+                  // Mesin dibatasi maksimal stok 1 (1 kode = 1 unit fisik)
+                  if (form.kategori === "mesin" && nilai > 1) {
+                    nilai = 1;
+                  }
+
+                  handleChange("stok", nilai);
                 }}
               />
+            </Col>
+                        <Col md={6}>
+              <Form.Label>Kategori</Form.Label>
+              <Form.Select
+                value={form.kategori || "alat_biasa"}
+                onChange={(e) => {
+                  const kategoriBaru = e.target.value as "mesin" | "alat_biasa";
+                  setForm((prev) => ({
+                    ...prev,
+                    kategori: kategoriBaru,
+                    stok: kategoriBaru === "mesin" ? 1 : prev.stok,
+                  }));
+                }}
+              >
+                <option value="alat_biasa">Alat Biasa</option>
+                <option value="mesin">Mesin</option>
+              </Form.Select>
+              {form.kategori === "mesin" && (
+                <Form.Text className="text-warning">
+                  Mesin harus dicatat 1 kode = 1 unit fisik (Stok maksimal 1).
+                </Form.Text>
+              )}
             </Col>
             </Row>
           </div>
