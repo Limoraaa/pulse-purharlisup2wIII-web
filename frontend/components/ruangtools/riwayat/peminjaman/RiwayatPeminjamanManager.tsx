@@ -101,8 +101,9 @@ const RiwayatPeminjamanManager = () => {
 
   const filteredList = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
+    
     return riwayatList.filter((r) => {
-      // filter periode (bulan/tahun)
+      // 1. Filter periode (bulan/tahun)
       if (bulanFilter !== 0 || tahunFilter !== 0) {
         const tanggal = parseTanggal(r.tanggal_pinjam);
         if (tanggal) {
@@ -110,17 +111,40 @@ const RiwayatPeminjamanManager = () => {
           if (tahunFilter !== 0 && tanggal.getFullYear() !== tahunFilter) return false;
         }
       }
-       // filter nama peminjam -- BARU
+      
+      // 2. Filter nama peminjam (dari dropdown FilterBar)
       if (namaFilter !== "Semua" && r.nama_peminjam !== namaFilter) return false;
-      // filter pencarian
+      
+      // 3. Filter pencarian teks (Diperbarui untuk mencari di SEMUA kolom & Null-Safety)
       if (keyword !== "") {
+        const tglPinjam = (r.tanggal_pinjam || "").toLowerCase();
+        const tglKembali = (r.tanggal_kembali || "").toLowerCase();
+        const kodeBarang = (r.kode_barang || "").toLowerCase();
+        const namaBarang = (r.nama_barang || "").toLowerCase();
+        const merk = (r.merk || "").toLowerCase();
+        const tipe = (r.tipe || "").toLowerCase();
+        const warna = (r.warna || "").toLowerCase();
+        const ukuran = (r.ukuran || "").toLowerCase();
+        const jumlah = String(r.jumlah ?? 0);
+        const namaPeminjam = (r.nama_peminjam || "").toLowerCase();
+        const noTransaksi = (r.nomor_transaksi || "").toLowerCase();
+
         const cocok =
-          r.nomor_transaksi.toLowerCase().includes(keyword) ||
-          r.kode_barang.toLowerCase().includes(keyword) ||
-          r.nama_barang.toLowerCase().includes(keyword) ||
-          r.nama_peminjam.toLowerCase().includes(keyword);
+          tglPinjam.includes(keyword) ||
+          tglKembali.includes(keyword) ||
+          kodeBarang.includes(keyword) ||
+          namaBarang.includes(keyword) ||
+          merk.includes(keyword) ||
+          tipe.includes(keyword) ||
+          warna.includes(keyword) ||
+          ukuran.includes(keyword) ||
+          jumlah.includes(keyword) ||
+          namaPeminjam.includes(keyword) ||
+          noTransaksi.includes(keyword);
+
         if (!cocok) return false;
       }
+      
       return true;
     });
   }, [riwayatList, bulanFilter, tahunFilter, namaFilter, searchTerm]);

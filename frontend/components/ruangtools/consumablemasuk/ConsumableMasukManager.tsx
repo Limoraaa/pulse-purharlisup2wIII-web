@@ -83,20 +83,48 @@ const ConsumableMasukManager = () => {
   ];
 
   // Data turunan untuk tampilan; sumber data (masukList) tidak diubah.
+  // Data turunan untuk tampilan; sumber data (masukList) tidak diubah.
   const filteredMasukList = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
+    
     return masukList.filter((item) => {
+      // 1. Filter periode (bulan/tahun)
       const date = parseTanggal(item.tanggal);
       const cocokPeriode = (!date || bulanFilter === 0 || date.getMonth() + 1 === bulanFilter) &&
         (!date || tahunFilter === 0 || date.getFullYear() === tahunFilter);
+        
+      // 2. Filter nama pencatat
       const cocokNama = namaFilter === "" || getNamaPencatat(item) === namaFilter;
-      const cocokKeyword =
-        item.kode_barang.toLowerCase().includes(keyword) ||
-        item.nama.toLowerCase().includes(keyword) ||
-        item.merk.toLowerCase().includes(keyword) ||
-        item.tipe.toLowerCase().includes(keyword) ||
-        getNamaPencatat(item).toLowerCase().includes(keyword);
-      return cocokPeriode && cocokNama && (keyword === "" || cocokKeyword);
+      
+      // 3. Filter pencarian teks (mencakup SEMUA kolom di tabel + Null-Safety)
+      let cocokKeyword = true;
+      if (keyword !== "") {
+        const tanggalStr = (item.tanggal || "").toLowerCase();
+        const kodeBarang = (item.kode_barang || "").toLowerCase();
+        const namaBarang = (item.nama || "").toLowerCase();
+        const merk = (item.merk || "").toLowerCase();
+        const tipe = (item.tipe || "").toLowerCase();
+        // Menggunakan (item as any) untuk properti bawaan dari relasi tabel
+        const erE = ((item as any).er_e || "").toLowerCase();
+        const ukuran = ((item as any).ukuran || "").toLowerCase();
+        const jumlahMasuk = String(item.jumlah_masuk ?? 0);
+        const namaPencatat = getNamaPencatat(item).toLowerCase();
+        const keterangan = (item.keterangan || "").toLowerCase();
+
+        cocokKeyword =
+          tanggalStr.includes(keyword) ||
+          kodeBarang.includes(keyword) ||
+          namaBarang.includes(keyword) ||
+          merk.includes(keyword) ||
+          tipe.includes(keyword) ||
+          erE.includes(keyword) ||
+          ukuran.includes(keyword) ||
+          jumlahMasuk.includes(keyword) ||
+          namaPencatat.includes(keyword) ||
+          keterangan.includes(keyword);
+      }
+
+      return cocokPeriode && cocokNama && cocokKeyword;
     });
   }, [masukList, searchTerm, bulanFilter, tahunFilter, namaFilter]);
 
@@ -300,7 +328,7 @@ const ConsumableMasukManager = () => {
                 </InputGroup.Text>
                 <Form.Control
                   type="search"
-                  placeholder="Cari kode, nama, merk, atau tipe..."
+                  placeholder="Cari kode, nama, er/e, ukuran, penginput, atau keterangan..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   aria-label="Cari consumable masuk"
