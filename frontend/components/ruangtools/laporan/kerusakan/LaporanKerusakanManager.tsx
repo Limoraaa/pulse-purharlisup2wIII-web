@@ -63,7 +63,7 @@ const LaporanKerusakanManager = () => {
     setError(null);
     try {
       const data = await getLaporanKerusakan();
-      setLaporanList(data.filter((item) => item.status !== "selesai_diperbaiki"));
+      setLaporanList(data);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Gagal memuat laporan kerusakan";
       setError(message);
@@ -77,7 +77,10 @@ const LaporanKerusakanManager = () => {
     } | null>(null);
     const [confirmSubmitting, setConfirmSubmitting] = useState(false);
 
+        const [repairNote, setRepairNote] = useState("");
+
     const handleRepair = (item: LaporanKerusakanType) => {
+      setRepairNote("");
       setConfirmModal({ type: "repair", item });
     };
 
@@ -92,8 +95,12 @@ const LaporanKerusakanManager = () => {
 
       try {
         if (type === "repair") {
-          await repairLaporanKerusakan(item.id);
-          setLaporanList((prev) => prev.filter((l) => l.id !== item.id));
+          await repairLaporanKerusakan(item.id, repairNote.trim() || undefined);
+          // Item tetap ada di laporanList (status berubah jadi selesai_diperbaiki),
+          // otomatis hilang dari tampilan lewat filteredList di atas.
+          setLaporanList((prev) =>
+            prev.map((l) => (l.id === item.id ? { ...l, status: "selesai_diperbaiki" as const } : l))
+          );
           setSuccessMessage(`${item.nama_barang} berhasil ditandai selesai diperbaiki, stok telah dikembalikan.`);
         } else {
           await tandaiPermanenLaporanKerusakan(item.id);
@@ -155,11 +162,24 @@ const LaporanKerusakanManager = () => {
     return Array.from(namaSet).sort();
   }, [laporanList]);
 
- const filteredList = useMemo(() => {
+   const repairCountByKode = useMemo(() => {
+    const map: Record<string, number> = {};
+    laporanList.forEach((l) => {
+      if (l.status === "selesai_diperbaiki") {
+        map[l.kode_barang] = (map[l.kode_barang] ?? 0) + 1;
+      }
+    });
+    return map;
+  }, [laporanList]);
+
+  const filteredList = useMemo(() => {
   const keyword = searchTerm.trim().toLowerCase();
 
   return laporanList
     .filter((r) => {
+      // Halaman ini cuma untuk laporan yang masih perlu ditindaklanjuti.
+      if (r.status === "selesai_diperbaiki") return false;
+
       if (bulanFilter !== 0 || tahunFilter !== 0) {
         const tanggal = parseTanggal(r.tanggal_pengembalian);
 
@@ -345,7 +365,17 @@ const LaporanKerusakanManager = () => {
               ? `"${confirmModal.item.nama_barang}" akan ditandai selesai diperbaiki dan stok alat otomatis dikembalikan. Riwayatnya bisa dilihat di menu Riwayat > Riwayat Perbaikan.`
               : `"${confirmModal.item.nama_barang}" tidak akan bisa diperbaiki lagi. Opsi Repair untuk laporan ini akan hilang.`
           }
-          confirmLabel={confirmModal.type === "repair" ? "Ya, Sudah Diperbaiki" : "Ya, Rusak Permanen"}
+                    confirmLabel={confirmModal.type === "repair" ? "Ya, Sudah Diperbaiki" : "Ya, Rusak Permanen"}
+          showNoteInput={confirmModal.type === "repair"}
+          noteValue={repairNote}
+          onNoteChange={setRepairNote}
+          warningText={
+            confirmModal.type === "repair" && (repairCountByKode[confirmModal.item.kode_barang] ?? 0) >= 2
+              ? `Alat ini sudah diperbaiki ${repairCountByKode[confirmModal.item.kode_barang]}x sebelumnya. Ini akan menjadi perbaikan ke-${
+                  (repairCountByKode[confirmModal.item.kode_barang] ?? 0) + 1
+                }. Untuk alat seperti mesin/gerinda yang umumnya hanya bisa diperbaiki maksimal 3x, pertimbangkan menandai Rusak Permanen jika kerusakan berulang.`
+              : undefined
+          }
         />
       )}
     </div>

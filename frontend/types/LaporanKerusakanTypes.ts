@@ -16,6 +16,8 @@ export interface LaporanKerusakanType {
   area_kerja: string;
   keterangan: string;
   status: JenisKerusakan;
+  catatan_perbaikan?: string;
+  perbaikan_ke?: number;
 
   // Diperlukan agar cocok dengan constraint generic exportToPDF / exportToExcel
   [key: string]: unknown;

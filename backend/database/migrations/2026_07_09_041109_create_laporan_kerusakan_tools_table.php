@@ -18,6 +18,8 @@ return new class extends Migration
             $table->text('keterangan')->nullable();
             $table->string('status')->default('rusak'); // rusak / diperbaiki
             $table->timestamp('tanggal_diperbaiki')->nullable();
+            $table->text('catatan_perbaikan')->nullable();
+            $table->integer('perbaikan_ke')->nullable();
             $table->foreignUuid('dilaporkan_oleh')->constrained('users');
             $table->timestamps();
         });

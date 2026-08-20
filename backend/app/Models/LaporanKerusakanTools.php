@@ -15,7 +15,7 @@ class LaporanKerusakanTools extends Model
     public $incrementing = false;
     protected $keyType = 'string';
 
-        protected $fillable = [
+                protected $fillable = [
         'tanggal',
         'tool_id',
         'peminjaman_id',
@@ -23,6 +23,8 @@ class LaporanKerusakanTools extends Model
         'keterangan',
         'status',
         'tanggal_diperbaiki',
+        'catatan_perbaikan',
+        'perbaikan_ke',
         'dilaporkan_oleh',
     ];
     protected static function boot()

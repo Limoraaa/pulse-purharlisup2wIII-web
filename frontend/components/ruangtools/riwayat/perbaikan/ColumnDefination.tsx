@@ -75,13 +75,36 @@ export const getRiwayatPerbaikanColumns = ({
     accessorKey: "area_kerja",
     header: "Area Kerja",
   },
-  {
+    {
     accessorKey: "keterangan",
-    header: "Keterangan",
+    header: "Keterangan Kerusakan",
     cell: ({ row }) => {
       const text = row.original.keterangan;
       const truncated = text.length > 30 ? `${text.slice(0, 30)}...` : text;
       return <span className="text-secondary small">{truncated || "-"}</span>;
+    },
+  },
+  {
+    id: "perbaikan_ke",
+    header: "Perbaikan Ke-",
+    cell: ({ row }) => {
+      const ke = row.original.perbaikan_ke;
+      if (!ke) return <span className="text-secondary">-</span>;
+      return (
+        <Badge bg={ke >= 3 ? "danger-subtle" : "success-subtle"} text={ke >= 3 ? "danger-emphasis" : "success-emphasis"} className="fw-semibold">
+          Ke-{ke}
+        </Badge>
+      );
+    },
+  },
+  {
+    accessorKey: "catatan_perbaikan",
+    header: "Catatan Perbaikan",
+    cell: ({ row }) => {
+      const text = row.original.catatan_perbaikan;
+      if (!text) return <span className="text-secondary">-</span>;
+      const truncated = text.length > 30 ? `${text.slice(0, 30)}...` : text;
+      return <span className="text-secondary small">{truncated}</span>;
     },
   },
   {
