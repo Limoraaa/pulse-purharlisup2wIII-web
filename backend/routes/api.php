@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\ConsumableMasukController;
 use App\Http\Controllers\Api\ConsumableKeluarController;
 use App\Http\Controllers\Api\ToolMasukController;
 use App\Http\Controllers\Api\LaporanKerusakanController;
+use App\Http\Controllers\Api\OrderConsumableController;
 
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -48,6 +49,9 @@ Route::get('/peminjaman/antrean', [PeminjamanController::class, 'antrean']);
 Route::patch('/peminjaman/cart/{id}', [PeminjamanController::class, 'updateCartItem']);
 Route::delete('/peminjaman/cart/{id}', [PeminjamanController::class, 'removeCartItem']);
 
+Route::get('/order-consumable', [OrderConsumableController::class, 'index']);
+Route::post('/order-consumable', [OrderConsumableController::class, 'store']);
+Route::put('/order-consumable/{id}/status', [OrderConsumableController::class, 'updateStatus']);
 
 // ==========================================
 // ROUTE YANG WAJIB LOGIN (SANCTUM MIDDLEWARE)
