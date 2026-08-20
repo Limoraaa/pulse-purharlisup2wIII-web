@@ -5,6 +5,7 @@ import {
   IconBoxSeam,
   IconArrowsExchange,
   IconHistory,
+  IconShoppingCart, // <-- Icon baru ditambahkan di sini
   IconReportAnalytics,
   IconUsers,
 } from "@tabler/icons-react";
@@ -83,6 +84,23 @@ export const DashboardMenu: MenuItemType[] = [
   },
   {
     id: uuid(),
+    title: "Order", // Induk menu
+    icon: <IconShoppingCart size={20} strokeWidth={1.5} />,
+    children: [
+      {
+        id: uuid(),
+        name: "Order Consumable", // Disingkat agar tidak mengulang kata "Order"
+        link: "/order/order-consumable",
+      },
+      {
+        id: uuid(),
+        name: "Tools", // Disingkat
+        link: "/order/order-tools", 
+      },
+    ],
+  },
+  {
+    id: uuid(),
     title: "Laporan Kerusakan Alat",
     link: "/laporan",
     icon: <IconReportAnalytics size={20} strokeWidth={1.5} />,
@@ -93,5 +111,4 @@ export const DashboardMenu: MenuItemType[] = [
     link: "/data-user",
     icon: <IconUsers size={20} strokeWidth={1.5} />,
   },
-
 ];
