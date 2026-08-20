@@ -14,7 +14,7 @@ class Tool extends Model
     public $incrementing = false;
     protected $keyType = 'string';
 
-    protected $fillable = [
+        protected $fillable = [
         'kode_barang',
         'nama_barang',
         'merk',
@@ -23,6 +23,7 @@ class Tool extends Model
         'ukuran',
         'stok',
         'keadaan',
+        'kategori',
         'is_active',
     ];
 

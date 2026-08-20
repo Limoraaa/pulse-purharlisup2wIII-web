@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('ukuran')->nullable();
             $table->integer('stok')->default(0);
             $table->string('keadaan')->default('B'); // B = Baik, R = Rusak
+            $table->string('kategori')->default('alat_biasa'); // mesin / alat_biasa
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });

@@ -1,4 +1,5 @@
 export type ToolCondition = "Baik" | "Rusak";
+export type ToolKategori = "mesin" | "alat_biasa";
 
 export interface ToolItemType {
   id: string;
@@ -11,6 +12,7 @@ export interface ToolItemType {
   kondisi: ToolCondition;
   stok: number;
   dipinjam: number;
+  kategori?: ToolKategori;
 }
 
 export type ToolFormValues = Omit<ToolItemType, "id">;

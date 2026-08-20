@@ -12,6 +12,7 @@ interface ToolApiResponse {
   ukuran: string | null;
   keadaan: string;
   stok: number;
+  kategori: string | null;
   sedang_dipinjam: number;
 }
 
@@ -25,6 +26,7 @@ interface ToolApiPayload {
   ukuran: string;
   keadaan: string;
   stok: number;
+  kategori: string;
 }
 
 const keadaanToKondisi = (keadaan: string): ToolItemType["kondisi"] => {
@@ -48,6 +50,7 @@ function mapToolFromApi(item: ToolApiResponse): ToolItemType {
     kondisi: keadaanToKondisi(item.keadaan),
     stok: item.stok,
     dipinjam: item.sedang_dipinjam,
+    kategori: (item.kategori as ToolItemType["kategori"]) ?? "alat_biasa",
   };
 }
 
@@ -62,6 +65,7 @@ function mapToolToApi(values: ToolFormValues): ToolApiPayload {
     ukuran: values.ukuran,
     keadaan: kondisiToKeadaan(values.kondisi),
     stok: values.stok,
+    kategori: values.kategori ?? "alat_biasa",
   };
 }
 
