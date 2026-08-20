@@ -24,7 +24,9 @@ interface LaporanKerusakanApiResponse {
   peminjaman_id: string | null;
   jumlah: number;
   keterangan: string | null;
-  status: "bisa_diperbaiki" | "rusak_permanen" | "selesai_diperbaiki";  // ← diubah
+  status: "bisa_diperbaiki" | "rusak_permanen" | "selesai_diperbaiki";
+  catatan_perbaikan: string | null;
+  perbaikan_ke: number | null;
   dilaporkan_oleh: string;
   tool: {
     kode_barang: string;
@@ -71,6 +73,8 @@ function mapLaporanFromApi(item: LaporanKerusakanApiResponse): LaporanKerusakanT
     area_kerja: item.peminjaman?.area_pekerjaan ?? "-",
     keterangan: item.keterangan ?? "-",
     status: item.status,
+    catatan_perbaikan: item.catatan_perbaikan ?? undefined,
+    perbaikan_ke: item.perbaikan_ke ?? undefined,
   };
 }
 
@@ -88,8 +92,11 @@ export async function createLaporanKerusakan(
   });
 }
 
-export async function repairLaporanKerusakan(id: string): Promise<void> {
-  await apiFetch(`/laporan-kerusakan/${id}/repair`, { method: "PATCH" });
+export async function repairLaporanKerusakan(id: string, catatanPerbaikan?: string): Promise<void> {
+  await apiFetch(`/laporan-kerusakan/${id}/repair`, {
+    method: "PATCH",
+    body: JSON.stringify({ catatan_perbaikan: catatanPerbaikan ?? null }),
+  });
 }
 
 export async function tandaiPermanenLaporanKerusakan(id: string): Promise<void> {

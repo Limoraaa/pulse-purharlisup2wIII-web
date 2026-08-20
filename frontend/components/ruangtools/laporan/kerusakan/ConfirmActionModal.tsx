@@ -1,5 +1,5 @@
 "use client";
-import { Modal, Button } from "react-bootstrap";
+import { Modal, Button, Form, Alert } from "react-bootstrap";
 import { IconAlertTriangle, IconCircleCheck } from "@tabler/icons-react";
 
 export type ConfirmActionVariant = "success" | "danger";
@@ -13,6 +13,11 @@ interface ConfirmActionModalProps {
   confirmLabel: string;
   variant?: ConfirmActionVariant;
   submitting?: boolean;
+  warningText?: string;
+  showNoteInput?: boolean;
+  noteValue?: string;
+  onNoteChange?: (value: string) => void;
+  notePlaceholder?: string;
 }
 
 const ConfirmActionModal = ({
@@ -24,6 +29,11 @@ const ConfirmActionModal = ({
   confirmLabel,
   variant = "success",
   submitting = false,
+  warningText,
+  showNoteInput = false,
+  noteValue = "",
+  onNoteChange,
+  notePlaceholder = "Catatan perbaikan (opsional)...",
 }: ConfirmActionModalProps) => {
   const isDanger = variant === "danger";
 
@@ -37,8 +47,27 @@ const ConfirmActionModal = ({
         >
           {isDanger ? <IconAlertTriangle size={28} /> : <IconCircleCheck size={28} />}
         </div>
-        <h5 className="mb-2">{title}</h5>
-        <p className="text-secondary mb-0">{message}</p>
+                <h5 className="mb-2">{title}</h5>
+        <p className="text-secondary mb-3">{message}</p>
+
+        {warningText && (
+          <Alert variant="warning" className="text-start small mb-3">
+            {warningText}
+          </Alert>
+        )}
+
+        {showNoteInput && (
+          <Form.Group className="text-start">
+            <Form.Label className="small fw-semibold">Catatan Perbaikan</Form.Label>
+            <Form.Control
+              as="textarea"
+              rows={2}
+              placeholder={notePlaceholder}
+              value={noteValue}
+              onChange={(e) => onNoteChange?.(e.target.value)}
+            />
+          </Form.Group>
+        )}
       </Modal.Body>
       <Modal.Footer className="justify-content-center border-top-0 pb-4">
         <Button variant="outline-secondary" onClick={onClose} disabled={submitting}>

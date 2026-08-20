@@ -52,7 +52,7 @@ class LaporanKerusakanController extends Controller
 
         $data = $validator->validated();
 
-        try {
+                try {
             $laporan = DB::transaction(function () use ($data) {
                 $tool = Tool::lockForUpdate()->findOrFail($data['tool_id']);
 
@@ -73,7 +73,16 @@ class LaporanKerusakanController extends Controller
             return response()->json(['message' => $e->getMessage()], 422);
         }
 
-        return response()->json($laporan->load('tool'), 201);
+        // Info riwayat perbaikan alat ini, biar staff bisa mempertimbangkan
+        // langsung tandai Rusak Permanen kalau alat sudah sering diperbaiki.
+        $riwayatPerbaikan = LaporanKerusakanTools::where('tool_id', $laporan->tool_id)
+            ->where('status', 'selesai_diperbaiki')
+            ->count();
+
+        $response = $laporan->load('tool')->toArray();
+        $response['riwayat_perbaikan_sebelumnya'] = $riwayatPerbaikan;
+
+        return response()->json($response, 201);
     }
 
     // PUT/PATCH /api/laporan-kerusakan/{id}
@@ -157,7 +166,10 @@ class LaporanKerusakanController extends Controller
     // PATCH /api/laporan-kerusakan/{id}/repair
     // Menandai alat sudah diperbaiki: stok dikembalikan, laporan TETAP ada
     // sebagai riwayat dengan status "selesai_diperbaiki".
-    public function repair(string $id)
+        // PATCH /api/laporan-kerusakan/{id}/repair
+    // Menandai alat sudah diperbaiki: stok dikembalikan, laporan TETAP ada
+    // sebagai riwayat dengan status "selesai_diperbaiki".
+    public function repair(Request $request, string $id)
     {
         $laporan = LaporanKerusakanTools::find($id);
 
@@ -171,7 +183,17 @@ class LaporanKerusakanController extends Controller
             ], 422);
         }
 
-        $laporan = DB::transaction(function () use ($laporan) {
+        $validator = Validator::make($request->all(), [
+            'catatan_perbaikan' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $catatanPerbaikan = $validator->validated()['catatan_perbaikan'] ?? null;
+
+        $laporan = DB::transaction(function () use ($laporan, $catatanPerbaikan) {
             $tool = Tool::lockForUpdate()->find($laporan->tool_id);
 
             if ($tool) {
@@ -179,9 +201,17 @@ class LaporanKerusakanController extends Controller
                 $tool->save();
             }
 
+            // Hitung ini perbaikan ke berapa untuk alat ini, berdasarkan
+            // riwayat perbaikan yang sudah selesai sebelumnya.
+            $perbaikanKe = LaporanKerusakanTools::where('tool_id', $laporan->tool_id)
+                ->where('status', 'selesai_diperbaiki')
+                ->count() + 1;
+
             $laporan->update([
                 'status' => 'selesai_diperbaiki',
                 'tanggal_diperbaiki' => now(),
+                'catatan_perbaikan' => $catatanPerbaikan,
+                'perbaikan_ke' => $perbaikanKe,
             ]);
 
             return $laporan;
