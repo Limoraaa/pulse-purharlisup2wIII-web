@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\ConsumableKeluarController;
 use App\Http\Controllers\Api\ToolMasukController;
 use App\Http\Controllers\Api\LaporanKerusakanController;
 use App\Http\Controllers\Api\OrderConsumableController;
+use App\Http\Controllers\Api\OrderToolController;
 
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -52,6 +53,11 @@ Route::delete('/peminjaman/cart/{id}', [PeminjamanController::class, 'removeCart
 Route::get('/order-consumable', [OrderConsumableController::class, 'index']);
 Route::post('/order-consumable', [OrderConsumableController::class, 'store']);
 Route::put('/order-consumable/{id}/status', [OrderConsumableController::class, 'updateStatus']);
+
+// --- ORDER TOOLS ---
+Route::get('/order-tools', [OrderToolController::class, 'index']);
+Route::post('/order-tools', [OrderToolController::class, 'store']);
+Route::put('/order-tools/{id}/status', [OrderToolController::class, 'updateStatus']);
 
 // ==========================================
 // ROUTE YANG WAJIB LOGIN (SANCTUM MIDDLEWARE)
