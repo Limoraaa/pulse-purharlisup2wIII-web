@@ -46,12 +46,42 @@ class OrderToolController extends Controller
         return response()->json(['success' => true, 'data' => $order]);
     }
 
+    public function update(Request $request, $id)
+    {
+        $order = OrderTool::findOrFail($id);
+
+        $validated = $request->validate([
+            'peminta_id'        => 'sometimes|required|exists:peminta,id',
+            'tool_id'           => 'nullable|string',
+            'kode_barang'       => 'nullable|string',
+            'nama_barang'       => 'sometimes|required|string',
+            'merek'             => 'nullable|string',
+            'tipe'              => 'nullable|string',
+            'er_e'              => 'nullable|string',
+            'ukuran'            => 'nullable|string',
+            'spesifikasi'       => 'nullable|string',
+            'jumlah'            => 'sometimes|required|integer|min:1',
+            'satuan'            => 'sometimes|required|string',
+            'harga'             => 'sometimes|required|numeric|min:0',
+            'referensi_harga'   => 'nullable|string',
+            'tanggal_pengajuan' => 'sometimes|required|date',
+        ]);
+
+        $order->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data order tools berhasil diperbarui.',
+            'data' => $order->fresh()->load('peminta'),
+        ]);
+    }
+
     public function updateStatus(Request $request, $id)
     {
         $order = OrderTool::findOrFail($id);
 
         $request->validate([
-            'status_pembelian'   => 'required|in:belum dibeli,sudah dibeli,ditolak',
+            'status_pembelian'   => 'required|in:belum dibeli,on progres,sudah dibeli,ditolak',
             'tanggal_kedatangan' => 'nullable|date',
         ]);
 
