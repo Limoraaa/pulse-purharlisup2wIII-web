@@ -10,6 +10,8 @@ import {
   IconClockHour4,
   IconAlertTriangle,
   IconTrendingUp,
+  IconShoppingCart,
+  IconClipboardList,
 } from "@tabler/icons-react";
 import {
   LineChart,
@@ -165,18 +167,18 @@ const DashboardManager = () => {
     );
   }
 
+  // Ambil data status order dengan aman (Null-Safety fallback)
+  const orderToolsStatus = (summary as any)?.order_tools_status || {};
+  const orderConsumableStatus = (summary as any)?.order_consumable_status || {};
+
   return (
     <>
       {PageHeader}
 
-      {/* Baris 1: Ringkasan Utama dengan komponen Link menggunakan URL yang tepat */}
+      {/* Baris 1: Ringkasan Utama (4 Kolom) */}
       <Row className="g-3 mb-4">
         <Col xs={6} md={6} xl={3}>
-          <Link 
-            href="/inventaris/data-tools" 
-            style={{ textDecoration: "none", color: "inherit", display: "block" }} 
-            title="Menuju halaman Data Tools"
-          >
+          <Link href="/inventaris/data-tools" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
             <StatCard
               icon={<IconTool size={26} />}
               title="Total Tools"
@@ -186,11 +188,7 @@ const DashboardManager = () => {
           </Link>
         </Col>
         <Col xs={6} md={6} xl={3}>
-          <Link 
-            href="/inventaris/data-consumable" 
-            style={{ textDecoration: "none", color: "inherit", display: "block" }} 
-            title="Menuju halaman Data Consumable"
-          >
+          <Link href="/inventaris/data-consumable" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
             <StatCard
               icon={<IconPackage size={26} />}
               title="Total Consumable"
@@ -200,11 +198,7 @@ const DashboardManager = () => {
           </Link>
         </Col>
         <Col xs={6} md={6} xl={3}>
-          <Link 
-            href="/inventaris/data-peminjam" 
-            style={{ textDecoration: "none", color: "inherit", display: "block" }} 
-            title="Menuju halaman Data Peminjam"
-          >
+          <Link href="/inventaris/data-peminjam" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
             <StatCard
               icon={<IconUsers size={26} />}
               title="Total Peminta"
@@ -214,11 +208,7 @@ const DashboardManager = () => {
           </Link>
         </Col>
         <Col xs={6} md={6} xl={3}>
-          <Link 
-            href="/transaksi/peminjaman-aktif" 
-            style={{ textDecoration: "none", color: "inherit", display: "block" }} 
-            title="Menuju halaman Peminjaman Aktif"
-          >
+          <Link href="/transaksi/peminjaman-aktif" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
             <StatCard
               icon={<IconClockHour4 size={26} />}
               title="Sedang Dipinjam"
@@ -359,7 +349,7 @@ const DashboardManager = () => {
       </Row>
 
       {/* Baris 4: Insight Tambahan */}
-      <Row className="g-3">
+      <Row className="g-3 mb-4">
         <Col md={4}>
           <Card className="card-lg h-100">
             <CardBody>
@@ -412,7 +402,6 @@ const DashboardManager = () => {
             </CardBody>
           </Card>
         </Col>
-
         <Col md={4}>
           <Card className="card-lg h-100">
             <CardBody>
@@ -445,6 +434,82 @@ const DashboardManager = () => {
           </Card>
         </Col>
       </Row>
+
+      {/* --- BARIS 5: TRACKING DETAIL STATUS ORDER (SUDAH BISA DI-KLIK) --- */}
+      <Row className="g-3">
+        <Col md={6}>
+          <Link 
+            href="/order/order-tools" 
+            style={{ textDecoration: "none", color: "inherit" }} 
+            className="d-block h-100"
+            title="Ke Halaman Order Tools"
+          >
+            <Card className="card-lg h-100 border-primary border-opacity-25 shadow-sm" style={{ cursor: "pointer" }}>
+              <CardBody>
+                <h6 className="mb-4 d-flex align-items-center gap-2">
+                  <IconShoppingCart size={20} className="text-primary"/> 
+                  Rincian Status Order Tools
+                </h6>
+                <Row className="text-center">
+                  <Col xs={3}>
+                    <div className="text-secondary small mb-1">Belum Dibeli</div>
+                    <div className="h4 mb-0 text-secondary">{orderToolsStatus.belum_dibeli ?? 0}</div>
+                  </Col>
+                  <Col xs={3}>
+                    <div className="text-secondary small mb-1">On Progres</div>
+                    <div className="h4 mb-0 text-primary">{orderToolsStatus.on_progres ?? 0}</div>
+                  </Col>
+                  <Col xs={3}>
+                    <div className="text-secondary small mb-1">Sudah Dibeli</div>
+                    <div className="h4 mb-0 text-success">{orderToolsStatus.sudah_dibeli ?? 0}</div>
+                  </Col>
+                  <Col xs={3}>
+                    <div className="text-secondary small mb-1">Ditolak</div>
+                    <div className="h4 mb-0 text-danger">{orderToolsStatus.ditolak ?? 0}</div>
+                  </Col>
+                </Row>
+              </CardBody>
+            </Card>
+          </Link>
+        </Col>
+        
+        <Col md={6}>
+          <Link 
+            href="/order/order-consumable" 
+            style={{ textDecoration: "none", color: "inherit" }} 
+            className="d-block h-100"
+            title="Ke Halaman Order Consumable"
+          >
+            <Card className="card-lg h-100 border-danger border-opacity-25 shadow-sm" style={{ cursor: "pointer" }}>
+              <CardBody>
+                <h6 className="mb-4 d-flex align-items-center gap-2">
+                  <IconClipboardList size={20} className="text-danger"/> 
+                  Rincian Status Order Consumable
+                </h6>
+                <Row className="text-center">
+                  <Col xs={3}>
+                    <div className="text-secondary small mb-1">Belum Dibeli</div>
+                    <div className="h4 mb-0 text-secondary">{orderConsumableStatus.belum_dibeli ?? 0}</div>
+                  </Col>
+                  <Col xs={3}>
+                    <div className="text-secondary small mb-1">On Progres</div>
+                    <div className="h4 mb-0 text-primary">{orderConsumableStatus.on_progres ?? 0}</div>
+                  </Col>
+                  <Col xs={3}>
+                    <div className="text-secondary small mb-1">Sudah Dibeli</div>
+                    <div className="h4 mb-0 text-success">{orderConsumableStatus.sudah_dibeli ?? 0}</div>
+                  </Col>
+                  <Col xs={3}>
+                    <div className="text-secondary small mb-1">Ditolak</div>
+                    <div className="h4 mb-0 text-danger">{orderConsumableStatus.ditolak ?? 0}</div>
+                  </Col>
+                </Row>
+              </CardBody>
+            </Card>
+          </Link>
+        </Col>
+      </Row>
+      <div className="mb-5"></div> {/* Extra space at bottom */}
     </>
   );
 };
