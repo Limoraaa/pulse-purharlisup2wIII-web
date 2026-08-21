@@ -183,17 +183,20 @@ class LaporanKerusakanController extends Controller
             ], 422);
         }
 
-        $validator = Validator::make($request->all(), [
+                $validator = Validator::make($request->all(), [
             'catatan_perbaikan' => 'nullable|string',
+            'tingkat_kerusakan' => 'nullable|in:ringan,berat',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $catatanPerbaikan = $validator->validated()['catatan_perbaikan'] ?? null;
+        $validatedRepair = $validator->validated();
+        $catatanPerbaikan = $validatedRepair['catatan_perbaikan'] ?? null;
+        $tingkatKerusakan = $validatedRepair['tingkat_kerusakan'] ?? null;
 
-        $laporan = DB::transaction(function () use ($laporan, $catatanPerbaikan) {
+        $laporan = DB::transaction(function () use ($laporan, $catatanPerbaikan, $tingkatKerusakan) {
             $tool = Tool::lockForUpdate()->find($laporan->tool_id);
 
             if ($tool) {
@@ -201,16 +204,25 @@ class LaporanKerusakanController extends Controller
                 $tool->save();
             }
 
-            // Hitung ini perbaikan ke berapa untuk alat ini, berdasarkan
-            // riwayat perbaikan yang sudah selesai sebelumnya.
-            $perbaikanKe = LaporanKerusakanTools::where('tool_id', $laporan->tool_id)
-                ->where('status', 'selesai_diperbaiki')
-                ->count() + 1;
+            // Kerusakan ringan tidak dihitung sebagai "jatah" perbaikan
+            // (perbaikan_ke tetap null -> tampil "-" di tabel). Cuma
+            // kerusakan berat (atau data lama tanpa tingkat_kerusakan)
+            // yang dihitung ke arah batas maksimal perbaikan.
+            $perbaikanKe = null;
+            if ($tingkatKerusakan !== 'ringan') {
+                $perbaikanKe = LaporanKerusakanTools::where('tool_id', $laporan->tool_id)
+                    ->where('status', 'selesai_diperbaiki')
+                    ->where(function ($q) {
+                        $q->whereNull('tingkat_kerusakan')->orWhere('tingkat_kerusakan', 'berat');
+                    })
+                    ->count() + 1;
+            }
 
             $laporan->update([
                 'status' => 'selesai_diperbaiki',
                 'tanggal_diperbaiki' => now(),
                 'catatan_perbaikan' => $catatanPerbaikan,
+                'tingkat_kerusakan' => $tingkatKerusakan,
                 'perbaikan_ke' => $perbaikanKe,
             ]);
 

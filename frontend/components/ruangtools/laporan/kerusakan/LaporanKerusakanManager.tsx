@@ -77,10 +77,12 @@ const LaporanKerusakanManager = () => {
     } | null>(null);
     const [confirmSubmitting, setConfirmSubmitting] = useState(false);
 
-        const [repairNote, setRepairNote] = useState("");
+    const [repairNote, setRepairNote] = useState("");
+    const [repairSeverity, setRepairSeverity] = useState<"ringan" | "berat" | "">("");
 
     const handleRepair = (item: LaporanKerusakanType) => {
       setRepairNote("");
+      setRepairSeverity("");
       setConfirmModal({ type: "repair", item });
     };
 
@@ -95,7 +97,12 @@ const LaporanKerusakanManager = () => {
 
       try {
         if (type === "repair") {
-          await repairLaporanKerusakan(item.id, repairNote.trim() || undefined);
+          const isMesin = item.kategori_alat === "mesin";
+          await repairLaporanKerusakan(
+            item.id,
+            repairNote.trim() || undefined,
+            isMesin ? (repairSeverity || undefined) : undefined
+          );
           // Item tetap ada di laporanList (status berubah jadi selesai_diperbaiki),
           // otomatis hilang dari tampilan lewat filteredList di atas.
           setLaporanList((prev) =>
@@ -365,15 +372,25 @@ const LaporanKerusakanManager = () => {
               ? `"${confirmModal.item.nama_barang}" akan ditandai selesai diperbaiki dan stok alat otomatis dikembalikan. Riwayatnya bisa dilihat di menu Riwayat > Riwayat Perbaikan.`
               : `"${confirmModal.item.nama_barang}" tidak akan bisa diperbaiki lagi. Opsi Repair untuk laporan ini akan hilang.`
           }
-                    confirmLabel={confirmModal.type === "repair" ? "Ya, Sudah Diperbaiki" : "Ya, Rusak Permanen"}
+          confirmLabel={confirmModal.type === "repair" ? "Ya, Sudah Diperbaiki" : "Ya, Rusak Permanen"}
           showNoteInput={confirmModal.type === "repair"}
           noteValue={repairNote}
           onNoteChange={setRepairNote}
+          showSeverityInput={confirmModal.type === "repair" && confirmModal.item.kategori_alat === "mesin"}
+          severityValue={repairSeverity}
+          onSeverityChange={setRepairSeverity}
+          confirmDisabled={
+            confirmModal.type === "repair" &&
+            confirmModal.item.kategori_alat === "mesin" &&
+            repairSeverity === ""
+          }
           warningText={
-            confirmModal.type === "repair" && (repairCountByKode[confirmModal.item.kode_barang] ?? 0) >= 2
+            confirmModal.type === "repair" &&
+            confirmModal.item.kategori_alat === "mesin" &&
+            (repairCountByKode[confirmModal.item.kode_barang] ?? 0) >= 2
               ? `Alat ini sudah diperbaiki ${repairCountByKode[confirmModal.item.kode_barang]}x sebelumnya. Ini akan menjadi perbaikan ke-${
                   (repairCountByKode[confirmModal.item.kode_barang] ?? 0) + 1
-                }. Untuk alat seperti mesin/gerinda yang umumnya hanya bisa diperbaiki maksimal 3x, pertimbangkan menandai Rusak Permanen jika kerusakan berulang.`
+                }. Mesin umumnya hanya bisa diperbaiki maksimal 3x — pertimbangkan menandai Rusak Permanen jika kerusakan berulang.`
               : undefined
           }
         />

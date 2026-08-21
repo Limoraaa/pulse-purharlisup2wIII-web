@@ -84,17 +84,26 @@ export const getRiwayatPerbaikanColumns = ({
       return <span className="text-secondary small">{truncated || "-"}</span>;
     },
   },
-  {
+    {
     id: "perbaikan_ke",
     header: "Perbaikan Ke-",
     cell: ({ row }) => {
       const ke = row.original.perbaikan_ke;
+      const isMesin = row.original.kategori_alat === "mesin";
+
       if (!ke) return <span className="text-secondary">-</span>;
-      return (
-        <Badge bg={ke >= 3 ? "danger-subtle" : "success-subtle"} text={ke >= 3 ? "danger-emphasis" : "success-emphasis"} className="fw-semibold">
-          Ke-{ke}
-        </Badge>
-      );
+
+      if (isMesin) {
+        return (
+          <Badge bg={ke >= 3 ? "danger-subtle" : "success-subtle"} text={ke >= 3 ? "danger-emphasis" : "success-emphasis"} className="fw-semibold">
+            Ke-{ke}
+          </Badge>
+        );
+      }
+
+      // Alat biasa: stok bisa lebih dari 1, jadi angka ini bukan riwayat
+      // 1 unit fisik yang sama, melainkan total laporan untuk kode ini.
+      return <span className="text-secondary">-</span>;
     },
   },
   {

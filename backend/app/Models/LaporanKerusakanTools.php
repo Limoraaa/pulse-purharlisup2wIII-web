@@ -25,6 +25,7 @@ class LaporanKerusakanTools extends Model
         'tanggal_diperbaiki',
         'catatan_perbaikan',
         'perbaikan_ke',
+        'tingkat_kerusakan',
         'dilaporkan_oleh',
     ];
     protected static function boot()
