@@ -10,7 +10,6 @@ class OrderConsumableController extends Controller
 {
     public function index(Request $request)
     {
-        // Gunakan with('peminta') untuk mengambil data relasi nama peminjam
         $query = OrderConsumable::with('peminta');
 
         if ($request->has('status_pembelian') && $request->status_pembelian !== 'semua') {
@@ -25,21 +24,20 @@ class OrderConsumableController extends Controller
 
     public function store(Request $request)
     {
-        // PERBAIKAN: Sesuaikan validasi dengan struktur database & form terbaru
         $validated = $request->validate([
             'peminta_id'        => 'required|exists:peminta,id',
-            'consumable_id'     => 'nullable|integer',
-            'kode_barang'       => 'nullable|string',  // Tambahan baru
+            'consumable_id'     => 'nullable|string', // Disesuaikan dari tool_id
+            'kode_barang'       => 'nullable|string',
             'nama_barang'       => 'required|string',
-            'merek'             => 'nullable|string',  // Ubah jadi nullable agar aman jika dikosongkan
-            'tipe'              => 'nullable|string',  // Tambahan baru
-            'er_e'              => 'nullable|string',  // Tambahan baru
-            'ukuran'            => 'nullable|string',  // Tambahan baru
-            'spesifikasi'       => 'nullable|string',  // Ubah jadi nullable karena sekarang opsional
+            'merek'             => 'nullable|string',
+            'tipe'              => 'nullable|string',
+            'er_e'              => 'nullable|string',
+            'ukuran'            => 'nullable|string',
+            'spesifikasi'       => 'nullable|string',
             'jumlah'            => 'required|integer|min:1',
             'satuan'            => 'required|string',
-            'harga'             => 'required|numeric|min:0', 
-            'referensi_harga'   => 'nullable|string',        
+            'harga'             => 'required|numeric|min:0',
+            'referensi_harga'   => 'nullable|string',
             'tanggal_pengajuan' => 'required|date',
         ]);
 
@@ -48,22 +46,49 @@ class OrderConsumableController extends Controller
         return response()->json(['success' => true, 'data' => $order]);
     }
 
-    // Update status pembelian (Tanpa otomatisasi update stok)
+    public function update(Request $request, $id)
+    {
+        $order = OrderConsumable::findOrFail($id);
+
+        $validated = $request->validate([
+            'peminta_id'        => 'sometimes|required|exists:peminta,id',
+            'consumable_id'     => 'nullable|string', // Disesuaikan dari tool_id
+            'kode_barang'       => 'nullable|string',
+            'nama_barang'       => 'sometimes|required|string',
+            'merek'             => 'nullable|string',
+            'tipe'              => 'nullable|string',
+            'er_e'              => 'nullable|string',
+            'ukuran'            => 'nullable|string',
+            'spesifikasi'       => 'nullable|string',
+            'jumlah'            => 'sometimes|required|integer|min:1',
+            'satuan'            => 'sometimes|required|string',
+            'harga'             => 'sometimes|required|numeric|min:0',
+            'referensi_harga'   => 'nullable|string',
+            'tanggal_pengajuan' => 'sometimes|required|date',
+        ]);
+
+        $order->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data order consumable berhasil diperbarui.',
+            'data' => $order->fresh()->load('peminta'),
+        ]);
+    }
+
     public function updateStatus(Request $request, $id)
     {
         $order = OrderConsumable::findOrFail($id);
-        
+
         $request->validate([
-            'status_pembelian'   => 'required|in:belum dibeli,sudah dibeli,ditolak',
-            'tanggal_kedatangan' => 'nullable|date' // Validasi untuk waktu kedatangan
+            'status_pembelian'   => 'required|in:belum dibeli,on progres,sudah dibeli,ditolak',
+            'tanggal_kedatangan' => 'nullable|date',
         ]);
 
-        // Siapkan data yang akan diupdate
         $updateData = [
-            'status_pembelian' => $request->status_pembelian
+            'status_pembelian' => $request->status_pembelian,
         ];
 
-        // Jika statusnya sudah dibeli dan ada request tanggal_kedatangan, masukkan ke update
         if ($request->has('tanggal_kedatangan')) {
             $updateData['tanggal_kedatangan'] = $request->tanggal_kedatangan;
         }
@@ -71,8 +96,8 @@ class OrderConsumableController extends Controller
         $order->update($updateData);
 
         return response()->json([
-            'success' => true, 
-            'message' => 'Status dan riwayat kedatangan berhasil diperbarui.'
+            'success' => true,
+            'message' => 'Status dan riwayat kedatangan berhasil diperbarui.',
         ]);
     }
 }

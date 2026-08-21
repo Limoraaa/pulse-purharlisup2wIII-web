@@ -15,8 +15,9 @@ export interface StatCardProps {
   title: string;
   /** Nilai metrik */
   value: ReactNode;
-  /** Warna tema Bootstrap untuk aksen icon (primary, info, success, warning, danger) */
-  variant?: "primary" | "info" | "success" | "warning" | "danger";
+  /** Warna tema Bootstrap untuk aksen icon */
+  // <-- "secondary" SUDAH DITAMBAHKAN DI BAWAH INI -->
+  variant?: "primary" | "info" | "success" | "warning" | "danger" | "secondary";
   /** Teks trend kecil opsional (mis. "+12% bulan ini") */
   trend?: string;
   /** Arah trend untuk pewarnaan teks trend */

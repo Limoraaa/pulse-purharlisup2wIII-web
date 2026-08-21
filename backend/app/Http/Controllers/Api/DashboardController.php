@@ -17,16 +17,49 @@ class DashboardController extends Controller
     // GET /api/dashboard/summary
     public function summary()
     {
+        // 1. Hitung status Order Tools
+        $orderTools = DB::table('order_tools') 
+            ->select('status_pembelian', DB::raw('count(*) as total'))
+            ->groupBy('status_pembelian')
+            ->pluck('total', 'status_pembelian')
+            ->toArray();
+
+        // 2. Hitung status Order Consumable
+        $orderConsumables = DB::table('order_consumables') 
+            ->select('status_pembelian', DB::raw('count(*) as total'))
+            ->groupBy('status_pembelian')
+            ->pluck('total', 'status_pembelian')
+            ->toArray();
+
+        // 3. Petakan kuncinya menggunakan huruf kecil sesuai value di database
+        $orderToolsStatus = [
+            'belum_dibeli' => $orderTools['belum dibeli'] ?? 0,
+            'on_progres'   => $orderTools['on progres'] ?? 0,
+            'sudah_dibeli' => $orderTools['sudah dibeli'] ?? 0,
+            'ditolak'      => $orderTools['ditolak'] ?? 0,
+        ];
+
+        $orderConsumableStatus = [
+            'belum_dibeli' => $orderConsumables['belum dibeli'] ?? 0,
+            'on_progres'   => $orderConsumables['on progres'] ?? 0,
+            'sudah_dibeli' => $orderConsumables['sudah dibeli'] ?? 0,
+            'ditolak'      => $orderConsumables['ditolak'] ?? 0,
+        ];
+
+        // 4. Return semua datanya sekaligus
         return response()->json([
             'total_tools' => Tool::count(),
             'total_consumables' => Consumable::count(),
             'total_peminta' => Peminta::where('aktif', true)->count(),
             'sedang_dipinjam' => Peminjaman::whereNull('tanggal_kembali')->sum('jumlah'),
+            
+            // --- DATA UNTUK KARTU ORDER DI DASHBOARD ---
+            'order_tools_status' => $orderToolsStatus,
+            'order_consumable_status' => $orderConsumableStatus,
         ]);
     }
 
     // GET /api/dashboard/stok-menipis
-    // Consumable dengan stok < 5, diurutkan dari yang paling sedikit
     public function stokMenipis()
     {
         $data = Consumable::where('stok_awal', '<', 5)
@@ -38,7 +71,6 @@ class DashboardController extends Controller
     }
 
     // GET /api/dashboard/telat-kembali
-    // Peminjaman aktif yang sudah lewat expected_return_date...
     public function telatKembali()
     {
         $batasHari = 30;
@@ -63,21 +95,18 @@ class DashboardController extends Controller
     }
 
     // GET /api/dashboard/alat-terpopuler
-    // Top 5 alat paling sering dipinjam (berdasarkan jumlah transaksi peminjaman)
     public function alatTerpopuler()
     {
         $data = Peminjaman::select('tool_id', DB::raw('COUNT(*) as total_transaksi'), DB::raw('SUM(jumlah) as total_unit'))
             ->groupBy('tool_id')
             ->orderByDesc('total_transaksi')
             ->limit(5)
-            // Tambahkan merk dan ukuran di pemanggilan relasi 'with'
             ->with('tool:id,kode_barang,nama_barang,merk,ukuran')
             ->get()
             ->map(function ($row) {
                 return [
                     'kode_barang' => $row->tool->kode_barang ?? '-',
                     'nama_barang' => $row->tool->nama_barang ?? '-',
-                    // Petakan merk dan ukuran agar terkirim ke frontend
                     'merk' => $row->tool->merk ?? null,
                     'ukuran' => $row->tool->ukuran ?? null,
                     'total_transaksi' => $row->total_transaksi,
@@ -89,21 +118,18 @@ class DashboardController extends Controller
     }
 
     // GET /api/dashboard/consumable-terpopuler
-    // Top 5 consumable paling banyak diambil (berdasarkan total jumlah_keluar)
     public function consumableTerpopuler()
     {
         $data = ConsumableKeluar::select('consumable_id', DB::raw('SUM(jumlah_keluar) as total_diambil'))
             ->groupBy('consumable_id')
             ->orderByDesc('total_diambil')
             ->limit(5)
-            // Tambahkan merk dan ukuran di pemanggilan relasi 'with'
             ->with('consumable:id,kode_barang,nama,merk,ukuran')
             ->get()
             ->map(function ($row) {
                 return [
                     'kode_barang' => $row->consumable->kode_barang ?? '-',
                     'nama' => $row->consumable->nama ?? '-',
-                    // Petakan merk dan ukuran agar terkirim ke frontend
                     'merk' => $row->consumable->merk ?? null,
                     'ukuran' => $row->consumable->ukuran ?? null,
                     'total_diambil' => $row->total_diambil,
@@ -114,7 +140,6 @@ class DashboardController extends Controller
     }
 
     // GET /api/dashboard/kerusakan-summary
-    // GET /api/dashboard/kerusakan-summary
     public function kerusakanSummary()
     {
         $bulanIni = LaporanKerusakanTools::whereMonth('tanggal', now()->month)
@@ -123,8 +148,6 @@ class DashboardController extends Controller
 
         $totalSemua = LaporanKerusakanTools::sum('jumlah');
 
-        // GUNAKAN 'status' DENGAN VALUE 'bisa_diperbaiki'
-        // (Sesuai dengan validator di LaporanKerusakanController)
         $sedangDiperbaiki = LaporanKerusakanTools::where('status', 'bisa_diperbaiki')->sum('jumlah');
         $sudahDiperbaiki = LaporanKerusakanTools::where('status', 'selesai_diperbaiki')->sum('jumlah');
         $rusakPermanen = LaporanKerusakanTools::where('status', 'rusak_permanen')->sum('jumlah');
@@ -139,7 +162,6 @@ class DashboardController extends Controller
     }
 
     // GET /api/dashboard/aktivitas-terbaru
-    // Gabungan 10 aktivitas terakhir dari berbagai jenis transaksi
     public function aktivitasTerbaru()
     {
         $peminjaman = Peminjaman::with(['tool', 'peminta'])
@@ -203,7 +225,6 @@ class DashboardController extends Controller
     }
 
     // GET /api/dashboard/tren-peminjaman
-    // Total peminjaman per hari, 30 hari terakhir (untuk grafik)
     public function trenPeminjaman()
     {
         $data = Peminjaman::select(
