@@ -159,7 +159,9 @@ export default function OrderToolsFormModal({ isOpen, onClose, onSuccess }: Orde
           {/* BAGIAN 1: PENGUSUL */}
           <div className="mb-4">
             <Form.Group>
-              <Form.Label className="fw-semibold">Nama Pengusul</Form.Label>
+              <Form.Label className="fw-semibold">
+                Nama Pengusul <span className="text-danger">*</span>
+              </Form.Label>
               <Form.Select required value={pemintaId} onChange={e => setPemintaId(e.target.value)}>
                 <option value="" disabled>-- Pilih Nama Pengusul --</option>
                 {peminjamList.map((p) => (
@@ -180,6 +182,9 @@ export default function OrderToolsFormModal({ isOpen, onClose, onSuccess }: Orde
               ? searchTexts[index]
               : (item.tool_id ? `${item.kode_barang} — ${item.nama_barang}` : item.nama_barang);
 
+            // Field auto-fill disabled saat tool sudah dipilih dari database
+            const isLocked = Boolean(item.tool_id);
+
             return (
               <div key={index} className="p-3 mb-3 border rounded bg-white position-relative shadow-sm">
                 <div className="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
@@ -194,7 +199,9 @@ export default function OrderToolsFormModal({ isOpen, onClose, onSuccess }: Orde
                 <Row className="g-3">
                   <Col md={12}>
                     <Form.Group className="mb-3">
-                      <Form.Label className="fw-semibold">Kode Barang</Form.Label>
+                      <Form.Label className="fw-semibold">
+                        Kode Barang <span className="text-danger">*</span>
+                      </Form.Label>
                       <Form.Control
                         list={`tools-options-${index}`}
                         placeholder="Ketik atau pilih kode/nama barang..."
@@ -215,7 +222,7 @@ export default function OrderToolsFormModal({ isOpen, onClose, onSuccess }: Orde
                               ...newItems[index],
                               tool_id: '',
                               kode_barang: '',
-                              nama_barang: '',
+                              nama_barang: typed,
                               merek: '',
                               tipe: '',
                               er_e: '',
@@ -247,7 +254,8 @@ export default function OrderToolsFormModal({ isOpen, onClose, onSuccess }: Orde
                         value={item.nama_barang}
                         onChange={e => handleItemChange(index, 'nama_barang', e.target.value)}
                         placeholder="Nama barang..."
-                        required
+                        disabled={isLocked}
+                        readOnly={isLocked}
                       />
                     </Form.Group>
                   </Col>
@@ -259,7 +267,8 @@ export default function OrderToolsFormModal({ isOpen, onClose, onSuccess }: Orde
                         value={item.merek}
                         onChange={e => handleItemChange(index, 'merek', e.target.value)}
                         placeholder="Merk barang..."
-                        required
+                        disabled={isLocked}
+                        readOnly={isLocked}
                       />
                     </Form.Group>
                   </Col>
@@ -271,6 +280,8 @@ export default function OrderToolsFormModal({ isOpen, onClose, onSuccess }: Orde
                         value={item.tipe}
                         onChange={e => handleItemChange(index, 'tipe', e.target.value)}
                         placeholder="Tipe..."
+                        disabled={isLocked}
+                        readOnly={isLocked}
                       />
                     </Form.Group>
                   </Col>
@@ -282,6 +293,8 @@ export default function OrderToolsFormModal({ isOpen, onClose, onSuccess }: Orde
                         value={item.er_e}
                         onChange={e => handleItemChange(index, 'er_e', e.target.value)}
                         placeholder="ER/E..."
+                        disabled={isLocked}
+                        readOnly={isLocked}
                       />
                     </Form.Group>
                   </Col>
@@ -293,13 +306,17 @@ export default function OrderToolsFormModal({ isOpen, onClose, onSuccess }: Orde
                         value={item.ukuran}
                         onChange={e => handleItemChange(index, 'ukuran', e.target.value)}
                         placeholder="Ukuran..."
+                        disabled={isLocked}
+                        readOnly={isLocked}
                       />
                     </Form.Group>
                   </Col>
 
                   <Col md={6}>
                     <Form.Group className="mb-3">
-                      <Form.Label className="fw-semibold text-sm">Jumlah</Form.Label>
+                      <Form.Label className="fw-semibold text-sm">
+                        Jumlah <span className="text-danger">*</span>
+                      </Form.Label>
                       <Form.Control
                         type="number"
                         min="1"
@@ -312,7 +329,9 @@ export default function OrderToolsFormModal({ isOpen, onClose, onSuccess }: Orde
 
                   <Col md={6}>
                     <Form.Group className="mb-3">
-                      <Form.Label className="fw-semibold text-sm">Satuan</Form.Label>
+                      <Form.Label className="fw-semibold text-sm">
+                        Satuan <span className="text-danger">*</span>
+                      </Form.Label>
                       <Form.Control
                         type="text"
                         required
@@ -325,7 +344,9 @@ export default function OrderToolsFormModal({ isOpen, onClose, onSuccess }: Orde
 
                   <Col md={6}>
                     <Form.Group className="mb-3">
-                      <Form.Label className="fw-semibold text-sm">Estimasi Harga (Satuan)</Form.Label>
+                      <Form.Label className="fw-semibold text-sm">
+                        Estimasi Harga (Satuan) <span className="text-danger">*</span>
+                      </Form.Label>
                       <InputGroup>
                         <InputGroup.Text>Rp</InputGroup.Text>
                         <Form.Control
@@ -341,13 +362,19 @@ export default function OrderToolsFormModal({ isOpen, onClose, onSuccess }: Orde
 
                   <Col md={6}>
                     <Form.Group className="mb-3">
-                      <Form.Label className="fw-semibold text-sm">Referensi Harga</Form.Label>
+                      <Form.Label className="fw-semibold text-sm">
+                        Referensi Harga{' '}
+                        <span className="text-secondary fw-normal">(opsional)</span>
+                      </Form.Label>
                       <Form.Control
                         type="text"
                         value={item.referensi_harga}
                         onChange={e => handleItemChange(index, 'referensi_harga', e.target.value)}
                         placeholder="Link Tokopedia / Toko"
                       />
+                      <Form.Text className="text-muted">
+                        Boleh diisi atau dikosongkan.
+                      </Form.Text>
                     </Form.Group>
                   </Col>
                 </Row>

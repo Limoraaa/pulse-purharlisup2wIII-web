@@ -35,3 +35,10 @@ export const createOrderTools = async (data: any) => {
     body: JSON.stringify(data),
   });
 };
+
+export const updateOrderTools = async (id: number, data: any) => {
+  return await apiFetch<any>(`/order-tools/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+};

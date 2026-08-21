@@ -2568,3 +2568,64 @@ html.collapsed #miniSidebar,
     }
   }
 }
+
+// ============================================================
+// Order Tools/Consumable - dropdown status subtle (pola sama
+// dengan bg-{warna}-subtle + text-{warna}-emphasis yang sudah
+// dipakai di komponen lain seperti NoficationList).
+// ============================================================
+.order-status-select {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 0.25rem 0.625rem 0.25rem 0.75rem;
+  cursor: pointer;
+  height: auto;
+  min-height: 0;
+  line-height: 1.4;
+
+  // Option list tetap default agar mudah dibaca
+  option {
+    color: var(--#{$prefix}body-color);
+    font-weight: 400;
+    background-color: #fff;
+    padding: 0.25rem 0.5rem;
+  }
+
+  // Subtle background + text per status
+  &.status-belum {
+    background-color: var(--#{$prefix}warning-bg-subtle) !important;
+    color: var(--#{$prefix}warning-text-emphasis) !important;
+    border-color: var(--#{$prefix}warning-border-subtle);
+  }
+  &.status-progres {
+    background-color: var(--#{$prefix}info-bg-subtle) !important;
+    color: var(--#{$prefix}info-text-emphasis) !important;
+    border-color: var(--#{$prefix}info-border-subtle);
+  }
+  &.status-dibeli {
+    background-color: var(--#{$prefix}success-bg-subtle) !important;
+    color: var(--#{$prefix}success-text-emphasis) !important;
+    border-color: var(--#{$prefix}success-border-subtle);
+  }
+  &.status-tolak {
+    background-color: var(--#{$prefix}danger-bg-subtle) !important;
+    color: var(--#{$prefix}danger-text-emphasis) !important;
+    border-color: var(--#{$prefix}danger-border-subtle);
+  }
+
+  // Chevron kecil & senada dengan teks
+  background-image: none; // sembunyikan default Bootstrap
+  appearance: none;
+
+  &::after {
+    content: "\\ea5f"; // tabler-icon chevron-down
+    font-family: 'tabler-icons' !important;
+    font-size: 14px;
+    margin-left: 0.375rem;
+    opacity: 0.7;
+    display: inline-block;
+    vertical-align: middle;
+  }
+}

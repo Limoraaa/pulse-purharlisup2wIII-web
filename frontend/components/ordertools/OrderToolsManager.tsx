@@ -1,11 +1,12 @@
 'use client';
 import { useEffect, useMemo, useState } from "react";
-import { Row, Col, Card, CardBody, Alert, Spinner, InputGroup, Form, Button } from "react-bootstrap";
-import { IconCircleCheck, IconSearch, IconX, IconClipboardList, IconShoppingCart } from "@tabler/icons-react";
+import { Row, Col, Card, CardBody, Alert, Spinner, InputGroup, Form, Button, Badge } from "react-bootstrap";
+import { IconCircleCheck, IconSearch, IconX, IconClipboardList, IconShoppingCart, IconEdit } from "@tabler/icons-react";
 import TanstackTable from "components/table/TanstackTable";
 import Flex from "components/common/Flex";
 import DasherBreadcrumb from "components/common/DasherBreadcrumb";
 import OrderToolsFormModal from './OrderToolsFormModal';
+import OrderToolsEditModal from './OrderToolsEditModal';
 import { getOrderTools, updateOrderToolsStatus } from '/services/orderToolsService';
 
 // IMPORT UTILITY EXPORT BAWAAN
@@ -13,10 +14,14 @@ import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/
 
 interface OrderData {
   id: number;
+  peminta_id: string;
   peminta?: { nama: string };
   nama_barang: string;
   spesifikasi: string;
   merek: string;
+  tipe: string;
+  er_e: string;
+  ukuran: string;
   jumlah: number;
   satuan: string;
   harga: number;
@@ -26,13 +31,20 @@ interface OrderData {
   status_pembelian: string;
 }
 
+const STATUS_VARIANTS: Record<string, string> = {
+  'belum dibeli': 'status-belum',
+  'on progres': 'status-progres',
+  'sudah dibeli': 'status-dibeli',
+  'ditolak': 'status-tolak',
+};
+
 // DEFINISI KOLOM UNTUK EXPORT
 const EXPORT_COLUMNS_ORDER: ExportColumn[] = [
   { header: "No", key: "no" },
   { header: "Tgl Pengajuan", key: "tanggal_pengajuan" },
   { header: "Pengusul", key: "nama_pengusul" },
   { header: "Nama Barang", key: "nama_barang" },
-  { header: "Spesifikasi", key: "spesifikasi" },
+  { header: "Ukuran", key: "ukuran" },
   { header: "Merek", key: "merek" },
   { header: "Jumlah", key: "jumlah" },
   { header: "Satuan", key: "satuan" },
@@ -47,6 +59,8 @@ export default function OrderToolsManager() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
+  const [editData, setEditData] = useState<OrderData | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -67,19 +81,26 @@ export default function OrderToolsManager() {
     fetchOrders();
   }, []);
 
-  const handleMarkAsBought = async (id: number) => {
+  const handleStatusChange = async (id: number, newStatus: string) => {
     try {
-      const now = new Date();
-      const tzOffset = now.getTimezoneOffset() * 60000;
-      const localISOTime = (new Date(now.getTime() - tzOffset)).toISOString().slice(0, 19).replace('T', ' ');
-
-      await updateOrderToolsStatus(id, 'sudah dibeli', localISOTime);
-      setSuccessMessage("Barang telah ditandai sudah dibeli beserta waktu kedatangannya.");
+      let tanggalKedatangan: string | undefined;
+      if (newStatus === 'sudah dibeli') {
+        const now = new Date();
+        const tzOffset = now.getTimezoneOffset() * 60000;
+        tanggalKedatangan = (new Date(now.getTime() - tzOffset)).toISOString().slice(0, 19).replace('T', ' ');
+      }
+      await updateOrderToolsStatus(id, newStatus, tanggalKedatangan);
+      setSuccessMessage("Status berhasil diperbarui.");
       fetchOrders();
       setTimeout(() => setSuccessMessage(null), 4000);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Gagal mengupdate status");
     }
+  };
+
+  const handleEdit = (order: OrderData) => {
+    setEditData(order);
+    setIsEditModalOpen(true);
   };
 
   const filteredOrders = useMemo(() => {
@@ -158,7 +179,11 @@ export default function OrderToolsManager() {
       accessorKey: "nama_barang",
       cell: ({ row }: any) => <span className="fw-semibold text-body">{row.original.nama_barang}</span>,
     },
-    { header: "Spesifikasi", accessorKey: "spesifikasi" },
+    {
+      header: "Ukuran",
+      accessorKey: "ukuran",
+      cell: ({ row }: any) => row.original.ukuran || <span className="text-secondary">-</span>,
+    },
     { header: "Merk", accessorKey: "merek" },
     { header: "Jumlah", accessorKey: "jumlah" },
     { header: "Satuan", accessorKey: "satuan" },
@@ -174,13 +199,23 @@ export default function OrderToolsManager() {
     },
     {
       header: "Status",
-      accessorKey: "status_pembelian",
+      id: "status",
       cell: ({ row }: any) => {
         const status = row.original.status_pembelian;
+        const variantClass = STATUS_VARIANTS[status] || 'bg-secondary';
         return (
-          <span className={`badge ${status === 'sudah dibeli' ? 'bg-success' : 'bg-warning'}`}>
-            {status}
-          </span>
+          <Form.Select
+            size="sm"
+            value={status}
+            onChange={(e) => handleStatusChange(row.original.id, e.target.value)}
+            className={`order-status-select ${variantClass}`}
+            style={{ width: 'auto', minWidth: '130px' }}
+          >
+            <option value="belum dibeli">Belum Dibeli</option>
+            <option value="on progres">On Progres</option>
+            <option value="sudah dibeli">Sudah Dibeli</option>
+            <option value="ditolak">Ditolak</option>
+          </Form.Select>
         );
       },
     },
@@ -202,17 +237,12 @@ export default function OrderToolsManager() {
     {
       header: "Aksi",
       id: "aksi",
-      cell: ({ row }: any) => {
-        const order = row.original;
-        if (order.status_pembelian === 'belum dibeli') {
-          return (
-            <Button variant="success" size="sm" onClick={() => handleMarkAsBought(order.id)}>
-              Tandai Dibeli
-            </Button>
-          );
-        }
-        return <span className="text-secondary small">-</span>;
-      },
+      cell: ({ row }: any) => (
+        <Button variant="outline-primary" size="sm" className="d-flex align-items-center gap-1" onClick={() => handleEdit(row.original)}>
+          <IconEdit size={16} />
+          Edit
+        </Button>
+      ),
     },
   ], []);
 
@@ -312,6 +342,12 @@ export default function OrderToolsManager() {
       </Card>
 
       <OrderToolsFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSuccess={fetchOrders} />
+      <OrderToolsEditModal
+        isOpen={isEditModalOpen}
+        onClose={() => { setIsEditModalOpen(false); setEditData(null); }}
+        onSuccess={fetchOrders}
+        orderData={editData}
+      />
     </div>
   );
 }
