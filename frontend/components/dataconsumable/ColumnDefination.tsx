@@ -3,7 +3,7 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { Dropdown, Badge } from "react-bootstrap";
 import { IconDotsVertical, IconShoppingCartPlus } from "@tabler/icons-react";
-import QRCode from "qrcode"; // <-- Tambahkan import QRCode
+import QRCode from "qrcode"; 
 
 // import custom types
 import { ConsumableItemType } from "types/DataConsumableTypes";
@@ -109,31 +109,63 @@ export const getConsumableColumns = ({
       const consumable = row.original;
       const isHabis = consumable.stok_awal <= 0;
 
-      // <-- Fungsi untuk mendownload QR Code -->
+      // <-- Fungsi untuk mendownload QR Code versi In-Memory Canvas -->
       const handleDownloadQR = async () => {
         try {
-          // Ambil properti nama dan merk dari consumable
           const namaBarang = consumable.nama || "Consumable";
           const merkBarang = consumable.merk || "Unknown";
+          const kodeBarang = consumable.kode_barang || "-";
           
-          // Format nama file: NamaBarang_Merk.png (karakter ilegal akan diubah jadi underscore)
-          const fileName = `${namaBarang}_${merkBarang}`.replace(/[^a-zA-Z0-9_-]/g, "_");
+          // Format nama file: NamaBarang_Merk.png
+          const fileName = `${namaBarang}_${merkBarang}`.replace(/[^a-zA-Z0-9_-]/g, "_") + ".png";
 
-          // Buat elemen canvas sementara
-          const canvas = document.createElement("canvas");
+          // 1. Generate QR murni jadi Base64 (Isinya tetap ID agar sistem scan bekerja)
+          const qrDataUrl = await QRCode.toDataURL(String(consumable.id), {
+            width: 500,
+            margin: 2,
+            errorCorrectionLevel: 'H'
+          });
+
+          // 2. Ubah jadi gambar statis di memori
+          const qrImage = new Image();
+          qrImage.src = qrDataUrl;
           
-          // Render UUID (consumable.id) ke dalam QR Code
-          // Pastikan properti consumable.id sesuai dengan nama primary key/UUID di type kamu
-          await QRCode.toCanvas(canvas, String(consumable.id), { width: 300 });
+          qrImage.onload = () => {
+            const finalCanvas = document.createElement("canvas");
+            const ctx = finalCanvas.getContext("2d");
+            if (!ctx) return;
 
-          // Proses download
-          const pngUrl = canvas.toDataURL("image/png");
-          const downloadLink = document.createElement("a");
-          downloadLink.href = pngUrl;
-          downloadLink.download = fileName;
-          document.body.appendChild(downloadLink);
-          downloadLink.click();
-          document.body.removeChild(downloadLink);
+            // Kita patok ukurannya menjadi Persegi Panjang
+            const QR_SIZE = 500;
+            const TEXT_AREA = 100;
+
+            finalCanvas.width = QR_SIZE;
+            finalCanvas.height = QR_SIZE + TEXT_AREA;
+
+            // Background putih
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+
+            // Tempel QR Code
+            ctx.drawImage(qrImage, 0, 0, QR_SIZE, QR_SIZE);
+
+            // Tempel Teks Kode Barang di bawahnya
+            ctx.fillStyle = "#000000";    
+            ctx.font = "bold 40px Arial, sans-serif"; 
+            ctx.textAlign = "center";     
+            ctx.textBaseline = "middle";  
+            
+            ctx.fillText(kodeBarang, QR_SIZE / 2, QR_SIZE + (TEXT_AREA / 2)); 
+
+            // Eksekusi otomatis download
+            const link = document.createElement("a");
+            link.download = fileName; 
+            link.href = finalCanvas.toDataURL("image/png");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          };
+
         } catch (err) {
           console.error("Gagal membuat QR Code", err);
         }
@@ -151,9 +183,6 @@ export const getConsumableColumns = ({
             onClick={(e) => onStockOut(consumable, e)}
           >
             <IconShoppingCartPlus size={16} />
-            {/* teks disembunyikan di layar < lg (992px), sisa ikon saja
-                supaya kolom Aksi (sticky di mobile) tidak makan banyak ruang.
-                title di atas tetap kasih tooltip + aksesibilitas. */}
             <span className="d-none d-lg-inline">Ambil Bahan</span>
           </button>
           </div>
@@ -191,4 +220,4 @@ export const getConsumableColumns = ({
       );
     },
   },
-]; 
+];
