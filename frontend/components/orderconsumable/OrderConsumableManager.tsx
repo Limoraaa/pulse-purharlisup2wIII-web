@@ -177,8 +177,15 @@ export default function OrderConsumableManager() {
       accessorKey: "status_pembelian",
       cell: ({ row }: any) => {
         const status = row.original.status_pembelian;
+        const variant = status === 'sudah dibeli'
+          ? 'bg-success-subtle text-success-emphasis'
+          : status === 'on progres'
+            ? 'bg-info-subtle text-info-emphasis'
+            : status === 'ditolak'
+              ? 'bg-danger-subtle text-danger-emphasis'
+              : 'bg-warning-subtle text-warning-emphasis';
         return (
-          <span className={`badge ${status === 'sudah dibeli' ? 'bg-success' : 'bg-warning'}`}>
+          <span className={`badge ${variant} fw-semibold`}>
             {status}
           </span>
         );

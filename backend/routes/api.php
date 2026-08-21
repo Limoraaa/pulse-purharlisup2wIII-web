@@ -58,6 +58,7 @@ Route::put('/order-consumable/{id}/status', [OrderConsumableController::class, '
 Route::get('/order-tools', [OrderToolController::class, 'index']);
 Route::post('/order-tools', [OrderToolController::class, 'store']);
 Route::put('/order-tools/{id}/status', [OrderToolController::class, 'updateStatus']);
+Route::put('/order-tools/{id}', [OrderToolController::class, 'update']);
 
 // ==========================================
 // ROUTE YANG WAJIB LOGIN (SANCTUM MIDDLEWARE)
