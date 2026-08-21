@@ -18,6 +18,9 @@ export interface LaporanKerusakanType {
   status: JenisKerusakan;
   catatan_perbaikan?: string;
   perbaikan_ke?: number;
+  tingkat_kerusakan?: "ringan" | "berat";
+  kategori_alat?: "mesin" | "alat_biasa";
+  
 
   // Diperlukan agar cocok dengan constraint generic exportToPDF / exportToExcel
   [key: string]: unknown;

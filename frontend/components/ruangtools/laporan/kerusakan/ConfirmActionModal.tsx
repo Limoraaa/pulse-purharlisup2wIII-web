@@ -13,11 +13,15 @@ interface ConfirmActionModalProps {
   confirmLabel: string;
   variant?: ConfirmActionVariant;
   submitting?: boolean;
-  warningText?: string;
+    warningText?: string;
   showNoteInput?: boolean;
   noteValue?: string;
   onNoteChange?: (value: string) => void;
   notePlaceholder?: string;
+  showSeverityInput?: boolean;
+  severityValue?: "ringan" | "berat" | "";
+  onSeverityChange?: (value: "ringan" | "berat") => void;
+  confirmDisabled?: boolean;
 }
 
 const ConfirmActionModal = ({
@@ -34,6 +38,10 @@ const ConfirmActionModal = ({
   noteValue = "",
   onNoteChange,
   notePlaceholder = "Catatan perbaikan (opsional)...",
+  showSeverityInput = false,
+  severityValue = "",
+  onSeverityChange,
+  confirmDisabled = false,
 }: ConfirmActionModalProps) => {
   const isDanger = variant === "danger";
 
@@ -56,6 +64,35 @@ const ConfirmActionModal = ({
           </Alert>
         )}
 
+                {showSeverityInput && (
+          <Form.Group className="text-start mb-3">
+            <Form.Label className="small fw-semibold">
+              Tingkat Kerusakan <span className="text-danger">*</span>
+            </Form.Label>
+            <div className="d-flex gap-3">
+              <Form.Check
+                type="radio"
+                id="severity-ringan"
+                name="tingkat_kerusakan"
+                label="Rusak Ringan"
+                checked={severityValue === "ringan"}
+                onChange={() => onSeverityChange?.("ringan")}
+              />
+              <Form.Check
+                type="radio"
+                id="severity-berat"
+                name="tingkat_kerusakan"
+                label="Rusak Berat"
+                checked={severityValue === "berat"}
+                onChange={() => onSeverityChange?.("berat")}
+              />
+            </div>
+            <Form.Text className="text-secondary">
+              Rusak ringan tidak dihitung ke batas maksimal perbaikan.
+            </Form.Text>
+          </Form.Group>
+        )}
+
         {showNoteInput && (
           <Form.Group className="text-start">
             <Form.Label className="small fw-semibold">Catatan Perbaikan</Form.Label>
@@ -73,7 +110,7 @@ const ConfirmActionModal = ({
         <Button variant="outline-secondary" onClick={onClose} disabled={submitting}>
           Batal
         </Button>
-        <Button variant={isDanger ? "danger" : "success"} onClick={onConfirm} disabled={submitting}>
+        <Button variant={isDanger ? "danger" : "success"} onClick={onConfirm} disabled={submitting || confirmDisabled}>
           {submitting ? "Memproses..." : confirmLabel}
         </Button>
       </Modal.Footer>
