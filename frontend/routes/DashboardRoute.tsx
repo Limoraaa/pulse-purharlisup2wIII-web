@@ -84,18 +84,18 @@ export const DashboardMenu: MenuItemType[] = [
   },
   {
     id: uuid(),
-    title: "Order", // Induk menu
+    title: "Pengajuan Order", // Induk menu
     icon: <IconShoppingCart size={20} strokeWidth={1.5} />,
     children: [
       {
         id: uuid(),
-        name: "Order Consumable", // Disingkat agar tidak mengulang kata "Order"
+        name: "Order Consumable",
         link: "/order/order-consumable",
       },
       {
         id: uuid(),
-        name: "Tools", // Disingkat
-        link: "/order/order-tools", 
+        name: "Order Tools",
+        link: "/order/order-tools",
       },
     ],
   },
