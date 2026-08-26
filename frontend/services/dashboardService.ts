@@ -41,3 +41,8 @@ export async function getAktivitasTerbaru(): Promise<AktivitasItem[]> {
 export async function getTrenPeminjaman(): Promise<TrenPeminjamanItem[]> {
   return apiFetch<TrenPeminjamanItem[]>("/dashboard/tren-peminjaman");
 }
+
+// ---> TAMBAHKAN FUNGSI INI UNTUK TREN CONSUMABLE <---
+export async function getTrenConsumable(): Promise<TrenPeminjamanItem[]> {
+  return apiFetch<TrenPeminjamanItem[]>("/dashboard/tren-consumable");
+}

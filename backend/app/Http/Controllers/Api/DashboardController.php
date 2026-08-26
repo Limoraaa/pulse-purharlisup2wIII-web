@@ -238,4 +238,20 @@ class DashboardController extends Controller
 
         return response()->json($data);
     }
+
+    // GET /api/dashboard/tren-consumable
+    public function trenConsumable()
+    {
+        // Mengambil data tren pengeluaran consumable selama 30 hari terakhir
+        $data = ConsumableKeluar::select(
+                DB::raw('DATE(tanggal) as tanggal'),
+                DB::raw('SUM(jumlah_keluar) as total')
+            )
+            ->where('tanggal', '>=', now()->subDays(30))
+            ->groupBy(DB::raw('DATE(tanggal)'))
+            ->orderBy('tanggal', 'asc')
+            ->get();
+
+        return response()->json($data);
+    }
 }

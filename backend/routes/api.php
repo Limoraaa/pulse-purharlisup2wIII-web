@@ -42,6 +42,7 @@ Route::prefix('dashboard')->group(function () {
     Route::get('/kerusakan-summary', [DashboardController::class, 'kerusakanSummary']);
     Route::get('/aktivitas-terbaru', [DashboardController::class, 'aktivitasTerbaru']);
     Route::get('/tren-peminjaman', [DashboardController::class, 'trenPeminjaman']);
+    Route::get('/tren-consumable', [DashboardController::class, 'trenConsumable']);
 });
 
 // --- FITUR SCANNER & CART PUBLIK (Agar Flutter & Web Dashboard sinkron tanpa token khusus scan) ---
