@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useState } from "react";
-// Menggunakan Link bawaan Next.js yang aman dari hydration crash
 import Link from "next/link"; 
 import { Row, Col, Card, CardBody, Spinner, Alert, Badge } from "react-bootstrap";
 import {
@@ -43,6 +42,7 @@ import {
   getKerusakanSummary,
   getAktivitasTerbaru,
   getTrenPeminjaman,
+  getTrenConsumable, 
 } from "services/dashboardService";
 
 // import custom components
@@ -77,6 +77,7 @@ const DashboardManager = () => {
   const [kerusakan, setKerusakan] = useState<KerusakanSummary | null>(null);
   const [aktivitas, setAktivitas] = useState<AktivitasItem[]>([]);
   const [tren, setTren] = useState<TrenPeminjamanItem[]>([]);
+  const [trenConsumable, setTrenConsumable] = useState<TrenPeminjamanItem[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -95,6 +96,7 @@ const DashboardManager = () => {
           kerusakanData,
           aktivitasData,
           trenData,
+          trenConsData,
         ] = await Promise.all([
           getDashboardSummary(),
           getStokMenipis(),
@@ -104,6 +106,7 @@ const DashboardManager = () => {
           getKerusakanSummary(),
           getAktivitasTerbaru(),
           getTrenPeminjaman(),
+          getTrenConsumable(),
         ]);
 
         setSummary(summaryData);
@@ -114,6 +117,7 @@ const DashboardManager = () => {
         setKerusakan(kerusakanData);
         setAktivitas(aktivitasData);
         setTren(trenData);
+        setTrenConsumable(trenConsData);
       } catch (err) {
         const message = err instanceof Error ? err.message : "Gagal memuat data dashboard";
         setError(message);
@@ -167,7 +171,6 @@ const DashboardManager = () => {
     );
   }
 
-  // Ambil data status order dengan aman (Null-Safety fallback)
   const orderToolsStatus = (summary as any)?.order_tools_status || {};
   const orderConsumableStatus = (summary as any)?.order_consumable_status || {};
 
@@ -175,7 +178,7 @@ const DashboardManager = () => {
     <>
       {PageHeader}
 
-      {/* Baris 1: Ringkasan Utama (4 Kolom) */}
+      {/* Baris 1: Ringkasan Utama */}
       <Row className="g-3 mb-4">
         <Col xs={6} md={6} xl={3}>
           <Link href="/inventaris/data-tools" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
@@ -219,7 +222,7 @@ const DashboardManager = () => {
         </Col>
       </Row>
 
-      {/* Baris 2: Perlu Perhatian */}
+      {/* Baris 2: Alert (Stok Menipis & Telat) */}
       <Row className="g-3 mb-4">
         <Col md={6}>
           <Card className="card-lg h-100">
@@ -238,7 +241,7 @@ const DashboardManager = () => {
                       className="d-flex justify-content-between align-items-center px-2 py-2 rounded small border-bottom"
                     >
                       <div>
-                        <div className="fw-semibold text-dark">
+                        <div className="fw-semibold">
                           {item.nama} <span className="text-secondary fw-normal">({item.kode_barang})</span>
                         </div>
                       </div>
@@ -278,29 +281,31 @@ const DashboardManager = () => {
         </Col>
       </Row>
 
-      {/* Baris 3: Grafik & Aktivitas */}
+      {/* Baris 3: Grafik Tren (Dua Kolom Bersandingan) */}
       <Row className="g-3 mb-4">
-        <Col md={7}>
+        {/* Kolom Kiri: Tren Tools */}
+        <Col lg={6}>
           <Card className="card-lg h-100">
             <CardBody>
               <div className="d-flex align-items-center gap-2 mb-3">
                 <IconTrendingUp className="text-primary" size={20} />
-                <h5 className="mb-0">Tren Peminjaman (30 Hari Terakhir)</h5>
+                <h5 className="mb-0">Tren Peminjaman Tools (30 Hari Terakhir)</h5>
               </div>
               {tren.length === 0 ? (
                 <p className="text-secondary small mb-0">Belum ada data.</p>
               ) : (
                 <ResponsiveContainer width="100%" height={250}>
                   <LineChart data={tren}>
-                    <CartesianGrid strokeDasharray="3 3" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#555" opacity={0.3} />
                     <XAxis
                       dataKey="tanggal"
                       tickFormatter={(val) =>
                         new Date(String(val)).toLocaleDateString("id-ID", { day: "2-digit", month: "short" })
                       }
                       fontSize={12}
+                      stroke="#a0a0a0"
                     />
-                    <YAxis allowDecimals={false} fontSize={12} />
+                    <YAxis allowDecimals={false} fontSize={12} stroke="#a0a0a0" />
                     <Tooltip
                       labelFormatter={(val) =>
                         new Date(String(val)).toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" })
@@ -320,35 +325,52 @@ const DashboardManager = () => {
             </CardBody>
           </Card>
         </Col>
-        <Col md={5}>
+
+        {/* Kolom Kanan: Tren Consumable Keluar */}
+        <Col lg={6}>
           <Card className="card-lg h-100">
             <CardBody>
-              <h5 className="mb-3">Aktivitas Terbaru</h5>
-              {aktivitas.length === 0 ? (
-                <p className="text-secondary small mb-0">Belum ada aktivitas.</p>
+              <div className="d-flex align-items-center gap-2 mb-3">
+                <IconTrendingUp className="text-info" size={20} />
+                <h5 className="mb-0">Tren Consumable Keluar (30 Hari Terakhir)</h5>
+              </div>
+              {trenConsumable.length === 0 ? (
+                <p className="text-secondary small mb-0">Belum ada data.</p>
               ) : (
-                <ul className="list-unstyled mb-0 dash-list" style={{ maxHeight: 260, overflowY: "auto" }}>
-                  {aktivitas.map((item, idx) => (
-                    <li key={idx} className="px-2 py-2 rounded border-bottom">
-                      <div className="d-flex justify-content-between align-items-start gap-2">
-                        <span className="small">{item.deskripsi}</span>
-                        <Badge bg={jenisLabel[item.jenis].color} className="flex-shrink-0">
-                          {jenisLabel[item.jenis].label}
-                        </Badge>
-                      </div>
-                      <div className="text-secondary" style={{ fontSize: "0.75rem" }}>
-                        {formatWaktu(item.waktu)}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                <ResponsiveContainer width="100%" height={250}>
+                  <LineChart data={trenConsumable}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#555" opacity={0.3} />
+                    <XAxis
+                      dataKey="tanggal"
+                      tickFormatter={(val) =>
+                        new Date(String(val)).toLocaleDateString("id-ID", { day: "2-digit", month: "short" })
+                      }
+                      fontSize={12}
+                      stroke="#a0a0a0"
+                    />
+                    <YAxis allowDecimals={false} fontSize={12} stroke="#a0a0a0" />
+                    <Tooltip
+                      labelFormatter={(val) =>
+                        new Date(String(val)).toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" })
+                      }
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="total"
+                      stroke="#17a2b8" 
+                      strokeWidth={2.5}
+                      dot={{ r: 3, fill: "#17a2b8" }}
+                      activeDot={{ r: 5 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
               )}
             </CardBody>
           </Card>
         </Col>
       </Row>
 
-      {/* Baris 4: Insight Tambahan */}
+      {/* Baris 4: Alat Paling Sering, Consumable Laku, Status Kerusakan */}
       <Row className="g-3 mb-4">
         <Col md={4}>
           <Card className="card-lg h-100">
@@ -361,10 +383,10 @@ const DashboardManager = () => {
                   {alatTerpopuler.map((item, idx) => (
                     <li key={idx} className="d-flex justify-content-between align-items-center px-2 py-2 rounded small border-bottom">
                       <div>
-                        <div className="fw-semibold text-dark">
+                        <div className="fw-semibold">
                           {item.nama_barang} <span className="text-secondary fw-normal">({item.kode_barang || '-'})</span>
                         </div>
-                        <div className="text-muted" style={{ fontSize: '0.75rem' }}>
+                        <div className="text-secondary" style={{ fontSize: '0.75rem' }}>
                           {item.merk || '-'} {item.ukuran ? ` • ${item.ukuran}` : ''}
                         </div>
                       </div>
@@ -376,6 +398,7 @@ const DashboardManager = () => {
             </CardBody>
           </Card>
         </Col>
+        
         <Col md={4}>
           <Card className="card-lg h-100">
             <CardBody>
@@ -387,10 +410,10 @@ const DashboardManager = () => {
                   {consumableTerpopuler.map((item, idx) => (
                     <li key={idx} className="d-flex justify-content-between align-items-center px-2 py-2 rounded small border-bottom">
                       <div>
-                        <div className="fw-semibold text-dark">
+                        <div className="fw-semibold">
                           {item.nama || item.nama_barang} <span className="text-secondary fw-normal">({item.kode_barang || '-'})</span>
                         </div>
-                        <div className="text-muted" style={{ fontSize: '0.75rem' }}>
+                        <div className="text-secondary" style={{ fontSize: '0.75rem' }}>
                           {item.merk || '-'} {item.ukuran ? ` • ${item.ukuran}` : ''}
                         </div>
                       </div>
@@ -402,32 +425,33 @@ const DashboardManager = () => {
             </CardBody>
           </Card>
         </Col>
+        
         <Col md={4}>
           <Card className="card-lg h-100">
             <CardBody>
               <h6 className="mb-3">Status Kerusakan Alat</h6>
-               <Row className="mb-3 pb-3 border-bottom">
-                <Col xs={6}>
-                  <div className="text-secondary small">Rusak Bulan Ini</div>
-                  <div className="h4 mb-0">{kerusakan?.bulan_ini ?? 0} unit</div>
+               <Row className="mb-3 pb-3 border-bottom text-center">
+                <Col xs={6} className="border-end">
+                  <div className="text-secondary small mb-1">Rusak Bulan Ini</div>
+                  <div className="h3 mb-0">{kerusakan?.bulan_ini ?? 0} <span className="fs-6 fw-normal text-secondary">unit</span></div>
                 </Col>
                 <Col xs={6}>
-                  <div className="text-secondary small">Total Rusak (semua waktu)</div>
-                  <div className="h4 mb-0">{kerusakan?.total_semua ?? 0} unit</div>
+                  <div className="text-secondary small mb-1">Total Rusak (Semua)</div>
+                  <div className="h3 mb-0">{kerusakan?.total_semua ?? 0} <span className="fs-6 fw-normal text-secondary">unit</span></div>
                 </Col>
               </Row>
-              <Row>
+              <Row className="text-center mt-2">
                 <Col xs={4}>
-                  <div className="text-secondary small">Diperbaiki</div>
-                  <div className="h5 mb-0 text-warning">{kerusakan?.sedang_diperbaiki ?? 0} unit</div>
+                  <div className="text-secondary small mb-1">Diperbaiki</div>
+                  <div className="h4 mb-0 text-warning">{kerusakan?.sedang_diperbaiki ?? 0}</div>
+                </Col>
+                <Col xs={4} className="border-start border-end">
+                  <div className="text-secondary small mb-1">Selesai</div>
+                  <div className="h4 mb-0 text-success">{kerusakan?.sudah_diperbaiki ?? 0}</div>
                 </Col>
                 <Col xs={4}>
-                  <div className="text-secondary small">Selesai</div>
-                  <div className="h5 mb-0 text-success">{kerusakan?.sudah_diperbaiki ?? 0} unit</div>
-                </Col>
-                <Col xs={4}>
-                  <div className="text-secondary small">Permanen</div>
-                  <div className="h5 mb-0 text-danger">{kerusakan?.rusak_permanen ?? 0} unit</div>
+                  <div className="text-secondary small mb-1">Permanen</div>
+                  <div className="h4 mb-0 text-danger">{kerusakan?.rusak_permanen ?? 0}</div>
                 </Col>
               </Row>
             </CardBody>
@@ -435,7 +459,41 @@ const DashboardManager = () => {
         </Col>
       </Row>
 
-      {/* --- BARIS 5: TRACKING DETAIL STATUS ORDER (SUDAH BISA DI-KLIK) --- */}
+      {/* Baris 5: Aktivitas Terbaru */}
+      <Row className="g-3 mb-4">
+        <Col md={12}>
+          <Card className="card-lg h-100">
+            <CardBody>
+              <h5 className="mb-3">Aktivitas Terbaru</h5>
+              {aktivitas.length === 0 ? (
+                <p className="text-secondary small mb-0">Belum ada aktivitas.</p>
+              ) : (
+                <div style={{ maxHeight: 260, overflowY: "auto", paddingRight: "5px" }}>
+                  <ul className="list-unstyled mb-0 dash-list">
+                    {aktivitas.map((item, idx) => (
+                      <li key={idx} className="px-2 py-3 rounded border-bottom">
+                        <div className="d-flex justify-content-between align-items-center gap-2">
+                          <div>
+                            <div className="small fw-semibold">{item.deskripsi}</div>
+                            <div className="text-secondary mt-1" style={{ fontSize: "0.75rem" }}>
+                              {formatWaktu(item.waktu)}
+                            </div>
+                          </div>
+                          <Badge bg={jenisLabel[item.jenis].color} className="flex-shrink-0 px-2 py-1">
+                            {jenisLabel[item.jenis].label}
+                          </Badge>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </CardBody>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Baris 6: Rincian Order */}
       <Row className="g-3">
         <Col md={6}>
           <Link 
@@ -509,9 +567,9 @@ const DashboardManager = () => {
           </Link>
         </Col>
       </Row>
-      <div className="mb-5"></div> {/* Extra space at bottom */}
+      <div className="mb-5"></div>
     </>
   );
 };
 
-export default DashboardManager;
+export default DashboardManager; 
