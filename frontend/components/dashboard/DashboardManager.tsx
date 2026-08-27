@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link"; 
-import { Row, Col, Card, CardBody, Spinner, Alert, Badge } from "react-bootstrap";
+import { Row, Col, Card, CardBody, Spinner, Alert, Badge, Button } from "react-bootstrap";
 import {
   IconTool,
   IconPackage,
@@ -11,6 +11,9 @@ import {
   IconTrendingUp,
   IconShoppingCart,
   IconClipboardList,
+  IconTools, // Mengganti IconWrench dengan IconTools yang valid di Tabler Icons
+  IconCalendarEvent,
+  IconEngine,
 } from "@tabler/icons-react";
 import {
   LineChart,
@@ -129,6 +132,12 @@ const DashboardManager = () => {
     loadAll();
   }, []);
 
+  // Logika Cek Akhir Bulan untuk Widget Pengingat Pemeliharaan
+  const today = new Date();
+  const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+  const currentDay = today.getDate();
+  const isEndMonth = currentDay >= lastDayOfMonth - 5; // Menyala 5 hari menjelang akhir bulan
+
   const PageHeader = (
     <Row>
       <Col>
@@ -141,7 +150,7 @@ const DashboardManager = () => {
           <div>
             <h1 className="mb-2 h2">Dashboard</h1>
             <p className="text-secondary mb-0">
-              Ringkasan aktivitas dan kondisi inventaris Ruang Tools.
+              Ringkasan aktivitas, inventaris Ruang Tools, serta manajemen pemeliharaan mekanikal.
             </p>
             <DasherBreadcrumb />
           </div>
@@ -177,6 +186,31 @@ const DashboardManager = () => {
   return (
     <>
       {PageHeader}
+
+      {/* Widget Pengingat Pemeliharaan Akhir Bulan */}
+      {isEndMonth && (
+        <Alert variant="warning" className="mb-4 shadow-sm border-warning border-opacity-50">
+          <div className="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div className="d-flex align-items-center gap-2">
+              <IconCalendarEvent size={24} className="text-warning flex-shrink-0" />
+              <div>
+                <strong className="d-block">Pengingat Pemeliharaan Akhir Bulan!</strong>
+                <span className="small text-muted">
+                  Sudah mendekati penghujung bulan. Pastikan jadwal servis berkala untuk Mesin Produksi dan Motor Konversi segera diperbarui.
+                </span>
+              </div>
+            </div>
+            <div className="d-flex gap-2">
+              <Link href="/mekanikal/pemeliharaan-mesin">
+                <Button variant="outline-warning" size="sm">Cek Mesin</Button>
+              </Link>
+              <Link href="/mekanikal/pemeliharaan-motor-konversi">
+                <Button variant="warning" size="sm" className="text-dark">Cek Motor Konversi</Button>
+              </Link>
+            </div>
+          </div>
+        </Alert>
+      )}
 
       {/* Baris 1: Ringkasan Utama */}
       <Row className="g-3 mb-4">
@@ -219,6 +253,67 @@ const DashboardManager = () => {
               variant="warning"
             />
           </Link>
+        </Col>
+      </Row>
+
+      {/* ========================================== */}
+      {/* BARIS: REKAPITULASI PEMELIHARAAN (SKRIPSI) */}
+      {/* ========================================== */}
+      <Row className="g-3 mb-4">
+        <Col md={6}>
+          <Card className="card-lg h-100 border-start border-4 border-primary shadow-sm">
+            <CardBody>
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <div className="d-flex align-items-center gap-2">
+                  <IconTools className="text-primary" size={22} />
+                  <h5 className="mb-0">Pemeliharaan Mesin Produksi</h5>
+                </div>
+                <Link href="/mekanikal/pemeliharaan-mesin" className="small text-decoration-none">Kelola &rarr;</Link>
+              </div>
+              <Row className="text-center g-2 pt-2">
+                <Col xs={4} className="border-end">
+                  <div className="text-secondary small">Total Mesin</div>
+                  <div className="h4 mb-0 fw-bold">8 <span className="small text-muted">Unit</span></div>
+                </Col>
+                <Col xs={4} className="border-end">
+                  <div className="text-secondary small">Kondisi Sehat</div>
+                  <div className="h4 mb-0 fw-bold text-success">7</div>
+                </Col>
+                <Col xs={4}>
+                  <div className="text-secondary small">Dalam Perbaikan</div>
+                  <div className="h4 mb-0 fw-bold text-warning">1</div>
+                </Col>
+              </Row>
+            </CardBody>
+          </Card>
+        </Col>
+
+        <Col md={6}>
+          <Card className="card-lg h-100 border-start border-4 border-info shadow-sm">
+            <CardBody>
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <div className="d-flex align-items-center gap-2">
+                  <IconEngine className="text-info" size={22} />
+                  <h5 className="mb-0">Pemeliharaan Motor Konversi</h5>
+                </div>
+                <Link href="/mekanikal/pemeliharaan-motor-konversi" className="small text-decoration-none">Kelola &rarr;</Link>
+              </div>
+              <Row className="text-center g-2 pt-2">
+                <Col xs={4} className="border-end">
+                  <div className="text-secondary small">Total Armada</div>
+                  <div className="h4 mb-0 fw-bold">5 <span className="small text-muted">Unit</span></div>
+                </Col>
+                <Col xs={4} className="border-end">
+                  <div className="text-secondary small">Siap Operasi</div>
+                  <div className="h4 mb-0 fw-bold text-success">5</div>
+                </Col>
+                <Col xs={4}>
+                  <div className="text-secondary small">Servis Berkala</div>
+                  <div className="h4 mb-0 fw-bold text-primary">0</div>
+                </Col>
+              </Row>
+            </CardBody>
+          </Card>
         </Col>
       </Row>
 
@@ -572,4 +667,4 @@ const DashboardManager = () => {
   );
 };
 
-export default DashboardManager; 
+export default DashboardManager;
