@@ -3,10 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { Modal, Form, Button, Row, Col, InputGroup } from 'react-bootstrap';
 import { IconTrash, IconPlus } from '@tabler/icons-react';
 
-// Pastikan fungsi-fungsi ini diexport dari file service Anda
 import { 
   getPemintaListForConsumable, 
-  getConsumableList, // Fungsi untuk mengambil master data consumable
+  getConsumableList, 
   createOrderConsumable 
 } from '/services/orderConsumableService';
 
@@ -50,6 +49,7 @@ export default function OrderConsumableFormModal({ isOpen, onClose, onSuccess }:
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const [pemintaId, setPemintaId] = useState<string>('');
+  const [pekerjaan, setPekerjaan] = useState<string>(''); // <-- STATE UNTUK PEKERJAAN GLOBAL
   const [items, setItems] = useState<OrderItem[]>([getEmptyItem()]);
   const [searchTexts, setSearchTexts] = useState<{ [key: number]: string }>({});
 
@@ -60,13 +60,13 @@ export default function OrderConsumableFormModal({ isOpen, onClose, onSuccess }:
         setPeminjamList(Array.isArray(data) ? data : []);
       }).catch(console.error);
 
-      // Pastikan Anda membuat fungsi getConsumableList di file orderConsumableService.ts
       getConsumableList().then((res: any) => {
         const data = res?.data?.data || res?.data || res || [];
         setConsumableList(Array.isArray(data) ? data : []);
       }).catch(console.error);
 
       setPemintaId('');
+      setPekerjaan(''); // Reset pekerjaan saat modal dibuka
       setItems([getEmptyItem()]);
       setSearchTexts({});
     }
@@ -132,6 +132,7 @@ export default function OrderConsumableFormModal({ isOpen, onClose, onSuccess }:
           tipe: item.tipe || null,
           er_e: item.er_e || null,
           ukuran: item.ukuran || null,
+          pekerjaan: pekerjaan || null, // <-- AMBIL DARI STATE GLOBAL
           spesifikasi: specSummary,
           jumlah: Number(item.jumlah),
           satuan: item.satuan,
@@ -163,20 +164,37 @@ export default function OrderConsumableFormModal({ isOpen, onClose, onSuccess }:
       <Modal.Body className="p-4">
         <Form id="formOrderConsumable" onSubmit={handleSubmit}>
 
-          {/* BAGIAN 1: PENGUSUL */}
+          {/* BAGIAN 1: PENGUSUL & PEKERJAAN (GLOBAL) */}
           <div className="mb-4">
-            <Form.Group>
-              <Form.Label className="fw-semibold">
-                Nama Pengusul <span className="text-danger">*</span>
-              </Form.Label>
-              <Form.Select required value={pemintaId} onChange={e => setPemintaId(e.target.value)}>
-                <option value="" disabled>-- Pilih Nama Pengusul --</option>
-                {peminjamList.map((p) => (
-                  <option key={p.id} value={p.id}>{p.nama}</option>
-                ))}
-              </Form.Select>
-              <Form.Text className="text-muted">Nama pengusul ini berlaku untuk semua barang di bawah.</Form.Text>
-            </Form.Group>
+            <Row className="g-3">
+              <Col md={12}>
+                <Form.Group>
+                  <Form.Label className="fw-semibold">
+                    Nama Pengusul <span className="text-danger">*</span>
+                  </Form.Label>
+                  <Form.Select required value={pemintaId} onChange={e => setPemintaId(e.target.value)}>
+                    <option value="" disabled>-- Pilih Nama Pengusul --</option>
+                    {peminjamList.map((p) => (
+                      <option key={p.id} value={p.id}>{p.nama}</option>
+                    ))}
+                  </Form.Select>
+                  <Form.Text className="text-muted">Nama pengusul ini berlaku untuk semua barang di bawah.</Form.Text>
+                </Form.Group>
+              </Col>
+
+              <Col md={12}>
+                <Form.Group>
+                  <Form.Label className="fw-semibold">Pekerjaan</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={pekerjaan}
+                    onChange={e => setPekerjaan(e.target.value)}
+                    placeholder="Keterangan pekerjaan / proyek..."
+                  />
+                  <Form.Text className="text-muted">Pekerjaan ini berlaku untuk semua barang yang dipesan di bawah.</Form.Text>
+                </Form.Group>
+              </Col>
+            </Row>
           </div>
 
           <hr className="mb-4" />
@@ -379,9 +397,6 @@ export default function OrderConsumableFormModal({ isOpen, onClose, onSuccess }:
                         onChange={e => handleItemChange(index, 'referensi_harga', e.target.value)}
                         placeholder="Link Tokopedia / Toko"
                       />
-                      <Form.Text className="text-muted">
-                        Boleh diisi atau dikosongkan.
-                      </Form.Text>
                     </Form.Group>
                   </Col>
                 </Row>

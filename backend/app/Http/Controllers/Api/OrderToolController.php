@@ -33,6 +33,7 @@ class OrderToolController extends Controller
             'tipe'              => 'nullable|string',
             'er_e'              => 'nullable|string',
             'ukuran'            => 'nullable|string',
+            'pekerjaan'         => 'nullable|string', // <-- TAMBAHAN FIELD PEKERJAAN
             'spesifikasi'       => 'nullable|string',
             'jumlah'            => 'required|integer|min:1',
             'satuan'            => 'required|string',
@@ -59,6 +60,7 @@ class OrderToolController extends Controller
             'tipe'              => 'nullable|string',
             'er_e'              => 'nullable|string',
             'ukuran'            => 'nullable|string',
+            'pekerjaan'         => 'nullable|string', // <-- TAMBAHAN FIELD PEKERJAAN
             'spesifikasi'       => 'nullable|string',
             'jumlah'            => 'sometimes|required|integer|min:1',
             'satuan'            => 'sometimes|required|string',

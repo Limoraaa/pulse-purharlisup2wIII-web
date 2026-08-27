@@ -20,6 +20,7 @@ class OrderTool extends Model
         'tipe',
         'er_e',
         'ukuran',
+        'pekerjaan', // <-- INI TAMBAHANNYA
         'spesifikasi',
         'jumlah',
         'satuan',

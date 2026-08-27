@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Form, Button, Row, Col, InputGroup } from 'react-bootstrap';
 
-// Pastikan fungsi ini tersedia di file orderConsumableService Anda
 import { getPemintaListForConsumable, updateOrderConsumable } from '/services/orderConsumableService';
 
 interface OrderConsumableEditModalProps {
@@ -29,6 +28,7 @@ export default function OrderConsumableEditModal({ isOpen, onClose, onSuccess, o
     tipe: '',
     er_e: '',
     ukuran: '',
+    pekerjaan: '', // <-- TAMBAHAN FIELD PEKERJAAN
     jumlah: 1,
     satuan: 'Pcs',
     harga: 0,
@@ -52,6 +52,7 @@ export default function OrderConsumableEditModal({ isOpen, onClose, onSuccess, o
           tipe: orderData.tipe || '',
           er_e: orderData.er_e || '',
           ukuran: orderData.ukuran || '',
+          pekerjaan: orderData.pekerjaan || '', // <-- LOAD DATA PEKERJAAN
           jumlah: orderData.jumlah || 1,
           satuan: orderData.satuan || 'Pcs',
           harga: orderData.harga || 0,
@@ -79,6 +80,7 @@ export default function OrderConsumableEditModal({ isOpen, onClose, onSuccess, o
         tipe: form.tipe || null,
         er_e: form.er_e || null,
         ukuran: form.ukuran || null,
+        pekerjaan: form.pekerjaan || null, // <-- MASUKKAN KE PAYLOAD EDIT
         jumlah: Number(form.jumlah),
         satuan: form.satuan,
         harga: Number(form.harga),
@@ -177,6 +179,18 @@ export default function OrderConsumableEditModal({ isOpen, onClose, onSuccess, o
                   value={form.ukuran}
                   onChange={e => handleChange('ukuran', e.target.value)}
                   placeholder="Ukuran..."
+                />
+              </Form.Group>
+            </Col>
+
+            {/* INPUT PEKERJAAN DI EDIT MODAL */}
+            <Col md={4}>
+              <Form.Group className="mb-3">
+                <Form.Label>Pekerjaan</Form.Label>
+                <Form.Control
+                  value={form.pekerjaan}
+                  onChange={e => handleChange('pekerjaan', e.target.value)}
+                  placeholder="Keterangan pekerjaan..."
                 />
               </Form.Group>
             </Col>

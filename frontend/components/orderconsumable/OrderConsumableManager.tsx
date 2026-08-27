@@ -1,17 +1,15 @@
 'use client';
 import { useEffect, useMemo, useState } from "react";
-import { Row, Col, Card, CardBody, Alert, Spinner, InputGroup, Form, Button, Badge } from "react-bootstrap";
+import { Row, Col, Card, CardBody, Alert, Spinner, InputGroup, Form, Button } from "react-bootstrap";
 import { IconCircleCheck, IconSearch, IconX, IconClipboardList, IconShoppingCart, IconEdit } from "@tabler/icons-react";
 import TanstackTable from "components/table/TanstackTable";
 import Flex from "components/common/Flex";
 import DasherBreadcrumb from "components/common/DasherBreadcrumb";
 
-// Sesuaikan path import modal dan service ini dengan struktur folder Anda
 import OrderConsumableFormModal from './OrderConsumableFormModal';
 import OrderConsumableEditModal from './OrderConsumableEditModal';
 import { getOrderConsumables, updateOrderConsumableStatus } from '/services/orderConsumableService';
 
-// IMPORT UTILITY EXPORT BAWAAN
 import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
 
 interface OrderData {
@@ -24,6 +22,7 @@ interface OrderData {
   tipe: string;
   er_e: string;
   ukuran: string;
+  pekerjaan: string;
   jumlah: number;
   satuan: string;
   harga: number;
@@ -45,6 +44,7 @@ const EXPORT_COLUMNS_ORDER: ExportColumn[] = [
   { header: "No", key: "no" },
   { header: "Tgl Pengajuan", key: "tanggal_pengajuan" },
   { header: "Pengusul", key: "nama_pengusul" },
+  { header: "Pekerjaan", key: "pekerjaan" },
   { header: "Nama Barang", key: "nama_barang" },
   { header: "Ukuran", key: "ukuran" },
   { header: "Merek", key: "merek" },
@@ -110,8 +110,9 @@ export default function OrderConsumableManager() {
     if (!keyword) return orders;
     return orders.filter((item) => {
       return (
-        item.nama_barang.toLowerCase().includes(keyword) ||
-        item.merek.toLowerCase().includes(keyword) ||
+        (item.nama_barang || "").toLowerCase().includes(keyword) ||
+        (item.merek || "").toLowerCase().includes(keyword) ||
+        (item.pekerjaan || "").toLowerCase().includes(keyword) ||
         (item.peminta?.nama || "").toLowerCase().includes(keyword)
       );
     });
@@ -133,6 +134,7 @@ export default function OrderConsumableManager() {
       ...order,
       no: index + 1,
       nama_pengusul: order.peminta?.nama || 'Data Terhapus',
+      pekerjaan: order.pekerjaan || '-',
       tanggal_pengajuan: formatDateTime(order.tanggal_pengajuan),
       tanggal_kedatangan: order.status_pembelian === 'sudah dibeli' ? formatDateTime(order.tanggal_kedatangan) : '-',
       harga: formatRupiah(order.harga),
@@ -152,6 +154,7 @@ export default function OrderConsumableManager() {
       ...order,
       no: index + 1,
       nama_pengusul: order.peminta?.nama || 'Data Terhapus',
+      pekerjaan: order.pekerjaan || '-',
       tanggal_pengajuan: formatDateTime(order.tanggal_pengajuan),
       tanggal_kedatangan: order.status_pembelian === 'sudah dibeli' ? formatDateTime(order.tanggal_kedatangan) : '-',
       harga: order.harga,
@@ -175,6 +178,11 @@ export default function OrderConsumableManager() {
       header: "Pengusul",
       accessorKey: "peminta.nama",
       cell: ({ row }: any) => row.original.peminta?.nama || "Data Terhapus",
+    },
+    {
+      header: "Pekerjaan",
+      accessorKey: "pekerjaan",
+      cell: ({ row }: any) => row.original.pekerjaan || <span className="text-secondary">-</span>,
     },
     {
       header: "Nama Barang",
@@ -294,7 +302,7 @@ export default function OrderConsumableManager() {
               <InputGroup.Text><IconSearch size={18} /></InputGroup.Text>
               <Form.Control
                 type="search"
-                placeholder="Cari kode barang, nama, merek, atau pengusul..."
+                placeholder="Cari nama, merek, pekerjaan, atau pengusul..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -343,7 +351,7 @@ export default function OrderConsumableManager() {
         </CardBody>
       </Card>
 
-      {/* Pastikan Anda juga membuat komponen Modal untuk Consumable ya */}
+      {/* Komponen Modal */}
       <OrderConsumableFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSuccess={fetchOrders} />
       <OrderConsumableEditModal
         isOpen={isEditModalOpen}

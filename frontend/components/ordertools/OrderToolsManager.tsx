@@ -22,6 +22,7 @@ interface OrderData {
   tipe: string;
   er_e: string;
   ukuran: string;
+  pekerjaan: string; // <-- TAMBAHAN FIELD PEKERJAAN
   jumlah: number;
   satuan: string;
   harga: number;
@@ -43,6 +44,7 @@ const EXPORT_COLUMNS_ORDER: ExportColumn[] = [
   { header: "No", key: "no" },
   { header: "Tgl Pengajuan", key: "tanggal_pengajuan" },
   { header: "Pengusul", key: "nama_pengusul" },
+  { header: "Pekerjaan", key: "pekerjaan" }, // <-- TAMBAHAN EXPORT PEKERJAAN
   { header: "Nama Barang", key: "nama_barang" },
   { header: "Ukuran", key: "ukuran" },
   { header: "Merek", key: "merek" },
@@ -108,8 +110,10 @@ export default function OrderToolsManager() {
     if (!keyword) return orders;
     return orders.filter((item) => {
       return (
-        item.nama_barang.toLowerCase().includes(keyword) ||
-        item.merek.toLowerCase().includes(keyword) ||
+        // Diperbarui agar aman dari nilai null saat di-search
+        (item.nama_barang || "").toLowerCase().includes(keyword) ||
+        (item.merek || "").toLowerCase().includes(keyword) ||
+        (item.pekerjaan || "").toLowerCase().includes(keyword) || // <-- TAMBAHAN SEARCH PEKERJAAN
         (item.peminta?.nama || "").toLowerCase().includes(keyword)
       );
     });
@@ -131,6 +135,7 @@ export default function OrderToolsManager() {
       ...order,
       no: index + 1,
       nama_pengusul: order.peminta?.nama || 'Data Terhapus',
+      pekerjaan: order.pekerjaan || '-', // <-- MASUKKAN DATA PEKERJAAN
       tanggal_pengajuan: formatDateTime(order.tanggal_pengajuan),
       tanggal_kedatangan: order.status_pembelian === 'sudah dibeli' ? formatDateTime(order.tanggal_kedatangan) : '-',
       harga: formatRupiah(order.harga),
@@ -150,6 +155,7 @@ export default function OrderToolsManager() {
       ...order,
       no: index + 1,
       nama_pengusul: order.peminta?.nama || 'Data Terhapus',
+      pekerjaan: order.pekerjaan || '-', // <-- MASUKKAN DATA PEKERJAAN
       tanggal_pengajuan: formatDateTime(order.tanggal_pengajuan),
       tanggal_kedatangan: order.status_pembelian === 'sudah dibeli' ? formatDateTime(order.tanggal_kedatangan) : '-',
       harga: order.harga,
@@ -173,6 +179,11 @@ export default function OrderToolsManager() {
       header: "Pengusul",
       accessorKey: "peminta.nama",
       cell: ({ row }: any) => row.original.peminta?.nama || "Data Terhapus",
+    },
+    {
+      header: "Pekerjaan", // <-- TAMBAHAN KOLOM TABEL PEKERJAAN
+      accessorKey: "pekerjaan",
+      cell: ({ row }: any) => row.original.pekerjaan || <span className="text-secondary">-</span>,
     },
     {
       header: "Nama Barang",
@@ -292,7 +303,7 @@ export default function OrderToolsManager() {
               <InputGroup.Text><IconSearch size={18} /></InputGroup.Text>
               <Form.Control
                 type="search"
-                placeholder="Cari kode barang, nama, merek, atau pengusul..."
+                placeholder="Cari nama, merek, pekerjaan, atau pengusul..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />

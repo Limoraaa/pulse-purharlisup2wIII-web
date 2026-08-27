@@ -22,6 +22,7 @@ export default function OrderToolsEditModal({ isOpen, onClose, onSuccess, orderD
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState<any>({
     peminta_id: '',
+    pekerjaan: '', // <-- TAMBAHAN STATE PEKERJAAN
     nama_barang: '',
     merek: '',
     tipe: '',
@@ -45,6 +46,7 @@ export default function OrderToolsEditModal({ isOpen, onClose, onSuccess, orderD
       if (orderData) {
         setForm({
           peminta_id: orderData.peminta_id || '',
+          pekerjaan: orderData.pekerjaan || '', // <-- LOAD DATA PEKERJAAN
           nama_barang: orderData.nama_barang || '',
           merek: orderData.merek || '',
           tipe: orderData.tipe || '',
@@ -72,6 +74,7 @@ export default function OrderToolsEditModal({ isOpen, onClose, onSuccess, orderD
     try {
       const payload: any = {
         peminta_id: form.peminta_id,
+        pekerjaan: form.pekerjaan || null, // <-- MASUKKAN KE PAYLOAD
         nama_barang: form.nama_barang,
         merek: form.merek || null,
         tipe: form.tipe || null,
@@ -107,6 +110,7 @@ export default function OrderToolsEditModal({ isOpen, onClose, onSuccess, orderD
       <Modal.Body className="p-4">
         <Form id="formEditOrderTools" onSubmit={handleSubmit}>
           <Row className="g-3">
+            
             <Col md={6}>
               <Form.Group className="mb-3">
                 <Form.Label className="fw-semibold">Nama Pengusul</Form.Label>
@@ -123,7 +127,20 @@ export default function OrderToolsEditModal({ isOpen, onClose, onSuccess, orderD
               </Form.Group>
             </Col>
 
+            {/* INPUT PEKERJAAN DITAMBAHKAN DI SINI */}
             <Col md={6}>
+              <Form.Group className="mb-3">
+                <Form.Label className="fw-semibold">Pekerjaan</Form.Label>
+                <Form.Control
+                  type="text"
+                  value={form.pekerjaan}
+                  onChange={e => handleChange('pekerjaan', e.target.value)}
+                  placeholder="Keterangan pekerjaan / proyek..."
+                />
+              </Form.Group>
+            </Col>
+
+            <Col md={12}>
               <Form.Group className="mb-3">
                 <Form.Label className="fw-semibold">Nama Barang</Form.Label>
                 <Form.Control
@@ -157,7 +174,7 @@ export default function OrderToolsEditModal({ isOpen, onClose, onSuccess, orderD
               </Form.Group>
             </Col>
 
-            <Col md={4}>
+            <Col md={6}>
               <Form.Group className="mb-3">
                 <Form.Label>ER / E</Form.Label>
                 <Form.Control
@@ -168,7 +185,7 @@ export default function OrderToolsEditModal({ isOpen, onClose, onSuccess, orderD
               </Form.Group>
             </Col>
 
-            <Col md={4}>
+            <Col md={6}>
               <Form.Group className="mb-3">
                 <Form.Label>Ukuran</Form.Label>
                 <Form.Control
@@ -221,7 +238,7 @@ export default function OrderToolsEditModal({ isOpen, onClose, onSuccess, orderD
               </Form.Group>
             </Col>
 
-            <Col md={4}>
+            <Col md={6}>
               <Form.Group className="mb-3">
                 <Form.Label>Referensi Harga</Form.Label>
                 <Form.Control
@@ -248,7 +265,7 @@ export default function OrderToolsEditModal({ isOpen, onClose, onSuccess, orderD
             </Col>
 
             {form.status_pembelian === 'sudah dibeli' && (
-              <Col md={6}>
+              <Col md={12}>
                 <Form.Group className="mb-3">
                   <Form.Label className="fw-semibold">Tanggal Kedatangan</Form.Label>
                   <Form.Control
