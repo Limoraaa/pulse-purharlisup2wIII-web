@@ -5,7 +5,8 @@ import {
   IconBoxSeam,
   IconArrowsExchange,
   IconHistory,
-  IconShoppingCart, // <-- Icon baru ditambahkan di sini
+  IconShoppingCart,
+  IconTools, // Mengganti IconWrench dengan IconTools yang pasti ada di tabler/icons-react
   IconReportAnalytics,
   IconUsers,
 } from "@tabler/icons-react";
@@ -84,7 +85,7 @@ export const DashboardMenu: MenuItemType[] = [
   },
   {
     id: uuid(),
-    title: "Pengajuan Order", // Induk menu
+    title: "Pengajuan Order",
     icon: <IconShoppingCart size={20} strokeWidth={1.5} />,
     children: [
       {
@@ -96,6 +97,26 @@ export const DashboardMenu: MenuItemType[] = [
         id: uuid(),
         name: "Order Tools",
         link: "/order/order-tools",
+      },
+    ],
+  },
+  // ==========================================
+  // MENU PEMELIHARAAN (Hanya Mesin & Motor Konversi)
+  // ==========================================
+  {
+    id: uuid(),
+    title: "Pemeliharaan",
+    icon: <IconTools size={20} strokeWidth={1.5} />,
+    children: [
+      {
+        id: uuid(),
+        name: "Pemeliharaan Mesin",
+        link: "/mekanikal/pemeliharaan-mesin",
+      },
+      {
+        id: uuid(),
+        name: "Pemeliharaan Motor Konversi",
+        link: "/mekanikal/pemeliharaan-motor-konversi",
       },
     ],
   },
