@@ -19,12 +19,13 @@ return new class extends Migration
             $table->unsignedBigInteger('consumable_id')->nullable();
             
             // --- FIELD YANG DISESUAIKAN DENGAN FORM BARU ---
-            $table->string('kode_barang')->nullable(); // Ditambahkan
+            $table->string('kode_barang')->nullable();
             $table->string('nama_barang');
             $table->string('merek')->nullable();
-            $table->string('tipe')->nullable();        // Ditambahkan
-            $table->string('er_e')->nullable();        // Ditambahkan
-            $table->string('ukuran')->nullable();      // Ditambahkan
+            $table->string('tipe')->nullable();        
+            $table->string('er_e')->nullable();        
+            $table->string('ukuran')->nullable();      
+            $table->string('pekerjaan')->nullable(); // <-- TAMBAHAN FIELD PEKERJAAN
             
             // Kita tetap biarkan spesifikasi (opsional) untuk berjaga-jaga jika ada detail tambahan
             $table->text('spesifikasi')->nullable(); 
@@ -37,7 +38,9 @@ return new class extends Migration
             
             $table->dateTime('tanggal_pengajuan'); 
             $table->dateTime('tanggal_kedatangan')->nullable(); 
-            $table->enum('status_pembelian', ['belum dibeli', 'sudah dibeli', 'ditolak'])->default('belum dibeli');
+            
+            // <-- TAMBAHAN STATUS 'on progres' DI ENUM
+            $table->enum('status_pembelian', ['belum dibeli', 'on progres', 'sudah dibeli', 'ditolak'])->default('belum dibeli');
             $table->timestamps();
         });
     }

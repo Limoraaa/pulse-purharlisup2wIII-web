@@ -44,6 +44,7 @@ export default function OrderToolsFormModal({ isOpen, onClose, onSuccess }: Orde
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const [pemintaId, setPemintaId] = useState<string>('');
+  const [pekerjaan, setPekerjaan] = useState<string>(''); // <-- STATE UNTUK PEKERJAAN GLOBAL
   const [items, setItems] = useState<OrderItem[]>([getEmptyItem()]);
   const [searchTexts, setSearchTexts] = useState<{ [key: number]: string }>({});
 
@@ -60,6 +61,7 @@ export default function OrderToolsFormModal({ isOpen, onClose, onSuccess }: Orde
       }).catch(console.error);
 
       setPemintaId('');
+      setPekerjaan(''); // <-- RESET STATE PEKERJAAN
       setItems([getEmptyItem()]);
       setSearchTexts({});
     }
@@ -125,6 +127,7 @@ export default function OrderToolsFormModal({ isOpen, onClose, onSuccess }: Orde
           tipe: item.tipe || null,
           er_e: item.er_e || null,
           ukuran: item.ukuran || null,
+          pekerjaan: pekerjaan || null, // <-- MASUKKAN PEKERJAAN KE PAYLOAD
           spesifikasi: specSummary,
           jumlah: Number(item.jumlah),
           satuan: item.satuan,
@@ -156,20 +159,37 @@ export default function OrderToolsFormModal({ isOpen, onClose, onSuccess }: Orde
       <Modal.Body className="p-4">
         <Form id="formOrderTools" onSubmit={handleSubmit}>
 
-          {/* BAGIAN 1: PENGUSUL */}
+          {/* BAGIAN 1: PENGUSUL & PEKERJAAN (GLOBAL) */}
           <div className="mb-4">
-            <Form.Group>
-              <Form.Label className="fw-semibold">
-                Nama Pengusul <span className="text-danger">*</span>
-              </Form.Label>
-              <Form.Select required value={pemintaId} onChange={e => setPemintaId(e.target.value)}>
-                <option value="" disabled>-- Pilih Nama Pengusul --</option>
-                {peminjamList.map((p) => (
-                  <option key={p.id} value={p.id}>{p.nama}</option>
-                ))}
-              </Form.Select>
-              <Form.Text className="text-muted">Nama pengusul ini berlaku untuk semua barang di bawah.</Form.Text>
-            </Form.Group>
+            <Row className="g-3">
+              <Col md={12}>
+                <Form.Group>
+                  <Form.Label className="fw-semibold">
+                    Nama Pengusul <span className="text-danger">*</span>
+                  </Form.Label>
+                  <Form.Select required value={pemintaId} onChange={e => setPemintaId(e.target.value)}>
+                    <option value="" disabled>-- Pilih Nama Pengusul --</option>
+                    {peminjamList.map((p) => (
+                      <option key={p.id} value={p.id}>{p.nama}</option>
+                    ))}
+                  </Form.Select>
+                  <Form.Text className="text-muted">Nama pengusul ini berlaku untuk semua barang di bawah.</Form.Text>
+                </Form.Group>
+              </Col>
+
+              <Col md={12}>
+                <Form.Group>
+                  <Form.Label className="fw-semibold">Pekerjaan</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={pekerjaan}
+                    onChange={e => setPekerjaan(e.target.value)}
+                    placeholder="Keterangan pekerjaan / proyek..."
+                  />
+                  <Form.Text className="text-muted">Pekerjaan ini berlaku untuk semua barang yang dipesan di bawah.</Form.Text>
+                </Form.Group>
+              </Col>
+            </Row>
           </div>
 
           <hr className="mb-4" />
@@ -337,7 +357,7 @@ export default function OrderToolsFormModal({ isOpen, onClose, onSuccess }: Orde
                         required
                         value={item.satuan}
                         onChange={e => handleItemChange(index, 'satuan', e.target.value)}
-                        placeholder="Cth: Kg, Dus, Pcs"
+                        placeholder="Cth: Unit, Pcs, Set"
                       />
                     </Form.Group>
                   </Col>
@@ -372,9 +392,6 @@ export default function OrderToolsFormModal({ isOpen, onClose, onSuccess }: Orde
                         onChange={e => handleItemChange(index, 'referensi_harga', e.target.value)}
                         placeholder="Link Tokopedia / Toko"
                       />
-                      <Form.Text className="text-muted">
-                        Boleh diisi atau dikosongkan.
-                      </Form.Text>
                     </Form.Group>
                   </Col>
                 </Row>

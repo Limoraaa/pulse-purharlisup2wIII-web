@@ -26,6 +26,7 @@ return new class extends Migration
             $table->string('tipe')->nullable();
             $table->string('er_e')->nullable();
             $table->string('ukuran')->nullable();
+            $table->string('pekerjaan')->nullable(); // <-- TAMBAHAN FIELD PEKERJAAN
             $table->text('spesifikasi')->nullable();
 
             // --- FIELD TRANSAKSI ---
@@ -36,7 +37,9 @@ return new class extends Migration
 
             $table->dateTime('tanggal_pengajuan');
             $table->dateTime('tanggal_kedatangan')->nullable();
-            $table->enum('status_pembelian', ['belum dibeli', 'sudah dibeli', 'ditolak'])->default('belum dibeli');
+            
+            // <-- TAMBAHAN STATUS 'on progres'
+            $table->enum('status_pembelian', ['belum dibeli', 'on progres', 'sudah dibeli', 'ditolak'])->default('belum dibeli');
             $table->timestamps();
         });
     }
