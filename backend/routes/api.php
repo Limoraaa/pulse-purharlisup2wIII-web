@@ -16,6 +16,13 @@ use App\Http\Controllers\Api\LaporanKerusakanController;
 use App\Http\Controllers\Api\OrderConsumableController;
 use App\Http\Controllers\Api\OrderToolController;
 
+// Import Controller Pemeliharaan
+use App\Http\Controllers\Api\MesinProduksiController;
+use App\Http\Controllers\Api\LogPemeliharaanMesinController;
+
+// [BARU] Import Controller Log Aktivitas / Operasional Mesin
+use App\Http\Controllers\Api\LogAktivitasMesinController;
+
 Route::post('/login', [AuthController::class, 'login']);
 
 // ==========================================
@@ -30,8 +37,15 @@ Route::patch('/peminta/{id}/aktifkan', [PemintaController::class, 'aktifkan']);
 
 Route::apiResource('consumable-masuk', ConsumableMasukController::class);
 Route::apiResource('tools-masuk', ToolMasukController::class);
-// HAPUS Route::apiResource('consumable-keluar') DARI SINI
 Route::apiResource('laporan-kerusakan', LaporanKerusakanController::class);
+
+// Route Data Master Mesin & Log Pemeliharaan
+Route::apiResource('mesin-produksi', MesinProduksiController::class);
+Route::get('/log-pemeliharaan/mesin/{mesin_id}', [LogPemeliharaanMesinController::class, 'getByMesin']);
+
+// [BARU] Route Log Aktivitas (Monitoring Operasional Mesin)
+Route::get('/log-aktivitas', [LogAktivitasMesinController::class, 'index']);
+Route::get('/log-aktivitas/mesin/{mesin_id}', [LogAktivitasMesinController::class, 'getByMesin']);
 
 Route::prefix('dashboard')->group(function () {
     Route::get('/summary', [DashboardController::class, 'summary']);
@@ -45,7 +59,7 @@ Route::prefix('dashboard')->group(function () {
     Route::get('/tren-consumable', [DashboardController::class, 'trenConsumable']);
 });
 
-// --- FITUR SCANNER & CART PUBLIK (Agar Flutter & Web Dashboard sinkron tanpa token khusus scan) ---
+// --- FITUR SCANNER & CART PUBLIK ---
 Route::post('/peminjaman/scan', [PeminjamanController::class, 'scan']);
 Route::get('/peminjaman/antrean', [PeminjamanController::class, 'antrean']);
 Route::patch('/peminjaman/cart/{id}', [PeminjamanController::class, 'updateCartItem']);
@@ -54,7 +68,6 @@ Route::delete('/peminjaman/cart/{id}', [PeminjamanController::class, 'removeCart
 Route::get('/order-consumable', [OrderConsumableController::class, 'index']);
 Route::post('/order-consumable', [OrderConsumableController::class, 'store']);
 Route::put('/order-consumable/{id}/status', [OrderConsumableController::class, 'updateStatus']);
-
 
 // --- ORDER TOOLS ---
 Route::get('/order-tools', [OrderToolController::class, 'index']);
@@ -73,7 +86,7 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user();
     });
 
-    // 1. Fitur Proses Akhir & Manajemen Peminjaman Utama (Tetap Butuh Login)
+    // 1. Fitur Proses Akhir & Manajemen Peminjaman Utama
     Route::post('/peminjaman/proses', [PeminjamanController::class, 'prosesPeminjaman']);
     Route::patch('/peminjaman/{id}/kembali', [PeminjamanController::class, 'kembali']);
     Route::apiResource('peminjaman', PeminjamanController::class);
@@ -88,8 +101,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/consumable-keluar/antrean/{consumable_id}', [ConsumableKeluarController::class, 'hapusAntrean']);
     Route::post('/consumable-keluar/proses', [ConsumableKeluarController::class, 'prosesCartConsumable']);
 
-    // PINDAHKAN KE SINI: Pastikan apiResource selalu berada di BAWAH rute kustom
     Route::apiResource('consumable-keluar', ConsumableKeluarController::class);
+
+    // Input Log Pemeliharaan Butuh Login
+    Route::post('/log-pemeliharaan', [LogPemeliharaanMesinController::class, 'store']);
+
+    // [BARU] Input Log Aktivitas Butuh Login
+    Route::post('/log-aktivitas', [LogAktivitasMesinController::class, 'store']);
 
     Route::get('/profile', [UserController::class, 'profile']);
     Route::put('/profile', [UserController::class, 'updateProfile']);
