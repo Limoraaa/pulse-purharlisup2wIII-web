@@ -111,12 +111,12 @@ export const DashboardMenu: MenuItemType[] = [
       {
         id: uuid(),
         name: "Pemeliharaan Mesin",
-        link: "/mekanikal/pemeliharaan-mesin",
+        link: "/pemeliharaan/data-mesin",
       },
       {
         id: uuid(),
         name: "Pemeliharaan Motor Konversi",
-        link: "/mekanikal/pemeliharaan-motor-konversi",
+        link: "/pemeliharaan/motor-konversi",
       },
     ],
   },

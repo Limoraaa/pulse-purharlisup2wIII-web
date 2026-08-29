@@ -17,6 +17,8 @@ class DatabaseSeeder extends Seeder
             ConsumableMasukSeeder::class,
             ConsumableKeluarSeeder::class,
             LaporanKerusakanToolsSeeder::class,
+            MesinProduksiSeeder::class,
+            LogAktivitasMesinSeeder::class,
         ]);
     }
 }
