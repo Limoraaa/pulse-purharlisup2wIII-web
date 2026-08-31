@@ -12,12 +12,11 @@ class DatabaseSeeder extends Seeder
         PemintaSeeder::class,
         ToolSeeder::class,
         ConsumableSeeder::class,
-        UserSeeder::class,    
+        UserSeeder::class,
         ToolsMasukSeeder::class,
         ConsumableMasukSeeder::class,
         PeminjamanSeeder::class,
         ConsumableKeluarSeeder::class,
-        LaporanKerusakanToolsSeeder::class,
     ]);
     }
 }
