@@ -31,11 +31,6 @@ export const getDataUserColumns = ({
       header: "Username",
     },
     {
-      accessorKey: "email",
-      header: "Email",
-      cell: ({ row }) => row.original.email || "-",
-    },
-    {
       accessorKey: "role",
       header: "Role",
       cell: ({ row }) => (
@@ -51,11 +46,6 @@ export const getDataUserColumns = ({
       accessorKey: "divisi",
       header: "Divisi",
       cell: ({ row }) => row.original.divisi || "-",
-    },
-    {
-      accessorKey: "no_hp",
-      header: "Nomor HP",
-      cell: ({ row }) => row.original.no_hp || "-",
     },
     {
       accessorKey: "is_active",
