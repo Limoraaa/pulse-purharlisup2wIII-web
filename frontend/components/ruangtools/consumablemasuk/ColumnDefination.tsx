@@ -9,6 +9,7 @@ import { ConsumableMasukType } from "types/DataConsumableTypes";
 
 // import custom components
 import ActionMenu from "components/common/ActionMenu";
+const formatNumber = (n: number) => n.toLocaleString("en-US");
 
 interface ColumnHandlers {
   onEdit: (item: ConsumableMasukType) => void;
@@ -75,7 +76,7 @@ export const getConsumableMasukColumns = ({
     cell: ({ row }) => (
       <span className="d-flex justify-content-center">
         <Badge bg="success-subtle" text="success-emphasis" className="fw-semibold">
-          +{row.original.jumlah_masuk}
+          +{formatNumber(row.original.jumlah_masuk)}
         </Badge>
       </span>
     ),
