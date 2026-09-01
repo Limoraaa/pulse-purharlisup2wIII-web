@@ -137,7 +137,7 @@ const LaporanKerusakanManager = () => {
 
   const [bulanFilter, setBulanFilter] = useState(0);
   const [tahunFilter, setTahunFilter] = useState(0);
-  const [namaFilter, setNamaFilter] = useState("Semua");
+  const [namaFilter, setNamaFilter] = useState("");
 
   // ---- Pencarian (murni UI, tidak menyentuh API/data) ----
   const [searchTerm, setSearchTerm] = useState("");
@@ -164,10 +164,17 @@ const LaporanKerusakanManager = () => {
     return Array.from(tahunSet).sort((a, b) => b - a);
   }, [laporanList]);
 
-  const namaOptions = useMemo(() => {
-    const namaSet = new Set(laporanList.map((r) => r.nama_peminjam));
-    return Array.from(namaSet).sort();
+  // namaOptions dihitung dari data yang benar-benar tampil di tabel
+  // (exclude selesai_diperbaiki), sehingga dropdown nama hanya berisi
+  // nama yang masih ada di tabel saat ini.
+  const visibleList = useMemo(() => {
+    return laporanList.filter((r) => r.status !== "selesai_diperbaiki");
   }, [laporanList]);
+
+  const namaOptions = useMemo(() => {
+    const namaSet = new Set(visibleList.map((r) => r.nama_peminjam));
+    return Array.from(namaSet).sort();
+  }, [visibleList]);
 
      const repairCountByKode = useMemo(() => {
     const map: Record<string, number> = {};
@@ -202,7 +209,7 @@ const LaporanKerusakanManager = () => {
       }
 
       // Filter nama peminjam
-      if (namaFilter !== "Semua" && r.nama_peminjam !== namaFilter)
+      if (namaFilter !== "" && r.nama_peminjam !== namaFilter)
         return false;
 
       // Filter pencarian
