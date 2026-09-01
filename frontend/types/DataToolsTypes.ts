@@ -1,5 +1,5 @@
 export type ToolCondition = "Baik" | "Rusak";
-export type ToolKategori = "mesin" | "alat_biasa";
+export type ToolKategori = "mesin" | "alat_biasa" | "perkakas_mesin";
 
 export interface ToolItemType {
   id: string;
