@@ -54,7 +54,7 @@ class ToolController extends Controller
             'ukuran' => 'nullable|string',
             'stok' => 'required|integer|min:0',
             'keadaan' => 'nullable|in:B,R',
-            'kategori' => 'nullable|in:mesin,alat_biasa',
+            'kategori' => 'nullable|in:mesin,alat_biasa,perkakas_mesin',
         ]);
 
                 if (($validated['kategori'] ?? 'alat_biasa') === 'mesin' && ($validated['stok'] ?? 0) > 1) {
@@ -125,7 +125,7 @@ class ToolController extends Controller
                 'ukuran' => 'nullable|string',
                 'stok' => 'sometimes|integer|min:0',
                 'keadaan' => 'nullable|in:B,R',
-                'kategori' => 'nullable|in:mesin,alat_biasa',
+                'kategori' => 'nullable|in:mesin,alat_biasa,perkakas_mesin',
             ]);
 
                         $kategoriAkhir = $validated['kategori'] ?? $tool->kategori;
