@@ -15,18 +15,14 @@ interface UserApiResponse {
 export interface ProfileApiData {
   id: string;
   namaLengkap: string;
-  email: string;
   role: string;
   divisi: string;
-  noHp: string;
   avatarPath: string | null;
 }
 
 export interface UpdateProfilePayload {
   namaLengkap: string;
-  email: string;
   divisi: string;
-  noHp: string;
 }
 
 export interface ChangePasswordPayload {
@@ -39,10 +35,8 @@ function mapProfileFromApi(item: UserApiResponse): ProfileApiData {
   return {
     id: item.id,
     namaLengkap: item.full_name,
-    email: item.email,
     role: item.role,
     divisi: item.divisi ?? "-",
-    noHp: item.no_hp ?? "",
     avatarPath: item.avatar_path,
   };
 }
@@ -57,9 +51,7 @@ export async function updateProfile(values: UpdateProfilePayload): Promise<Profi
     method: "PUT",
     body: JSON.stringify({
       full_name: values.namaLengkap,
-      email: values.email,
       divisi: values.divisi,
-      no_hp: values.noHp,
     }),
   });
   return mapProfileFromApi(data);

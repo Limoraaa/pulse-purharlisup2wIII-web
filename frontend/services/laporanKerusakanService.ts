@@ -26,6 +26,7 @@ interface LaporanKerusakanApiResponse {
   keterangan: string | null;
   status: "bisa_diperbaiki" | "rusak_permanen" | "selesai_diperbaiki";
   catatan_perbaikan: string | null;
+  tingkat_kerusakan: "ringan" | "berat" | null;
   perbaikan_ke: number | null;
   dilaporkan_oleh: string;
     tool: {
@@ -75,6 +76,7 @@ function mapLaporanFromApi(item: LaporanKerusakanApiResponse): LaporanKerusakanT
     keterangan: item.keterangan ?? "-",
     status: item.status,
     catatan_perbaikan: item.catatan_perbaikan ?? undefined,
+    tingkat_kerusakan: item.tingkat_kerusakan ?? undefined,
     perbaikan_ke: item.perbaikan_ke ?? undefined,
     kategori_alat: (item.tool?.kategori as "mesin" | "alat_biasa" | undefined) ?? "alat_biasa",
   };

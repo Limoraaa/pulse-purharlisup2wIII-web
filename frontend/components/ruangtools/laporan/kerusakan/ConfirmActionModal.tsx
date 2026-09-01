@@ -37,7 +37,7 @@ const ConfirmActionModal = ({
   showNoteInput = false,
   noteValue = "",
   onNoteChange,
-  notePlaceholder = "Catatan perbaikan (opsional)...",
+  notePlaceholder = "Catatan perbaikan",
   showSeverityInput = false,
   severityValue = "",
   onSeverityChange,

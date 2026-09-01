@@ -4,23 +4,18 @@ import { UserItemType, UserFormValues, ResetPasswordValues } from "types/DataUse
 interface CreateUserPayload {
   full_name: string;
   username: string;
-  email?: string;
   password: string;
   role?: string; // staff tidak perlu kirim ini, backend akan paksa jadi staff_inventory
   divisi?: string;
-  no_hp?: string;
 }
 
 interface UpdateUserPayload {
   full_name?: string;
   username?: string;
-  email?: string;
   password?: string;
   role?: string; // hanya diproses backend kalau yang login admin
   divisi?: string;
-  no_hp?: string;
 }
-
 export async function getUsers(): Promise<UserItemType[]> {
   return apiFetch<UserItemType[]>("/users");
 }
@@ -32,10 +27,8 @@ export async function createUser(
   const payload: CreateUserPayload = {
     full_name: values.full_name,
     username: values.username,
-    email: values.email || undefined,
     password: values.password,
     divisi: values.divisi,
-    no_hp: values.no_hp,
   };
   // Field role cuma disertakan kalau yang bikin akun adalah admin
   if (isAdmin) {
@@ -53,12 +46,10 @@ export async function updateUser(
   values: UserFormValues,
   isAdmin: boolean
 ): Promise<UserItemType> {
-   const payload: UpdateUserPayload = {
+      const payload: UpdateUserPayload = {
     full_name: values.full_name,
     username: values.username,
-    email: values.email || undefined,
     divisi: values.divisi,
-    no_hp: values.no_hp,
   };
 
   if (isAdmin) {

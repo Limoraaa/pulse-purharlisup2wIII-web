@@ -10,6 +10,7 @@ import { ConsumableItemType } from "types/DataConsumableTypes";
 
 // import custom components
 import ActionMenu from "components/common/ActionMenu";
+const formatNumber = (n: number) => n.toLocaleString("en-US");
 
 interface ColumnHandlers {
   onDetail: (consumable: ConsumableItemType) => void;
@@ -54,11 +55,11 @@ export const getConsumableColumns = ({
     accessorKey: "ukuran",
     header: "Ukuran",
   },
-  {
+    {
   accessorKey: "stok_awal_asli",
   header: "Stok Awal",
   cell: ({ row }) => (
-    <span className="text-center d-block">{row.original.stok_awal_asli}</span>
+    <span className="text-center d-block">{formatNumber(row.original.stok_awal_asli)}</span>
   ),
 },
 {
@@ -66,7 +67,7 @@ export const getConsumableColumns = ({
   header: "Masuk",
   cell: ({ row }) => (
     <span className="text-center d-block text-success fw-semibold">
-      {row.original.total_masuk}
+      {formatNumber(row.original.total_masuk)}
     </span>
   ),
 },
@@ -75,7 +76,7 @@ export const getConsumableColumns = ({
   header: "Keluar",
   cell: ({ row }) => (
     <span className="text-center d-block text-danger fw-semibold">
-      {row.original.total_keluar}
+      {formatNumber(row.original.total_keluar)}
     </span>
   ),
 },
@@ -89,7 +90,7 @@ export const getConsumableColumns = ({
       return (
         <div className="d-flex flex-column align-items-center gap-1">
           <span className={`fw-bold ${perluRestock ? "text-danger" : "text-success"}`}>
-            {stok}
+            {formatNumber(stok)}
           </span>
           <Badge
             bg={perluRestock ? "danger-subtle" : "success-subtle"}

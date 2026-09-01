@@ -71,7 +71,7 @@ const RiwayatConsumableKeluarManager = () => {
 
   const [bulanFilter, setBulanFilter] = useState(0);
   const [tahunFilter, setTahunFilter] = useState(0);
-  const [namaFilter, setNamaFilter] = useState("Semua");
+  const [namaFilter, setNamaFilter] = useState("");
 
   // ---- Pencarian (murni UI, tidak menyentuh API/data) ----
   const [searchTerm, setSearchTerm] = useState("");
@@ -117,7 +117,7 @@ const RiwayatConsumableKeluarManager = () => {
       }
       
       // 2. Filter nama peminta (dari dropdown FilterBar)
-      if (namaFilter !== "Semua" && r.nama_peminta !== namaFilter) return false;
+      if (namaFilter !== "" && r.nama_peminta !== namaFilter) return false;
       
       // 3. Filter pencarian teks (Diperluas ke SEMUA kolom tabel + Null-Safety)
       if (keyword !== "") {
