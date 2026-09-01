@@ -8,14 +8,14 @@ import { PeminjamType } from "types/DataToolsTypes";
 // Kita gunakan "id" untuk menyimpan kode RFID dan menambahkan opsi role
 export type PeminjamFormValues = Omit<PeminjamType, "id" | "aktif"> & { 
   id?: string;
-  role?: "Pekerja" | "inventory man";
+  role?: "user" | "inventory man";
 };
 
 const emptyForm: PeminjamFormValues = {
   id: "",
   nama: "",
   divisi: "",
-  role: "Pekerja",
+  role: "user",
 };
 
 interface PeminjamFormModalProps {
@@ -44,7 +44,7 @@ const PeminjamFormModal = ({
               id: initialData.id, // Ambil ID (RFID/UUID) dari database
               nama: initialData.nama, 
               divisi: initialData.divisi,
-              role: initialData.role || "Pekerja", // Masukkan data role
+              role: initialData.role || "user", // Masukkan data role
             }
           : emptyForm
       );
@@ -126,17 +126,17 @@ const PeminjamFormModal = ({
                 <Form.Label>
                   Role Akses <span className="text-danger">*</span>
                 </Form.Label>
-                <Form.Select
+                                <Form.Select
                   required
                   value={form.role}
                   onChange={(e) =>
                     setForm((prev) => ({ 
                       ...prev, 
-                      role: e.target.value as "Pekerja" | "inventory man" 
+                      role: e.target.value as "user" | "inventory man" 
                     }))
                   }
                 >
-                  <option value="Pekerja">Pekerja (User Biasa)</option>
+                  <option value="user">Pekerja (User Biasa)</option>
                   <option value="inventory man">Inventory Man</option>
                 </Form.Select>
                 <Form.Text className="text-muted small">

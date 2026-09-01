@@ -90,15 +90,15 @@ interface LoanSubmitValues {
 
 // ---- Helper: generate kode barang berikutnya ----
 const generateNextKodeBarang = (tools: ToolItemType[]): string => {
-  if (tools.length === 0) return "I-001";
+  if (tools.length === 0) return "T-001";
   const maxNumber = tools.reduce((max, tool) => {
-    const match = tool.kodeBarang.match(/^I-(\d+)$/);
+    const match = tool.kodeBarang.match(/^T-(\d+)$/);
     if (!match) return max;
     const num = parseInt(match[1], 10);
     return num > max ? num : max;
   }, 0);
   const nextNumber = maxNumber + 1;
-  return `I-${String(nextNumber).padStart(3, "0")}`;
+  return `T-${String(nextNumber).padStart(3, "0")}`;
 };
 
 const EXPORT_COLUMNS: ExportColumn[] = [

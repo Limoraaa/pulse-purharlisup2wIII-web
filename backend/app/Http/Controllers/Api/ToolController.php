@@ -41,8 +41,12 @@ class ToolController extends Controller
      */
                 public function store(Request $request)
     {
-          $validated = $request->validate([
-            'kode_barang' => 'required|string|unique:tools,kode_barang',
+        $validated = $request->validate([
+            'kode_barang' => [
+                'required',
+                'string',
+                Rule::unique('tools', 'kode_barang')->where('is_active', true),
+            ],
             'nama_barang' => 'required|string',
             'merk' => 'nullable|string',
             'type' => 'nullable|string',
@@ -50,7 +54,7 @@ class ToolController extends Controller
             'ukuran' => 'nullable|string',
             'stok' => 'required|integer|min:0',
             'keadaan' => 'nullable|in:B,R',
-            'kategori' => 'nullable|in:mesin,alat_biasa',
+            'kategori' => 'nullable|in:mesin,alat_biasa,perkakas_mesin',
         ]);
 
                 if (($validated['kategori'] ?? 'alat_biasa') === 'mesin' && ($validated['stok'] ?? 0) > 1) {
@@ -106,8 +110,14 @@ class ToolController extends Controller
      */
     public function update(Request $request, Tool $tool)
         {
-             $validated = $request->validate([
-                'kode_barang' => 'sometimes|string|unique:tools,kode_barang,' . $tool->id,
+            $validated = $request->validate([
+                'kode_barang' => [
+                    'sometimes',
+                    'string',
+                    Rule::unique('tools', 'kode_barang')
+                        ->where('is_active', true)
+                        ->ignore($tool->id),
+                ],
                 'nama_barang' => 'sometimes|string',
                 'merk' => 'nullable|string',
                 'type' => 'nullable|string',
@@ -115,7 +125,7 @@ class ToolController extends Controller
                 'ukuran' => 'nullable|string',
                 'stok' => 'sometimes|integer|min:0',
                 'keadaan' => 'nullable|in:B,R',
-                'kategori' => 'nullable|in:mesin,alat_biasa',
+                'kategori' => 'nullable|in:mesin,alat_biasa,perkakas_mesin',
             ]);
 
                         $kategoriAkhir = $validated['kategori'] ?? $tool->kategori;

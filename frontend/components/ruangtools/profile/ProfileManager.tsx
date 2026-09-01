@@ -34,18 +34,14 @@ import { getProfile, updateProfile, changePassword, uploadAvatar, ProfileApiData
 
 interface ProfileData {
   namaLengkap: string;
-  email: string;
   role: string;
   divisi: string;
-  noHp: string;
 }
 
 const emptyProfile: ProfileData = {
   namaLengkap: "",
-  email: "",
   role: "",
   divisi: "-",
-  noHp: "",
 };
 
 const ProfileManager = () => {
@@ -93,12 +89,10 @@ const ProfileManager = () => {
     setLoadError(null);
     try {
       const data: ProfileApiData = await getProfile();
-      const mapped: ProfileData = {
+            const mapped: ProfileData = {
         namaLengkap: data.namaLengkap,
-        email: data.email,
         role: data.role,
         divisi: data.divisi,
-        noHp: data.noHp,
       };
       setProfile(mapped);
       setForm(mapped);
@@ -143,18 +137,14 @@ const ProfileManager = () => {
     setSaving(true);
     setSaveError(null);
     try {
-      const updated = await updateProfile({
+        const updated = await updateProfile({
         namaLengkap: form.namaLengkap,
-        email: form.email,
         divisi: form.divisi,
-        noHp: form.noHp,
       });
       const mapped: ProfileData = {
         namaLengkap: updated.namaLengkap,
-          email: updated.email,
         role: updated.role,
         divisi: updated.divisi,
-        noHp: updated.noHp,
       };
       setProfile(mapped);
       setForm(mapped);
@@ -351,18 +341,7 @@ const ProfileManager = () => {
                       }
                     />
                   </Col>
-                  <Col md={6}>
-                    <Form.Label>Email</Form.Label>
-                    <Form.Control
-                        type="email"
-                        value={form.email ?? ""}
-                        disabled={!isEditing || saving}
-                      onChange={(e) =>
-                        setForm((p) => ({ ...p, email: e.target.value }))
-                      }
-                    />
-                  </Col>
-                  <Col md={6}>
+                                    <Col md={6}>
                     <Form.Label>Role</Form.Label>
                     <Form.Control value={form.role} disabled readOnly />
                   </Col>
@@ -373,20 +352,6 @@ const ProfileManager = () => {
                       disabled={!isEditing || saving}
                       onChange={(e) =>
                         setForm((p) => ({ ...p, divisi: e.target.value }))
-                      }
-                    />
-                  </Col>
-                  <Col md={6}>
-                    <Form.Label>
-                      Nomor HP{" "}
-                      <span className="text-secondary fw-normal">(opsional)</span>
-                    </Form.Label>
-                    <Form.Control
-                      value={form.noHp}
-                      disabled={!isEditing || saving}
-                      placeholder="Contoh: 0812xxxxxxx"
-                      onChange={(e) =>
-                        setForm((p) => ({ ...p, noHp: e.target.value }))
                       }
                     />
                   </Col>

@@ -95,18 +95,18 @@ const LaporanKerusakanManager = () => {
       const { type, item } = confirmModal;
       setConfirmSubmitting(true);
 
-      try {
+            try {
         if (type === "repair") {
           const isMesin = item.kategori_alat === "mesin";
-          await repairLaporanKerusakan(
-            item.id,
-            repairNote.trim() || undefined,
-            isMesin ? (repairSeverity || undefined) : undefined
-          );
-          // Item tetap ada di laporanList (status berubah jadi selesai_diperbaiki),
-          // otomatis hilang dari tampilan lewat filteredList di atas.
+          const severityDikirim = isMesin ? (repairSeverity || undefined) : undefined;
+
+          await repairLaporanKerusakan(item.id, repairNote.trim() || undefined, severityDikirim);
           setLaporanList((prev) =>
-            prev.map((l) => (l.id === item.id ? { ...l, status: "selesai_diperbaiki" as const } : l))
+            prev.map((l) =>
+              l.id === item.id
+                ? { ...l, status: "selesai_diperbaiki" as const, tingkat_kerusakan: severityDikirim }
+                : l
+            )
           );
           setSuccessMessage(`${item.nama_barang} berhasil ditandai selesai diperbaiki, stok telah dikembalikan.`);
         } else {
@@ -137,7 +137,7 @@ const LaporanKerusakanManager = () => {
 
   const [bulanFilter, setBulanFilter] = useState(0);
   const [tahunFilter, setTahunFilter] = useState(0);
-  const [namaFilter, setNamaFilter] = useState("Semua");
+  const [namaFilter, setNamaFilter] = useState("");
 
   // ---- Pencarian (murni UI, tidak menyentuh API/data) ----
   const [searchTerm, setSearchTerm] = useState("");
@@ -164,15 +164,24 @@ const LaporanKerusakanManager = () => {
     return Array.from(tahunSet).sort((a, b) => b - a);
   }, [laporanList]);
 
-  const namaOptions = useMemo(() => {
-    const namaSet = new Set(laporanList.map((r) => r.nama_peminjam));
-    return Array.from(namaSet).sort();
+  // namaOptions dihitung dari data yang benar-benar tampil di tabel
+  // (exclude selesai_diperbaiki), sehingga dropdown nama hanya berisi
+  // nama yang masih ada di tabel saat ini.
+  const visibleList = useMemo(() => {
+    return laporanList.filter((r) => r.status !== "selesai_diperbaiki");
   }, [laporanList]);
 
-   const repairCountByKode = useMemo(() => {
+  const namaOptions = useMemo(() => {
+    const namaSet = new Set(visibleList.map((r) => r.nama_peminjam));
+    return Array.from(namaSet).sort();
+  }, [visibleList]);
+
+     const repairCountByKode = useMemo(() => {
     const map: Record<string, number> = {};
     laporanList.forEach((l) => {
-      if (l.status === "selesai_diperbaiki") {
+      // Rusak ringan tidak dihitung ke batas maksimal perbaikan,
+      // konsisten dengan logika perbaikan_ke di backend.
+      if (l.status === "selesai_diperbaiki" && l.tingkat_kerusakan !== "ringan") {
         map[l.kode_barang] = (map[l.kode_barang] ?? 0) + 1;
       }
     });
@@ -200,7 +209,7 @@ const LaporanKerusakanManager = () => {
       }
 
       // Filter nama peminjam
-      if (namaFilter !== "Semua" && r.nama_peminjam !== namaFilter)
+      if (namaFilter !== "" && r.nama_peminjam !== namaFilter)
         return false;
 
       // Filter pencarian

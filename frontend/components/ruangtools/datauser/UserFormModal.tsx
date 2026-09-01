@@ -8,11 +8,9 @@ import { UserFormValues, UserItemType, UserRole } from "types/DataUserTypes";
 const emptyForm: UserFormValues = {
   full_name: "",
   username: "",
-  email: "",
   password: "",
   role: "staff",
   divisi: "",
-  no_hp: "",
 };
 
 interface UserFormModalProps {
@@ -41,11 +39,9 @@ const UserFormModal = ({
           setForm({
             full_name: initialData.full_name,
             username: initialData.username,
-            email: initialData.email || "",
             password: "",
             role: initialData.role,
             divisi: initialData.divisi || "",
-            no_hp: initialData.no_hp || "",
           });
         } else {
           setForm(emptyForm);
@@ -96,16 +92,6 @@ const UserFormModal = ({
                 onChange={(e) => handleChange("username", e.target.value)}
               />
             </Col>
-            <Col md={6}>
-              <Form.Label>
-                Email <span className="text-secondary fw-normal">(opsional)</span>
-              </Form.Label>
-              <Form.Control
-                type="email"
-                value={form.email}
-                onChange={(e) => handleChange("email", e.target.value)}
-              />
-            </Col>
              {!isEditMode && (
               <Col md={6}>
                 <Form.Label>
@@ -143,16 +129,6 @@ const UserFormModal = ({
               <Form.Control
                 value={form.divisi}
                 onChange={(e) => handleChange("divisi", e.target.value)}
-              />
-            </Col>
-            <Col md={6}>
-              <Form.Label>
-                Nomor HP <span className="text-secondary fw-normal">(opsional)</span>
-              </Form.Label>
-              <Form.Control
-                value={form.no_hp}
-                placeholder="Contoh: 0812xxxxxxx"
-                onChange={(e) => handleChange("no_hp", e.target.value)}
               />
             </Col>
           </Row>
