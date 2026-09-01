@@ -67,7 +67,7 @@ const RiwayatPeminjamanManager = () => {
   // ---- Filter Bulan & Tahun ----
   const [bulanFilter, setBulanFilter] = useState(0);
   const [tahunFilter, setTahunFilter] = useState(0);
-  const [namaFilter, setNamaFilter] = useState("Semua");
+  const [namaFilter, setNamaFilter] = useState("");
 
   // ---- Pencarian (murni UI, tidak menyentuh API/data) ----
   const [searchTerm, setSearchTerm] = useState("");
@@ -113,7 +113,7 @@ const RiwayatPeminjamanManager = () => {
       }
       
       // 2. Filter nama peminjam (dari dropdown FilterBar)
-      if (namaFilter !== "Semua" && r.nama_peminjam !== namaFilter) return false;
+      if (namaFilter !== "" && r.nama_peminjam !== namaFilter) return false;
       
       // 3. Filter pencarian teks (Diperbarui untuk mencari di SEMUA kolom & Null-Safety)
       if (keyword !== "") {

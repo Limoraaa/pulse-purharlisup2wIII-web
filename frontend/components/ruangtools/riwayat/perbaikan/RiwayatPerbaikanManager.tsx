@@ -72,7 +72,7 @@ const RiwayatPerbaikanManager = () => {
 
   const [bulanFilter, setBulanFilter] = useState(0);
   const [tahunFilter, setTahunFilter] = useState(0);
-  const [namaFilter, setNamaFilter] = useState("Semua");
+  const [namaFilter, setNamaFilter] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
   const parseTanggal = (str: string) => {
@@ -114,7 +114,7 @@ const RiwayatPerbaikanManager = () => {
         }
       }
 
-      if (namaFilter !== "Semua" && r.nama_peminjam !== namaFilter) return false;
+      if (namaFilter !== "" && r.nama_peminjam !== namaFilter) return false;
 
       if (keyword !== "") {
         const cocok =
