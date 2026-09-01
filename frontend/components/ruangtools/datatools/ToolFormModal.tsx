@@ -171,8 +171,8 @@ const ToolFormModal = ({
               <Form.Label>Kategori</Form.Label>
               <Form.Select
                 value={form.kategori || "alat_biasa"}
-                onChange={(e) => {
-                  const kategoriBaru = e.target.value as "mesin" | "alat_biasa";
+                  onChange={(e) => {
+                  const kategoriBaru = e.target.value as "mesin" | "alat_biasa" | "perkakas_mesin";
                   setForm((prev) => ({
                     ...prev,
                     kategori: kategoriBaru,
@@ -180,7 +180,8 @@ const ToolFormModal = ({
                   }));
                 }}
               >
-                <option value="alat_biasa">Alat Biasa</option>
+                <option value="alat_biasa">Perkakas Tangan</option>
+                <option value="perkakas_mesin">Perkakas Mesin</option>
                 <option value="mesin">Mesin</option>
               </Form.Select>
               {form.kategori === "mesin" && (
