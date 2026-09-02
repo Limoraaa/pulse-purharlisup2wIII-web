@@ -9,6 +9,7 @@ interface ConsumableApiResponse {
   type: string | null;
   er_e: string | null;
   ukuran: string | null;
+  satuan: string | null;
   stok_awal: number;
   stok_awal_asli: number;
   total_masuk: number;
@@ -22,6 +23,7 @@ interface ConsumableApiPayload {
   type: string;
   er_e: string;
   ukuran: string;
+  satuan: string;
   stok_awal: number;
   stok_awal_asli?: number;
 }
@@ -35,6 +37,7 @@ function mapConsumableFromApi(item: ConsumableApiResponse): ConsumableItemType {
     tipe: item.type ?? "-",
     er_e: item.er_e ?? "-",
     ukuran: item.ukuran ?? "-",
+    satuan: item.satuan ?? "-",
     stok_awal: item.stok_awal,
     stok_awal_asli: item.stok_awal_asli,
     total_masuk: item.total_masuk,
@@ -50,6 +53,7 @@ function mapConsumableToApi(values: ConsumableFormValues): ConsumableApiPayload 
     type: values.tipe,
     er_e: values.er_e,
     ukuran: values.ukuran,
+    satuan: values.satuan,
     stok_awal: values.stok_awal,
   };
 
