@@ -16,7 +16,10 @@ class DatabaseSeeder extends Seeder
             PeminjamanSeeder::class,
             ConsumableMasukSeeder::class,
             ConsumableKeluarSeeder::class,
-            LaporanKerusakanToolsSeeder::class,
+            
+            // Matikan seeder yang belum ada di history ini
+            // LaporanKerusakanToolsSeeder::class,
+            
             MesinProduksiSeeder::class,
             LogAktivitasMesinSeeder::class,
         ]);
