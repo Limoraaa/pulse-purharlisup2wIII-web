@@ -1,15 +1,9 @@
 // import node module libraries
 import { ColumnDef } from "@tanstack/react-table";
-import { Button, Spinner, Badge } from "react-bootstrap";
-import { IconRotateClockwise2 } from "@tabler/icons-react";
+import { Badge } from "react-bootstrap";
 
 // import custom types
 import { PeminjamanAktifItemType } from "types/DataToolsTypes";
-
-interface ColumnHandlers {
-  onOpenPengembalian: (item: PeminjamanAktifItemType) => void; // buka modal form pengembalian
-  returningId?: string | null; // id yang sedang diproses, untuk disable tombol + spinner
-}
 
 // Ubah timestamp mentah dari database (ISO string, mis. "2026-07-15T01:27:41.000000Z")
 // jadi format tanggal + jam yang enak dibaca (mis. "15 Jul 2026, 08:27")
@@ -29,10 +23,7 @@ const formatTanggal = (raw: string): string => {
   return `${tanggal}, ${jam}`;
 };
 
-export const getPeminjamanAktifColumns = ({
-  onOpenPengembalian,
-  returningId,
-}: ColumnHandlers): ColumnDef<PeminjamanAktifItemType>[] => [
+export const getPeminjamanAktifColumns = (): ColumnDef<PeminjamanAktifItemType>[] => [
   {
     accessorKey: "tanggal",
     header: "Tanggal",
@@ -96,35 +87,8 @@ export const getPeminjamanAktifColumns = ({
     accessorKey: "spesifikasi",
     header: "Spesifikasi",
   },
-  {
+    {
     accessorKey: "keterangan",
     header: "Keterangan",
-  },
-  {
-    id: "aksi",
-    header: "Aksi",
-    cell: ({ row }) => {
-      const isReturning = returningId === row.original.id;
-      return (
-        <Button
-          size="sm"
-          variant="outline-success"
-          className="d-flex align-items-center gap-1"
-          disabled={isReturning}
-          title="Tandai Dikembalikan"
-          onClick={() => onOpenPengembalian(row.original)}
-        >
-          {isReturning ? (
-            <Spinner animation="border" size="sm" />
-          ) : (
-            <IconRotateClockwise2 size={16} />
-          )}
-          {/* teks disembunyikan di layar < lg (992px), sisa ikon saja
-              supaya kolom Aksi (sticky di mobile) tidak makan banyak ruang.
-              title di atas tetap kasih tooltip + aksesibilitas. */}
-          <span className="d-none d-lg-inline">Tandai Dikembalikan</span>
-        </Button>
-      );
-    },
   },
 ];
