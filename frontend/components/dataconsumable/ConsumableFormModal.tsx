@@ -11,6 +11,7 @@ const emptyForm: ConsumableFormValues = {
   tipe: "",
   er_e: "",
   ukuran: "",
+  satuan: "",
   stok_awal: 0,
 };
 
@@ -147,14 +148,26 @@ useEffect(() => {
                 onChange={(e) => handleChange("er_e", e.target.value)}
               />
             </Col>
-            <Col md={6}>
+            <Col md={4}>
               <Form.Label>Ukuran</Form.Label>
               <Form.Control
                 value={form.ukuran}
                 onChange={(e) => handleChange("ukuran", e.target.value)}
               />
-            </Col>           
-            <Col md={6}>
+            </Col>
+            <Col md={4}>
+              <Form.Label>Satuan</Form.Label>
+              <Form.Select
+                value={form.satuan}
+                onChange={(e) => handleChange("satuan", e.target.value)}
+              >
+                <option value="">Pilih satuan</option>
+                <option value="Pcs">Pcs</option>
+                <option value="Kg">Kg</option>
+                <option value="Meter">Meter</option>
+              </Form.Select>
+            </Col>
+            <Col md={4}>
               <Form.Label>Stok Awal <span className="text-danger"></span></Form.Label>
               <Form.Control
                 required
