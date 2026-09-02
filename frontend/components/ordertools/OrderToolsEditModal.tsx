@@ -30,8 +30,6 @@ export default function OrderToolsEditModal({ isOpen, onClose, onSuccess, orderD
     ukuran: '',
     jumlah: 1,
     satuan: 'Pcs',
-    harga: 0,
-    referensi_harga: '',
     status_pembelian: 'belum dibeli',
     tanggal_kedatangan: '',
   });
@@ -54,8 +52,6 @@ export default function OrderToolsEditModal({ isOpen, onClose, onSuccess, orderD
           ukuran: orderData.ukuran || '',
           jumlah: orderData.jumlah || 1,
           satuan: orderData.satuan || 'Pcs',
-          harga: orderData.harga || 0,
-          referensi_harga: orderData.referensi_harga || '',
           status_pembelian: orderData.status_pembelian || 'belum dibeli',
           tanggal_kedatangan: orderData.tanggal_kedatangan || '',
         });
@@ -82,8 +78,6 @@ export default function OrderToolsEditModal({ isOpen, onClose, onSuccess, orderD
         ukuran: form.ukuran || null,
         jumlah: Number(form.jumlah),
         satuan: form.satuan,
-        harga: Number(form.harga),
-        referensi_harga: form.referensi_harga || null,
         status_pembelian: form.status_pembelian,
       };
 
@@ -218,34 +212,6 @@ export default function OrderToolsEditModal({ isOpen, onClose, onSuccess, orderD
                   value={form.satuan}
                   onChange={e => handleChange('satuan', e.target.value)}
                   placeholder="Cth: Pcs, Kg"
-                />
-              </Form.Group>
-            </Col>
-
-            <Col md={4}>
-              <Form.Group className="mb-3">
-                <Form.Label className="fw-semibold">Estimasi Harga (Satuan)</Form.Label>
-                <InputGroup>
-                  <InputGroup.Text>Rp</InputGroup.Text>
-                  <Form.Control
-                    type="number"
-                    required
-                    value={form.harga || ''}
-                    onChange={e => handleChange('harga', e.target.value)}
-                    placeholder="850000"
-                  />
-                </InputGroup>
-              </Form.Group>
-            </Col>
-
-            <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label>Referensi Harga</Form.Label>
-                <Form.Control
-                  type="text"
-                  value={form.referensi_harga}
-                  onChange={e => handleChange('referensi_harga', e.target.value)}
-                  placeholder="Link Tokopedia / Toko"
                 />
               </Form.Group>
             </Col>
