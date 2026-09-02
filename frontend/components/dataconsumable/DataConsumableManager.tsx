@@ -74,6 +74,7 @@ const EXPORT_COLUMNS: ExportColumn[] = [
   { header: "Tipe", key: "tipe" },
   { header: "ER/E", key: "er_e" },
   { header: "Ukuran", key: "ukuran" },
+  { header: "Satuan", key: "satuan" },
   { header: "Stok Tersedia", key: "stok_awal" },
 ];
 
@@ -222,6 +223,7 @@ const DataConsumableManager = () => {
         const tipe = (item.tipe || "").toLowerCase();
         const erE = (item.er_e || "").toLowerCase();
         const ukuran = (item.ukuran || "").toLowerCase();
+        const satuan = (item.satuan || "").toLowerCase();
 
         // 2. Konversi angka stok ke string agar bisa dicari
         // (Pakai as any untuk jaga-jaga jika tipe properti masuk/keluar ada di object aslinya)
@@ -243,6 +245,7 @@ const DataConsumableManager = () => {
           tipe.includes(keyword) ||
           erE.includes(keyword) ||
           ukuran.includes(keyword) ||
+          satuan.includes(keyword) ||
           stokAwal.includes(keyword) ||
           masuk.includes(keyword) ||
           keluar.includes(keyword) ||

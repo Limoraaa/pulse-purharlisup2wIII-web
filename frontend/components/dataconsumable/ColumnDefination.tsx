@@ -51,9 +51,14 @@ export const getConsumableColumns = ({
     accessorKey: "er_e",
     header: "ER/E",
   },
-  {
+    {
     accessorKey: "ukuran",
     header: "Ukuran",
+  },
+  {
+    accessorKey: "satuan",
+    header: "Satuan",
+    cell: ({ row }) => row.original.satuan || "-",
   },
     {
   accessorKey: "stok_awal_asli",
