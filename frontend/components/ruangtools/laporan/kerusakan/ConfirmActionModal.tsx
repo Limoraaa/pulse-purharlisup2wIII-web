@@ -95,13 +95,16 @@ const ConfirmActionModal = ({
 
         {showNoteInput && (
           <Form.Group className="text-start">
-            <Form.Label className="small fw-semibold">Catatan Perbaikan</Form.Label>
+            <Form.Label className="small fw-semibold">
+              Catatan Perbaikan <span className="text-danger">*</span>
+            </Form.Label>
             <Form.Control
               as="textarea"
               rows={2}
               placeholder={notePlaceholder}
               value={noteValue}
               onChange={(e) => onNoteChange?.(e.target.value)}
+              required
             />
           </Form.Group>
         )}

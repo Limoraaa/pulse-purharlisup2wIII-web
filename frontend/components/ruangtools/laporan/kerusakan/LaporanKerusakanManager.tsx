@@ -390,8 +390,8 @@ const LaporanKerusakanManager = () => {
           onSeverityChange={setRepairSeverity}
           confirmDisabled={
             confirmModal.type === "repair" &&
-            confirmModal.item.kategori_alat === "mesin" &&
-            repairSeverity === ""
+            (repairNote.trim() === "" ||
+              (confirmModal.item.kategori_alat === "mesin" && repairSeverity === ""))
           }
           warningText={
             confirmModal.type === "repair" &&
