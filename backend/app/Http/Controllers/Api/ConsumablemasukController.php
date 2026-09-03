@@ -42,8 +42,9 @@ class ConsumableMasukController extends Controller
             'tanggal'       => 'required|date',
             'consumable_id' => 'required|uuid|exists:consumables,id',
             'jumlah_masuk'  => 'required|integer|min:1',
+            'satuan'        => 'nullable|string', // <-- TAMBAHAN VALIDASI SATUAN
             'keterangan'    => 'nullable|string',
-            'peminta_id'    => 'required|string|exists:peminta,id', // Wajib menangkap peminta_id dari frontend
+            'peminta_id'    => 'required|string|exists:peminta,id', 
         ]);
 
         if ($validator->fails()) {
@@ -116,9 +117,10 @@ class ConsumableMasukController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'tanggal'      => 'sometimes|required|date',
-            'jumlah_masuk' => 'sometimes|required|integer|min:1',
-            'keterangan'   => 'nullable|string',
+            'tanggal'       => 'sometimes|required|date',
+            'jumlah_masuk'  => 'sometimes|required|integer|min:1',
+            'satuan'        => 'nullable|string', // <-- TAMBAHAN VALIDASI SATUAN
+            'keterangan'    => 'nullable|string',
         ]);
 
         if ($validator->fails()) {

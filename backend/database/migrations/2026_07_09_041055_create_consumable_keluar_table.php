@@ -13,8 +13,9 @@ return new class extends Migration
             $table->uuid('id')->default(DB::raw('gen_random_uuid()'))->primary();
             $table->timestamp('tanggal');
             $table->foreignUuid('consumable_id')->constrained('consumables');
-            $table->string('peminta_id'); // Menggunakan string untuk sesuai dengan tipe data 'id' di tabel 'peminta'
+            $table->string('peminta_id'); 
             $table->integer('jumlah_keluar');
+            $table->string('satuan')->nullable(); // Kolom satuan disesuaikan
             $table->string('pekerjaan_area')->nullable();
             $table->string('nama_pekerjaan')->nullable();
             $table->text('keterangan')->nullable();
