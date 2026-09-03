@@ -38,7 +38,7 @@ const EXPORT_COLUMNS: ExportColumn[] = [
   { header: "Tipe", key: "tipe" },
   { header: "ER/E", key: "er_e" },
   { header: "Ukuran", key: "ukuran" },
-  { header: "Jumlah", key: "jumlah" },
+  { header: "Jumlah", key: "jumlah_export" }, // <-- Key diubah untuk Export yang sudah digabung dengan satuan
   { header: "Nama Peminta", key: "nama_peminta" },
   { header: "Divisi", key: "divisi" },
   { header: "Nama Pekerjaan", key: "nama_pekerjaan" },
@@ -129,6 +129,7 @@ const RiwayatConsumableKeluarManager = () => {
         const tipe = (r.tipe || "").toLowerCase();
         const erE = (r.er_e || "").toLowerCase();
         const ukuran = (r.ukuran || "").toLowerCase();
+        const satuan = ((r as any).satuan || "").toLowerCase(); // <-- Pencarian satuan
         const jumlah = String(r.jumlah ?? 0);
         const namaPeminta = (r.nama_peminta || "").toLowerCase();
         const divisi = (r.divisi || "").toLowerCase();
@@ -145,6 +146,7 @@ const RiwayatConsumableKeluarManager = () => {
           tipe.includes(keyword) ||
           erE.includes(keyword) ||
           ukuran.includes(keyword) ||
+          satuan.includes(keyword) || // <-- Pencarian satuan
           jumlah.includes(keyword) ||
           namaPeminta.includes(keyword) ||
           divisi.includes(keyword) ||
@@ -159,6 +161,13 @@ const RiwayatConsumableKeluarManager = () => {
     });
   }, [riwayatList, bulanFilter, tahunFilter, namaFilter, searchTerm]);
 
+  // --- LOGIKA BARU UNTUK EXPORT ---
+  const exportRows = useMemo(() => filteredList.map((item) => ({
+    ...item,
+    // Menggabungkan jumlah dengan satuan
+    jumlah_export: `${item.jumlah} ${(item as any).satuan || ''}`.trim(),
+  })), [filteredList]);
+
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [keteranganModalOpen, setKeteranganModalOpen] = useState(false);
@@ -171,7 +180,6 @@ const RiwayatConsumableKeluarManager = () => {
     setDetailModalOpen(true);
   };
 
-
   const handleEditSubmit = (values: RiwayatConsumableKeluarFormValues) => {
     if (activeItem) {
       setRiwayatList((prev) =>
@@ -183,9 +191,9 @@ const RiwayatConsumableKeluarManager = () => {
   };
 
   const handleExportPDF = () =>
-    exportToPDF(filteredList, EXPORT_COLUMNS, getFilteredExportFileName("Riwayat_Consumable_Keluar", namaFilter), "Riwayat Consumable Keluar");
+    exportToPDF(exportRows, EXPORT_COLUMNS, getFilteredExportFileName("Riwayat_Consumable_Keluar", namaFilter), "Riwayat Consumable Keluar");
   const handleExportExcel = () =>
-    exportToExcel(filteredList, EXPORT_COLUMNS, getFilteredExportFileName("Riwayat_Consumable_Keluar", namaFilter));
+    exportToExcel(exportRows, EXPORT_COLUMNS, getFilteredExportFileName("Riwayat_Consumable_Keluar", namaFilter));
 
   const columns = getRiwayatConsumableKeluarColumns({
   onDetail: openDetailModal,
@@ -219,7 +227,7 @@ const RiwayatConsumableKeluarManager = () => {
               </InputGroup.Text>
               <Form.Control
                 type="search"
-                placeholder="kode barang, nama barang, atau peminta..."
+                placeholder="kode barang, nama barang, satuan, atau peminta..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 aria-label="Cari riwayat consumable keluar"

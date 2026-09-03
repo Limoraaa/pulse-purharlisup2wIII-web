@@ -13,19 +13,16 @@ import {
   Button,
 } from "react-bootstrap";
 import {
-  IconCircleCheck,
   IconSearch,
   IconX,
   IconClipboardList,
   IconMoodEmpty,
 } from "@tabler/icons-react";
-import { createLaporanKerusakan } from "services/laporanKerusakanService";
-
 // import custom types
 import { PeminjamanAktifItemType } from "types/DataToolsTypes";
 
 // import services (langsung ke API, data ini tidak perlu dibagi ke halaman lain)
-import { getPeminjamanAktif, tandaiDikembalikan } from "services/peminjamanService";
+import { getPeminjamanAktif } from "services/peminjamanService";
 
 // import custom components
 import TanstackTable from "components/table/TanstackTable";
@@ -34,19 +31,11 @@ import DasherBreadcrumb from "components/common/DasherBreadcrumb";
 import { getPeminjamanAktifColumns } from "components/ruangtools/peminjamanaktif/ColumnDefination";
 import RiwayatFilterBar from "components/ruangtools/riwayat/common/RiwayatFilterBar";
 import { exportToExcel, exportToPDF, ExportColumn, getFilteredExportFileName } from "components/ruangtools/riwayat/common/exportUtils";
-import FormPengembalianModal, {
-  PengembalianSubmitPayload,
-} from "components/ruangtools/peminjamanaktif/FormPengembalianModal";
 
 const PeminjamanAktifManager = () => {
   const [items, setItems] = useState<PeminjamanAktifItemType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const [returnModalOpen, setReturnModalOpen] = useState(false);
-  const [activeItem, setActiveItem] = useState<PeminjamanAktifItemType | null>(null);
-  const [returningId, setReturningId] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // ---- Toolbar: pencarian (murni UI, tidak menyentuh API/data) ----
   const [searchTerm, setSearchTerm] = useState("");
@@ -105,79 +94,17 @@ const PeminjamanAktifManager = () => {
     }
   };
 
-  useEffect(() => {
+    useEffect(() => {
     loadData();
   }, []);
 
-  // ---- buka form pengembalian untuk 1 alat ----
-  const handleOpenPengembalian = (item: PeminjamanAktifItemType) => {
-    setActiveItem(item);
-    setReturnModalOpen(true);
-  };
-
-  // ---- submit form pengembalian ----
-  const handleReturnSubmit = async (payload: PengembalianSubmitPayload) => {
-    if (!activeItem) return;
-
-    setReturningId(activeItem.id);
-    try {
-      await tandaiDikembalikan(activeItem.id);
-
-     if (payload.kerusakan.length > 0) {
-        const dicatatOleh = localStorage.getItem("userId");
-        if (!dicatatOleh) {
-          throw new Error("Sesi login tidak ditemukan. Silakan login ulang.");
-        }
-
-        for (const entry of payload.kerusakan) {
-          await createLaporanKerusakan({
-            tanggal: new Date().toISOString(),
-            tool_id: activeItem.toolId,
-            peminjaman_id: activeItem.id,
-            jumlah: entry.jumlah,
-            keterangan: entry.catatan,
-            status: entry.jenisKerusakan,
-            dilaporkan_oleh: dicatatOleh,
-          });
-        }
-      }
-      setItems((prev) => prev.filter((i) => i.id !== activeItem.id));
-      setReturnModalOpen(false);
-      setActiveItem(null);
-
-      const totalRusak = payload.kerusakan.reduce((sum, k) => sum + k.jumlah, 0);
-      setSuccessMessage(
-        `${activeItem.namaBarang} (${activeItem.kodeBarang}) berhasil ditandai dikembalikan${
-          totalRusak > 0 ? ` (${totalRusak} unit rusak, stok dikurangi)` : ""
-        }.`
-      );
-      setTimeout(() => setSuccessMessage(null), 5000);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Gagal memproses pengembalian";
-      alert(message);
-    } finally {
-      setReturningId(null);
-    }
-  };
-
   const columns = useMemo(
-    () => getPeminjamanAktifColumns({ onOpenPengembalian: handleOpenPengembalian, returningId }),
-    [returningId]
+    () => getPeminjamanAktifColumns(),
+    []
   );
 
-  return (
+    return (
     <div className="peminjamanaktif-page">
-      {successMessage && (
-        <Alert
-          variant="success"
-          className="d-flex align-items-center gap-2"
-          dismissible
-          onClose={() => setSuccessMessage(null)}
-        >
-          <IconCircleCheck size={20} />
-          {successMessage}
-        </Alert>
-      )}
 
       {/* ---- Page Header ---- */}
       <Row>
@@ -295,17 +222,7 @@ const PeminjamanAktifManager = () => {
         </CardBody>
       </Card>
 
-      <FormPengembalianModal
-        show={returnModalOpen}
-        onClose={() => {
-          setReturnModalOpen(false);
-          setActiveItem(null);
-        }}
-        item={activeItem}
-        onSubmit={handleReturnSubmit}
-        submitting={returningId !== null}
-      />
-    </div>
+          </div>
   );
 };
 

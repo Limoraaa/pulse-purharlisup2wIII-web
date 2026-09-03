@@ -25,8 +25,6 @@ interface OrderData {
   pekerjaan: string;
   jumlah: number;
   satuan: string;
-  harga: number;
-  referensi_harga: string;
   tanggal_pengajuan: string;
   tanggal_kedatangan: string | null;
   status_pembelian: string;
@@ -50,8 +48,6 @@ const EXPORT_COLUMNS_ORDER: ExportColumn[] = [
   { header: "Merek", key: "merek" },
   { header: "Jumlah", key: "jumlah" },
   { header: "Satuan", key: "satuan" },
-  { header: "Estimasi Harga", key: "harga" },
-  { header: "Referensi Harga", key: "referensi_harga" },
   { header: "Status", key: "status_pembelian" },
   { header: "Tgl Kedatangan", key: "tanggal_kedatangan" },
 ];
@@ -137,8 +133,6 @@ export default function OrderConsumableManager() {
       pekerjaan: order.pekerjaan || '-',
       tanggal_pengajuan: formatDateTime(order.tanggal_pengajuan),
       tanggal_kedatangan: order.status_pembelian === 'sudah dibeli' ? formatDateTime(order.tanggal_kedatangan) : '-',
-      harga: formatRupiah(order.harga),
-      referensi_harga: order.referensi_harga || '-',
     }));
 
     exportToPDF(
@@ -157,8 +151,6 @@ export default function OrderConsumableManager() {
       pekerjaan: order.pekerjaan || '-',
       tanggal_pengajuan: formatDateTime(order.tanggal_pengajuan),
       tanggal_kedatangan: order.status_pembelian === 'sudah dibeli' ? formatDateTime(order.tanggal_kedatangan) : '-',
-      harga: order.harga,
-      referensi_harga: order.referensi_harga || '-',
     }));
 
     exportToExcel(
@@ -197,16 +189,6 @@ export default function OrderConsumableManager() {
     { header: "Merk", accessorKey: "merek" },
     { header: "Jumlah", accessorKey: "jumlah" },
     { header: "Satuan", accessorKey: "satuan" },
-    {
-      header: "Harga",
-      accessorKey: "harga",
-      cell: ({ row }: any) => formatRupiah(row.original.harga),
-    },
-    {
-      header: "Referensi Harga",
-      accessorKey: "referensi_harga",
-      cell: ({ row }: any) => row.original.referensi_harga || "-",
-    },
     {
       header: "Status",
       id: "status",

@@ -19,9 +19,11 @@ class ConsumableMasuk extends Model
         'tanggal',
         'consumable_id',
         'jumlah_masuk',
+        'satuan', // <-- TAMBAHAN: Agar kolom satuan bisa diisi
         'keterangan',
         'dicatat_oleh',
     ];
+    
     protected static function boot()
     {
         parent::boot();

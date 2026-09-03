@@ -5,6 +5,8 @@ import { IconClipboardList, IconCheck } from "@tabler/icons-react";
 
 import { PeminjamType } from "types/DataToolsTypes";
 import { getPemintaAktif } from "services/pemintaService";
+// Jika Anda memiliki service untuk pekerjaan, Anda bisa mengimpornya di sini.
+// import { getPekerjaanAktif } from "services/pekerjaanService";
 
 const formatToday = () =>
   new Date().toLocaleDateString("id-ID", {
@@ -57,18 +59,39 @@ const LoanFormModal = ({
 }: LoanFormModalProps) => {
   const [searchText, setSearchText] = useState("");
   const [form, setForm] = useState<UniversalFormValues>(emptyForm());
+  
   const [peminjamList, setPeminjamList] = useState<PeminjamType[]>([]);
   const [loadingPeminjam, setLoadingPeminjam] = useState(false);
+
+  // State untuk Data Pekerjaan
+  const [pekerjaanList, setPekerjaanList] = useState<any[]>([]);
+  const [loadingPekerjaan, setLoadingPekerjaan] = useState(false);
 
   useEffect(() => {
     if (show) {
       setForm(emptyForm());
       setSearchText("");
+      
+      // Fetch Peminta
       setLoadingPeminjam(true);
       getPemintaAktif()
         .then(setPeminjamList)
         .catch(() => setPeminjamList([]))
         .finally(() => setLoadingPeminjam(false));
+
+      // Fetch Pekerjaan Aktif
+      setLoadingPekerjaan(true);
+      // Ganti URL ini dengan konfigurasi API / axios instance Anda jika diperlukan
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+      fetch(`${apiUrl}/pekerjaan/active`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success) {
+            setPekerjaanList(data.data);
+          }
+        })
+        .catch((err) => console.error("Gagal memuat data pekerjaan:", err))
+        .finally(() => setLoadingPekerjaan(false));
     }
   }, [show]);
 
@@ -204,22 +227,38 @@ const LoanFormModal = ({
                 </Form.Label>
                 <Form.Control
                   required
-                  placeholder="Contoh: Perbaikan Mesin / Proyek"
+                  list="pekerjaan-options"
+                  placeholder={loadingPekerjaan ? "Memuat..." : "Ketik atau pilih nama pekerjaan..."}
                   value={form.namaPekerjaan}
                   onChange={(e) => setForm((prev) => ({ ...prev, namaPekerjaan: e.target.value }))}
-                  disabled={submitting}
+                  disabled={loadingPekerjaan || submitting}
+                  autoComplete="off"
                 />
+                <datalist id="pekerjaan-options">
+                  {pekerjaanList.map((pek) => (
+                    <option key={pek.id} value={pek.nama_pekerjaan} />
+                  ))}
+                </datalist>
+                <Form.Text className="text-muted small">
+                  Silakan ketik nama manual atau pilih dari dropdown pekerjaan aktif.
+                </Form.Text>
               </Col>
               <Col md={12}>
                 <Form.Label>
                   Area Kerja <span className="text-secondary fw-normal">(opsional)</span>
                 </Form.Label>
-                <Form.Control
-                  placeholder="Contoh: Workshop Mekanik"
+                <Form.Select
                   value={form.areaKerja}
                   onChange={(e) => setForm((prev) => ({ ...prev, areaKerja: e.target.value }))}
                   disabled={submitting}
-                />
+                >
+                  <option value="">Pilih area kerja...</option>
+                  <option value="W2 Konvensional">W2 Konvensional</option>
+                  <option value="W2 CNC">W2 CNC</option>
+                  <option value="W3">W3</option>
+                  <option value="W4">W4</option>
+                  <option value="BU">BU</option>
+                </Form.Select>
               </Col>
               <Col md={12}>
                 <Form.Label>

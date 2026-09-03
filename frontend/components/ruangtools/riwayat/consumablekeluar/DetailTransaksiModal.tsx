@@ -88,18 +88,23 @@ const DetailTransaksiModal = ({
                 </tr>
               </thead>
               <tbody>
-                {items.map((item) => (
-                  <tr key={item.id}>
-                    <td className="fw-semibold">{item.kode_barang}</td>
-                    <td>{item.nama_barang}</td>
-                    <td>{item.merk}</td>
-                    <td>{item.tipe}</td>
-                    <td>{item.er_e}</td>
-                    <td>{item.ukuran}</td>
-                    <td className="text-center">{item.jumlah}</td>
-                    <td className="text-secondary small">{item.keterangan || "-"}</td>
-                  </tr>
-                ))}
+                {items.map((item) => {
+                  // Ambil data satuan, fallback ke relasi consumable jika data lama
+                  const satuan = (item as any).satuan || (item as any).consumable?.satuan || "";
+                  
+                  return (
+                    <tr key={item.id}>
+                      <td className="fw-semibold">{item.kode_barang}</td>
+                      <td>{item.nama_barang}</td>
+                      <td>{item.merk}</td>
+                      <td>{item.tipe}</td>
+                      <td>{item.er_e}</td>
+                      <td>{item.ukuran}</td>
+                      <td className="text-center">{item.jumlah} {satuan}</td>
+                      <td className="text-secondary small">{item.keterangan || "-"}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </Table>
           </div>

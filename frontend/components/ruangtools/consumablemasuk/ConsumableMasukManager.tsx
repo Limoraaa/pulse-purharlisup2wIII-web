@@ -78,11 +78,10 @@ const ConsumableMasukManager = () => {
 
   const EXPORT_COLUMNS: ExportColumn[] = [
     { header: "Tanggal", key: "tanggal" }, { header: "Kode Barang", key: "kode_barang" },
-    { header: "Nama Barang", key: "nama" }, { header: "Jumlah Masuk", key: "jumlah_masuk" },
+    { header: "Nama Barang", key: "nama" }, { header: "Jumlah Masuk", key: "jumlah_masuk_export" },
     { header: "Pencatat", key: "nama_pencatat" }, { header: "Keterangan", key: "keterangan" },
   ];
 
-  // Data turunan untuk tampilan; sumber data (masukList) tidak diubah.
   // Data turunan untuk tampilan; sumber data (masukList) tidak diubah.
   const filteredMasukList = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
@@ -107,6 +106,7 @@ const ConsumableMasukManager = () => {
         // Menggunakan (item as any) untuk properti bawaan dari relasi tabel
         const erE = ((item as any).er_e || "").toLowerCase();
         const ukuran = ((item as any).ukuran || "").toLowerCase();
+        const satuan = ((item as any).satuan || "").toLowerCase(); // <-- Pencarian satuan
         const jumlahMasuk = String(item.jumlah_masuk ?? 0);
         const namaPencatat = getNamaPencatat(item).toLowerCase();
         const keterangan = (item.keterangan || "").toLowerCase();
@@ -119,6 +119,7 @@ const ConsumableMasukManager = () => {
           tipe.includes(keyword) ||
           erE.includes(keyword) ||
           ukuran.includes(keyword) ||
+          satuan.includes(keyword) || // <-- Pencarian satuan
           jumlahMasuk.includes(keyword) ||
           namaPencatat.includes(keyword) ||
           keterangan.includes(keyword);
@@ -130,10 +131,15 @@ const ConsumableMasukManager = () => {
 
   const tahunOptions = useMemo(() => Array.from(new Set(masukList.map((item) => parseTanggal(item.tanggal)?.getFullYear()).filter((year): year is number => Boolean(year)))).sort((a, b) => b - a), [masukList]);
   const namaOptions = useMemo(() => Array.from(new Set(masukList.map(getNamaPencatat))).sort(), [masukList]);
+  
+  // Gabungkan jumlah dan satuan untuk Export
   const exportRows = useMemo(() => filteredMasukList.map((item) => ({
     ...item,
     nama_pencatat: getNamaPencatat(item),
+    // Buat field khusus export agar rapi "+40 Pcs"
+    jumlah_masuk_export: `+${item.jumlah_masuk} ${(item as any).satuan || ''}`.trim(),
   })), [filteredMasukList]);
+  
   const getExportName = () => getFilteredExportFileName("Consumable_Masuk", namaFilter);
   const handleExportPdf = () => exportToPDF(exportRows, EXPORT_COLUMNS, getExportName(), "Consumable Masuk");
   const handleExportExcel = () => exportToExcel(exportRows, EXPORT_COLUMNS, getExportName(), "Consumable Masuk");
@@ -188,9 +194,10 @@ const ConsumableMasukManager = () => {
     setFormError(null);
     try {
       if (activeItem) {
-          const updated = await updateConsumableMasuk(activeItem.id, {
+          const updated = await (updateConsumableMasuk as any)(activeItem.id, {
             tanggal: values.tanggal,
             jumlah_masuk: values.jumlah_masuk,
+            satuan: (values as any).satuan,
             keterangan: values.keterangan,
           });
           setMasukList((prev) =>
@@ -229,7 +236,7 @@ const ConsumableMasukManager = () => {
         await loadConsumables();
 
         setSuccessMessage(
-          `Berhasil menambah ${values.jumlah_masuk} unit "${values.nama}" ke Data Consumable.`
+          `Berhasil menambah ${values.jumlah_masuk} ${(values as any).satuan || 'unit'} "${values.nama}" ke Data Consumable.`
         );
         setTimeout(() => setSuccessMessage(null), 5000);
       }
@@ -328,7 +335,7 @@ const ConsumableMasukManager = () => {
                 </InputGroup.Text>
                 <Form.Control
                   type="search"
-                  placeholder="Cari kode, nama, er/e, ukuran, penginput, atau keterangan..."
+                  placeholder="Cari kode, nama, er/e, ukuran, satuan, penginput, atau keterangan..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   aria-label="Cari consumable masuk"

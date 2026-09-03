@@ -29,6 +29,7 @@ class ConsumableController extends Controller
                     'er_e' => $item->er_e,
                     'type' => $item->type,
                     'ukuran' => $item->ukuran,
+                    'satuan' => $item->satuan,
                     'stok_awal' => $item->stok_awal,
                     'stok_akhir' => $item->stok_awal,
                     'stok_awal_asli' => $item->stok_awal_asli,
@@ -45,13 +46,14 @@ class ConsumableController extends Controller
      */
     public function store(Request $request)
     {
-          $validated = $request->validate([
+        $validated = $request->validate([
             'kode_barang' => 'required|string|unique:consumables,kode_barang',
             'nama' => 'required|string',
             'merk' => 'nullable|string',
             'er_e' => 'nullable|string',
             'type' => 'nullable|string',
             'ukuran' => 'nullable|string',
+            'satuan' => 'nullable|string',
             'stok_awal' => 'required|integer|min:0',
         ]);
 
@@ -67,6 +69,7 @@ class ConsumableController extends Controller
             'er_e' => $consumable->er_e,
             'type' => $consumable->type,
             'ukuran' => $consumable->ukuran,
+            'satuan' => $consumable->satuan,
             'stok_awal' => $consumable->stok_awal,
             'stok_akhir' => $consumable->stok_awal,
             'stok_awal_asli' => $consumable->stok_awal_asli,
@@ -91,6 +94,7 @@ class ConsumableController extends Controller
             'er_e' => $consumable->er_e,
             'type' => $consumable->type,
             'ukuran' => $consumable->ukuran,
+            'satuan' => $consumable->satuan,
             'stok_awal' => $consumable->stok_awal,
             'stok_akhir' => $consumable->stok_awal,
             'riwayat_masuk' => $consumable->masuk,
@@ -111,6 +115,7 @@ class ConsumableController extends Controller
             'er_e' => 'nullable|string',
             'type' => 'nullable|string',
             'ukuran' => 'nullable|string',
+            'satuan' => 'nullable|string',
             'stok_awal' => 'sometimes|integer|min:0',
         ]);
 
@@ -137,6 +142,7 @@ class ConsumableController extends Controller
             'er_e' => $consumable->er_e,
             'type' => $consumable->type,
             'ukuran' => $consumable->ukuran,
+            'satuan' => $consumable->satuan,
             'stok_awal' => $consumable->stok_awal,
             'stok_akhir' => $consumable->stok_awal,
             'stok_awal_asli' => $consumable->stok_awal_asli,

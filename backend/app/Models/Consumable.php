@@ -20,6 +20,7 @@ class Consumable extends Model
         'type',
         'er_e',
         'ukuran',
+        'satuan',
         'stok_awal',
         'stok_awal_asli',
         'is_active',

@@ -24,8 +24,6 @@ class OrderTool extends Model
         'spesifikasi',
         'jumlah',
         'satuan',
-        'harga',
-        'referensi_harga',
         'tanggal_pengajuan',
         'tanggal_kedatangan',
         'status_pembelian',
