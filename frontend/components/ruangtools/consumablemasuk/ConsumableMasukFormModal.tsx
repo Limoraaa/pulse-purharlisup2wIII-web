@@ -34,7 +34,8 @@ const toDatetimeLocalValue = (iso: string): string => {
   )}:${pad(date.getMinutes())}`;
 };
 
-const emptyForm = (): ConsumableMasukFormValues => ({
+// Pastikan tipe ConsumableMasukFormValues di file types Anda sudah memiliki properti satuan?: string
+const emptyForm = (): any => ({
   tanggal: new Date().toISOString(),
   consumable_id: "",
   kode_barang: "",
@@ -43,6 +44,7 @@ const emptyForm = (): ConsumableMasukFormValues => ({
   tipe: "",
   er_e: "",
   ukuran: "",
+  satuan: "", // <-- TAMBAHAN STATE SATUAN
   jumlah_masuk: 0,
   keterangan: "",
   id_card: "", 
@@ -66,7 +68,7 @@ const ConsumableMasukFormModal = ({
   error = null,
 }: ConsumableMasukFormModalProps) => {
   const [consumableSearchText, setConsumableSearchText] = useState("");
-  const [form, setForm] = useState<ConsumableMasukFormValues>(emptyForm());
+  const [form, setForm] = useState<any>(emptyForm());
   const [isSubmitting, setIsSubmitting] = useState(false); // Pengaman double submit dari scanner
   const isEditMode = Boolean(initialData);
 
@@ -81,7 +83,7 @@ const ConsumableMasukFormModal = ({
   // Pilih barang dari dropdown -> auto-isi atribut
   const handleSelectConsumable = (consumableId: string) => {
     const selected = consumableOptions.find((c) => c.id === consumableId);
-    setForm((prev) => ({
+    setForm((prev: any) => ({
       ...prev,
       consumable_id: consumableId,
       kode_barang: selected?.kode_barang || "",
@@ -90,6 +92,7 @@ const ConsumableMasukFormModal = ({
       tipe: selected?.tipe || "",
       er_e: selected?.er_e || "",
       ukuran: selected?.ukuran || "",
+      satuan: selected?.satuan || "", // <-- SET SATUAN OTOMATIS
     }));
   };
 
@@ -149,7 +152,7 @@ const ConsumableMasukFormModal = ({
                       onChange={(e) => {
                         const local = e.target.value;
                         if (!local) return;
-                        setForm((prev) => ({
+                        setForm((prev: any) => ({
                           ...prev,
                           tanggal: new Date(local).toISOString(),
                         }));
@@ -161,7 +164,7 @@ const ConsumableMasukFormModal = ({
                   </>
                 ) : (
                   <>
-                    <Form.Control value={formatTanggalJam(form.tanggal)} disabled readOnly />
+                    <Form.Control value={formatTanggalJam(form.tanggal)} disabled readOnly className="bg-light" />
                     <Form.Text className="text-secondary">
                       Otomatis terisi sesuai tanggal &amp; jam saat ini.
                     </Form.Text>
@@ -190,7 +193,7 @@ const ConsumableMasukFormModal = ({
                     if (match) {
                       handleSelectConsumable(match.id);
                     } else {
-                      setForm((prev) => ({
+                      setForm((prev: any) => ({
                         ...prev,
                         consumable_id: "",
                         kode_barang: "",
@@ -199,6 +202,7 @@ const ConsumableMasukFormModal = ({
                         tipe: "",
                         er_e: "",
                         ukuran: "",
+                        satuan: "", // <-- CLEAR SATUAN JIKA KOSONG
                       }));
                     }
                   }}
@@ -212,24 +216,31 @@ const ConsumableMasukFormModal = ({
 
               <Col md={6}>
                 <Form.Label>Nama Barang</Form.Label>
-                <Form.Control value={form.nama} disabled readOnly />
+                <Form.Control value={form.nama} disabled readOnly className="bg-light" />
               </Col>
               <Col md={6}>
                 <Form.Label>Merk</Form.Label>
-                <Form.Control value={form.merk} disabled readOnly />
+                <Form.Control value={form.merk} disabled readOnly className="bg-light" />
               </Col>
-              <Col md={4}>
+              
+              {/* --- BAGIAN TIPE, ER/E, UKURAN & SATUAN (UBAH KE md={3}) --- */}
+              <Col md={3}>
                 <Form.Label>Tipe</Form.Label>
-                <Form.Control value={form.tipe} disabled readOnly />
+                <Form.Control value={form.tipe} disabled readOnly className="bg-light" />
               </Col>
-              <Col md={4}>
+              <Col md={3}>
                 <Form.Label>ER / E</Form.Label>
-                <Form.Control value={form.er_e} disabled readOnly />
+                <Form.Control value={form.er_e} disabled readOnly className="bg-light" />
               </Col>
-              <Col md={4}>
+              <Col md={3}>
                 <Form.Label>Ukuran</Form.Label>
-                <Form.Control value={form.ukuran} disabled readOnly />
+                <Form.Control value={form.ukuran} disabled readOnly className="bg-light" />
               </Col>
+              <Col md={3}>
+                <Form.Label>Satuan</Form.Label>
+                <Form.Control value={form.satuan} disabled readOnly className="bg-light" />
+              </Col>
+              {/* -------------------------------------------------------- */}
 
               <Col md={6}>
                 <Form.Label>Jumlah Masuk</Form.Label>
@@ -243,7 +254,7 @@ const ConsumableMasukFormModal = ({
                   onChange={(e) => {
                     const digitsOnly = e.target.value.replace(/[^0-9]/g, "");
                     const withoutLeadingZero = digitsOnly.replace(/^0+(?=\d)/, "");
-                    setForm((prev) => ({
+                    setForm((prev: any) => ({
                       ...prev,
                       jumlah_masuk:
                         withoutLeadingZero === "" ? 0 : Number(withoutLeadingZero),
@@ -256,7 +267,7 @@ const ConsumableMasukFormModal = ({
                 <Form.Control
                   value={form.keterangan}
                   onChange={(e) =>
-                    setForm((prev) => ({ ...prev, keterangan: e.target.value }))
+                    setForm((prev: any) => ({ ...prev, keterangan: e.target.value }))
                   }
                 />
               </Col>
@@ -273,7 +284,7 @@ const ConsumableMasukFormModal = ({
                   placeholder="Tap ID Card Anda disini..."
                   value={form.id_card || ""}
                   onChange={(e) =>
-                    setForm((prev) => ({ ...prev, id_card: e.target.value }))
+                    setForm((prev: any) => ({ ...prev, id_card: e.target.value }))
                   }
                   onKeyDown={(e) => {
                     // Mencegah form tersubmit otomatis dua kali saat scanner mengirim tombol Enter
@@ -311,4 +322,4 @@ const ConsumableMasukFormModal = ({
   );
 };
 
-export default ConsumableMasukFormModal;
+export default ConsumableMasukFormModal; 
