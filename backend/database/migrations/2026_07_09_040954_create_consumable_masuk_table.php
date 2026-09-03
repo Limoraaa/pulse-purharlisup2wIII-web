@@ -9,24 +9,20 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('consumables', function (Blueprint $table) {
+        Schema::create('consumable_masuk', function (Blueprint $table) {
             $table->uuid('id')->default(DB::raw('gen_random_uuid()'))->primary();
-            $table->string('kode_barang')->unique();
-            $table->string('nama');
-            $table->string('merk')->nullable();
-            $table->string('type')->nullable();
-            $table->string('er_e')->nullable();
-            $table->string('ukuran')->nullable();
+            $table->timestamp('tanggal');
+            $table->foreignUuid('consumable_id')->constrained('consumables');
+            $table->integer('jumlah_masuk');
             $table->string('satuan')->nullable(); // Kolom satuan ditambahkan di sini
-            $table->integer('stok_awal')->default(0);
-            $table->integer('stok_awal_asli')->default(0);
-            $table->boolean('is_active')->default(true);
+            $table->text('keterangan')->nullable();
+            $table->string('dicatat_oleh');
             $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('consumables');
+        Schema::dropIfExists('consumable_masuk');
     }
 };
