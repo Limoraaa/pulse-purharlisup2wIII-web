@@ -66,6 +66,7 @@ export interface ConsumableMasukType {
   tipe: string;
   er_e: string;
   ukuran: string;
+  satuan?: string; // <--- TAMBAHAN PROPERTI SATUAN
   jumlah_masuk: number;
   keterangan: string;
   // --- PASTikan PROPERTI INI ADA ---
