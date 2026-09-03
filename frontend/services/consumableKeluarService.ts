@@ -19,6 +19,7 @@ interface ConsumableApiItem {
   tipe?: string | null;
   er_e?: string | null;
   ukuran?: string | null;
+  satuan?: string | null; // <-- TAMBAHAN: Definisi satuan
   stok_awal?: number;
   stok_awal_asli?: number;
   total_masuk?: number;
@@ -50,6 +51,7 @@ export async function getConsumables(): Promise<ConsumableItemType[]> {
     tipe: item.type || item.tipe || "-",
     er_e: item.er_e || "-",
     ukuran: item.ukuran || "-",
+    satuan: item.satuan || "", // <-- TAMBAHAN: Mapping satuan
     stok_awal: item.stok_awal ?? 0,
     stok_awal_asli: item.stok_awal_asli ?? item.stok_awal ?? 0,
     total_masuk: item.total_masuk ?? 0,
@@ -77,6 +79,7 @@ export async function createConsumable(values: ConsumableFormValues): Promise<Co
     tipe: item.type || item.tipe || "-",
     er_e: item.er_e || "-",
     ukuran: item.ukuran || "-",
+    satuan: item.satuan || "", // <-- TAMBAHAN: Mapping satuan
     stok_awal: item.stok_awal ?? 0,
     stok_awal_asli: item.stok_awal_asli ?? item.stok_awal ?? 0,
     total_masuk: item.total_masuk ?? 0,
@@ -104,6 +107,7 @@ export async function updateConsumable(id: string, values: ConsumableFormValues)
     tipe: item.type || item.tipe || "-",
     er_e: item.er_e || "-",
     ukuran: item.ukuran || "-",
+    satuan: item.satuan || "", // <-- TAMBAHAN: Mapping satuan
     stok_awal: item.stok_awal ?? 0,
     stok_awal_asli: item.stok_awal_asli ?? item.stok_awal ?? 0,
     total_masuk: item.total_masuk ?? 0,
@@ -164,6 +168,7 @@ interface ConsumableKeluarApiResponse {
     type: string | null;
     er_e: string | null;
     ukuran: string | null;
+    satuan: string | null; // <-- TAMBAHAN: Definisi satuan di relasi consumable
   } | null;
   peminta: {
     nama: string;
@@ -185,6 +190,7 @@ function mapRiwayatConsumableKeluarFromApi(
     tipe: item.consumable?.type ?? "-",
     er_e: item.consumable?.er_e ?? "-",
     ukuran: item.consumable?.ukuran ?? "-",
+    satuan: item.consumable?.satuan ?? "", // <-- TAMBAHAN: Mapping satuan
     jumlah: item.jumlah_keluar,
     nama_peminta: namaPeminta,
     divisi: item.peminta?.divisi ?? "-",
@@ -212,7 +218,7 @@ export async function submitConsumableKeluar(
   const payload = {
     peminta_id: values.pemintaId,
     pekerjaan_area: values.areaKerja,
-    nama_pekerjaan: values.namaPekerjaan,   // ← tambahkan
+    nama_pekerjaan: values.namaPekerjaan,
     keterangan: values.keterangan || "",
     dicatat_oleh: dicatatOleh,
   };

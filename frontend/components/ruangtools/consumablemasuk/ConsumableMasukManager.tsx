@@ -194,9 +194,10 @@ const ConsumableMasukManager = () => {
     setFormError(null);
     try {
       if (activeItem) {
-          const updated = await updateConsumableMasuk(activeItem.id, {
+          const updated = await (updateConsumableMasuk as any)(activeItem.id, {
             tanggal: values.tanggal,
             jumlah_masuk: values.jumlah_masuk,
+            satuan: (values as any).satuan,
             keterangan: values.keterangan,
           });
           setMasukList((prev) =>

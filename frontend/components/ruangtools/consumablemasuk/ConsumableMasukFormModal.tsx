@@ -148,7 +148,7 @@ const ConsumableMasukFormModal = ({
                     <Form.Control
                       type="datetime-local"
                       required
-                      value={toDatetimeLocalValue(form.tanggal)}
+                      value={toDatetimeLocalValue(form.tanggal) || ""}
                       onChange={(e) => {
                         const local = e.target.value;
                         if (!local) return;
@@ -164,7 +164,7 @@ const ConsumableMasukFormModal = ({
                   </>
                 ) : (
                   <>
-                    <Form.Control value={formatTanggalJam(form.tanggal)} disabled readOnly className="bg-light" />
+                    <Form.Control value={formatTanggalJam(form.tanggal) || ""} disabled readOnly className="bg-light" />
                     <Form.Text className="text-secondary">
                       Otomatis terisi sesuai tanggal &amp; jam saat ini.
                     </Form.Text>
@@ -180,8 +180,8 @@ const ConsumableMasukFormModal = ({
                   disabled={isEditMode}
                   value={
                     form.consumable_id
-                      ? `${form.kode_barang} — ${form.nama}`
-                      : consumableSearchText
+                      ? `${form.kode_barang || ""} — ${form.nama || ""}`
+                      : consumableSearchText || ""
                   }
                   onChange={(e) => {
                     const typed = e.target.value;
@@ -216,29 +216,29 @@ const ConsumableMasukFormModal = ({
 
               <Col md={6}>
                 <Form.Label>Nama Barang</Form.Label>
-                <Form.Control value={form.nama} disabled readOnly className="bg-light" />
+                <Form.Control value={form.nama || ""} disabled readOnly className="bg-light" />
               </Col>
               <Col md={6}>
                 <Form.Label>Merk</Form.Label>
-                <Form.Control value={form.merk} disabled readOnly className="bg-light" />
+                <Form.Control value={form.merk || ""} disabled readOnly className="bg-light" />
               </Col>
               
               {/* --- BAGIAN TIPE, ER/E, UKURAN & SATUAN (UBAH KE md={3}) --- */}
               <Col md={3}>
                 <Form.Label>Tipe</Form.Label>
-                <Form.Control value={form.tipe} disabled readOnly className="bg-light" />
+                <Form.Control value={form.tipe || ""} disabled readOnly className="bg-light" />
               </Col>
               <Col md={3}>
                 <Form.Label>ER / E</Form.Label>
-                <Form.Control value={form.er_e} disabled readOnly className="bg-light" />
+                <Form.Control value={form.er_e || ""} disabled readOnly className="bg-light" />
               </Col>
               <Col md={3}>
                 <Form.Label>Ukuran</Form.Label>
-                <Form.Control value={form.ukuran} disabled readOnly className="bg-light" />
+                <Form.Control value={form.ukuran || ""} disabled readOnly className="bg-light" />
               </Col>
               <Col md={3}>
                 <Form.Label>Satuan</Form.Label>
-                <Form.Control value={form.satuan} disabled readOnly className="bg-light" />
+                <Form.Control value={form.satuan || ""} disabled readOnly className="bg-light" />
               </Col>
               {/* -------------------------------------------------------- */}
 
@@ -265,7 +265,7 @@ const ConsumableMasukFormModal = ({
               <Col md={6}>
                 <Form.Label>Keterangan</Form.Label>
                 <Form.Control
-                  value={form.keterangan}
+                  value={form.keterangan || ""}
                   onChange={(e) =>
                     setForm((prev: any) => ({ ...prev, keterangan: e.target.value }))
                   }
@@ -322,4 +322,4 @@ const ConsumableMasukFormModal = ({
   );
 };
 
-export default ConsumableMasukFormModal; 
+export default ConsumableMasukFormModal;

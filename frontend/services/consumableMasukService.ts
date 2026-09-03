@@ -6,6 +6,7 @@ interface ConsumableMasukApiResponse {
   tanggal: string;
   consumable_id: string;
   jumlah_masuk: number;
+  satuan?: string | null; // <-- TAMBAHAN: satuan dari transaksi masuk
   keterangan: string | null;
   consumable?: {
     id: string;
@@ -15,6 +16,7 @@ interface ConsumableMasukApiResponse {
     type: string | null;
     er_e: string | null;
     ukuran: string | null;
+    satuan?: string | null; // <-- TAMBAHAN: satuan dari master consumable
     stok_awal: number;
   };
   // Digabung menjadi satu deklarasi fleksibel yang bisa berupa string ID atau objek relasi dari Laravel
@@ -41,6 +43,7 @@ interface CreateConsumableMasukPayload {
   tanggal: string;
   consumable_id: string;
   jumlah_masuk: number;
+  satuan?: string; // <-- TAMBAHAN PAYLOAD
   keterangan: string;
   peminta_id: string; 
 }
@@ -48,6 +51,7 @@ interface CreateConsumableMasukPayload {
 interface UpdateConsumableMasukPayload {
   tanggal?: string;
   jumlah_masuk?: number;
+  satuan?: string; // <-- TAMBAHAN PAYLOAD
   keterangan?: string;
 }
 
@@ -68,6 +72,7 @@ function mapFromApi(item: ConsumableMasukApiResponse): ConsumableMasukType {
     tipe: item.consumable?.type ?? "-",
     er_e: item.consumable?.er_e ?? "-",
     ukuran: item.consumable?.ukuran ?? "-",
+    satuan: item.satuan || item.consumable?.satuan || "", // <-- TAMBAHAN: MAPPING SATUAN (Fallback otomatis)
     jumlah_masuk: item.jumlah_masuk,
     keterangan: item.keterangan ?? "",
     
@@ -86,12 +91,13 @@ export async function getConsumableMasuk(): Promise<ConsumableMasukType[]> {
 }
 
 export async function createConsumableMasuk(
-  values: ConsumableMasukFormValues & { peminta_id?: string; id_card?: string }
+  values: ConsumableMasukFormValues & { peminta_id?: string; id_card?: string; satuan?: string }
 ): Promise<ConsumableMasukType> {
   const payload: CreateConsumableMasukPayload = {
     tanggal: values.tanggal,
     consumable_id: values.consumable_id,
     jumlah_masuk: values.jumlah_masuk,
+    satuan: (values as any).satuan || "", // <-- PASTIKAN TERKIRIM
     keterangan: values.keterangan,
     peminta_id: values.peminta_id || values.id_card || "", 
   };
@@ -105,11 +111,12 @@ export async function createConsumableMasuk(
 
 export async function updateConsumableMasuk(
   id: string,
-  values: { tanggal: string; jumlah_masuk: number; keterangan: string }
+  values: { tanggal: string; jumlah_masuk: number; keterangan: string; satuan?: string }
 ): Promise<ConsumableMasukType> {
   const payload: UpdateConsumableMasukPayload = {
     tanggal: values.tanggal,
     jumlah_masuk: values.jumlah_masuk,
+    satuan: values.satuan, // <-- PASTIKAN TERKIRIM
     keterangan: values.keterangan,
   };
 
