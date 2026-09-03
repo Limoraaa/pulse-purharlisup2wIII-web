@@ -1,7 +1,7 @@
 "use client";
 import { useState, useMemo } from "react";
-import { Card, CardBody, Table, Form, Button, Badge, Alert } from "react-bootstrap";
-import { IconRotateClockwise2, IconArrowLeft } from "@tabler/icons-react";
+import { Card, CardBody, Table, Form, Button, Badge, Alert, InputGroup } from "react-bootstrap";
+import { IconRotateClockwise2, IconArrowLeft, IconSearch, IconX } from "@tabler/icons-react";
 
 import { PeminjamanAktifItemType } from "types/DataToolsTypes";
 
@@ -10,10 +10,17 @@ export type JenisKerusakan = "bisa_diperbaiki" | "rusak_permanen";
 interface ChecklistState {
   [id: string]: {
     checked: boolean;
-    jumlahRusak: number;
-    jenisKerusakan: JenisKerusakan;
-    catatan: string;
+    jumlahBisaDiperbaiki: number;
+    jumlahRusakPermanen: number;
+    catatanBisaDiperbaiki: string;
+    catatanRusakPermanen: string;
   };
+}
+
+export interface PengembalianKerusakanEntry {
+  jenisKerusakan: JenisKerusakan;
+  jumlah: number;
+  catatan: string;
 }
 
 export interface PengembalianBatchItem {
@@ -21,9 +28,7 @@ export interface PengembalianBatchItem {
   toolId: string;
   namaBarang: string;
   jumlahTotal: number;
-  jumlahRusak: number;
-  jenisKerusakan: JenisKerusakan;
-  catatan: string;
+  kerusakan: PengembalianKerusakanEntry[];
 }
 
 interface PengembalianChecklistProps {
@@ -34,6 +39,14 @@ interface PengembalianChecklistProps {
   submitting?: boolean;
 }
 
+const emptyRow = () => ({
+  checked: false,
+  jumlahBisaDiperbaiki: 0,
+  jumlahRusakPermanen: 0,
+  catatanBisaDiperbaiki: "",
+  catatanRusakPermanen: "",
+});
+
 const PengembalianChecklist = ({
   namaPeminjam,
   items,
@@ -41,14 +54,25 @@ const PengembalianChecklist = ({
   onSubmit,
   submitting = false,
 }: PengembalianChecklistProps) => {
-    const [state, setState] = useState<ChecklistState>(() => {
+  const [state, setState] = useState<ChecklistState>(() => {
     const initial: ChecklistState = {};
     items.forEach((item) => {
-      initial[item.id] = { checked: false, jumlahRusak: 0, jenisKerusakan: "bisa_diperbaiki", catatan: "" };
+      initial[item.id] = emptyRow();
     });
     return initial;
   });
   const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filteredItems = useMemo(() => {
+    const keyword = searchTerm.trim().toLowerCase();
+    if (!keyword) return items;
+    return items.filter(
+      (item) =>
+        item.namaBarang.toLowerCase().includes(keyword) ||
+        item.kodeBarang.toLowerCase().includes(keyword)
+    );
+  }, [items, searchTerm]);
 
   const jumlahDicentang = useMemo(
     () => Object.values(state).filter((s) => s.checked).length,
@@ -59,17 +83,12 @@ const PengembalianChecklist = ({
     setState((prev) => ({ ...prev, [id]: { ...prev[id], checked: !prev[id].checked } }));
   };
 
-  const setJumlahRusak = (id: string, jumlahRusak: number, maxJumlah: number) => {
-    const clamped = Math.max(0, Math.min(jumlahRusak, maxJumlah));
-    setState((prev) => ({ ...prev, [id]: { ...prev[id], jumlahRusak: clamped } }));
-  };
-
-  const setCatatan = (id: string, catatan: string) => {
-    setState((prev) => ({ ...prev, [id]: { ...prev[id], catatan } }));
-  };
-
-  const setJenisKerusakan = (id: string, jenisKerusakan: JenisKerusakan) => {
-    setState((prev) => ({ ...prev, [id]: { ...prev[id], jenisKerusakan } }));
+  const updateField = (
+    id: string,
+    field: keyof ChecklistState[string],
+    value: number | string
+  ) => {
+    setState((prev) => ({ ...prev, [id]: { ...prev[id], [field]: value } }));
   };
 
   const handleSubmit = () => {
@@ -80,25 +99,55 @@ const PengembalianChecklist = ({
       return;
     }
 
-    const rusakTanpaCatatan = dipilih.find(
-      (item) => state[item.id].jumlahRusak > 0 && state[item.id].catatan.trim() === ""
-    );
-    if (rusakTanpaCatatan) {
-      setError(`Catatan kerusakan untuk "${rusakTanpaCatatan.namaBarang}" wajib diisi.`);
-      return;
+    for (const item of dipilih) {
+      const row = state[item.id];
+      const totalRusak = row.jumlahBisaDiperbaiki + row.jumlahRusakPermanen;
+
+      if (totalRusak > item.jumlah) {
+        setError(
+          `Total rusak untuk "${item.namaBarang}" (${totalRusak}) melebihi jumlah dipinjam (${item.jumlah}).`
+        );
+        return;
+      }
+      if (row.jumlahBisaDiperbaiki > 0 && row.catatanBisaDiperbaiki.trim() === "") {
+        setError(`Catatan "Bisa Diperbaiki" untuk "${item.namaBarang}" wajib diisi.`);
+        return;
+      }
+      if (row.jumlahRusakPermanen > 0 && row.catatanRusakPermanen.trim() === "") {
+        setError(`Catatan "Rusak Permanen" untuk "${item.namaBarang}" wajib diisi.`);
+        return;
+      }
     }
 
     setError(null);
 
-    const payload: PengembalianBatchItem[] = dipilih.map((item) => ({
-      id: item.id,
-      toolId: item.toolId,
-      namaBarang: item.namaBarang,
-      jumlahTotal: item.jumlah,
-      jumlahRusak: state[item.id].jumlahRusak,
-      jenisKerusakan: state[item.id].jenisKerusakan,
-      catatan: state[item.id].catatan,
-    }));
+    const payload: PengembalianBatchItem[] = dipilih.map((item) => {
+      const row = state[item.id];
+      const kerusakan: PengembalianKerusakanEntry[] = [];
+
+      if (row.jumlahBisaDiperbaiki > 0) {
+        kerusakan.push({
+          jenisKerusakan: "bisa_diperbaiki",
+          jumlah: row.jumlahBisaDiperbaiki,
+          catatan: row.catatanBisaDiperbaiki,
+        });
+      }
+      if (row.jumlahRusakPermanen > 0) {
+        kerusakan.push({
+          jenisKerusakan: "rusak_permanen",
+          jumlah: row.jumlahRusakPermanen,
+          catatan: row.catatanRusakPermanen,
+        });
+      }
+
+      return {
+        id: item.id,
+        toolId: item.toolId,
+        namaBarang: item.namaBarang,
+        jumlahTotal: item.jumlah,
+        kerusakan,
+      };
+    });
 
     onSubmit(payload);
   };
@@ -106,7 +155,7 @@ const PengembalianChecklist = ({
   return (
     <Card className="card-lg">
       <CardBody>
-        <div className="d-flex align-items-center justify-content-between mb-3">
+        <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
           <div className="d-flex align-items-center gap-2">
             <IconRotateClockwise2 size={22} className="text-primary" />
             <div>
@@ -120,11 +169,32 @@ const PengembalianChecklist = ({
           </Button>
         </div>
 
+        <InputGroup className="mb-3" style={{ maxWidth: 320 }}>
+          <InputGroup.Text>
+            <IconSearch size={16} />
+          </InputGroup.Text>
+          <Form.Control
+            type="search"
+            placeholder="Cari nama atau kode alat..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          {searchTerm && (
+            <Button variant="link" onClick={() => setSearchTerm("")}>
+              <IconX size={16} />
+            </Button>
+          )}
+        </InputGroup>
+
         {error && <Alert variant="danger">{error}</Alert>}
 
         {items.length === 0 ? (
           <p className="text-secondary small mb-0">
             Peminjam ini tidak sedang memiliki alat yang dipinjam.
+          </p>
+        ) : filteredItems.length === 0 ? (
+          <p className="text-secondary small mb-0">
+            Tidak ada alat yang cocok dengan pencarian.
           </p>
         ) : (
           <>
@@ -133,20 +203,22 @@ const PengembalianChecklist = ({
                 <tr>
                   <th style={{ width: 40 }}></th>
                   <th>Alat</th>
-                  <th style={{ width: 90 }}>Jumlah</th>
-                  <th style={{ width: 130 }}>Jumlah Rusak</th>
-                  <th style={{ width: 170 }}>Klasifikasi</th>
-                  <th>Catatan</th>
+                  <th style={{ width: 80 }}>Jumlah</th>
+                  <th style={{ width: 170 }}>Bisa Diperbaiki</th>
+                  <th style={{ width: 170 }}>Rusak Permanen</th>
                 </tr>
               </thead>
               <tbody>
-                {items.map((item) => {
-                  const rowState = state[item.id];
+                {filteredItems.map((item) => {
+                  const row = state[item.id];
+                  const totalRusak = row.jumlahBisaDiperbaiki + row.jumlahRusakPermanen;
+                  const sisaBaik = item.jumlah - totalRusak;
+
                   return (
                     <tr key={item.id}>
                       <td>
                         <Form.Check
-                          checked={rowState.checked}
+                          checked={row.checked}
                           onChange={() => toggleCheck(item.id)}
                           disabled={submitting}
                         />
@@ -155,52 +227,62 @@ const PengembalianChecklist = ({
                         <div className="fw-semibold">{item.namaBarang}</div>
                         <div className="text-secondary small">{item.kodeBarang}</div>
                       </td>
-                      <td>{item.jumlah}</td>
-                        <td>
+                      <td>
+                        {item.jumlah}
+                        {row.checked && (
+                          <div className="text-secondary" style={{ fontSize: "0.7rem" }}>
+                            {sisaBaik >= 0 ? `${sisaBaik} baik` : "melebihi jumlah!"}
+                          </div>
+                        )}
+                      </td>
+                      <td>
                         <Form.Control
                           size="sm"
                           type="text"
                           inputMode="numeric"
                           pattern="[0-9]*"
                           placeholder="0"
-                          value={rowState.jumlahRusak === 0 ? "" : String(rowState.jumlahRusak)}
+                          value={row.jumlahBisaDiperbaiki === 0 ? "" : String(row.jumlahBisaDiperbaiki)}
                           onChange={(e) => {
-                            const digitsOnly = e.target.value.replace(/[^0-9]/g, "");
-                            const num = digitsOnly === "" ? 0 : Number(digitsOnly);
-                            setJumlahRusak(item.id, num, item.jumlah);
+                            const digits = e.target.value.replace(/[^0-9]/g, "");
+                            updateField(item.id, "jumlahBisaDiperbaiki", digits === "" ? 0 : Number(digits));
                           }}
-                          disabled={submitting || !rowState.checked}
+                          disabled={submitting || !row.checked}
+                          className="mb-1"
                         />
-                        <div className="text-secondary" style={{ fontSize: "0.75rem" }}>
-                          maks. {item.jumlah}
-                        </div>
-                      </td>
-                      <td>
-                        {rowState.jumlahRusak > 0 ? (
-                          <Form.Select
+                        {row.jumlahBisaDiperbaiki > 0 && (
+                          <Form.Control
                             size="sm"
-                            value={rowState.jenisKerusakan}
-                            onChange={(e) => setJenisKerusakan(item.id, e.target.value as JenisKerusakan)}
-                            disabled={submitting || !rowState.checked}
-                          >
-                            <option value="bisa_diperbaiki">Bisa Diperbaiki</option>
-                            <option value="rusak_permanen">Rusak Permanen</option>
-                          </Form.Select>
-                        ) : (
-                          <span className="text-secondary small">-</span>
+                            placeholder="Catatan..."
+                            value={row.catatanBisaDiperbaiki}
+                            onChange={(e) => updateField(item.id, "catatanBisaDiperbaiki", e.target.value)}
+                            disabled={submitting}
+                          />
                         )}
                       </td>
                       <td>
-                        {rowState.jumlahRusak > 0 ? (
+                        <Form.Control
+                          size="sm"
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          placeholder="0"
+                          value={row.jumlahRusakPermanen === 0 ? "" : String(row.jumlahRusakPermanen)}
+                          onChange={(e) => {
+                            const digits = e.target.value.replace(/[^0-9]/g, "");
+                            updateField(item.id, "jumlahRusakPermanen", digits === "" ? 0 : Number(digits));
+                          }}
+                          disabled={submitting || !row.checked}
+                          className="mb-1"
+                        />
+                        {row.jumlahRusakPermanen > 0 && (
                           <Form.Control
                             size="sm"
-                            placeholder="Jelaskan kerusakannya..."
-                            value={rowState.catatan}
-                            onChange={(e) => setCatatan(item.id, e.target.value)}
-                            disabled={submitting || !rowState.checked}
+                            placeholder="Catatan..."
+                            value={row.catatanRusakPermanen}
+                            onChange={(e) => updateField(item.id, "catatanRusakPermanen", e.target.value)}
+                            disabled={submitting}
                           />
-                        ) : (
-                          <span className="text-secondary small">-</span>
                         )}
                       </td>
                     </tr>
