@@ -6,7 +6,6 @@ import {
   IconArrowsExchange,
   IconHistory,
   IconShoppingCart,
- 
   IconReportAnalytics,
   IconUsers,
 } from "@tabler/icons-react";
@@ -36,6 +35,11 @@ export const DashboardMenu: MenuItemType[] = [
         id: uuid(),
         name: "Data Peminjam",
         link: "/inventaris/data-peminjam",
+      },
+      {
+        id: uuid(),
+        name: "Data Pekerjaan",
+        link: "/inventaris/data-pekerjaan",
       },
     ],
   },

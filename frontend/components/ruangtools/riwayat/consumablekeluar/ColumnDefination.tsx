@@ -51,9 +51,15 @@ export const getRiwayatConsumableKeluarColumns = ({
   {
     accessorKey: "jumlah",
     header: "Jumlah",
-    cell: ({ row }) => (
-      <span className="text-center d-block">{row.original.jumlah}</span>
-    ),
+    cell: ({ row }) => {
+      // Mengambil satuan dari transaksi, atau jika kosong (data lama) ambil dari master data consumable-nya
+      const satuan = (row.original as any).satuan || (row.original as any).consumable?.satuan || "";
+      return (
+        <span className="text-center d-block">
+          {row.original.jumlah} {satuan}
+        </span>
+      );
+    },
   },
   {
     accessorKey: "nama_peminta",

@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\ToolMasukController;
 use App\Http\Controllers\Api\LaporanKerusakanController;
 use App\Http\Controllers\Api\OrderConsumableController;
 use App\Http\Controllers\Api\OrderToolController;
+use App\Http\Controllers\Api\PekerjaanController; // <-- TAMBAHAN IMPORT PEKERJAAN
 
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -25,12 +26,19 @@ Route::apiResource('tools', ToolController::class);
 Route::patch('/tools/{tool}/kurangi-stok', [ToolController::class, 'kurangiStok']);
 
 Route::apiResource('consumable', ConsumableController::class);
+
 Route::apiResource('peminta', PemintaController::class);
 Route::patch('/peminta/{id}/aktifkan', [PemintaController::class, 'aktifkan']);
 
+// --- DATA PEKERJAAN ---
+Route::get('/pekerjaan/active', [PekerjaanController::class, 'getActive']);
+Route::apiResource('pekerjaan', PekerjaanController::class);
+Route::patch('/pekerjaan/{id}/toggle-status', [PekerjaanController::class, 'toggleStatus']);
+// ----------------------
+
 Route::apiResource('consumable-masuk', ConsumableMasukController::class);
 Route::apiResource('tools-masuk', ToolMasukController::class);
-// HAPUS Route::apiResource('consumable-keluar') DARI SINI
+
 Route::apiResource('laporan-kerusakan', LaporanKerusakanController::class);
 
 Route::prefix('dashboard')->group(function () {

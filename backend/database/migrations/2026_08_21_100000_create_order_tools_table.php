@@ -32,8 +32,6 @@ return new class extends Migration
             // --- FIELD TRANSAKSI ---
             $table->integer('jumlah');
             $table->string('satuan');
-            $table->integer('harga')->default(0);
-            $table->string('referensi_harga')->nullable();
 
             $table->dateTime('tanggal_pengajuan');
             $table->dateTime('tanggal_kedatangan')->nullable();
