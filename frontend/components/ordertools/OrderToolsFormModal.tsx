@@ -20,8 +20,6 @@ interface OrderItem {
   ukuran: string;
   jumlah: number;
   satuan: string;
-  harga: number;
-  referensi_harga: string;
 }
 
 const getEmptyItem = (): OrderItem => ({
@@ -34,8 +32,6 @@ const getEmptyItem = (): OrderItem => ({
   ukuran: '',
   jumlah: 1,
   satuan: 'Pcs',
-  harga: 0,
-  referensi_harga: '',
 });
 
 export default function OrderToolsFormModal({ isOpen, onClose, onSuccess }: OrderToolsFormModalProps) {
@@ -88,7 +84,6 @@ export default function OrderToolsFormModal({ isOpen, onClose, onSuccess }: Orde
         er_e: selected.er_e || selected.ere || '',
         ukuran: selected.ukuran || '',
         satuan: selected.satuan || 'Pcs',
-        harga: selected.harga || 0,
       };
       setItems(newItems);
     }
@@ -131,8 +126,6 @@ export default function OrderToolsFormModal({ isOpen, onClose, onSuccess }: Orde
           spesifikasi: specSummary,
           jumlah: Number(item.jumlah),
           satuan: item.satuan,
-          harga: Number(item.harga),
-          referensi_harga: item.referensi_harga || null,
           tanggal_pengajuan: localISOTime,
         };
 
@@ -248,7 +241,6 @@ export default function OrderToolsFormModal({ isOpen, onClose, onSuccess }: Orde
                               er_e: '',
                               ukuran: '',
                               satuan: 'Pcs',
-                              harga: 0,
                             };
                             setItems(newItems);
                           }
@@ -358,39 +350,6 @@ export default function OrderToolsFormModal({ isOpen, onClose, onSuccess }: Orde
                         value={item.satuan}
                         onChange={e => handleItemChange(index, 'satuan', e.target.value)}
                         placeholder="Cth: Unit, Pcs, Set"
-                      />
-                    </Form.Group>
-                  </Col>
-
-                  <Col md={6}>
-                    <Form.Group className="mb-3">
-                      <Form.Label className="fw-semibold text-sm">
-                        Estimasi Harga (Satuan) <span className="text-danger">*</span>
-                      </Form.Label>
-                      <InputGroup>
-                        <InputGroup.Text>Rp</InputGroup.Text>
-                        <Form.Control
-                          type="number"
-                          required
-                          value={item.harga || ''}
-                          onChange={e => handleItemChange(index, 'harga', Number(e.target.value))}
-                          placeholder="850000"
-                        />
-                      </InputGroup>
-                    </Form.Group>
-                  </Col>
-
-                  <Col md={6}>
-                    <Form.Group className="mb-3">
-                      <Form.Label className="fw-semibold text-sm">
-                        Referensi Harga{' '}
-                        <span className="text-secondary fw-normal">(opsional)</span>
-                      </Form.Label>
-                      <Form.Control
-                        type="text"
-                        value={item.referensi_harga}
-                        onChange={e => handleItemChange(index, 'referensi_harga', e.target.value)}
-                        placeholder="Link Tokopedia / Toko"
                       />
                     </Form.Group>
                   </Col>

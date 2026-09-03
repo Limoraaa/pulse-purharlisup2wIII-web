@@ -73,15 +73,20 @@ export const getConsumableMasukColumns = ({
   {
     accessorKey: "jumlah_masuk",
     header: "Jumlah Masuk",
-    cell: ({ row }) => (
-      <span className="d-flex justify-content-center">
-        <Badge bg="success-subtle" text="success-emphasis" className="fw-semibold">
-          +{formatNumber(row.original.jumlah_masuk)}
-        </Badge>
-      </span>
-    ),
+    cell: ({ row }) => {
+      // Mengambil satuan dari transaksi masuk, 
+      // JIKA KOSONG (karena data lama), ambil dari master data consumable-nya.
+      const satuan = (row.original as any).satuan || (row.original as any).consumable?.satuan || "";
+      
+      return (
+        <span className="d-flex justify-content-center">
+          <Badge bg="success-subtle" text="success-emphasis" className="fw-semibold">
+            +{formatNumber(row.original.jumlah_masuk)} {satuan}
+          </Badge>
+        </span>
+      );
+    },
   },
-  // Kolom Penginput diperbarui menggunakan relasi dicatatOleh
   // Kolom Penginput diperbarui menggunakan relasi dicatatOleh
   {
     id: "penginput",

@@ -9,6 +9,7 @@ export interface ConsumableItemType {
   tipe: string;
   er_e: string;
   ukuran: string;
+  satuan: string;
   stok_awal: number;
   stok_awal_asli: number;
   total_masuk: number;
@@ -22,6 +23,7 @@ export interface ConsumableFormValues {
   tipe: string;
   er_e: string;
   ukuran: string;
+  satuan: string;
   stok_awal: number;
   stok_awal_asli?: number; // opsional -- cuma dipakai saat koreksi data lewat form Edit
 }
@@ -64,6 +66,7 @@ export interface ConsumableMasukType {
   tipe: string;
   er_e: string;
   ukuran: string;
+  satuan?: string; // <--- TAMBAHAN PROPERTI SATUAN
   jumlah_masuk: number;
   keterangan: string;
   // --- PASTikan PROPERTI INI ADA ---
