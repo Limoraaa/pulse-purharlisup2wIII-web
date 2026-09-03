@@ -96,17 +96,17 @@ const PengembalianManager = () => {
         for (const item of batch) {
         await tandaiDikembalikan(item.id);
 
-        if (item.jumlahRusak > 0) {
+        for (const kerusakan of item.kerusakan) {
           if (!dicatatOleh) {
             throw new Error("Sesi login tidak ditemukan. Silakan login ulang.");
           }
-        await createLaporanKerusakan({
+          await createLaporanKerusakan({
             tanggal: new Date().toISOString(),
             tool_id: item.toolId,
             peminjaman_id: item.id,
-            jumlah: item.jumlahRusak,
-            keterangan: item.catatan,
-            status: item.jenisKerusakan,
+            jumlah: kerusakan.jumlah,
+            keterangan: kerusakan.catatan,
+            status: kerusakan.jenisKerusakan,
             dilaporkan_oleh: dicatatOleh,
           });
         }
@@ -115,7 +115,10 @@ const PengembalianManager = () => {
       const idKembali = new Set(batch.map((b) => b.id));
       setItems((prev) => prev.filter((i) => !idKembali.has(i.id)));
 
-      const totalUnitRusak = batch.reduce((sum, b) => sum + b.jumlahRusak, 0);
+    const totalUnitRusak = batch.reduce(
+        (sum, b) => sum + b.kerusakan.reduce((s, k) => s + k.jumlah, 0),
+        0
+      );
       setSuccessMessage(
         `${batch.length} alat berhasil dikembalikan${
           totalUnitRusak > 0 ? ` (${totalUnitRusak} unit di antaranya ditandai rusak dan masuk Laporan Kerusakan)` : ""
