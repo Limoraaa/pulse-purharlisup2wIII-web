@@ -37,8 +37,6 @@ class OrderToolController extends Controller
             'spesifikasi'       => 'nullable|string',
             'jumlah'            => 'required|integer|min:1',
             'satuan'            => 'required|string',
-            'harga'             => 'required|numeric|min:0',
-            'referensi_harga'   => 'nullable|string',
             'tanggal_pengajuan' => 'required|date',
         ]);
 
@@ -64,8 +62,6 @@ class OrderToolController extends Controller
             'spesifikasi'       => 'nullable|string',
             'jumlah'            => 'sometimes|required|integer|min:1',
             'satuan'            => 'sometimes|required|string',
-            'harga'             => 'sometimes|required|numeric|min:0',
-            'referensi_harga'   => 'nullable|string',
             'tanggal_pengajuan' => 'sometimes|required|date',
         ]);
 
