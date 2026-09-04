@@ -167,8 +167,11 @@ export async function getRiwayatPeminjaman(): Promise<RiwayatPeminjamanType[]> {
     .map(mapRiwayatFromApi);
 }
 
-export async function tandaiDikembalikan(id: string): Promise<void> {
-  await apiFetch(`/peminjaman/${id}/kembali`, { method: "PATCH" });
+export async function tandaiDikembalikan(id: string, jumlahDikembalikan?: number): Promise<void> {
+  await apiFetch(`/peminjaman/${id}/kembali`, {
+    method: "PATCH",
+    body: JSON.stringify({ jumlah_dikembalikan: jumlahDikembalikan }),
+  });
 }
 
 // ================= CART (temporary_cart) — FLOW BARU =================

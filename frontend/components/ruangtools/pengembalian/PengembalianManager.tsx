@@ -94,7 +94,7 @@ const PengembalianManager = () => {
       const dicatatOleh = localStorage.getItem("userId");
 
         for (const item of batch) {
-        await tandaiDikembalikan(item.id);
+        await tandaiDikembalikan(item.id, item.jumlahDikembalikan);
 
         for (const kerusakan of item.kerusakan) {
           if (!dicatatOleh) {

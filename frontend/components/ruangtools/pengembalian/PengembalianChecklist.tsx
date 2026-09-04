@@ -10,6 +10,7 @@ export type JenisKerusakan = "bisa_diperbaiki" | "rusak_permanen";
 interface ChecklistState {
   [id: string]: {
     checked: boolean;
+    jumlahDikembalikan: number;
     jumlahBisaDiperbaiki: number;
     jumlahRusakPermanen: number;
     catatanBisaDiperbaiki: string;
@@ -27,7 +28,7 @@ export interface PengembalianBatchItem {
   id: string;
   toolId: string;
   namaBarang: string;
-  jumlahTotal: number;
+  jumlahDikembalikan: number;
   kerusakan: PengembalianKerusakanEntry[];
 }
 
@@ -39,8 +40,9 @@ interface PengembalianChecklistProps {
   submitting?: boolean;
 }
 
-const emptyRow = () => ({
+const emptyRow = (jumlahDipinjam: number) => ({
   checked: false,
+  jumlahDikembalikan: jumlahDipinjam,
   jumlahBisaDiperbaiki: 0,
   jumlahRusakPermanen: 0,
   catatanBisaDiperbaiki: "",
@@ -57,7 +59,7 @@ const PengembalianChecklist = ({
   const [state, setState] = useState<ChecklistState>(() => {
     const initial: ChecklistState = {};
     items.forEach((item) => {
-      initial[item.id] = emptyRow();
+      initial[item.id] = emptyRow(item.jumlah);
     });
     return initial;
   });
@@ -101,11 +103,18 @@ const PengembalianChecklist = ({
 
     for (const item of dipilih) {
       const row = state[item.id];
-      const totalRusak = row.jumlahBisaDiperbaiki + row.jumlahRusakPermanen;
 
-      if (totalRusak > item.jumlah) {
+      if (row.jumlahDikembalikan < 1 || row.jumlahDikembalikan > item.jumlah) {
         setError(
-          `Total rusak untuk "${item.namaBarang}" (${totalRusak}) melebihi jumlah dipinjam (${item.jumlah}).`
+          `Jumlah dikembalikan untuk "${item.namaBarang}" harus antara 1 - ${item.jumlah}.`
+        );
+        return;
+      }
+
+      const totalRusak = row.jumlahBisaDiperbaiki + row.jumlahRusakPermanen;
+      if (totalRusak > row.jumlahDikembalikan) {
+        setError(
+          `Total rusak untuk "${item.namaBarang}" (${totalRusak}) melebihi jumlah yang dikembalikan (${row.jumlahDikembalikan}).`
         );
         return;
       }
@@ -144,7 +153,7 @@ const PengembalianChecklist = ({
         id: item.id,
         toolId: item.toolId,
         namaBarang: item.namaBarang,
-        jumlahTotal: item.jumlah,
+        jumlahDikembalikan: row.jumlahDikembalikan,
         kerusakan,
       };
     });
@@ -153,8 +162,8 @@ const PengembalianChecklist = ({
   };
 
   return (
-    <Card className="card-lg">
-      <CardBody>
+    <Card className="card-lg pengembalian-checklist">
+      <CardBody className="pb-2">
         <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
           <div className="d-flex align-items-center gap-2">
             <IconRotateClockwise2 size={22} className="text-primary" />
@@ -168,24 +177,41 @@ const PengembalianChecklist = ({
             Scan Ulang
           </Button>
         </div>
+      </CardBody>
 
-        <InputGroup className="mb-3" style={{ maxWidth: 320 }}>
-          <InputGroup.Text>
-            <IconSearch size={16} />
-          </InputGroup.Text>
-          <Form.Control
-            type="search"
-            placeholder="Cari nama atau kode alat..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          {searchTerm && (
-            <Button variant="link" onClick={() => setSearchTerm("")}>
-              <IconX size={16} />
-            </Button>
-          )}
-        </InputGroup>
+      <div className="riwayat-toolbar border-bottom px-4 py-3">
+        <div className="riwayat-toolbar-row d-flex flex-wrap align-items-center gap-2">
+          <InputGroup className="riwayat-search" style={{ maxWidth: 320 }}>
+            <InputGroup.Text>
+              <IconSearch size={18} />
+            </InputGroup.Text>
+            <Form.Control
+              type="text"
+              placeholder="Cari nama atau kode alat..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              aria-label="Cari alat"
+            />
+            {searchTerm && (
+              <Button
+                variant="link"
+                className="riwayat-search-clear"
+                onClick={() => setSearchTerm("")}
+                aria-label="Bersihkan pencarian"
+              >
+                <IconX size={16} />
+              </Button>
+            )}
+          </InputGroup>
+          <span className="riwayat-info text-secondary small ms-auto pe-1">
+            Menampilkan{" "}
+            <span className="fw-semibold text-body">{filteredItems.length}</span>{" "}
+            dari {items.length} alat
+          </span>
+        </div>
+      </div>
 
+      <CardBody className="pt-3">
         {error && <Alert variant="danger">{error}</Alert>}
 
         {items.length === 0 ? (
@@ -198,24 +224,31 @@ const PengembalianChecklist = ({
           </p>
         ) : (
           <>
-            <Table responsive className="align-middle">
+            <Table responsive className="align-middle mb-0 pengembalian-table" style={{ tableLayout: "fixed" }}>
+              <colgroup>
+                <col style={{ width: "4%" }} />
+                <col style={{ width: "20%" }} />
+                <col style={{ width: "10%" }} />
+                <col style={{ width: "15%" }} />
+                <col style={{ width: "28.5%" }} />
+                <col style={{ width: "28.5%" }} />
+              </colgroup>
               <thead>
                 <tr>
-                  <th style={{ width: 40 }}></th>
+                  <th></th>
                   <th>Alat</th>
-                  <th style={{ width: 80 }}>Jumlah</th>
-                  <th style={{ width: 170 }}>Bisa Diperbaiki</th>
-                  <th style={{ width: 170 }}>Rusak Permanen</th>
+                  <th>Dipinjam</th>
+                  <th>Dikembalikan</th>
+                  <th>Bisa Diperbaiki</th>
+                  <th>Rusak Permanen</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredItems.map((item) => {
                   const row = state[item.id];
-                  const totalRusak = row.jumlahBisaDiperbaiki + row.jumlahRusakPermanen;
-                  const sisaBaik = item.jumlah - totalRusak;
 
                   return (
-                    <tr key={item.id}>
+                    <tr key={item.id} className={row.checked ? "table-active" : undefined}>
                       <td>
                         <Form.Check
                           checked={row.checked}
@@ -227,62 +260,94 @@ const PengembalianChecklist = ({
                         <div className="fw-semibold">{item.namaBarang}</div>
                         <div className="text-secondary small">{item.kodeBarang}</div>
                       </td>
+                      <td>{item.jumlah}</td>
                       <td>
-                        {item.jumlah}
-                        {row.checked && (
-                          <div className="text-secondary" style={{ fontSize: "0.7rem" }}>
-                            {sisaBaik >= 0 ? `${sisaBaik} baik` : "melebihi jumlah!"}
-                          </div>
+                        {row.checked ? (
+                          <>
+                            <Form.Control
+                              size="sm"
+                              type="text"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
+                              value={String(row.jumlahDikembalikan)}
+                              onChange={(e) => {
+                                const digits = e.target.value.replace(/[^0-9]/g, "");
+                                let num = digits === "" ? 0 : Number(digits);
+                                if (num > item.jumlah) num = item.jumlah;
+                                updateField(item.id, "jumlahDikembalikan", num);
+                              }}
+                              disabled={submitting}
+                            />
+                            {row.jumlahDikembalikan < item.jumlah && (
+                              <div className="text-warning" style={{ fontSize: "0.7rem" }}>
+                                {item.jumlah - row.jumlahDikembalikan} tetap dipinjam
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-secondary">-</span>
                         )}
                       </td>
                       <td>
-                        <Form.Control
-                          size="sm"
-                          type="text"
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          placeholder="0"
-                          value={row.jumlahBisaDiperbaiki === 0 ? "" : String(row.jumlahBisaDiperbaiki)}
-                          onChange={(e) => {
-                            const digits = e.target.value.replace(/[^0-9]/g, "");
-                            updateField(item.id, "jumlahBisaDiperbaiki", digits === "" ? 0 : Number(digits));
-                          }}
-                          disabled={submitting || !row.checked}
-                          className="mb-1"
-                        />
-                        {row.jumlahBisaDiperbaiki > 0 && (
-                          <Form.Control
-                            size="sm"
-                            placeholder="Catatan..."
-                            value={row.catatanBisaDiperbaiki}
-                            onChange={(e) => updateField(item.id, "catatanBisaDiperbaiki", e.target.value)}
-                            disabled={submitting}
-                          />
+                        {row.checked ? (
+                          <>
+                            <Form.Control
+                              size="sm"
+                              type="text"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
+                              placeholder="0"
+                              value={row.jumlahBisaDiperbaiki === 0 ? "" : String(row.jumlahBisaDiperbaiki)}
+                              onChange={(e) => {
+                                const digits = e.target.value.replace(/[^0-9]/g, "");
+                                updateField(item.id, "jumlahBisaDiperbaiki", digits === "" ? 0 : Number(digits));
+                              }}
+                              disabled={submitting}
+                              className={row.jumlahBisaDiperbaiki > 0 ? "mb-1" : ""}
+                            />
+                            {row.jumlahBisaDiperbaiki > 0 && (
+                              <Form.Control
+                                size="sm"
+                                placeholder="Catatan kerusakan..."
+                                value={row.catatanBisaDiperbaiki}
+                                onChange={(e) => updateField(item.id, "catatanBisaDiperbaiki", e.target.value)}
+                                disabled={submitting}
+                              />
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-secondary">-</span>
                         )}
                       </td>
                       <td>
-                        <Form.Control
-                          size="sm"
-                          type="text"
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          placeholder="0"
-                          value={row.jumlahRusakPermanen === 0 ? "" : String(row.jumlahRusakPermanen)}
-                          onChange={(e) => {
-                            const digits = e.target.value.replace(/[^0-9]/g, "");
-                            updateField(item.id, "jumlahRusakPermanen", digits === "" ? 0 : Number(digits));
-                          }}
-                          disabled={submitting || !row.checked}
-                          className="mb-1"
-                        />
-                        {row.jumlahRusakPermanen > 0 && (
-                          <Form.Control
-                            size="sm"
-                            placeholder="Catatan..."
-                            value={row.catatanRusakPermanen}
-                            onChange={(e) => updateField(item.id, "catatanRusakPermanen", e.target.value)}
-                            disabled={submitting}
-                          />
+                        {row.checked ? (
+                          <>
+                            <Form.Control
+                              size="sm"
+                              type="text"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
+                              placeholder="0"
+                              value={row.jumlahRusakPermanen === 0 ? "" : String(row.jumlahRusakPermanen)}
+                              onChange={(e) => {
+                                const digits = e.target.value.replace(/[^0-9]/g, "");
+                                updateField(item.id, "jumlahRusakPermanen", digits === "" ? 0 : Number(digits));
+                              }}
+                              disabled={submitting}
+                              className={row.jumlahRusakPermanen > 0 ? "mb-1" : ""}
+                            />
+                            {row.jumlahRusakPermanen > 0 && (
+                              <Form.Control
+                                size="sm"
+                                placeholder="Catatan kerusakan..."
+                                value={row.catatanRusakPermanen}
+                                onChange={(e) => updateField(item.id, "catatanRusakPermanen", e.target.value)}
+                                disabled={submitting}
+                              />
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-secondary">-</span>
                         )}
                       </td>
                     </tr>
@@ -291,7 +356,7 @@ const PengembalianChecklist = ({
               </tbody>
             </Table>
 
-            <div className="d-flex align-items-center justify-content-between mt-3">
+            <div className="d-flex align-items-center justify-content-between mt-3 pt-3 border-top">
               <Badge bg="primary-subtle" text="primary-emphasis" className="fw-semibold">
                 {jumlahDicentang} alat dipilih untuk dikembalikan
               </Badge>
