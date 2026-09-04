@@ -19,6 +19,8 @@ use App\Http\Controllers\Api\PekerjaanController; // <-- TAMBAHAN IMPORT PEKERJA
 
 Route::post('/login', [AuthController::class, 'login']);
 
+Route::get('/peminjaman/belum-kembali', [PeminjamanController::class, 'belumKembali']);
+
 // ==========================================
 // ROUTE YANG TIDAK BUTUH AUTH (PUBLIC / GENERAL)
 // ==========================================
