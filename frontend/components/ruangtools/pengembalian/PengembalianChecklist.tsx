@@ -85,12 +85,27 @@ const PengembalianChecklist = ({
     setState((prev) => ({ ...prev, [id]: { ...prev[id], checked: !prev[id].checked } }));
   };
 
-  const updateField = (
+    const updateField = (
     id: string,
     field: keyof ChecklistState[string],
     value: number | string
   ) => {
     setState((prev) => ({ ...prev, [id]: { ...prev[id], [field]: value } }));
+  };
+
+  const handleDikembalikanChange = (id: string, jumlahDikembalikan: number) => {
+    setState((prev) => {
+      const row = prev[id];
+      const jumlahBisaDiperbaiki = Math.min(row.jumlahBisaDiperbaiki, jumlahDikembalikan);
+      const jumlahRusakPermanen = Math.min(
+        row.jumlahRusakPermanen,
+        jumlahDikembalikan - jumlahBisaDiperbaiki
+      );
+      return {
+        ...prev,
+        [id]: { ...row, jumlahDikembalikan, jumlahBisaDiperbaiki, jumlahRusakPermanen },
+      };
+    });
   };
 
   const handleSubmit = () => {
@@ -264,20 +279,18 @@ const PengembalianChecklist = ({
                       <td>
                         {row.checked ? (
                           <>
-                            <Form.Control
+                            <Form.Select
                               size="sm"
-                              type="text"
-                              inputMode="numeric"
-                              pattern="[0-9]*"
-                              value={String(row.jumlahDikembalikan)}
-                              onChange={(e) => {
-                                const digits = e.target.value.replace(/[^0-9]/g, "");
-                                let num = digits === "" ? 0 : Number(digits);
-                                if (num > item.jumlah) num = item.jumlah;
-                                updateField(item.id, "jumlahDikembalikan", num);
-                              }}
+                              value={row.jumlahDikembalikan}
+                              onChange={(e) => handleDikembalikanChange(item.id, Number(e.target.value))}
                               disabled={submitting}
-                            />
+                            >
+                              {Array.from({ length: item.jumlah }, (_, i) => i + 1).map((num) => (
+                                <option key={num} value={num}>
+                                  {num}
+                                </option>
+                              ))}
+                            </Form.Select>
                             {row.jumlahDikembalikan < item.jumlah && (
                               <div className="text-warning" style={{ fontSize: "0.7rem" }}>
                                 {item.jumlah - row.jumlahDikembalikan} tetap dipinjam
@@ -291,20 +304,24 @@ const PengembalianChecklist = ({
                       <td>
                         {row.checked ? (
                           <>
-                            <Form.Control
+                            <Form.Select
                               size="sm"
-                              type="text"
-                              inputMode="numeric"
-                              pattern="[0-9]*"
-                              placeholder="0"
-                              value={row.jumlahBisaDiperbaiki === 0 ? "" : String(row.jumlahBisaDiperbaiki)}
-                              onChange={(e) => {
-                                const digits = e.target.value.replace(/[^0-9]/g, "");
-                                updateField(item.id, "jumlahBisaDiperbaiki", digits === "" ? 0 : Number(digits));
-                              }}
+                              value={row.jumlahBisaDiperbaiki}
+                              onChange={(e) =>
+                                updateField(item.id, "jumlahBisaDiperbaiki", Number(e.target.value))
+                              }
                               disabled={submitting}
                               className={row.jumlahBisaDiperbaiki > 0 ? "mb-1" : ""}
-                            />
+                            >
+                              {Array.from(
+                                { length: row.jumlahDikembalikan - row.jumlahRusakPermanen + 1 },
+                                (_, i) => i
+                              ).map((num) => (
+                                <option key={num} value={num}>
+                                  {num}
+                                </option>
+                              ))}
+                            </Form.Select>
                             {row.jumlahBisaDiperbaiki > 0 && (
                               <Form.Control
                                 size="sm"
@@ -322,20 +339,24 @@ const PengembalianChecklist = ({
                       <td>
                         {row.checked ? (
                           <>
-                            <Form.Control
+                            <Form.Select
                               size="sm"
-                              type="text"
-                              inputMode="numeric"
-                              pattern="[0-9]*"
-                              placeholder="0"
-                              value={row.jumlahRusakPermanen === 0 ? "" : String(row.jumlahRusakPermanen)}
-                              onChange={(e) => {
-                                const digits = e.target.value.replace(/[^0-9]/g, "");
-                                updateField(item.id, "jumlahRusakPermanen", digits === "" ? 0 : Number(digits));
-                              }}
+                              value={row.jumlahRusakPermanen}
+                              onChange={(e) =>
+                                updateField(item.id, "jumlahRusakPermanen", Number(e.target.value))
+                              }
                               disabled={submitting}
                               className={row.jumlahRusakPermanen > 0 ? "mb-1" : ""}
-                            />
+                            >
+                              {Array.from(
+                                { length: row.jumlahDikembalikan - row.jumlahBisaDiperbaiki + 1 },
+                                (_, i) => i
+                              ).map((num) => (
+                                <option key={num} value={num}>
+                                  {num}
+                                </option>
+                              ))}
+                            </Form.Select>
                             {row.jumlahRusakPermanen > 0 && (
                               <Form.Control
                                 size="sm"
