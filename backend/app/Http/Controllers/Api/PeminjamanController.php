@@ -287,6 +287,21 @@ class PeminjamanController extends Controller
         return response()->json($peminjaman);
     }
 
+    // GET /api/peminjaman/belum-kembali
+    // GET /api/peminjaman/belum-kembali
+    public function belumKembali()
+    {
+        $data = Peminjaman::with(['tool', 'peminta', 'dicatatOleh'])
+            ->whereNull('tanggal_kembali')
+            ->orderBy('tanggal', 'asc')
+            ->get();
+
+        return response()->json([
+            'total' => $data->count(),
+            'data' => $data
+        ]);
+    }
+
     // PATCH /api/peminjaman/{id}/kembali
     public function kembali(string $id)
     {
