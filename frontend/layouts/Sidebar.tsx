@@ -2,14 +2,13 @@
 //import node module libraries
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import React, { Fragment, useEffect, useState } from "react";
+import React, { Fragment } from "react";
 import {
   Accordion,
   Badge,
   Image,
   ListGroup,
   Nav,
-  NavItem,
 } from "react-bootstrap";
 import { IconLogout } from "@tabler/icons-react";
 
@@ -17,7 +16,6 @@ import { IconLogout } from "@tabler/icons-react";
 import { MenuItemType } from "types/menuTypes";
 
 //import custom components
-import { Avatar } from "components/common/Avatar";
 import CustomToggle, { CustomToggleLevel2 } from "./SidebarMenuToggle";
 
 // import required routes
@@ -31,12 +29,6 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
   const location = usePathname();
   const router = useRouter();
-  const [userName, setUserName] = useState("Staff");
-
-  useEffect(() => {
-    const storedName = localStorage.getItem("userName");
-    if (storedName) setUserName(storedName);
-  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -46,12 +38,26 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
     router.push("/signin");
   };
 
-  //Generate Link
+  // Cek apakah sebuah menu (atau salah satu turunannya) sedang aktif,
+  // supaya parent menu ikut ditandai aktif ketika child-nya dibuka.
+  const isMenuActive = (menu: MenuItemType): boolean => {
+    if (menu.link && location === menu.link) return true;
+    if (menu.children) {
+      return menu.children.some((child) => isMenuActive(child as MenuItemType));
+    }
+    return false;
+  };
+
+  // Generate Link
+  // NOTE: seluruh `item.link` di routes/DashboardRoute.tsx SUDAH berupa path
+  // absolut (diawali "/"), jadi di sini TIDAK BOLEH ditambah "/" lagi di
+  // depannya -- kalau ditambah, hasilnya jadi "//path" (protocol-relative
+  // URL) yang bikin browser coba resolve "path" sebagai nama domain.
   const generateLink = (item: MenuItemType) => {
     return (
       <Link
         href={`${item.link}`}
-        className={`nav-link ${location === `/${item.link}` ? "active" : ""}`}>
+        className={`nav-link ${location === item.link ? "active" : ""}`}>
         <span className='text'>{item.name}</span>
         {item.badge && (
           <Badge
@@ -71,12 +77,12 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
           <div className='brand-logo'>
             <Link
               href='/'
-              className='d-none d-md-flex align-items-center gap-2'>
+              className='d-none d-md-flex align-items-center pln-brand'>
               <Image
-                src={getAssetPath("/images/brand/logo/logo-icon.svg")}
-                alt=''
+                src={getAssetPath("/images/png/PLN-logo.png")}
+                alt='PT PLN (Persero)'
+                className='pln-logo'
               />
-              <span className='fw-bold fs-4 site-logo-text'>Dasher</span>
             </Link>
           </div>
         )}
@@ -100,7 +106,10 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
                 return (
                   <Fragment key={index}>
                     {/* Dropdown Parent Menu */}
-                    <CustomToggle eventKey={index.toString()} icon={menu.icon}>
+                    <CustomToggle
+                      eventKey={index.toString()}
+                      icon={menu.icon}
+                      isActive={isMenuActive(menu)}>
                       {menu.title}
                     </CustomToggle>
                     <Accordion.Collapse eventKey={index.toString()}>
@@ -169,13 +178,10 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
                                                             as='li'
                                                             bsPrefix='nav-item'>
                                                             <Link
-                                                              href={
-                                                                menuLevel3Item.link?.toString() ||
-                                                                `/${menuLevel3Item.link}`
-                                                              }
+                                                              href={`${menuLevel3Item.link}`}
                                                               className={`nav-link ${
                                                                 location ===
-                                                                `/${menuLevel3Item.link}`
+                                                                menuLevel3Item.link
                                                                   ? "active"
                                                                   : ""
                                                               }`}>
@@ -220,9 +226,9 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
                                 key={menuLevel1Index}>
                                 {/* first level menu items */}
                                 <Link
-                                  href={`/${menuLevel1Item?.link}`}
+                                  href={`${menuLevel1Item?.link}`}
                                   className={`nav-link ${
-                                    location === `/${menuLevel1Item.link}`
+                                    location === menuLevel1Item.link
                                       ? "active"
                                       : ""
                                   }`}>
@@ -268,22 +274,6 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
             </button>
           </Nav.Item>
 
-          <NavItem as='li' bsPrefix=''>
-            <div className='text-center py-5 upgrade-ui'>
-              <div>
-                <Avatar
-                  type='image'
-                  src={getAssetPath("/images/avatar/avatar-1.jpg")}
-                  size='md'
-                  className='rounded-circle'
-                />
-                <div className='my-3'>
-                  <h5 className='mb-1 fs-6'>{userName}</h5>
-                  <span className='text-secondary'>Staff Ruang Tools</span>
-                </div>
-              </div>
-            </div>
-          </NavItem>
         </Accordion>
       </div>
     </div>

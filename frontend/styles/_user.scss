@@ -2,3 +2,2629 @@
 // user.scss
 // Use this to write your custom SCSS
 //
+
+// ============================================================
+// Dashboard - komponen presentasi (UI only)
+// ============================================================
+
+// Kartu statistik: hover halus sesuai design (transition 200ms, scale kecil)
+.stat-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  }
+}
+
+// List divider konsisten: garis tipis antar item, item terakhir tanpa garis
+.dash-list {
+  li {
+    border-bottom: 1px solid var(--#{$prefix}border-color);
+    transition: background-color 0.2s ease;
+
+    &:last-child {
+      border-bottom: 0;
+    }
+
+    &:hover {
+      background-color: var(--#{$prefix}gray-100);
+    }
+  }
+}
+
+// ============================================================
+// Data Tools - scoped (UI only, tidak berdampak ke halaman lain)
+// ============================================================
+.datatools-page {
+  // ---- Toolbar: search + filter ----
+  .datatools-toolbar {
+    padding: 1rem 1.25rem;
+
+    .form-control,
+    .form-select {
+      height: 44px;
+    }
+  }
+
+  // Search dengan ikon di depan
+  .datatools-search {
+    .input-group-text {
+      background-color: var(--#{$prefix}body-bg);
+      border-right: 0;
+      color: var(--#{$prefix}gray-600);
+    }
+
+    .form-control {
+      border-left: 0;
+      padding-left: 0;
+
+      &:focus {
+        box-shadow: none;
+        border-color: var(--#{$prefix}border-color);
+      }
+
+      // sembunyikan tombol clear bawaan browser (pakai tombol kustom)
+      &::-webkit-search-cancel-button {
+        display: none;
+      }
+    }
+
+    // Bungkus fokus: highlight seluruh grup saat input aktif
+    &:focus-within {
+      .input-group-text,
+      .form-control {
+        border-color: var(--#{$prefix}primary);
+      }
+    }
+
+    .datatools-search-clear {
+      position: absolute;
+      right: 0;
+      top: 0;
+      z-index: 5;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      padding: 0 0.75rem;
+      color: var(--#{$prefix}gray-600);
+      text-decoration: none;
+
+      &:hover {
+        color: var(--#{$prefix}danger);
+      }
+    }
+  }
+
+  // ---- Table ----
+  .table {
+    thead th {
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.03em;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      transition: background-color 0.15s ease;
+
+      &:hover {
+        background-color: var(--#{$prefix}gray-100);
+      }
+    }
+  }
+
+  // ---- Pagination modern ----
+  .pagination {
+    gap: 0.25rem;
+
+    .page-item {
+      .page-link {
+        border: 0;
+        border-radius: $border-radius;
+        min-width: 36px;
+        text-align: center;
+        color: var(--#{$prefix}gray-600);
+        transition: background-color 0.2s ease, color 0.2s ease;
+
+        &:hover {
+          background-color: var(--#{$prefix}gray-100);
+          color: var(--#{$prefix}primary);
+        }
+      }
+
+      &.active .page-link {
+        background-color: var(--#{$prefix}primary);
+        color: #fff;
+      }
+
+      &.disabled .page-link {
+        opacity: 0.5;
+      }
+    }
+  }
+
+  // ---- Empty state ----
+  .datatools-empty {
+    .datatools-empty-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background-color: var(--#{$prefix}primary-subtle);
+      color: var(--#{$prefix}primary);
+    }
+  }
+
+  // ---- Responsive ----
+  @include media-breakpoint-down(md) {
+    .datatools-toolbar {
+      padding: 1rem;
+    }
+  }
+}
+
+// ============================================================
+// Tool Detail Modal - scoped (UI only)
+// ============================================================
+.tool-detail-modal {
+  // Ikon pada judul modal
+  .tool-detail-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: $border-radius;
+    background-color: var(--#{$prefix}primary-subtle);
+    color: var(--#{$prefix}primary);
+  }
+
+  // Hero: blok nama barang + status
+  .tool-detail-hero {
+    padding: 1.25rem;
+    border-radius: $border-radius-lg;
+    background-color: var(--#{$prefix}gray-100);
+  }
+
+  .tool-detail-status {
+    font-size: 0.8125rem;
+    padding: 0.4rem 0.75rem;
+  }
+
+  // Kotak ringkasan stok
+  .tool-detail-stat {
+    padding: 1rem 0.5rem;
+    border-radius: $border-radius-lg;
+    height: 100%;
+  }
+
+  // Item informasi
+  .tool-detail-item {
+    padding: 0.75rem 0;
+  }
+
+  .tool-detail-section {
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--#{$prefix}border-color);
+  }
+}
+
+// ============================================================
+// Tool Form Modal (Tambah/Edit) - scoped (UI only)
+// Selaras dengan gaya Tool Detail Modal.
+// ============================================================
+.tool-form-modal {
+  // Ikon pada judul modal
+  .tool-form-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: $border-radius;
+    background-color: var(--#{$prefix}primary-subtle);
+    color: var(--#{$prefix}primary);
+  }
+
+  // Info baris "sedang mengubah data" saat mode edit
+  .tool-form-hero {
+    padding: 1rem 1.25rem;
+    border-radius: $border-radius-lg;
+    background-color: var(--#{$prefix}gray-100);
+  }
+
+  // Grup field
+  .tool-form-section {
+    .form-label {
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--#{$prefix}gray-800);
+      margin-bottom: 0.375rem;
+    }
+
+    .form-control,
+    .form-select {
+      height: 44px;
+    }
+  }
+}
+
+// ============================================================
+// Tool Delete Confirm Modal - scoped (UI only)
+// Selaras dengan gaya modal detail/edit, aksen danger.
+// ============================================================
+.tool-delete-modal {
+  // Ikon pada judul modal (aksen danger untuk aksi destruktif)
+  .tool-delete-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: $border-radius;
+    background-color: var(--#{$prefix}danger-subtle);
+    color: var(--#{$prefix}danger);
+  }
+
+  // Ikon peringatan besar di body
+  .tool-delete-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background-color: var(--#{$prefix}danger-subtle);
+    color: var(--#{$prefix}danger);
+  }
+
+  // Blok info alat yang akan dihapus
+  .tool-delete-hero {
+    padding: 1rem 1.25rem;
+    border-radius: $border-radius-lg;
+    background-color: var(--#{$prefix}gray-100);
+  }
+}
+
+// ============================================================
+// Cart FAB - scoped (UI only)
+// ============================================================
+.cart-fab {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: scale(1.05);
+  }
+}
+
+// ============================================================
+// Cart Offcanvas (Keranjang Peminjaman) - scoped (UI only)
+// ============================================================
+.cart-offcanvas {
+  // Ikon pada judul
+  .cart-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: $border-radius;
+    background-color: var(--#{$prefix}primary-subtle);
+    color: var(--#{$prefix}primary);
+  }
+
+  // Item keranjang jadi card
+  .cart-item {
+    padding: 1rem;
+    border: 1px solid var(--#{$prefix}border-color);
+    border-radius: $border-radius-lg;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+    &:hover {
+      border-color: var(--#{$prefix}primary);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+  }
+
+  .cart-item-remove {
+    line-height: 1;
+
+    &:hover {
+      opacity: 0.75;
+    }
+  }
+
+  // Stepper jumlah
+  .cart-stepper {
+    border: 1px solid var(--#{$prefix}border-color);
+    border-radius: $border-radius;
+    overflow: hidden;
+
+    .cart-stepper-btn {
+      width: 40px;
+      height: 40px;
+      border: 0;
+      border-radius: 0;
+      background-color: transparent;
+      color: var(--#{$prefix}gray-800);
+
+      &:hover:not(:disabled) {
+        background-color: var(--#{$prefix}gray-100);
+      }
+
+      &:disabled {
+        opacity: 0.4;
+      }
+    }
+
+    .cart-stepper-value {
+      min-width: 40px;
+      border-left: 1px solid var(--#{$prefix}border-color);
+      border-right: 1px solid var(--#{$prefix}border-color);
+      align-self: stretch;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+
+  // Empty state
+  .cart-empty-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background-color: var(--#{$prefix}gray-100);
+    color: var(--#{$prefix}gray-600);
+  }
+}
+
+// ============================================================
+// Loan Form Modal (Form Peminjaman) - scoped (UI only)
+// ============================================================
+.loan-form-modal {
+  // Ikon pada judul
+  .loan-form-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: $border-radius;
+    background-color: var(--#{$prefix}primary-subtle);
+    color: var(--#{$prefix}primary);
+  }
+
+  // Grup field per-section
+  .loan-form-section {
+    .form-label {
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--#{$prefix}gray-800);
+      margin-bottom: 0.375rem;
+    }
+
+    .form-control:not(textarea) {
+      height: 44px;
+    }
+  }
+
+  // Ringkasan alat
+  .loan-form-summary {
+    padding: 1rem 1.25rem;
+    border-radius: $border-radius-lg;
+    background-color: var(--#{$prefix}gray-100);
+
+    .loan-summary-list li {
+      border-bottom: 1px solid var(--#{$prefix}border-color);
+
+      &:last-child {
+        border-bottom: 0;
+      }
+    }
+  }
+}
+
+// ============================================================
+// Data Consumable - scoped (UI only, tidak berdampak ke halaman lain)
+// Pola sama dengan Data Tools.
+// ============================================================
+.dataconsumable-page {
+  // ---- Toolbar: search + filter ----
+  .dataconsumable-toolbar {
+    padding: 1rem 1.25rem;
+
+    .form-control,
+    .form-select {
+      height: 44px;
+    }
+  }
+
+  // Search dengan ikon di depan
+  .dataconsumable-search {
+    .input-group-text {
+      background-color: var(--#{$prefix}body-bg);
+      border-right: 0;
+      color: var(--#{$prefix}gray-600);
+    }
+
+    .form-control {
+      border-left: 0;
+      padding-left: 0;
+
+      &:focus {
+        box-shadow: none;
+        border-color: var(--#{$prefix}border-color);
+      }
+
+      &::-webkit-search-cancel-button {
+        display: none;
+      }
+    }
+
+    &:focus-within {
+      .input-group-text,
+      .form-control {
+        border-color: var(--#{$prefix}primary);
+      }
+    }
+
+    .dataconsumable-search-clear {
+      position: absolute;
+      right: 0;
+      top: 0;
+      z-index: 5;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      padding: 0 0.75rem;
+      color: var(--#{$prefix}gray-600);
+      text-decoration: none;
+
+      &:hover {
+        color: var(--#{$prefix}danger);
+      }
+    }
+  }
+
+  // ---- Table ----
+  .table {
+    thead th {
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.03em;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      transition: background-color 0.15s ease;
+
+      &:hover {
+        background-color: var(--#{$prefix}gray-100);
+      }
+    }
+  }
+
+  // ---- Pagination modern ----
+  .pagination {
+    gap: 0.25rem;
+
+    .page-item {
+      .page-link {
+        border: 0;
+        border-radius: $border-radius;
+        min-width: 36px;
+        text-align: center;
+        color: var(--#{$prefix}gray-600);
+        transition: background-color 0.2s ease, color 0.2s ease;
+
+        &:hover {
+          background-color: var(--#{$prefix}gray-100);
+          color: var(--#{$prefix}primary);
+        }
+      }
+
+      &.active .page-link {
+        background-color: var(--#{$prefix}primary);
+        color: #fff;
+      }
+
+      &.disabled .page-link {
+        opacity: 0.5;
+      }
+    }
+  }
+
+  // ---- Empty state ----
+  .dataconsumable-empty {
+    .dataconsumable-empty-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background-color: var(--#{$prefix}primary-subtle);
+      color: var(--#{$prefix}primary);
+    }
+  }
+
+  // ---- Responsive ----
+  @include media-breakpoint-down(md) {
+    .dataconsumable-toolbar {
+      padding: 1rem;
+    }
+  }
+}
+
+// ============================================================
+// Consumable Detail Modal - scoped (UI only)
+// ============================================================
+.consumable-detail-modal {
+  .consumable-detail-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: $border-radius;
+    background-color: var(--#{$prefix}primary-subtle);
+    color: var(--#{$prefix}primary);
+  }
+
+  .consumable-detail-hero {
+    padding: 1.25rem;
+    border-radius: $border-radius-lg;
+    background-color: var(--#{$prefix}gray-100);
+  }
+
+  .consumable-detail-status {
+    font-size: 0.8125rem;
+    padding: 0.4rem 0.75rem;
+  }
+
+  .consumable-detail-stat {
+    padding: 1rem 1.25rem;
+    border-radius: $border-radius-lg;
+  }
+
+  .consumable-detail-item {
+    padding: 0.75rem 0;
+  }
+
+  .consumable-detail-section {
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--#{$prefix}border-color);
+  }
+}
+
+// ============================================================
+// Consumable Form Modal (Tambah/Edit) - scoped (UI only)
+// ============================================================
+.consumable-form-modal {
+  .consumable-form-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: $border-radius;
+    background-color: var(--#{$prefix}primary-subtle);
+    color: var(--#{$prefix}primary);
+  }
+
+  .consumable-form-hero {
+    padding: 1rem 1.25rem;
+    border-radius: $border-radius-lg;
+    background-color: var(--#{$prefix}gray-100);
+  }
+
+  .consumable-form-section {
+    .form-label {
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--#{$prefix}gray-800);
+      margin-bottom: 0.375rem;
+    }
+
+    .form-control,
+    .form-select {
+      height: 44px;
+    }
+  }
+}
+
+// ============================================================
+// Consumable Delete Confirm Modal - scoped (UI only)
+// ============================================================
+.consumable-delete-modal {
+  .consumable-delete-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: $border-radius;
+    background-color: var(--#{$prefix}danger-subtle);
+    color: var(--#{$prefix}danger);
+  }
+
+  .consumable-delete-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background-color: var(--#{$prefix}danger-subtle);
+    color: var(--#{$prefix}danger);
+  }
+
+  .consumable-delete-hero {
+    padding: 1rem 1.25rem;
+    border-radius: $border-radius-lg;
+    background-color: var(--#{$prefix}gray-100);
+  }
+}
+
+// ============================================================
+// Consumable Cart Offcanvas (Antrean Pengambilan) - scoped (UI only)
+// ============================================================
+.consumable-cart-offcanvas {
+  .consumable-cart-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: $border-radius;
+    background-color: var(--#{$prefix}primary-subtle);
+    color: var(--#{$prefix}primary);
+  }
+
+  .consumable-cart-item {
+    padding: 1rem;
+    border: 1px solid var(--#{$prefix}border-color);
+    border-radius: $border-radius-lg;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+    &:hover {
+      border-color: var(--#{$prefix}primary);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+  }
+
+  .consumable-cart-item-remove {
+    line-height: 1;
+
+    &:hover {
+      opacity: 0.75;
+    }
+  }
+
+  .consumable-cart-stepper {
+    border: 1px solid var(--#{$prefix}border-color);
+    border-radius: $border-radius;
+    overflow: hidden;
+
+    .consumable-cart-stepper-btn {
+      width: 40px;
+      height: 40px;
+      border: 0;
+      border-radius: 0;
+      background-color: transparent;
+      color: var(--#{$prefix}gray-800);
+
+      &:hover:not(:disabled) {
+        background-color: var(--#{$prefix}gray-100);
+      }
+
+      &:disabled {
+        opacity: 0.4;
+      }
+    }
+
+    .consumable-cart-stepper-value {
+      min-width: 40px;
+      border-left: 1px solid var(--#{$prefix}border-color);
+      border-right: 1px solid var(--#{$prefix}border-color);
+      align-self: stretch;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+
+  .consumable-cart-empty-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background-color: var(--#{$prefix}gray-100);
+    color: var(--#{$prefix}gray-600);
+  }
+}
+
+// ============================================================
+// Consumable Out Form Modal (Pengambilan Bahan) - scoped (UI only)
+// ============================================================
+.consumable-out-modal {
+  .consumable-out-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: $border-radius;
+    background-color: var(--#{$prefix}primary-subtle);
+    color: var(--#{$prefix}primary);
+  }
+
+  .consumable-out-section {
+    .form-label {
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--#{$prefix}gray-800);
+      margin-bottom: 0.375rem;
+    }
+
+    .form-control:not(textarea) {
+      height: 44px;
+    }
+  }
+
+  .consumable-out-summary {
+    padding: 1rem 1.25rem;
+    border-radius: $border-radius-lg;
+    background-color: var(--#{$prefix}gray-100);
+
+    .consumable-out-summary-list li {
+      border-bottom: 1px solid var(--#{$prefix}border-color);
+
+      &:last-child {
+        border-bottom: 0;
+      }
+    }
+  }
+}
+
+// ============================================================
+// Data Peminjam - scoped (UI only, tidak berdampak ke halaman lain)
+// Pola sama dengan Data Tools / Data Consumable.
+// ============================================================
+.datapeminjam-page {
+  // ---- Toolbar: search + filter ----
+  .datapeminjam-toolbar {
+    padding: 1rem 1.25rem;
+
+    .form-control,
+    .form-select {
+      height: 44px;
+    }
+  }
+
+  // Search dengan ikon di depan
+  .datapeminjam-search {
+    .input-group-text {
+      background-color: var(--#{$prefix}body-bg);
+      border-right: 0;
+      color: var(--#{$prefix}gray-600);
+    }
+
+    .form-control {
+      border-left: 0;
+      padding-left: 0;
+
+      &:focus {
+        box-shadow: none;
+        border-color: var(--#{$prefix}border-color);
+      }
+
+      &::-webkit-search-cancel-button {
+        display: none;
+      }
+    }
+
+    &:focus-within {
+      .input-group-text,
+      .form-control {
+        border-color: var(--#{$prefix}primary);
+      }
+    }
+
+    .datapeminjam-search-clear {
+      position: absolute;
+      right: 0;
+      top: 0;
+      z-index: 5;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      padding: 0 0.75rem;
+      color: var(--#{$prefix}gray-600);
+      text-decoration: none;
+
+      &:hover {
+        color: var(--#{$prefix}danger);
+      }
+    }
+  }
+
+  // ---- Table ----
+  .table {
+    thead th {
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.03em;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      transition: background-color 0.15s ease;
+
+      &:hover {
+        background-color: var(--#{$prefix}gray-100);
+      }
+    }
+  }
+
+  // ---- Pagination modern ----
+  .pagination {
+    gap: 0.25rem;
+
+    .page-item {
+      .page-link {
+        border: 0;
+        border-radius: $border-radius;
+        min-width: 36px;
+        text-align: center;
+        color: var(--#{$prefix}gray-600);
+        transition: background-color 0.2s ease, color 0.2s ease;
+
+        &:hover {
+          background-color: var(--#{$prefix}gray-100);
+          color: var(--#{$prefix}primary);
+        }
+      }
+
+      &.active .page-link {
+        background-color: var(--#{$prefix}primary);
+        color: #fff;
+      }
+
+      &.disabled .page-link {
+        opacity: 0.5;
+      }
+    }
+  }
+
+  // ---- Empty state ----
+  .datapeminjam-empty {
+    .datapeminjam-empty-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background-color: var(--#{$prefix}primary-subtle);
+      color: var(--#{$prefix}primary);
+    }
+  }
+
+  // ---- Responsive ----
+  @include media-breakpoint-down(md) {
+    .datapeminjam-toolbar {
+      padding: 1rem;
+    }
+  }
+}
+
+// ============================================================
+// Peminjam Form Modal (Tambah/Edit) - scoped (UI only)
+// ============================================================
+.peminjam-form-modal {
+  .peminjam-form-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: $border-radius;
+    background-color: var(--#{$prefix}primary-subtle);
+    color: var(--#{$prefix}primary);
+  }
+
+  .peminjam-form-hero {
+    padding: 1rem 1.25rem;
+    border-radius: $border-radius-lg;
+    background-color: var(--#{$prefix}gray-100);
+  }
+
+  .peminjam-form-section {
+    .form-label {
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--#{$prefix}gray-800);
+      margin-bottom: 0.375rem;
+    }
+
+    .form-control {
+      height: 44px;
+    }
+  }
+}
+
+// ============================================================
+// Peminjam Deactivate Modal (Nonaktifkan) - scoped (UI only)
+// Aksen warning karena aksi non-permanen (soft-delete).
+// ============================================================
+.peminjam-deactivate-modal {
+  .peminjam-deactivate-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: $border-radius;
+    background-color: var(--#{$prefix}warning-subtle);
+    color: var(--#{$prefix}warning);
+  }
+
+  .peminjam-deactivate-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background-color: var(--#{$prefix}warning-subtle);
+    color: var(--#{$prefix}warning);
+  }
+
+  .peminjam-deactivate-hero {
+    padding: 1rem 1.25rem;
+    border-radius: $border-radius-lg;
+    background-color: var(--#{$prefix}gray-100);
+  }
+}
+
+// ============================================================
+// Peminjaman Aktif - scoped (UI only, tidak berdampak ke halaman lain)
+// Pola sama dengan halaman data lain.
+// ============================================================
+.peminjamanaktif-page {
+  // ---- Toolbar: search ----
+  .peminjamanaktif-toolbar {
+    padding: 1rem 1.25rem;
+
+    .form-control {
+      height: 44px;
+    }
+  }
+
+  // Search dengan ikon di depan
+  .peminjamanaktif-search {
+    .input-group-text {
+      background-color: var(--#{$prefix}body-bg);
+      border-right: 0;
+      color: var(--#{$prefix}gray-600);
+    }
+
+    .form-control {
+      border-left: 0;
+      padding-left: 0;
+
+      &:focus {
+        box-shadow: none;
+        border-color: var(--#{$prefix}border-color);
+      }
+
+      &::-webkit-search-cancel-button {
+        display: none;
+      }
+    }
+
+    &:focus-within {
+      .input-group-text,
+      .form-control {
+        border-color: var(--#{$prefix}primary);
+      }
+    }
+
+    .peminjamanaktif-search-clear {
+      position: absolute;
+      right: 0;
+      top: 0;
+      z-index: 5;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      padding: 0 0.75rem;
+      color: var(--#{$prefix}gray-600);
+      text-decoration: none;
+
+      &:hover {
+        color: var(--#{$prefix}danger);
+      }
+    }
+  }
+
+  // ---- Table ----
+  .table {
+    thead th {
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.03em;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      transition: background-color 0.15s ease;
+
+      &:hover {
+        background-color: var(--#{$prefix}gray-100);
+      }
+    }
+  }
+
+  // ---- Pagination modern ----
+  .pagination {
+    gap: 0.25rem;
+
+    .page-item {
+      .page-link {
+        border: 0;
+        border-radius: $border-radius;
+        min-width: 36px;
+        text-align: center;
+        color: var(--#{$prefix}gray-600);
+        transition: background-color 0.2s ease, color 0.2s ease;
+
+        &:hover {
+          background-color: var(--#{$prefix}gray-100);
+          color: var(--#{$prefix}primary);
+        }
+      }
+
+      &.active .page-link {
+        background-color: var(--#{$prefix}primary);
+        color: #fff;
+      }
+
+      &.disabled .page-link {
+        opacity: 0.5;
+      }
+    }
+  }
+
+  // ---- Empty state ----
+  .peminjamanaktif-empty {
+    .peminjamanaktif-empty-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background-color: var(--#{$prefix}primary-subtle);
+      color: var(--#{$prefix}primary);
+    }
+  }
+
+  // ---- Responsive ----
+  @include media-breakpoint-down(md) {
+    .peminjamanaktif-toolbar {
+      padding: 1rem;
+    }
+  }
+}
+
+// ============================================================
+// Form Pengembalian Modal - scoped (UI only)
+// ============================================================
+.pengembalian-modal {
+  .pengembalian-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: $border-radius;
+    background-color: var(--#{$prefix}primary-subtle);
+    color: var(--#{$prefix}primary);
+  }
+
+  .pengembalian-hero {
+    padding: 1rem 1.25rem;
+    border-radius: $border-radius-lg;
+    background-color: var(--#{$prefix}gray-100);
+  }
+
+  .confirm-action-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+  }
+  .confirm-action-icon-success {
+    background-color: rgba(25, 135, 84, 0.1);
+    color: #198754;
+  }
+  .confirm-action-icon-danger {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+  }
+
+  .form-label {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--#{$prefix}gray-800);
+    margin-bottom: 0.375rem;
+  }
+}
+
+// ============================================================
+// Consumable Masuk - scoped (UI only, tidak berdampak ke halaman lain)
+// Pola sama dengan halaman data lain.
+// ============================================================
+.consumablemasuk-page
+.toolsmasuk-page {
+  // ---- Toolbar: search ----
+  .consumablemasuk-toolbar {
+    padding: 1rem 1.25rem;
+
+    .form-control {
+      height: 44px;
+    }
+  }
+
+  // Search dengan ikon di depan
+  .consumablemasuk-search {
+    .input-group-text {
+      background-color: var(--#{$prefix}body-bg);
+      border-right: 0;
+      color: var(--#{$prefix}gray-600);
+    }
+
+    .form-control {
+      border-left: 0;
+      padding-left: 0;
+
+      &:focus {
+        box-shadow: none;
+        border-color: var(--#{$prefix}border-color);
+      }
+
+      &::-webkit-search-cancel-button {
+        display: none;
+      }
+    }
+
+    &:focus-within {
+      .input-group-text,
+      .form-control {
+        border-color: var(--#{$prefix}primary);
+      }
+    }
+
+    .consumablemasuk-search-clear {
+      position: absolute;
+      right: 0;
+      top: 0;
+      z-index: 5;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      padding: 0 0.75rem;
+      color: var(--#{$prefix}gray-600);
+      text-decoration: none;
+
+      &:hover {
+        color: var(--#{$prefix}danger);
+      }
+    }
+  }
+
+  // ---- Table ----
+  .table {
+    thead th {
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.03em;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      transition: background-color 0.15s ease;
+
+      &:hover {
+        background-color: var(--#{$prefix}gray-100);
+      }
+    }
+  }
+
+  // ---- Pagination modern ----
+  .pagination {
+    gap: 0.25rem;
+
+    .page-item {
+      .page-link {
+        border: 0;
+        border-radius: $border-radius;
+        min-width: 36px;
+        text-align: center;
+        color: var(--#{$prefix}gray-600);
+        transition: background-color 0.2s ease, color 0.2s ease;
+
+        &:hover {
+          background-color: var(--#{$prefix}gray-100);
+          color: var(--#{$prefix}primary);
+        }
+      }
+
+      &.active .page-link {
+        background-color: var(--#{$prefix}primary);
+        color: #fff;
+      }
+
+      &.disabled .page-link {
+        opacity: 0.5;
+      }
+    }
+  }
+
+  // ---- Empty state ----
+  .consumablemasuk-empty {
+    .consumablemasuk-empty-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background-color: var(--#{$prefix}primary-subtle);
+      color: var(--#{$prefix}primary);
+    }
+  }
+
+  // ---- Responsive ----
+  @include media-breakpoint-down(md) {
+    .consumablemasuk-toolbar {
+      padding: 1rem;
+    }
+  }
+}
+
+// ============================================================
+// Consumable Masuk Form Modal (Tambah/Edit) - scoped (UI only)
+// ============================================================
+.consumablemasuk-modal {
+  .consumablemasuk-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: $border-radius;
+    background-color: var(--#{$prefix}primary-subtle);
+    color: var(--#{$prefix}primary);
+  }
+
+  .consumablemasuk-hero {
+    padding: 1rem 1.25rem;
+    border-radius: $border-radius-lg;
+    background-color: var(--#{$prefix}gray-100);
+  }
+
+  .consumablemasuk-section {
+    .form-label {
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--#{$prefix}gray-800);
+      margin-bottom: 0.375rem;
+    }
+
+    .form-control {
+      height: 44px;
+    }
+  }
+}
+
+// ============================================================
+// Consumable Masuk Delete Modal - scoped (UI only)
+// ============================================================
+.consumablemasuk-delete-modal {
+  .consumablemasuk-delete-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: $border-radius;
+    background-color: var(--#{$prefix}danger-subtle);
+    color: var(--#{$prefix}danger);
+  }
+
+  .consumablemasuk-delete-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background-color: var(--#{$prefix}danger-subtle);
+    color: var(--#{$prefix}danger);
+  }
+
+  .consumablemasuk-delete-hero {
+    padding: 1rem 1.25rem;
+    border-radius: $border-radius-lg;
+    background-color: var(--#{$prefix}gray-100);
+  }
+}
+
+// ============================================================
+// Riwayat Filter Bar (shared) - scoped (UI only)
+// Filter bulan/tahun + tombol export. Dipakai di beberapa halaman riwayat.
+// ============================================================
+.riwayat-filterbar {
+  // Desktop: filter (kiri) & export (kanan) sejajar
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+
+  // Grup filter bulan/tahun
+  .riwayat-filter-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  // Grup tombol export
+  .riwayat-export-controls {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .riwayat-filter-group {
+    .input-group-text {
+      background-color: var(--#{$prefix}body-bg);
+      border-right: 0;
+      color: var(--#{$prefix}gray-600);
+    }
+
+    .form-select {
+      height: 44px;
+      border-left: 0;
+      min-width: 160px;
+
+      &:focus {
+        box-shadow: none;
+        border-color: var(--#{$prefix}border-color);
+      }
+    }
+
+    &:focus-within {
+      .input-group-text,
+      .form-select {
+        border-color: var(--#{$prefix}primary);
+      }
+    }
+  }
+
+  .btn {
+    height: 44px;
+  }
+
+  // ---- Mobile: semua kontrol menumpuk vertikal & full-width ----
+  @include media-breakpoint-down(md) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+
+    .riwayat-filter-controls,
+    .riwayat-export-controls {
+      flex-direction: column;
+      align-items: stretch;
+      width: 100%;
+    }
+
+    // Field full-width, tapi isi (ikon + dropdown) tetap satu baris (identik desktop)
+    .riwayat-filter-group {
+      width: 100%;
+      flex-wrap: nowrap;
+
+      .form-select {
+        min-width: 0;
+        flex: 1 1 auto;
+        width: auto;
+      }
+    }
+
+    .riwayat-export-controls .btn {
+      width: 100%;
+    }
+  }
+}
+
+// ============================================================
+// Halaman Riwayat (Peminjaman Tools) - scoped (UI only)
+// ============================================================
+.riwayat-page {
+  // ---- Toolbar: dua baris (search+info, filter+export) ----
+  .riwayat-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+
+    // filter bar tidak perlu margin bawah karena gap toolbar sudah mengatur jarak
+    .riwayat-filterbar {
+      margin-bottom: 0;
+    }
+  }
+
+  // Baris 1: Search (kiri, elemen utama ~50%) + Info jumlah (kanan)
+  .riwayat-toolbar-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  // Search dengan ikon di depan
+  .riwayat-search {
+    flex: 0 0 50%;
+    max-width: 50%;
+
+    .input-group-text {
+      background-color: var(--#{$prefix}body-bg);
+      border-right: 0;
+      color: var(--#{$prefix}gray-600);
+    }
+
+    .form-control {
+      height: 44px;
+      border-left: 0;
+      padding-left: 0;
+
+      &:focus {
+        box-shadow: none;
+        border-color: var(--#{$prefix}border-color);
+      }
+
+      &::-webkit-search-cancel-button {
+        display: none;
+      }
+    }
+
+    &:focus-within {
+      .input-group-text,
+      .form-control {
+        border-color: var(--#{$prefix}primary);
+      }
+    }
+
+    .riwayat-search-clear {
+      position: absolute;
+      right: 0;
+      top: 0;
+      z-index: 5;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      padding: 0 0.75rem;
+      color: var(--#{$prefix}gray-600);
+      text-decoration: none;
+
+      &:hover {
+        color: var(--#{$prefix}danger);
+      }
+    }
+  }
+
+  // Info jumlah data: rata kanan, sejajar vertikal dengan search
+  .riwayat-info {
+    flex-shrink: 0;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  // ---- Responsive ----
+  // Tablet: search tetap penuh, info turun di bawah search
+  @include media-breakpoint-down(lg) {
+    .riwayat-toolbar-row {
+      flex-wrap: wrap;
+    }
+
+    .riwayat-search {
+      flex: 1 1 100%;
+      max-width: 100%;
+    }
+
+    .riwayat-info {
+      text-align: left;
+    }
+  }
+
+  // ---- Table ----
+  .table {
+    thead th {
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.03em;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      transition: background-color 0.15s ease;
+
+      &:hover {
+        background-color: var(--#{$prefix}gray-100);
+      }
+    }
+  }
+
+  // ---- Pagination modern ----
+  .pagination {
+    gap: 0.25rem;
+
+    .page-item {
+      .page-link {
+        border: 0;
+        border-radius: $border-radius;
+        min-width: 36px;
+        text-align: center;
+        color: var(--#{$prefix}gray-600);
+        transition: background-color 0.2s ease, color 0.2s ease;
+
+        &:hover {
+          background-color: var(--#{$prefix}gray-100);
+          color: var(--#{$prefix}primary);
+        }
+      }
+
+      &.active .page-link {
+        background-color: var(--#{$prefix}primary);
+        color: #fff;
+      }
+
+      &.disabled .page-link {
+        opacity: 0.5;
+      }
+    }
+  }
+
+  // ---- Empty state ----
+  .riwayat-empty {
+    .riwayat-empty-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background-color: var(--#{$prefix}primary-subtle);
+      color: var(--#{$prefix}primary);
+    }
+  }
+
+  // ---- Responsive ----
+  // Mobile: kecilkan padding toolbar. Susunan filter/export vertikal
+  // sudah ditangani oleh .riwayat-filterbar sendiri.
+  @include media-breakpoint-down(md) {
+    .riwayat-toolbar {
+      padding: 1rem;
+    }
+  }
+}
+
+// ============================================================
+// Detail Transaksi Modal (Riwayat Peminjaman) - scoped (UI only)
+// ============================================================
+.detail-transaksi-modal {
+  .detail-transaksi-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: $border-radius;
+    background-color: var(--#{$prefix}primary-subtle);
+    color: var(--#{$prefix}primary);
+  }
+
+  .detail-transaksi-hero {
+    padding: 1.25rem;
+    border-radius: $border-radius-lg;
+    background-color: var(--#{$prefix}gray-100);
+  }
+
+  .detail-transaksi-badge {
+    font-size: 0.8125rem;
+    padding: 0.4rem 0.75rem;
+  }
+
+  .detail-transaksi-item {
+    padding: 0.5rem 0;
+  }
+
+  .detail-transaksi-section {
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--#{$prefix}border-color);
+  }
+
+  .detail-transaksi-table {
+    thead th {
+      text-transform: uppercase;
+      font-size: 0.7rem;
+      letter-spacing: 0.03em;
+      font-weight: 600;
+      color: var(--#{$prefix}gray-600);
+      white-space: nowrap;
+    }
+  }
+}
+
+// ============================================================
+// Detail Laporan Kerusakan Modal - scoped (UI only)
+// ============================================================
+.detail-laporan-modal {
+  .detail-laporan-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: $border-radius;
+    background-color: var(--#{$prefix}danger-subtle);
+    color: var(--#{$prefix}danger);
+  }
+
+  .detail-laporan-hero {
+    padding: 1.25rem;
+    border-radius: $border-radius-lg;
+    background-color: var(--#{$prefix}gray-100);
+  }
+
+  .detail-laporan-badge {
+    font-size: 0.8125rem;
+    padding: 0.4rem 0.75rem;
+  }
+
+  .detail-laporan-item {
+    padding: 0.5rem 0;
+  }
+
+  .detail-laporan-section {
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--#{$prefix}border-color);
+  }
+}
+
+// ============================================================
+// Sidebar / Navbar - branding PLN (UI only)
+// Hanya menata logo PLN + warna background menu aktif.
+// Spacing menu, submenu, hover, ikon, dan dropdown arrow
+// dikembalikan mengikuti tema lama (tidak di-override di sini).
+// ============================================================
+#miniSidebar,
+.offcanvasNav {
+  // ---- Brand / Logo PLN (hanya logo, tanpa teks) ----
+  .brand-logo {
+    padding: 1rem 1.125rem 1.375rem; // atas | kiri-kanan ~18px | bawah ~22px
+  }
+
+  .pln-brand {
+    text-decoration: none;
+    width: 100%;
+  }
+
+  // Logo mengisi lebar area header secara proporsional, aspect ratio terjaga
+  .pln-logo {
+    width: 100%;
+    max-width: 160px;
+    height: auto;
+    object-fit: contain;
+  }
+}
+
+// ---- Active menu: background primary (biru), teks & ikon putih ----
+// Ikon mengikuti state active (putih saat aktif, abu-abu saat normal
+// mengikuti tema lama). Selektor menyamai tema (_navbar-vertical.scss)
+// supaya menang lewat urutan import.
+html.expanded #miniSidebar,
+html.collapsed #miniSidebar,
+.offcanvasNav {
+  .nav-link.active {
+    color: #fff;
+    background-color: var(--#{$prefix}primary);
+
+    .nav-icon {
+      color: #fff;
+    }
+  }
+
+  // ---- Submenu: kurangi indent agar lebih sejajar & konsisten ----
+  .dropdown-menu .nav-link {
+    margin-left: 2rem;
+    margin-right: 0.5rem;
+  }
+}
+
+// ============================================================
+// Header / Topbar - action area (UI only)
+// Theme toggle + avatar, gap konsisten, rata tengah vertikal.
+// ============================================================
+.header-actions {
+  gap: 12px;
+
+  > li {
+    display: flex;
+    align-items: center;
+  }
+}
+
+// Tombol Theme Toggle
+.theme-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  padding: 0;
+  background-color: #fff;
+  border: 1px solid var(--#{$prefix}gray-200);
+  color: var(--#{$prefix}gray-700);
+  transition: background-color 0.2s ease, border-color 0.2s ease,
+    color 0.2s ease;
+
+  &:hover {
+    background-color: var(--#{$prefix}gray-100);
+  }
+
+  [data-bs-theme="dark"] & {
+    background-color: #1e293b; // slate-800
+    border-color: #334155; // slate-700
+    color: var(--#{$prefix}gray-700);
+
+    &:hover {
+      background-color: #172033; // sedikit lebih gelap
+    }
+  }
+}
+
+// ============================================================
+// Halaman Profil - scoped (UI only)
+// ============================================================
+.profile-page {
+  .form-label {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--#{$prefix}gray-800);
+    margin-bottom: 0.375rem;
+  }
+
+  .form-control {
+    height: 44px;
+  }
+
+  // Ikon judul section (Ubah Password)
+  .profile-section-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: $border-radius;
+    background-color: var(--#{$prefix}primary-subtle);
+    color: var(--#{$prefix}primary);
+  }
+
+  // Bungkus avatar besar di kartu identitas
+  .profile-avatar-wrap {
+    width: fit-content;
+  }
+}
+
+// ============================================================
+// Halaman Login - scoped (UI only)
+// ============================================================
+.auth-wrapper {
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+// Animasi fade-in ringan untuk kedua panel
+@keyframes loginFadeLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes loginFadeRight {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.login-page {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+
+  // Card utama dua panel
+  .login-card {
+    display: flex;
+    width: 100%;
+    max-width: 1160px;
+    min-height: 620px;
+    background-color: #fff;
+    border-radius: 28px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+  }
+
+  // Animasi masuk
+  .login-anim-left {
+    animation: loginFadeLeft 0.45s ease-out both;
+  }
+  .login-anim-right {
+    animation: loginFadeRight 0.45s ease-out both;
+  }
+
+  // ---- Panel kiri: visual ----
+  .login-visual {
+    position: relative;
+    flex: 0 0 45%;
+    max-width: 45%;
+    display: flex;
+    align-items: center; // teks center vertikal (~50%)
+
+    .login-visual-img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+    }
+
+    // Overlay gradient biru (primary) opacity ~40-50%
+    .login-visual-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        135deg,
+        rgba(0, 100, 146, 0.55) 0%,
+        rgba(0, 100, 146, 0.45) 55%,
+        rgba(0, 100, 146, 0.40) 100%
+      );
+    }
+
+    .login-visual-content {
+      position: relative;
+      z-index: 2;
+      padding: 3.5rem;
+      color: #fff;
+    }
+
+    .login-visual-title {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 1.25rem;
+      color: #fff;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .login-visual-subtitle {
+      font-size: 1.0625rem;
+      font-weight: 500;
+      margin-bottom: 0;
+      line-height: 1.7;
+      color: #fff;
+      text-shadow: 0 1px 8px rgba(0, 0, 0, 0.3);
+    }
+  }
+
+  // ---- Panel kanan: form ----
+  .login-form-panel {
+    flex: 1 1 55%;
+    max-width: 55%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3.5rem;
+  }
+
+  .login-form-inner {
+    width: 100%;
+    max-width: 400px;
+  }
+
+  // Logo PLN: tidak terlalu besar, margin bawah ~32px
+  .login-logo {
+    width: 180px;
+    height: auto;
+    object-fit: contain;
+    margin-bottom: 2rem;
+  }
+
+  // Judul & deskripsi
+  .login-title {
+    font-size: 2.15rem;
+    font-weight: 700;
+    color: var(--#{$prefix}gray-800);
+  }
+
+  .login-subtitle {
+    font-size: 1rem;
+    color: #64748b;
+  }
+
+  // ---- Label form: sejajar dengan input, spacing & tipografi konsisten ----
+  .form-label {
+    display: block;
+    margin-bottom: 0.5rem; // 8px antara label dan input
+    padding-left: 0.25rem; // sejajar visual dengan teks di dalam input
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--#{$prefix}gray-800);
+  }
+
+  // Jarak antar field (Email -> Password) ~24px, konsisten
+  form .mb-3 {
+    margin-bottom: 1.5rem !important;
+  }
+
+  // ---- Input modern: satu container utuh, ikon di dalam ----
+  .login-input {
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+    background-color: #fff;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    flex-wrap: nowrap;
+
+    .input-group-text {
+      background-color: transparent;
+      border: 0;
+      color: var(--#{$prefix}gray-600);
+      padding-left: 1rem;
+      padding-right: 0.5rem;
+    }
+
+    .form-control {
+      height: 50px;
+      border: 0;
+      background-color: transparent;
+      padding-left: 0.5rem;
+
+      &:focus {
+        box-shadow: none;
+      }
+      &::placeholder {
+        color: #94a3b8;
+      }
+    }
+
+    // Tombol show/hide password menyatu tanpa border
+    .login-password-toggle {
+      border: 0;
+      background-color: transparent;
+      color: var(--#{$prefix}gray-600);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      padding: 0 1rem;
+
+      &:hover {
+        color: var(--#{$prefix}primary);
+      }
+    }
+
+    // Hover & focus pada seluruh container
+    &:hover {
+      border-color: #94a3b8;
+    }
+    &:focus-within {
+      border-color: var(--#{$prefix}primary);
+      box-shadow: 0 0 0 3px rgba(0, 100, 146, 0.12);
+    }
+  }
+
+  // ---- Custom checkbox "Ingat saya" ----
+  .form-check {
+    .form-check-input {
+      width: 1.125rem;
+      height: 1.125rem;
+      margin-top: 0.15rem;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      cursor: pointer;
+
+      &:checked {
+        background-color: var(--#{$prefix}primary);
+        border-color: var(--#{$prefix}primary);
+      }
+      &:focus {
+        box-shadow: 0 0 0 3px rgba(0, 100, 146, 0.12);
+        border-color: var(--#{$prefix}primary);
+      }
+    }
+    .form-check-label {
+      font-size: 0.875rem;
+      color: var(--#{$prefix}gray-700);
+      cursor: pointer;
+    }
+  }
+
+  // ---- Link Lupa Password ----
+  .login-forgot {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #64748b;
+    transition: color 0.2s ease;
+
+    &:hover {
+      color: var(--#{$prefix}primary);
+    }
+  }
+
+  // ---- Tombol Masuk premium ----
+  .login-submit-btn {
+    height: 54px;
+    border-radius: 14px;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(0, 100, 146, 0.2);
+    transition: transform 0.2s ease, box-shadow 0.2s ease,
+      background-color 0.2s ease;
+
+    &:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(0, 100, 146, 0.28);
+    }
+  }
+
+  // ---- Footer ----
+  .login-footer {
+    margin-top: 2rem;
+    font-size: 0.75rem;
+    color: #94a3b8;
+    line-height: 1.6;
+  }
+
+  // ---- Responsive ----
+  // Tablet: panel kiri diperkecil
+  @include media-breakpoint-down(lg) {
+    .login-card {
+      min-height: 560px;
+    }
+    .login-visual {
+      flex-basis: 38%;
+      max-width: 38%;
+
+      .login-visual-content {
+        padding: 2rem;
+      }
+      .login-visual-title {
+        font-size: 2rem;
+      }
+    }
+    .login-form-panel {
+      flex-basis: 62%;
+      max-width: 62%;
+      padding: 2.5rem;
+    }
+  }
+
+  // Mobile: sembunyikan panel kiri, form full & center
+  @include media-breakpoint-down(md) {
+    .login-card {
+      max-width: 460px;
+      min-height: 0;
+    }
+    .login-visual {
+      display: none;
+    }
+    .login-form-panel {
+      flex-basis: 100%;
+      max-width: 100%;
+      padding: 2.5rem 1.75rem;
+    }
+  }
+}
+
+// Filter toolbar operasional: visual identik dengan toolbar Riwayat/Laporan.
+.operational-filterbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+
+  .operational-filter-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .operational-export-controls {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .operational-filter-group {
+    flex-wrap: nowrap;
+
+    .input-group-text {
+      height: 44px;
+      background-color: var(--#{$prefix}body-bg);
+      border-right: 0;
+      color: var(--#{$prefix}gray-600);
+    }
+
+    .form-select {
+      height: 44px;
+      min-width: 160px;
+      border-left: 0;
+
+      &:focus {
+        box-shadow: none;
+        border-color: var(--#{$prefix}border-color);
+      }
+    }
+
+    &:focus-within {
+      .input-group-text,
+      .form-select {
+        border-color: var(--#{$prefix}primary);
+      }
+    }
+  }
+
+  .btn {
+    height: 44px;
+  }
+
+  @include media-breakpoint-down(md) {
+    flex-direction: column;
+    align-items: stretch;
+
+    .operational-filter-controls,
+    .operational-export-controls {
+      flex-direction: column;
+      align-items: stretch;
+      width: 100%;
+    }
+
+    .operational-filter-group {
+      width: 100%;
+
+      .form-select {
+        min-width: 0;
+        flex: 1 1 auto;
+        width: auto;
+      }
+    }
+
+    .operational-export-controls .btn {
+      width: 100%;
+    }
+  }
+}
+
+// Toolbar operasional & riwayat: satu layout referensi untuk Search, Filter,
+// dan Export. Semua halaman memakai struktur vertikal yang sama.
+.peminjamanaktif-page,
+.consumablemasuk-page,
+.toolsmasuk-page,
+.riwayat-page {
+  .riwayat-toolbar {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+  }
+
+  .riwayat-toolbar-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    width: 100%;
+  }
+
+  .riwayat-search {
+    flex: 0 0 50%;
+    max-width: 50%;
+
+    .input-group-text {
+      background-color: var(--#{$prefix}body-bg);
+      border-right: 0;
+      color: var(--#{$prefix}gray-600);
+    }
+
+    .form-control {
+      height: 44px;
+      border-left: 0;
+      padding-left: 0;
+
+      &:focus {
+        box-shadow: none;
+        border-color: var(--#{$prefix}border-color);
+      }
+    }
+
+    &:focus-within {
+      .input-group-text,
+      .form-control {
+        border-color: var(--#{$prefix}primary);
+      }
+    }
+
+    .riwayat-search-clear {
+      position: absolute;
+      right: 0;
+      top: 0;
+      z-index: 5;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      padding: 0 0.75rem;
+      color: var(--#{$prefix}gray-600);
+      text-decoration: none;
+    }
+  }
+
+  .riwayat-info {
+    flex: 1 1 auto;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  // Filter berada tepat di bawah search, satu kolom dengan lebar sama.
+  .riwayat-filterbar {
+    width: 50%;
+    margin-top: 0;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 0.75rem;
+  }
+
+  .riwayat-filter-controls {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 0.75rem;
+  }
+
+  .riwayat-filter-group {
+    width: 100%;
+    flex-wrap: nowrap;
+
+    .form-select {
+      min-width: 0;
+      flex: 1 1 auto;
+      width: auto;
+    }
+  }
+
+  // Export berada di bawah semua filter, tetap horizontal.
+  .riwayat-export-controls {
+    display: flex;
+    flex-direction: row;
+    gap: 0.5rem;
+    width: 100%;
+
+    .btn {
+      flex: 1 1 0;
+      width: auto;
+    }
+  }
+
+  @include media-breakpoint-down(md) {
+    .riwayat-toolbar {
+      padding: 1rem;
+    }
+
+    .riwayat-toolbar-row {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.5rem;
+    }
+
+    .riwayat-search,
+    .riwayat-filterbar {
+      width: 100%;
+      max-width: 100%;
+      flex-basis: auto;
+    }
+
+    .riwayat-info {
+      text-align: left;
+    }
+
+    .riwayat-export-controls {
+      flex-direction: column;
+
+      .btn {
+        width: 100%;
+      }
+    }
+  }
+}
+
+// Action cell Data Tools / Data Consumable: slot tetap menjaga tombol titik tiga
+// berada pada koordinat horizontal yang sama meski tombol utama disabled.
+.datatools-action-cell,
+.dataconsumable-action-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+}
+
+.datatools-action-main,
+.dataconsumable-action-main {
+  display: flex;
+  align-items: center;
+  flex: 0 0 190px;
+  min-width: 190px;
+
+  // Tombol utama tetap memiliki lebar yang sama saat teks berubah
+  // dari "Tambah ..." menjadi "Stok Habis".
+  > button {
+    width: 190px;
+    height: 38px;
+    padding: 0 0.75rem;
+    justify-content: flex-start;
+    white-space: nowrap;
+  }
+}
+
+// Label consumable lebih pendek; gunakan slot proporsional tanpa menggeser menu.
+.dataconsumable-action-main {
+  flex-basis: 128px;
+  min-width: 128px;
+
+  > button {
+    width: 128px;
+  }
+}
+
+.datatools-action-menu,
+.dataconsumable-action-menu {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 36px;
+  min-width: 36px;
+}
+
+@include media-breakpoint-down(lg) {
+  .datatools-action-main,
+  .dataconsumable-action-main {
+    flex-basis: 40px;
+    min-width: 40px;
+
+    > button {
+      width: 40px;
+      height: 38px;
+      padding: 0;
+      justify-content: center;
+    }
+  }
+
+  .dataconsumable-action-main {
+    flex-basis: 40px;
+    min-width: 40px;
+
+    > button {
+      width: 40px;
+    }
+  }
+}
+
+// Action dropdown berada di atas row/table tanpa mengubah tinggi baris.
+.datatools-action-menu,
+.dataconsumable-action-menu {
+  z-index: 10;
+
+  .dropdown-menu {
+    z-index: 1080;
+  }
+}
+
+// Saat dropdown terbuka, naikkan row/cell pemiliknya di atas row lain.
+.datatools-action-cell:has(.dropdown-menu.show),
+.dataconsumable-action-cell:has(.dropdown-menu.show) {
+  z-index: 20;
+}
+
+// table-responsive memotong dropdown karena overflow:auto. Lepaskan clipping
+// hanya selama menu terbuka; horizontal scrolling tetap aktif saat tertutup.
+.datatools-page .table-responsive:has(.dropdown-menu.show),
+.dataconsumable-page .table-responsive:has(.dropdown-menu.show) {
+  overflow: visible;
+}
+
+// Naikkan cell sticky pemilik dropdown, bukan hanya wrapper action.
+// Sticky td membentuk stacking context sendiri; z-index pada child saja tidak cukup.
+.datatools-page .table-responsive tbody td:has(.dropdown-menu.show),
+.dataconsumable-page .table-responsive tbody td:has(.dropdown-menu.show) {
+  z-index: 1000 !important;
+}
+
+.datatools-page .table-responsive tbody tr:has(.dropdown-menu.show),
+.dataconsumable-page .table-responsive tbody tr:has(.dropdown-menu.show) {
+  position: relative;
+  z-index: 1000;
+}
+
+// ============================================================
+// Tabel dengan banyak kolom - kolom "Aksi" sticky di kanan (UI only)
+// Scoped ke wrapper halaman manager (tidak menyentuh TanstackTable shared
+// maupun halaman blog/ecommerce). AKTIF DI SEMUA UKURAN LAYAR (desktop
+// & mobile) -- sebelumnya cuma aktif di layar < lg, tapi sekarang tabel
+// makin banyak kolom sehingga di desktop pun perlu scroll horizontal.
+// ============================================================
+.datatools-page,
+.dataconsumable-page,
+.datapeminjam-page,
+.consumablemasuk-page,
+.toolsmasuk-page,
+.riwayat-page {
+  .table-responsive {
+    // Kolom terakhir (Aksi) selalu terlihat saat scroll horizontal
+    table {
+      thead th:last-child,
+      tbody td:last-child {
+        position: sticky;
+        right: 0;
+        z-index: 2;
+        // shadow tipis sebagai pemisah dari kolom yang tergulir di baliknya
+        box-shadow: -6px 0 8px -6px rgba(0, 0, 0, 0.15);
+      }
+
+      // Header kolom Aksi mengikuti warna header tabel
+      thead th:last-child {
+        background-color: var(--#{$prefix}gray-100);
+      }
+
+      // Sel Aksi pakai background surface (card) agar konten di belakang tidak tembus
+      tbody td:last-child {
+        background-color: var(--#{$prefix}card-bg, #fff);
+      }
+
+      // Saat baris di-hover, sel sticky ikut berubah warna agar konsisten
+      tbody tr:hover td:last-child {
+        background-color: var(--#{$prefix}gray-100);
+      }
+    }
+  }
+}
+
+
+// ============================================================
+// Heading responsive - judul halaman (h1.h2) mengecil di layar kecil
+// Scoped ke #content agar tidak memengaruhi heading di dalam modal/komponen lain.
+// ============================================================
+#content {
+  // Tablet portrait ke bawah
+  @include media-breakpoint-down(md) {
+    h1.h2 {
+      font-size: 1.5rem; // ~24-30px
+    }
+  }
+
+  // Mobile kecil
+  @include media-breakpoint-down(sm) {
+    h1.h2 {
+      font-size: 1.375rem;
+    }
+  }
+}
+
+// ============================================================
+// Login - polish: card fleksibel di layar pendek (hindari terpotong)
+// ============================================================
+.login-page {
+  .login-card {
+    // pada layar dengan tinggi terbatas, biarkan card mengikuti konten
+    @media (max-height: 700px) {
+      min-height: auto;
+    }
+  }
+}
+
+// ============================================================
+// Order Tools/Consumable - dropdown status subtle (pola sama
+// dengan bg-{warna}-subtle + text-{warna}-emphasis yang sudah
+// dipakai di komponen lain seperti NoficationList).
+// ============================================================
+.order-status-select {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 0.25rem 0.625rem 0.25rem 0.75rem;
+  cursor: pointer;
+  height: auto;
+  min-height: 0;
+  line-height: 1.4;
+
+  // Option list tetap default agar mudah dibaca
+  option {
+    color: var(--#{$prefix}body-color);
+    font-weight: 400;
+    background-color: #fff;
+    padding: 0.25rem 0.5rem;
+  }
+
+  // Subtle background + text per status
+  &.status-belum {
+    background-color: var(--#{$prefix}warning-bg-subtle) !important;
+    color: var(--#{$prefix}warning-text-emphasis) !important;
+    border-color: var(--#{$prefix}warning-border-subtle);
+  }
+  &.status-progres {
+    background-color: var(--#{$prefix}info-bg-subtle) !important;
+    color: var(--#{$prefix}info-text-emphasis) !important;
+    border-color: var(--#{$prefix}info-border-subtle);
+  }
+  &.status-dibeli {
+    background-color: var(--#{$prefix}success-bg-subtle) !important;
+    color: var(--#{$prefix}success-text-emphasis) !important;
+    border-color: var(--#{$prefix}success-border-subtle);
+  }
+  &.status-tolak {
+    background-color: var(--#{$prefix}danger-bg-subtle) !important;
+    color: var(--#{$prefix}danger-text-emphasis) !important;
+    border-color: var(--#{$prefix}danger-border-subtle);
+  }
+
+  // Chevron kecil & senada dengan teks
+  background-image: none; // sembunyikan default Bootstrap
+  appearance: none;
+
+  &::after {
+    content: "\\ea5f"; // tabler-icon chevron-down
+    font-family: 'tabler-icons' !important;
+    font-size: 14px;
+    margin-left: 0.375rem;
+    opacity: 0.7;
+    display: inline-block;
+    vertical-align: middle;
+  }
+}

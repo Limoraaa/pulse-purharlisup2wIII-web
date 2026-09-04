@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Peminjaman;
 use App\Models\Tool;
+use App\Models\Consumable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -24,122 +25,116 @@ class PeminjamanController extends Controller
 
     public function scan(Request $request)
     {
-        // 1. Validasi input
         $request->validate([
-            'tools_id' => 'required|string', 
+            'tools_id'      => 'nullable|uuid|required_without:consumable_id',
+            'consumable_id' => 'nullable|uuid|required_without:tools_id',
+            'jumlah'        => 'required|integer|min:1',
         ]);
 
-        // 2. Debugging: Log kode yang diterima
-        $cleanId = trim($request->tools_id);
-        \Log::info("Scanner - Mencoba scan kode: " . $cleanId);
+        $userId = $request->user('sanctum')?->id ?? '00000000-0000-0000-0000-000000000000';
+        $jumlah = $request->jumlah;
 
-        // 3. Cari tool berdasarkan kode_barang atau id
-        $tool = Tool::where('kode_barang', $cleanId)
-                    ->orWhere('id', $cleanId)
-                    ->first();
+        $itemId = $request->filled('tools_id') ? $request->tools_id : $request->consumable_id;
 
-        // 4. Jika tidak ditemukan
-        if (!$tool) {
-            \Log::error("Scanner - Barang tidak ditemukan: " . $cleanId);
-            return response()->json(['message' => 'Barang dengan kode ' . $cleanId . ' tidak ditemukan!'], 404);
+        $tool = Tool::find($itemId);
+        $consumable = $tool ? null : Consumable::find($itemId);
+
+        if (!$tool && !$consumable) {
+            return response()->json(['message' => 'Item tidak ditemukan di data Tools maupun Consumable.'], 404);
         }
 
-        // 5. Tentukan user_id (gunakan ID tamu default jika tidak ada user login)
-        $user = $request->user('sanctum');
-        $userId = $user ? $user->id : '00000000-0000-0000-0000-000000000000';
+        $isTool = (bool) $tool;
+        $column = $isTool ? 'tools_id' : 'consumable_id';
 
-        // 6. Cek apakah barang sudah ada di keranjang (untuk menghindari duplikat baris)
         $existing = DB::table('temporary_cart')
-            ->where('tools_id', $tool->id)
-            ->where('user_id', $userId)
+            ->where($column, $itemId)
             ->first();
 
-        // 7. Proses Insert atau Update (menghindari bug keranjang terpisah)
-        return DB::transaction(function () use ($tool, $userId, $existing) {
+        $totalDiminta = ($existing->qty ?? 0) + $jumlah;
+
+        if ($isTool) {
+            if ($tool->tersedia() < $totalDiminta) {
+                return response()->json([
+                    'message' => "Stok alat '{$tool->nama_barang}' tidak mencukupi! Tersedia maksimal: {$tool->tersedia()}",
+                ], 422);
+            }
+        } else {
+            if ($consumable->stok_awal < $totalDiminta) {
+                return response()->json([
+                    'message' => "Stok bahan '{$consumable->nama}' tidak mencukupi! Tersedia maksimal: {$consumable->stok_awal}",
+                ], 422);
+            }
+        }
+
+        return DB::transaction(function () use ($existing, $itemId, $userId, $column, $jumlah, $isTool, $tool, $consumable) {
             if ($existing) {
-                // Jika sudah ada, cukup tambahkan qty-nya
-                DB::table('temporary_cart')
-                    ->where('id', $existing->id)
-                    ->update([
-                        'qty' => $existing->qty + 1,
-                        'updated_at' => now(),
-                    ]);
-                $message = 'Jumlah barang diperbarui di keranjang';
+                DB::table('temporary_cart')->where('id', $existing->id)->update([
+                    'qty'        => $existing->qty + $jumlah,
+                    'updated_at' => now(),
+                ]);
             } else {
-                // Jika kolom 'id' di database adalah auto-increment (bigint),
-                // jangan memasukkan UUID secara manual. Biarkan database yang meng-generate-nya.
                 DB::table('temporary_cart')->insert([
-                    'user_id' => $userId,
-                    'tools_id' => $tool->id,
-                    'qty' => 1,
+                    'id'         => (string) Str::uuid(),
+                    'user_id'    => $userId,
+                    $column      => $itemId,
+                    'qty'        => $jumlah,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
-                $message = 'Barang berhasil masuk keranjang';
             }
 
-            return response()->json(['message' => $message], 201);
+            $namaBarang = $isTool ? $tool->nama_barang : $consumable->nama;
+            $labelTipe  = $isTool ? 'Alat' : 'Bahan';
+
+            return response()->json(['message' => "Berhasil masuk keranjang: {$namaBarang} ({$labelTipe})"], 201);
         });
     }
 
     // GET /api/peminjaman/antrean
     public function antrean(Request $request)
     {
-        $staticUserId = '00000000-0000-0000-0000-000000000000';
-        $authUserId = $request->user('sanctum')?->id;
-
-        // 1. Ambil data cart saja tanpa join raw SQL
         $cartItems = DB::table('temporary_cart')
-            ->where(function($query) use ($staticUserId, $authUserId) {
-                $query->where('user_id', $staticUserId);
-                if ($authUserId) {
-                    $query->orWhere('user_id', $authUserId);
-                }
-            })
+            ->whereNotNull('tools_id')
             ->get();
 
-        // 2. Looping data cart untuk menyisipkan info detail alat dan stok AKTUAL
         $data = $cartItems->map(function ($item) {
-            $tool = \App\Models\Tool::find($item->tools_id);
-            
+            $tool = Tool::find($item->tools_id);
+
             if ($tool) {
                 $item->nama_barang = $tool->nama_barang;
                 $item->kode_barang = $tool->kode_barang;
-                
-                // PENTING: Gunakan fungsi tersedia() bawaan Model kamu
-                // Ini akan menghasilkan angka akurat (Stok asli - yang sedang dipinjam user lain)
-                $item->max_jumlah = $tool->tersedia(); 
+                $item->max_jumlah  = $tool->tersedia();
+                $item->tipe_item   = 'tool';
             } else {
-                $item->nama_barang = 'Alat Dihapus';
+                $item->nama_barang = 'Item Dihapus';
                 $item->kode_barang = '-';
-                $item->max_jumlah = 0;
+                $item->max_jumlah  = 0;
+                $item->tipe_item   = 'tool';
             }
-            
+
             return $item;
         });
 
         return response()->json(['data' => $data]);
     }
 
+    // PATCH /api/peminjaman/cart/{id}
     public function updateCartItem(Request $request, string $id)
     {
         $request->validate(['qty' => 'required|integer|min:1']);
-        
-        // 1. Ambil data keranjang dan alatnya
-        $cart = DB::table('temporary_cart')->where('id', $id)->first();
+
+        $cart = DB::table('temporary_cart')->where('id', $id)->whereNotNull('tools_id')->first();
         if (!$cart) return response()->json(['message' => 'Item tidak ditemukan'], 404);
 
         $tool = Tool::find($cart->tools_id);
         if (!$tool) return response()->json(['message' => 'Alat tidak ditemukan'], 404);
 
-        // 2. Validasi Stok! Cek apakah angka yang direquest melebihi stok tersedia
         if ($request->qty > $tool->tersedia()) {
             return response()->json([
-                'message' => 'Stok tidak mencukupi! Tersedia maksimal: ' . $tool->tersedia()
+                'message' => 'Stok tidak mencukupi! Tersedia maksimal: ' . $tool->tersedia(),
             ], 422);
         }
 
-        // 3. Update jika aman
         DB::table('temporary_cart')
             ->where('id', $id)
             ->update(['qty' => $request->qty, 'updated_at' => now()]);
@@ -147,45 +142,75 @@ class PeminjamanController extends Controller
         return response()->json(['message' => 'Jumlah diperbarui']);
     }
 
+    // DELETE /api/peminjaman/cart/{id}
     public function removeCartItem($id)
     {
-        // Hapus berdasarkan UUID cart tanpa filter user (Public Mode untuk Cart)
-        $affected = DB::table('temporary_cart')->where('id', $id)->delete();
-        
+        $affected = DB::table('temporary_cart')
+            ->where('id', $id)
+            ->whereNotNull('tools_id')
+            ->delete();
+
+        if (!$affected) {
+            $affected = DB::table('temporary_cart')
+                ->where('tools_id', $id)
+                ->whereNotNull('tools_id')
+                ->delete();
+        }
+
         if (!$affected) return response()->json(['message' => 'Item tidak ditemukan'], 404);
         return response()->json(['message' => 'Item berhasil dihapus dari antrean']);
     }
 
     // POST /api/peminjaman/proses (Dalam middleware auth)
-    public function prosesPeminjaman(Request $request) 
+   public function prosesPeminjaman(Request $request)
     {
         $request->validate([
-            'peminta_id' => 'required|uuid|exists:peminta,id',
+            'peminta_id' => 'required|string|exists:peminta,id',
             'dicatat_oleh' => 'required|uuid|exists:users,id',
+            'nama_pekerjaan' => 'required|string|max:255',
+            'area_pekerjaan' => 'nullable|string|max:255',
+            'spesifikasi' => 'nullable|string',
+            'keterangan' => 'nullable|string',
         ]);
 
-        // Karena satu sistem, kita ambil semua isi antrean
-        $antrean = DB::table('temporary_cart')->get();
+        $antrean = DB::table('temporary_cart')->whereNotNull('tools_id')->get();
 
         if ($antrean->isEmpty()) {
             return response()->json(['message' => 'Antrean kosong'], 400);
         }
 
         foreach ($antrean as $item) {
-            Peminjaman::create([
-                'id' => (string) Str::uuid(),
-                'tool_id' => $item->tools_id,
-                'peminta_id' => $request->peminta_id,
-                'dicatat_oleh' => $request->dicatat_oleh,
-                'tanggal' => now(),
-                'jumlah' => $item->qty,
-            ]);
+            $tool = Tool::find($item->tools_id);
+            if (!$tool) {
+                return response()->json(['message' => 'Salah satu alat di keranjang sudah tidak ada'], 422);
+            }
+            if ($item->qty > $tool->tersedia()) {
+                return response()->json([
+                    'message' => "Stok {$tool->nama_barang} tidak mencukupi! Tersedia maksimal: {$tool->tersedia()}",
+                ], 422);
+            }
         }
 
-        // Kosongkan antrean setelah sukses
-        DB::table('temporary_cart')->truncate();
+        DB::transaction(function () use ($antrean, $request) {
+            foreach ($antrean as $item) {
+                Peminjaman::create([
+                    'id'             => (string) Str::uuid(),
+                    'tool_id'        => $item->tools_id,
+                    'peminta_id'     => $request->peminta_id,
+                    'dicatat_oleh'   => $request->dicatat_oleh,
+                    'tanggal'        => now(),
+                    'jumlah'         => $item->qty,
+                    'nama_pekerjaan' => $request->nama_pekerjaan,
+                    'area_pekerjaan' => $request->area_pekerjaan,
+                    'spesifikasi'    => $request->spesifikasi,
+                    'keterangan'     => $request->keterangan,
+                ]);
+            }
 
-        return response()->json(['message' => 'Peminjaman berhasil diproses!'], 200);
+            DB::table('temporary_cart')->whereNotNull('tools_id')->delete();
+        });
+
+        return response()->json(['message' => 'Transaksi berhasil diproses!'], 200);
     }
 
     // GET /api/peminjaman/{id}
@@ -206,8 +231,10 @@ class PeminjamanController extends Controller
         $validator = Validator::make($request->all(), [
             'tanggal' => 'required|date',
             'tool_id' => 'required|uuid|exists:tools,id',
-            'peminta_id' => 'required|uuid|exists:peminta,id',
+            // Diubah dari 'uuid' menjadi 'string'
+            'peminta_id' => 'required|string|exists:peminta,id',
             'jumlah' => 'required|integer|min:1',
+            'nama_pekerjaan' => 'required|string|max:255',
             'area_pekerjaan' => 'nullable|string|max:255',
             'spesifikasi' => 'nullable|string',
             'keterangan' => 'nullable|string',
@@ -235,43 +262,6 @@ class PeminjamanController extends Controller
         return response()->json($peminjaman->load(['tool', 'peminta']), 201);
     }
 
-<<<<<<< HEAD
-=======
-    public function prosesPeminjaman(Request $request)
-{
-    // 1. Validasi input dari form frontend (karena saat submit, user harus kirim peminta_id, dll)
-    $request->validate([
-        'peminta_id' => 'required|uuid|exists:peminta,id',
-        'dicatat_oleh' => 'required|uuid|exists:users,id',
-    ]);
-
-    // 2. Ambil semua item dari antrean
-    $antrean = DB::table('temporary_cart')->get();
-
-    if ($antrean->isEmpty()) {
-        return response()->json(['message' => 'Antrean kosong'], 400);
-    }
-
-    // 3. Simpan ke tabel Peminjaman (bisa di-loop atau disesuaikan dengan logika timmu)
-    foreach ($antrean as $item) {
-        Peminjaman::create([
-            'id' => (string) Str::uuid(),
-            'tool_id' => $item->tools_id,
-            'peminta_id' => $request->peminta_id,
-            'dicatat_oleh' => $request->dicatat_oleh,
-            'tanggal' => now(),
-            'jumlah' => $item->qty,
-            // tambahkan field lain sesuai kebutuhan
-        ]);
-    }
-
-    // 4. Kosongkan antrean setelah diproses
-    DB::table('temporary_cart')->truncate();
-
-    return response()->json(['message' => 'Peminjaman berhasil diproses!'], 200);
-    }
-
->>>>>>> 2fb0dd31fc42ad8cef89ee2b3cf8f7e2a6bfbff0
     // PUT/PATCH /api/peminjaman/{id}
     public function update(Request $request, string $id)
     {
@@ -297,6 +287,21 @@ class PeminjamanController extends Controller
         return response()->json($peminjaman);
     }
 
+    // GET /api/peminjaman/belum-kembali
+    // GET /api/peminjaman/belum-kembali
+    public function belumKembali()
+    {
+        $data = Peminjaman::with(['tool', 'peminta', 'dicatatOleh'])
+            ->whereNull('tanggal_kembali')
+            ->orderBy('tanggal', 'asc')
+            ->get();
+
+        return response()->json([
+            'total' => $data->count(),
+            'data' => $data
+        ]);
+    }
+
     // PATCH /api/peminjaman/{id}/kembali
     public function kembali(string $id)
     {
@@ -310,7 +315,7 @@ class PeminjamanController extends Controller
             return response()->json(['message' => 'Peminjaman ini sudah ditandai kembali sebelumnya'], 422);
         }
 
-        $peminjaman->update(['tanggal_kembali' => now()]); // ganti dari now()->toDateString()
+        $peminjaman->update(['tanggal_kembali' => now()]);
 
         return response()->json([
             'message' => 'Alat berhasil ditandai dikembalikan',
@@ -318,15 +323,6 @@ class PeminjamanController extends Controller
         ]);
     }
 
-<<<<<<< HEAD
-=======
-    public function antrean()
-    {
-        $data = DB::table('temporary_cart')->get();
-        return response()->json(['data' => $data]);
-    }
-
->>>>>>> 2fb0dd31fc42ad8cef89ee2b3cf8f7e2a6bfbff0
     // DELETE /api/peminjaman/{id}
     public function destroy(string $id)
     {

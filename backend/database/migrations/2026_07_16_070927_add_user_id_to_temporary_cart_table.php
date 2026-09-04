@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('temporary_cart', function (Blueprint $table) {
-            //
+            if (!Schema::hasColumn('temporary_cart', 'user_id')) {
+                $table->uuid('user_id')->nullable()->after('id');
+            }
         });
     }
 
@@ -22,7 +24,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('temporary_cart', function (Blueprint $table) {
-            //
+            if (Schema::hasColumn('temporary_cart', 'user_id')) {
+                $table->dropColumn('user_id');
+            }
         });
     }
 };

@@ -3,18 +3,23 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { Dropdown, Badge } from "react-bootstrap";
 import { IconDotsVertical, IconShoppingCartPlus } from "@tabler/icons-react";
+import QRCode from "qrcode"; 
 
 // import custom types
 import { ConsumableItemType } from "types/DataConsumableTypes";
 
 // import custom components
 import ActionMenu from "components/common/ActionMenu";
+const formatNumber = (n: number) => n.toLocaleString("en-US");
 
 interface ColumnHandlers {
   onDetail: (consumable: ConsumableItemType) => void;
   onEdit: (consumable: ConsumableItemType) => void;
   onDelete: (consumable: ConsumableItemType) => void;
-  onStockOut: (consumable: ConsumableItemType) => void; // Pengambilan
+  onStockOut: (
+    consumable: ConsumableItemType,
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => void; // Pengambilan
 }
 
 export const getConsumableColumns = ({
@@ -46,10 +51,40 @@ export const getConsumableColumns = ({
     accessorKey: "er_e",
     header: "ER/E",
   },
-  {
+    {
     accessorKey: "ukuran",
     header: "Ukuran",
   },
+  {
+    accessorKey: "satuan",
+    header: "Satuan",
+    cell: ({ row }) => row.original.satuan || "-",
+  },
+    {
+  accessorKey: "stok_awal_asli",
+  header: "Stok Awal",
+  cell: ({ row }) => (
+    <span className="text-center d-block">{formatNumber(row.original.stok_awal_asli)}</span>
+  ),
+},
+{
+  accessorKey: "total_masuk",
+  header: "Masuk",
+  cell: ({ row }) => (
+    <span className="text-center d-block text-success fw-semibold">
+      {formatNumber(row.original.total_masuk)}
+    </span>
+  ),
+},
+{
+  accessorKey: "total_keluar",
+  header: "Keluar",
+  cell: ({ row }) => (
+    <span className="text-center d-block text-danger fw-semibold">
+      {formatNumber(row.original.total_keluar)}
+    </span>
+  ),
+},
   {
     accessorKey: "stok_awal",
     header: "Stok Tersedia",
@@ -60,9 +95,13 @@ export const getConsumableColumns = ({
       return (
         <div className="d-flex flex-column align-items-center gap-1">
           <span className={`fw-bold ${perluRestock ? "text-danger" : "text-success"}`}>
-            {stok}
+            {formatNumber(stok)}
           </span>
-          <Badge bg={perluRestock ? "danger-subtle" : "success-subtle"} text={perluRestock ? "danger-emphasis" : "success-emphasis"}>
+          <Badge
+            bg={perluRestock ? "danger-subtle" : "success-subtle"}
+            text={perluRestock ? "danger-emphasis" : "success-emphasis"}
+            className="fw-semibold"
+          >
             {perluRestock ? "Perlu Restock" : "Cukup"}
           </Badge>
         </div>
@@ -73,41 +112,116 @@ export const getConsumableColumns = ({
     id: "aksi",
     header: "Aksi",
     cell: ({ row }) => {
-      const isHabis = row.original.stok_awal <= 0;
+      const consumable = row.original;
+      const isHabis = consumable.stok_awal <= 0;
+
+      // <-- Fungsi untuk mendownload QR Code versi In-Memory Canvas -->
+      const handleDownloadQR = async () => {
+        try {
+          const namaBarang = consumable.nama || "Consumable";
+          const merkBarang = consumable.merk || "Unknown";
+          const kodeBarang = consumable.kode_barang || "-";
+          
+          // Format nama file: NamaBarang_Merk.png
+          const fileName = `${namaBarang}_${merkBarang}`.replace(/[^a-zA-Z0-9_-]/g, "_") + ".png";
+
+          // 1. Generate QR murni jadi Base64 (Isinya tetap ID agar sistem scan bekerja)
+          const qrDataUrl = await QRCode.toDataURL(String(consumable.id), {
+            width: 500,
+            margin: 2,
+            errorCorrectionLevel: 'H'
+          });
+
+          // 2. Ubah jadi gambar statis di memori
+          const qrImage = new Image();
+          qrImage.src = qrDataUrl;
+          
+          qrImage.onload = () => {
+            const finalCanvas = document.createElement("canvas");
+            const ctx = finalCanvas.getContext("2d");
+            if (!ctx) return;
+
+            // Kita patok ukurannya menjadi Persegi Panjang
+            const QR_SIZE = 500;
+            const TEXT_AREA = 100;
+
+            finalCanvas.width = QR_SIZE;
+            finalCanvas.height = QR_SIZE + TEXT_AREA;
+
+            // Background putih
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+
+            // Tempel QR Code
+            ctx.drawImage(qrImage, 0, 0, QR_SIZE, QR_SIZE);
+
+            // Tempel Teks Kode Barang di bawahnya
+            ctx.fillStyle = "#000000";    
+            ctx.font = "bold 40px Arial, sans-serif"; 
+            ctx.textAlign = "center";     
+            ctx.textBaseline = "middle";  
+            
+            ctx.fillText(kodeBarang, QR_SIZE / 2, QR_SIZE + (TEXT_AREA / 2)); 
+
+            // Eksekusi otomatis download
+            const link = document.createElement("a");
+            link.download = fileName; 
+            link.href = finalCanvas.toDataURL("image/png");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          };
+
+        } catch (err) {
+          console.error("Gagal membuat QR Code", err);
+        }
+      };
+
       return (
-        <div className="d-flex align-items-center gap-2">
+        <div className="dataconsumable-action-cell">
+          <div className="dataconsumable-action-main">
           {/* Tombol Utama: Ambil Bahan */}
           <button
             type="button"
             className="btn btn-primary btn-sm d-flex align-items-center gap-1"
             disabled={isHabis}
             title={isHabis ? "Stok habis" : "Ambil bahan"}
-            onClick={() => onStockOut(row.original)}
+            onClick={(e) => onStockOut(consumable, e)}
           >
             <IconShoppingCartPlus size={16} />
-            Ambil Bahan
+            <span className="d-none d-lg-inline">Ambil Bahan</span>
           </button>
+          </div>
 
           {/* Menu Aksi Lainnya */}
-          <ActionMenu
-            toggleButton={<IconDotsVertical size={20} />}
-            className="btn btn-ghost btn-icon btn-sm rounded-circle"
-            drop="start"
-            align="start"
-          >
-            <Dropdown.Item onClick={() => onDetail(row.original)}>
+          <div className="dataconsumable-action-menu">
+            <ActionMenu
+              toggleButton={<IconDotsVertical size={20} />}
+              className="btn btn-ghost btn-icon btn-sm rounded-circle"
+              drop="start"
+              align="start"
+              closeOnScroll
+            >
+            <Dropdown.Item onClick={() => onDetail(consumable)}>
               Detail Bahan
             </Dropdown.Item>
-            <Dropdown.Item onClick={() => onEdit(row.original)}>
+            <Dropdown.Item onClick={() => onEdit(consumable)}>
               Edit Data
             </Dropdown.Item>
             <Dropdown.Item
               className="text-danger"
-              onClick={() => onDelete(row.original)}
+              onClick={() => onDelete(consumable)}
             >
               Hapus Data
             </Dropdown.Item>
-          </ActionMenu>
+            
+            {/* <-- Tambahan Menu Download QR --> */}
+            <Dropdown.Item onClick={handleDownloadQR}>
+              Download QR
+            </Dropdown.Item>
+            
+            </ActionMenu>
+          </div>
         </div>
       );
     },

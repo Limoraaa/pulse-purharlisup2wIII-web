@@ -1,7 +1,7 @@
 "use client";
 // import node module libraries
 import { ColumnDef } from "@tanstack/react-table";
-import { Dropdown } from "react-bootstrap";
+import { Dropdown, Badge } from "react-bootstrap";
 import { IconDotsVertical } from "@tabler/icons-react";
 
 // import custom types
@@ -9,6 +9,7 @@ import { ConsumableMasukType } from "types/DataConsumableTypes";
 
 // import custom components
 import ActionMenu from "components/common/ActionMenu";
+const formatNumber = (n: number) => n.toLocaleString("en-US");
 
 interface ColumnHandlers {
   onEdit: (item: ConsumableMasukType) => void;
@@ -72,11 +73,30 @@ export const getConsumableMasukColumns = ({
   {
     accessorKey: "jumlah_masuk",
     header: "Jumlah Masuk",
-    cell: ({ row }) => (
-      <span className="text-center d-block fw-bold text-success">
-        +{row.original.jumlah_masuk}
-      </span>
-    ),
+    cell: ({ row }) => {
+      // Mengambil satuan dari transaksi masuk, 
+      // JIKA KOSONG (karena data lama), ambil dari master data consumable-nya.
+      const satuan = (row.original as any).satuan || (row.original as any).consumable?.satuan || "";
+      
+      return (
+        <span className="d-flex justify-content-center">
+          <Badge bg="success-subtle" text="success-emphasis" className="fw-semibold">
+            +{formatNumber(row.original.jumlah_masuk)} {satuan}
+          </Badge>
+        </span>
+      );
+    },
+  },
+  // Kolom Penginput diperbarui menggunakan relasi dicatatOleh
+  {
+    id: "penginput",
+    header: "Penginput",
+    cell: ({ row }) => {
+      // Menangkap 'name' atau 'nama' dari relasi dicatatOleh secara fleksibel
+      const penginput = row.original.dicatatOleh;
+      const userName = penginput?.name || penginput?.nama || "Tidak Diketahui";
+      return <span className="fw-medium text-gray-700">{userName}</span>;
+    },
   },
   {
     accessorKey: "keterangan",

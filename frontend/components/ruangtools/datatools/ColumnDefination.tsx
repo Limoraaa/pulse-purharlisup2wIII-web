@@ -2,9 +2,10 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge, Dropdown } from "react-bootstrap";
 import { IconDotsVertical, IconShoppingCartPlus } from "@tabler/icons-react";
+import QRCode from "qrcode"; 
 
 // import custom types
-import { ToolItemType, ToolCondition } from "types/DataToolsTypes";
+import { ToolItemType, ToolCondition, CartItemType } from "types/DataToolsTypes";
 
 // import custom components
 import ActionMenu from "components/common/ActionMenu";
@@ -23,17 +24,16 @@ interface ColumnHandlers {
   onDetail: (tool: ToolItemType) => void;
   onEdit: (tool: ToolItemType) => void;
   onDelete: (tool: ToolItemType) => void;
-  // event ikut dikirim supaya komponen induk tahu titik awal animasi "fly to cart"
   onAddToCart: (tool: ToolItemType, event: React.MouseEvent<HTMLButtonElement>) => void;
+  cartItems?: CartItemType[];
 }
 
-// Dibuat sebagai function (bukan array statis) karena kolom "Aksi" butuh
-// akses ke handler dari komponen induk (buka modal detail/edit/hapus/keranjang).
 export const getDataToolsColumns = ({
   onDetail,
   onEdit,
   onDelete,
   onAddToCart,
+  cartItems = [],
 }: ColumnHandlers): ColumnDef<ToolItemType>[] => [
   {
     accessorKey: "kodeBarang",
@@ -92,14 +92,25 @@ export const getDataToolsColumns = ({
     id: "tersedia",
     header: "Tersedia",
     cell: ({ row }) => {
-      const tersedia = row.original.stok - row.original.dipinjam;
+      const tool = row.original;
+      
+      // Cari apakah alat ini sudah ada di cart dan berapa jumlahnya
+      const cartItem = cartItems.find((c) => c.toolId === tool.id);
+      const qtyDiCart = cartItem ? cartItem.jumlah : 0;
+
+      // Sisa stok riil = Total Stok - Sedang Dipinjam - Yang sudah masuk Cart
+      const sisaStokReal = tool.stok - tool.dipinjam - qtyDiCart;
+      const habis = sisaStokReal <= 0;
+
       return (
-        <span
-          className={`text-center d-block fw-semibold ${
-            tersedia <= 0 ? "text-danger" : "text-success"
-          }`}
-        >
-          {tersedia}
+        <span className="d-flex justify-content-center">
+          <Badge
+            bg={habis ? "danger-subtle" : "success-subtle"}
+            text={habis ? "danger-emphasis" : "success-emphasis"}
+            className="fw-semibold"
+          >
+            {sisaStokReal >= 0 ? sisaStokReal : 0}
+          </Badge>
         </span>
       );
     },
@@ -108,39 +119,122 @@ export const getDataToolsColumns = ({
     id: "aksi",
     header: "Aksi",
     cell: ({ row }) => {
-      const tersedia = row.original.stok - row.original.dipinjam;
-      const habis = tersedia <= 0;
+      const tool = row.original;
+
+      // Cari jumlah di cart untuk alat ini
+      const cartItem = cartItems.find((c) => c.toolId === tool.id);
+      const qtyDiCart = cartItem ? cartItem.jumlah : 0;
+
+      // Hitung sisa stok aktual
+      const sisaStokReal = tool.stok - tool.dipinjam - qtyDiCart;
+      const habis = sisaStokReal <= 0;
+
+      // <-- Fungsi untuk mendownload QR Code versi In-Memory Canvas (Trik Persegi Panjang) -->
+      const handleDownloadQR = async () => {
+        try {
+          const namaBarang = tool.namaBarang || "Tool";
+          const merkBarang = tool.merk || "Unknown";
+          const kodeBarang = tool.kodeBarang || "-"; // Ambil kode barang untuk teks visual
+          
+          // Format nama file: NamaBarang_Merk.png
+          const fileName = `${namaBarang}_${merkBarang}`.replace(/[^a-zA-Z0-9_-]/g, "_") + ".png";
+
+          // 1. Generate QR murni jadi Base64 (Isi data tetap ID)
+          const qrDataUrl = await QRCode.toDataURL(String(tool.id), {
+            width: 500,
+            margin: 2,
+            errorCorrectionLevel: 'H'
+          });
+
+          // 2. Ubah jadi gambar statis di memori
+          const qrImage = new Image();
+          qrImage.src = qrDataUrl;
+          
+          qrImage.onload = () => {
+            const finalCanvas = document.createElement("canvas");
+            const ctx = finalCanvas.getContext("2d");
+            if (!ctx) return;
+
+            // Kunci ukuran jadi Persegi Panjang
+            const QR_SIZE = 500;
+            const TEXT_AREA = 100;
+
+            finalCanvas.width = QR_SIZE;
+            finalCanvas.height = QR_SIZE + TEXT_AREA;
+
+            // Background putih
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+
+            // Tempel QR Code di atas
+            ctx.drawImage(qrImage, 0, 0, QR_SIZE, QR_SIZE);
+
+            // Tempel Teks Kode Barang di bawah
+            ctx.fillStyle = "#000000";    
+            ctx.font = "bold 40px Arial, sans-serif"; 
+            ctx.textAlign = "center";     
+            ctx.textBaseline = "middle";  
+            
+            ctx.fillText(kodeBarang, QR_SIZE / 2, QR_SIZE + (TEXT_AREA / 2)); 
+
+            // Eksekusi otomatis download
+            const link = document.createElement("a");
+            link.download = fileName; 
+            link.href = finalCanvas.toDataURL("image/png");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          };
+
+        } catch (err) {
+          console.error("Gagal membuat QR Code", err);
+        }
+      };
+
       return (
-        <div className="d-flex align-items-center gap-2">
-          <button
-            type="button"
-            className="btn btn-primary btn-sm d-flex align-items-center gap-1"
-            disabled={habis}
-            title={habis ? "Stok tidak tersedia" : "Tambah ke Peminjaman"}
-            onClick={(e) => onAddToCart(row.original, e)}
-          >
-            <IconShoppingCartPlus size={16} />
-            Tambah ke Peminjaman
-          </button>
-          <ActionMenu
-            toggleButton={<IconDotsVertical size={20} />}
-            className="btn btn-ghost btn-icon btn-sm rounded-circle"
-            drop="start"
-            align="start"
-          >
-            <Dropdown.Item onClick={() => onDetail(row.original)}>
+        <div className="datatools-action-cell">
+          <div className="datatools-action-main">
+            <button
+              type="button"
+              className="btn btn-primary btn-sm d-flex align-items-center gap-1"
+              disabled={habis} 
+              title={habis ? "Stok habis (sudah masuk keranjang/dipinjam)" : "Tambah ke Peminjaman"}
+              onClick={(e) => onAddToCart(tool, e)}
+            >
+              <IconShoppingCartPlus size={16} />
+              <span className="d-none d-lg-inline">
+                {habis ? "Stok Habis" : "Tambah ke Peminjaman"}
+              </span>
+            </button>
+          </div>
+          <div className="datatools-action-menu">
+            <ActionMenu
+              toggleButton={<IconDotsVertical size={20} />}
+              className="btn btn-ghost btn-icon btn-sm rounded-circle"
+              drop="start"
+              align="start"
+              closeOnScroll
+            >
+            <Dropdown.Item onClick={() => onDetail(tool)}>
               Detail Alat
             </Dropdown.Item>
-            <Dropdown.Item onClick={() => onEdit(row.original)}>
+            <Dropdown.Item onClick={() => onEdit(tool)}>
               Edit Data
             </Dropdown.Item>
             <Dropdown.Item
               className="text-danger"
-              onClick={() => onDelete(row.original)}
+              onClick={() => onDelete(tool)}
             >
               Hapus Data
             </Dropdown.Item>
-          </ActionMenu>
+
+            {/* <-- Tambahan Menu Download QR --> */}
+            <Dropdown.Item onClick={handleDownloadQR}>
+              Download QR
+            </Dropdown.Item>
+
+            </ActionMenu>
+          </div>
         </div>
       );
     },

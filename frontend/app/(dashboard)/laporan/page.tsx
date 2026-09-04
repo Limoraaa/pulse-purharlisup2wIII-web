@@ -1,16 +1,17 @@
-// app/(dashboard)/laporan/kerusakan-alat/page.tsx
-// Sesuaikan path route group "(dashboard)" dengan struktur folder Dasher
-// template kalian yang sebenarnya.
-import LaporanKerusakanManager from "@/components/ruangtools/laporan/kerusakan/LaporanKerusakanManager";
+// import node module libraries
+import { Metadata } from "next";
 
-export const metadata = {
-  title: "Laporan Kerusakan Alat | Ruang Tools",
+// import custom components
+import LaporanKerusakanManager from "components/ruangtools/laporan/kerusakan/LaporanKerusakanManager";
+
+export const metadata: Metadata = {
+  title: "Laporan Kerusakan Alat | Ruang Tools - Admin Panel",
+  description:
+    "Menampilkan seluruh data alat yang mengalami kerusakan berdasarkan hasil pengembalian dari proses peminjaman",
 };
 
-export default function LaporanKerusakanAlatPage() {
-  return (
-    <div className="container-fluid">
-      <LaporanKerusakanManager />
-    </div>
-  );
-}
+const LaporanKerusakanPage = () => {
+  return <LaporanKerusakanManager />;
+};
+
+export default LaporanKerusakanPage;

@@ -1,15 +1,9 @@
 // import node module libraries
 import { ColumnDef } from "@tanstack/react-table";
-import { Button, Spinner } from "react-bootstrap";
-import { IconRotateClockwise2 } from "@tabler/icons-react";
+import { Badge } from "react-bootstrap";
 
 // import custom types
 import { PeminjamanAktifItemType } from "types/DataToolsTypes";
-
-interface ColumnHandlers {
-  onOpenPengembalian: (item: PeminjamanAktifItemType) => void; // buka modal form pengembalian
-  returningId?: string | null; // id yang sedang diproses, untuk disable tombol + spinner
-}
 
 // Ubah timestamp mentah dari database (ISO string, mis. "2026-07-15T01:27:41.000000Z")
 // jadi format tanggal + jam yang enak dibaca (mis. "15 Jul 2026, 08:27")
@@ -29,10 +23,7 @@ const formatTanggal = (raw: string): string => {
   return `${tanggal}, ${jam}`;
 };
 
-export const getPeminjamanAktifColumns = ({
-  onOpenPengembalian,
-  returningId,
-}: ColumnHandlers): ColumnDef<PeminjamanAktifItemType>[] => [
+export const getPeminjamanAktifColumns = (): ColumnDef<PeminjamanAktifItemType>[] => [
   {
     accessorKey: "tanggal",
     header: "Tanggal",
@@ -69,7 +60,11 @@ export const getPeminjamanAktifColumns = ({
     accessorKey: "jumlah",
     header: "Jumlah",
     cell: ({ row }) => (
-      <span className="text-center d-block">{row.original.jumlah}</span>
+      <span className="d-flex justify-content-center">
+        <Badge bg="primary-subtle" text="primary-emphasis" className="fw-semibold">
+          {row.original.jumlah}
+        </Badge>
+      </span>
     ),
   },
   {
@@ -81,38 +76,19 @@ export const getPeminjamanAktifColumns = ({
     header: "Divisi",
   },
   {
+    accessorKey: "namaPekerjaan",
+    header: "Nama Pekerjaan",
+  },
+  {
     accessorKey: "areaKerja",
-    header: "Area/Pekerjaan",
+    header: "Area Pekerjaan",
   },
   {
     accessorKey: "spesifikasi",
     header: "Spesifikasi",
   },
-  {
+    {
     accessorKey: "keterangan",
     header: "Keterangan",
-  },
-  {
-    id: "aksi",
-    header: "Aksi",
-    cell: ({ row }) => {
-      const isReturning = returningId === row.original.id;
-      return (
-        <Button
-          size="sm"
-          variant="outline-success"
-          className="d-flex align-items-center gap-1"
-          disabled={isReturning}
-          onClick={() => onOpenPengembalian(row.original)}
-        >
-          {isReturning ? (
-            <Spinner animation="border" size="sm" />
-          ) : (
-            <IconRotateClockwise2 size={16} />
-          )}
-          Tandai Dikembalikan
-        </Button>
-      );
-    },
   },
 ];

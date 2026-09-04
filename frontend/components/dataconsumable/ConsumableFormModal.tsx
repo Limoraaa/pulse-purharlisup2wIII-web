@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Modal, Form, Row, Col, Button, Alert } from "react-bootstrap";
 
 import { ConsumableFormValues, ConsumableItemType } from "types/DataConsumableTypes";
@@ -11,6 +11,7 @@ const emptyForm: ConsumableFormValues = {
   tipe: "",
   er_e: "",
   ukuran: "",
+  satuan: "",
   stok_awal: 0,
 };
 
@@ -65,20 +66,22 @@ const ConsumableToolFormModal = ({
   const [form, setForm] = useState<ConsumableFormValues>(emptyForm);
   const isEditMode = Boolean(initialData);
 
-  useEffect(() => {
-    if (show) {
+  const wasShown = useRef(false);
+
+useEffect(() => {
+    if (show && !wasShown.current) {
+      // modal baru saja DIBUKA (transisi dari tertutup ke terbuka) -> reset form
       if (initialData) {
-        // mode Edit: isi form sesuai data yang dipilih
-        setForm({ ...initialData });
+        setForm({ ...initialData, stok_awal: initialData.stok_awal_asli });
       } else {
-        // mode Tambah: kosongkan form, tapi kasih saran kode barang berikutnya
         setForm({ ...emptyForm, kode_barang: suggestNextCode(existingCodes) });
       }
     }
+    wasShown.current = show;
   }, [show, initialData, existingCodes]);
 
   const handleChange = (
-    field: keyof ConsumableFormValues,
+  field: keyof ConsumableFormValues,
     value: string | number
   ) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -145,22 +148,34 @@ const ConsumableToolFormModal = ({
                 onChange={(e) => handleChange("er_e", e.target.value)}
               />
             </Col>
-            <Col md={6}>
+            <Col md={4}>
               <Form.Label>Ukuran</Form.Label>
               <Form.Control
                 value={form.ukuran}
                 onChange={(e) => handleChange("ukuran", e.target.value)}
               />
             </Col>
-            <Col md={6}>
-              <Form.Label>Stok Awal <span className="text-danger">*</span></Form.Label>
+            <Col md={4}>
+              <Form.Label>Satuan</Form.Label>
+              <Form.Select
+                value={form.satuan}
+                onChange={(e) => handleChange("satuan", e.target.value)}
+              >
+                <option value="">Pilih satuan</option>
+                <option value="Pcs">Pcs</option>
+                <option value="Kg">Kg</option>
+                <option value="Meter">Meter</option>
+              </Form.Select>
+            </Col>
+            <Col md={4}>
+              <Form.Label>Stok Awal <span className="text-danger"></span></Form.Label>
               <Form.Control
                 required
                 type="text"
                 inputMode="numeric"
                 pattern="[0-9]*"
                 placeholder="0"
-                value={form.stok_awal === 0 ? "" : String(form.stok_awal)}
+                value={String(form.stok_awal)}
                 onChange={(e) => {
                   const digitsOnly = e.target.value.replace(/[^0-9]/g, "");
                   const withoutLeadingZero = digitsOnly.replace(/^0+(?=\d)/, "");

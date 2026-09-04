@@ -1,6 +1,17 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { Row, Col, Card, CardBody, Alert, Spinner } from "react-bootstrap";
+import {
+  Row,
+  Col,
+  Card,
+  CardBody,
+  Alert,
+  Spinner,
+  InputGroup,
+  Form,
+  Button,
+} from "react-bootstrap";
+import { IconHistory, IconSearch, IconX } from "@tabler/icons-react";
 
 import { RiwayatPeminjamanType } from "types/RiwayatTypes";
 
@@ -10,12 +21,11 @@ import DasherBreadcrumb from "components/common/DasherBreadcrumb";
 import RiwayatFilterBar from "components/ruangtools/riwayat/common/RiwayatFilterBar";
 import { getRiwayatPeminjamanColumns } from "components/ruangtools/riwayat/peminjaman/ColumnDefination";
 import DetailTransaksiModal from "components/ruangtools/riwayat/peminjaman/DetailTransaksiModal";
-import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
+import { exportToExcel, exportToPDF, ExportColumn, getFilteredExportFileName } from "components/ruangtools/riwayat/common/exportUtils";
 
 import { getRiwayatPeminjaman } from "services/peminjamanService";
 
 const EXPORT_COLUMNS: ExportColumn[] = [
-  { header: "Nomor Transaksi", key: "nomor_transaksi" },
   { header: "Tanggal Pinjam", key: "tanggal_pinjam" },
   { header: "Tanggal Kembali", key: "tanggal_kembali" },
   { header: "Kode Barang", key: "kode_barang" },
@@ -27,6 +37,7 @@ const EXPORT_COLUMNS: ExportColumn[] = [
   { header: "Jumlah", key: "jumlah" },
   { header: "Nama Peminjam", key: "nama_peminjam" },
   { header: "Divisi", key: "divisi" },
+  { header: "Nama Pekerjaan", key: "nama_pekerjaan" },
   { header: "Area Kerja", key: "area_kerja" },
 ];
 
@@ -56,6 +67,10 @@ const RiwayatPeminjamanManager = () => {
   // ---- Filter Bulan & Tahun ----
   const [bulanFilter, setBulanFilter] = useState(0);
   const [tahunFilter, setTahunFilter] = useState(0);
+  const [namaFilter, setNamaFilter] = useState("");
+
+  // ---- Pencarian (murni UI, tidak menyentuh API/data) ----
+  const [searchTerm, setSearchTerm] = useState("");
 
   const parseTanggal = (str: string) => {
     const bulanMap: Record<string, number> = {
@@ -79,16 +94,60 @@ const RiwayatPeminjamanManager = () => {
     return Array.from(tahunSet).sort((a, b) => b - a);
   }, [riwayatList]);
 
+  const namaOptions = useMemo(() => {
+    const namaSet = new Set(riwayatList.map((r) => r.nama_peminjam));
+    return Array.from(namaSet).sort();
+  }, [riwayatList]);
+
   const filteredList = useMemo(() => {
+    const keyword = searchTerm.trim().toLowerCase();
+    
     return riwayatList.filter((r) => {
-      if (bulanFilter === 0 && tahunFilter === 0) return true;
-      const tanggal = parseTanggal(r.tanggal_pinjam);
-      if (!tanggal) return true;
-      if (bulanFilter !== 0 && tanggal.getMonth() + 1 !== bulanFilter) return false;
-      if (tahunFilter !== 0 && tanggal.getFullYear() !== tahunFilter) return false;
+      // 1. Filter periode (bulan/tahun)
+      if (bulanFilter !== 0 || tahunFilter !== 0) {
+        const tanggal = parseTanggal(r.tanggal_pinjam);
+        if (tanggal) {
+          if (bulanFilter !== 0 && tanggal.getMonth() + 1 !== bulanFilter) return false;
+          if (tahunFilter !== 0 && tanggal.getFullYear() !== tahunFilter) return false;
+        }
+      }
+      
+      // 2. Filter nama peminjam (dari dropdown FilterBar)
+      if (namaFilter !== "" && r.nama_peminjam !== namaFilter) return false;
+      
+      // 3. Filter pencarian teks (Diperbarui untuk mencari di SEMUA kolom & Null-Safety)
+      if (keyword !== "") {
+        const tglPinjam = (r.tanggal_pinjam || "").toLowerCase();
+        const tglKembali = (r.tanggal_kembali || "").toLowerCase();
+        const kodeBarang = (r.kode_barang || "").toLowerCase();
+        const namaBarang = (r.nama_barang || "").toLowerCase();
+        const merk = (r.merk || "").toLowerCase();
+        const tipe = (r.tipe || "").toLowerCase();
+        const warna = (r.warna || "").toLowerCase();
+        const ukuran = (r.ukuran || "").toLowerCase();
+        const jumlah = String(r.jumlah ?? 0);
+        const namaPeminjam = (r.nama_peminjam || "").toLowerCase();
+        const noTransaksi = (r.nomor_transaksi || "").toLowerCase();
+
+        const cocok =
+          tglPinjam.includes(keyword) ||
+          tglKembali.includes(keyword) ||
+          kodeBarang.includes(keyword) ||
+          namaBarang.includes(keyword) ||
+          merk.includes(keyword) ||
+          tipe.includes(keyword) ||
+          warna.includes(keyword) ||
+          ukuran.includes(keyword) ||
+          jumlah.includes(keyword) ||
+          namaPeminjam.includes(keyword) ||
+          noTransaksi.includes(keyword);
+
+        if (!cocok) return false;
+      }
+      
       return true;
     });
-  }, [riwayatList, bulanFilter, tahunFilter]);
+  }, [riwayatList, bulanFilter, tahunFilter, namaFilter, searchTerm]);
 
   // ---- Modal Detail Transaksi ----
   const [detailModalOpen, setDetailModalOpen] = useState(false);
@@ -103,16 +162,17 @@ const RiwayatPeminjamanManager = () => {
   };
 
   const handleExportPDF = () =>
-    exportToPDF(filteredList, EXPORT_COLUMNS, "riwayat-peminjaman-tools", "Riwayat Peminjaman Tools");
+    exportToPDF(filteredList, EXPORT_COLUMNS, getFilteredExportFileName("Riwayat_Peminjaman_Tools", namaFilter), "Riwayat Peminjaman Tools");
   const handleExportExcel = () =>
-    exportToExcel(filteredList, EXPORT_COLUMNS, "riwayat-peminjaman-tools");
+    exportToExcel(filteredList, EXPORT_COLUMNS, getFilteredExportFileName("Riwayat_Peminjaman_Tools", namaFilter));
 
   const columns = getRiwayatPeminjamanColumns({
     onDetail: openDetailModal,
   });
 
   return (
-    <>
+    <div className="riwayat-page">
+      {/* ---- Page Header ---- */}
       <Row>
         <Col>
           <Flex justifyContent="between" alignItems="center" className="mb-4 w-100" breakpoint="md">
@@ -128,32 +188,92 @@ const RiwayatPeminjamanManager = () => {
       </Row>
 
       <Card className="card-lg mb-6">
-        <CardBody>
-          {error && <Alert variant="danger">{error}</Alert>}
+        {/* ---- Toolbar: Search + Info (baris 1) & Filter + Export (baris 2) ---- */}
+        <div className="riwayat-toolbar border-bottom">
+          {/* Baris 1: Search (kiri) + Info jumlah data (kanan) */}
+          <div className="riwayat-toolbar-row">
+            <InputGroup className="riwayat-search">
+              <InputGroup.Text>
+                <IconSearch size={18} />
+              </InputGroup.Text>
+              <Form.Control
+                type="search"
+                placeholder="kode barang, nama barang, atau peminjam..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                aria-label="Cari riwayat peminjaman"
+              />
+              {searchTerm && (
+                <Button
+                  variant="link"
+                  className="riwayat-search-clear"
+                  onClick={() => setSearchTerm("")}
+                  aria-label="Bersihkan pencarian"
+                >
+                  <IconX size={16} />
+                </Button>
+              )}
+            </InputGroup>
 
+            <span className="riwayat-info text-secondary small">
+              Menampilkan{" "}
+              <span className="fw-semibold text-body">{filteredList.length}</span>{" "}
+              dari {riwayatList.length} data
+            </span>
+          </div>
+
+          {/* Baris 2: Filter Bulan/Tahun (kiri) + Export PDF/Excel (kanan) */}
           <RiwayatFilterBar
             bulanFilter={bulanFilter}
             onBulanFilterChange={setBulanFilter}
             tahunFilter={tahunFilter}
             onTahunFilterChange={setTahunFilter}
             tahunOptions={tahunOptions}
+            namaFilter={namaFilter}
+            onNamaFilterChange={setNamaFilter}
+            namaOptions={namaOptions}
+            namaLabel="Nama Peminjam"
             onExportPDF={handleExportPDF}
             onExportExcel={handleExportExcel}
           />
+        </div>
+
+        <CardBody>
+          {error && <Alert variant="danger">{error}</Alert>}
 
           {loading ? (
             <div className="text-center py-6">
               <Spinner animation="border" size="sm" className="me-2" />
               Memuat data...
             </div>
+          ) : riwayatList.length === 0 ? (
+            /* Empty state: belum ada riwayat sama sekali */
+            <div className="riwayat-empty text-center py-6">
+              <div className="riwayat-empty-icon mb-3">
+                <IconHistory size={32} />
+              </div>
+              <h5 className="mb-1">Belum ada riwayat peminjaman</h5>
+              <p className="text-secondary mb-0">
+                Transaksi peminjaman yang sudah dikembalikan akan muncul di sini.
+              </p>
+            </div>
+          ) : filteredList.length === 0 ? (
+            /* Empty state: hasil pencarian / filter kosong */
+            <div className="riwayat-empty text-center py-6">
+              <div className="riwayat-empty-icon mb-3">
+                <IconHistory size={32} />
+              </div>
+              <h5 className="mb-1">Tidak ada data yang cocok</h5>
+              <p className="text-secondary mb-0">
+                Coba ubah kata kunci pencarian atau filter bulan/tahun.
+              </p>
+            </div>
           ) : (
             <TanstackTable
               data={filteredList}
               columns={columns}
-              filter
               pagination
               isSortable
-              filterPlaceholder="Cari nomor transaksi / nama barang..."
             />
           )}
         </CardBody>
@@ -164,7 +284,7 @@ const RiwayatPeminjamanManager = () => {
         onClose={() => setDetailModalOpen(false)}
         items={detailGroupItems}
       />
-    </>
+    </div>
   );
 };
 

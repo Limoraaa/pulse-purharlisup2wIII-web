@@ -6,61 +6,108 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ConsumableController;
 use App\Http\Controllers\Api\ToolController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\PemintaController;
 use App\Http\Controllers\Api\PeminjamanController;
 use App\Http\Controllers\Api\ConsumableMasukController;
 use App\Http\Controllers\Api\ConsumableKeluarController;
+use App\Http\Controllers\Api\ToolMasukController;
 use App\Http\Controllers\Api\LaporanKerusakanController;
+use App\Http\Controllers\Api\OrderConsumableController;
+use App\Http\Controllers\Api\OrderToolController;
+use App\Http\Controllers\Api\PekerjaanController; // <-- TAMBAHAN IMPORT PEKERJAAN
 
 Route::post('/login', [AuthController::class, 'login']);
 
-// 0. Users (kelola staff & super admin)
-Route::apiResource('users', UserController::class);
+Route::get('/peminjaman/belum-kembali', [PeminjamanController::class, 'belumKembali']);
 
-// 1. tools (simple CRUD)
+// ==========================================
+// ROUTE YANG TIDAK BUTUH AUTH (PUBLIC / GENERAL)
+// ==========================================
 Route::apiResource('tools', ToolController::class);
 Route::patch('/tools/{tool}/kurangi-stok', [ToolController::class, 'kurangiStok']);
 
-// 2. consumable (simple CRUD)
 Route::apiResource('consumable', ConsumableController::class);
 
-// 3. Peminta (simple CRUD)
 Route::apiResource('peminta', PemintaController::class);
+Route::patch('/peminta/{id}/aktifkan', [PemintaController::class, 'aktifkan']);
 
-// 4. Peminjaman -> khusus route cart & proses WAJIB login (dipakai web + app Flutter)
-// karena butuh identitas user yang scan/pilih alat.
-// 4. Peminjaman
+// --- DATA PEKERJAAN ---
+Route::get('/pekerjaan/active', [PekerjaanController::class, 'getActive']);
+Route::apiResource('pekerjaan', PekerjaanController::class);
+Route::patch('/pekerjaan/{id}/toggle-status', [PekerjaanController::class, 'toggleStatus']);
+// ----------------------
+
+Route::apiResource('consumable-masuk', ConsumableMasukController::class);
+Route::apiResource('tools-masuk', ToolMasukController::class);
+
+Route::apiResource('laporan-kerusakan', LaporanKerusakanController::class);
+
+Route::prefix('dashboard')->group(function () {
+    Route::get('/summary', [DashboardController::class, 'summary']);
+    Route::get('/stok-menipis', [DashboardController::class, 'stokMenipis']);
+    Route::get('/telat-kembali', [DashboardController::class, 'telatKembali']);
+    Route::get('/alat-terpopuler', [DashboardController::class, 'alatTerpopuler']);
+    Route::get('/consumable-terpopuler', [DashboardController::class, 'consumableTerpopuler']);
+    Route::get('/kerusakan-summary', [DashboardController::class, 'kerusakanSummary']);
+    Route::get('/aktivitas-terbaru', [DashboardController::class, 'aktivitasTerbaru']);
+    Route::get('/tren-peminjaman', [DashboardController::class, 'trenPeminjaman']);
+    Route::get('/tren-consumable', [DashboardController::class, 'trenConsumable']);
+});
+
+// --- FITUR SCANNER & CART PUBLIK (Agar Flutter & Web Dashboard sinkron tanpa token khusus scan) ---
 Route::post('/peminjaman/scan', [PeminjamanController::class, 'scan']);
-
-// Pindahkan route ini KELUAR dari middleware auth:sanctum 
-// agar Flutter (tanpa login) dan Web bisa mengaksesnya.
 Route::get('/peminjaman/antrean', [PeminjamanController::class, 'antrean']);
 Route::patch('/peminjaman/cart/{id}', [PeminjamanController::class, 'updateCartItem']);
 Route::delete('/peminjaman/cart/{id}', [PeminjamanController::class, 'removeCartItem']);
 
-// Proses peminjaman tetap butuh auth karena harus tahu siapa yang meminjam
+Route::get('/order-consumable', [OrderConsumableController::class, 'index']);
+Route::post('/order-consumable', [OrderConsumableController::class, 'store']);
+Route::put('/order-consumable/{id}/status', [OrderConsumableController::class, 'updateStatus']);
+
+
+// --- ORDER TOOLS ---
+Route::get('/order-tools', [OrderToolController::class, 'index']);
+Route::post('/order-tools', [OrderToolController::class, 'store']);
+Route::put('/order-tools/{id}/status', [OrderToolController::class, 'updateStatus']);
+Route::put('/order-tools/{id}', [OrderToolController::class, 'update']);
+
+// ==========================================
+// ROUTE YANG WAJIB LOGIN (SANCTUM MIDDLEWARE)
+// ==========================================
 Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/peminjaman/proses', [PeminjamanController::class, 'prosesPeminjaman']);
-});
 
-// Route khusus HARUS di atas
-Route::patch('/peminjaman/{id}/kembali', [PeminjamanController::class, 'kembali']);
-
-// CRUD dasar peminjaman (tidak butuh scoping per user)
-Route::apiResource('peminjaman', PeminjamanController::class);
-
-// 5. Consumable Masuk & Keluar (transaksi stok)
-Route::apiResource('consumable', ConsumableController::class);
-Route::apiResource('consumable-masuk', ConsumableMasukController::class);
-Route::apiResource('consumable-keluar', ConsumableKeluarController::class);
-
-// 6. Laporan Kerusakan Tools
-Route::apiResource('laporan-kerusakan', LaporanKerusakanController::class);
-
-
-Route::middleware('auth:sanctum')->group(function () {
+    // Auth & Data User
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
+
+    // 1. Fitur Proses Akhir & Manajemen Peminjaman Utama (Tetap Butuh Login)
+    Route::post('/peminjaman/proses', [PeminjamanController::class, 'prosesPeminjaman']);
+    Route::patch('/peminjaman/{id}/kembali', [PeminjamanController::class, 'kembali']);
+    Route::apiResource('peminjaman', PeminjamanController::class);
+
+    Route::patch('/laporan-kerusakan/{id}/tandai-permanen', [LaporanKerusakanController::class, 'tandaiPermanen']);
+    Route::patch('/laporan-kerusakan/{id}/repair', [LaporanKerusakanController::class, 'repair']);
+
+    // 2. Fitur Keranjang & Scanner Consumable Keluar
+    Route::post('/consumable-keluar/scan', [ConsumableKeluarController::class, 'scan']);
+    Route::get('/consumable-keluar/antrean', [ConsumableKeluarController::class, 'antrean']);
+    Route::patch('/consumable-keluar/cart/{id}', [ConsumableKeluarController::class, 'updateCartItem']);
+    Route::delete('/consumable-keluar/antrean/{consumable_id}', [ConsumableKeluarController::class, 'hapusAntrean']);
+    Route::post('/consumable-keluar/proses', [ConsumableKeluarController::class, 'prosesCartConsumable']);
+
+    // PINDAHKAN KE SINI: Pastikan apiResource selalu berada di BAWAH rute kustom
+    Route::apiResource('consumable-keluar', ConsumableKeluarController::class);
+
+    Route::get('/profile', [UserController::class, 'profile']);
+    Route::put('/profile', [UserController::class, 'updateProfile']);
+    Route::patch('/profile', [UserController::class, 'updateProfile']);
+    Route::post('/profile/photo', [UserController::class, 'uploadPhoto']);
+    Route::patch('/profile/password', [UserController::class, 'changePassword']);
+
+    Route::apiResource('users', UserController::class);
+    Route::patch('/users/{id}/reset-password', [UserController::class, 'resetPassword']);
+    Route::patch('/users/{id}/aktifkan', [UserController::class, 'activate']);
 });

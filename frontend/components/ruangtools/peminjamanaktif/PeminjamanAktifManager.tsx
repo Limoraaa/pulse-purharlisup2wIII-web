@@ -1,34 +1,84 @@
 "use client";
 // import node module libraries
 import { useEffect, useMemo, useState } from "react";
-import { Row, Col, Card, CardBody, Form, Alert, Spinner } from "react-bootstrap";
-import { IconCircleCheck } from "@tabler/icons-react";
-
+import {
+  Row,
+  Col,
+  Card,
+  CardBody,
+  Alert,
+  Spinner,
+  InputGroup,
+  Form,
+  Button,
+} from "react-bootstrap";
+import {
+  IconSearch,
+  IconX,
+  IconClipboardList,
+  IconMoodEmpty,
+} from "@tabler/icons-react";
 // import custom types
 import { PeminjamanAktifItemType } from "types/DataToolsTypes";
 
 // import services (langsung ke API, data ini tidak perlu dibagi ke halaman lain)
-import { getPeminjamanAktif, tandaiDikembalikan } from "services/peminjamanService";
-import { kurangiStokTool } from "services/toolService";
+import { getPeminjamanAktif } from "services/peminjamanService";
 
 // import custom components
 import TanstackTable from "components/table/TanstackTable";
 import Flex from "components/common/Flex";
 import DasherBreadcrumb from "components/common/DasherBreadcrumb";
 import { getPeminjamanAktifColumns } from "components/ruangtools/peminjamanaktif/ColumnDefination";
-import FormPengembalianModal, {
-  PengembalianSubmitPayload,
-} from "components/ruangtools/peminjamanaktif/FormPengembalianModal";
+import RiwayatFilterBar from "components/ruangtools/riwayat/common/RiwayatFilterBar";
+import { exportToExcel, exportToPDF, ExportColumn, getFilteredExportFileName } from "components/ruangtools/riwayat/common/exportUtils";
 
 const PeminjamanAktifManager = () => {
   const [items, setItems] = useState<PeminjamanAktifItemType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [returnModalOpen, setReturnModalOpen] = useState(false);
-  const [activeItem, setActiveItem] = useState<PeminjamanAktifItemType | null>(null);
-  const [returningId, setReturningId] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  // ---- Toolbar: pencarian (murni UI, tidak menyentuh API/data) ----
+  const [searchTerm, setSearchTerm] = useState("");
+  const [bulanFilter, setBulanFilter] = useState(0);
+  const [tahunFilter, setTahunFilter] = useState(0);
+  const [namaFilter, setNamaFilter] = useState("");
+
+  const parseTanggal = (value: string) => {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  };
+
+  const EXPORT_COLUMNS: ExportColumn[] = [
+    { header: "Tanggal", key: "tanggal" }, { header: "Kode Barang", key: "kodeBarang" },
+    { header: "Nama Barang", key: "namaBarang" }, { header: "Jumlah", key: "jumlah" },
+    { header: "Nama Peminjam", key: "namaPeminjam" }, { header: "Divisi", key: "divisi" },
+    { header: "Area Kerja", key: "areaKerja" },
+  ];
+
+  // Data turunan untuk tampilan; sumber data (items) tidak diubah.
+  const filteredItems = useMemo(() => {
+    const keyword = searchTerm.trim().toLowerCase();
+    return items.filter((item) => {
+      const date = parseTanggal(item.tanggal);
+      const cocokPeriode = (!date || bulanFilter === 0 || date.getMonth() + 1 === bulanFilter) &&
+        (!date || tahunFilter === 0 || date.getFullYear() === tahunFilter);
+      const cocokNama = namaFilter === "" || item.namaPeminjam === namaFilter;
+      const cocokKeyword =
+        item.kodeBarang.toLowerCase().includes(keyword) ||
+        item.namaBarang.toLowerCase().includes(keyword) ||
+        item.namaPeminjam.toLowerCase().includes(keyword) ||
+        item.namaPekerjaan.toLowerCase().includes(keyword) ||
+        item.areaKerja.toLowerCase().includes(keyword);
+      return cocokPeriode && cocokNama && (keyword === "" || cocokKeyword);
+    });
+  }, [items, searchTerm, bulanFilter, tahunFilter, namaFilter]);
+
+  const tahunOptions = useMemo(() => Array.from(new Set(items.map((item) => parseTanggal(item.tanggal)?.getFullYear()).filter((year): year is number => Boolean(year)))).sort((a, b) => b - a), [items]);
+  const namaOptions = useMemo(() => Array.from(new Set(items.map((item) => item.namaPeminjam))).sort(), [items]);
+  const exportRows = useMemo(() => filteredItems.map((item) => ({ ...item })), [filteredItems]);
+  const getExportName = () => getFilteredExportFileName("Peminjaman_Aktif", namaFilter);
+  const handleExportPdf = () => exportToPDF(exportRows, EXPORT_COLUMNS, getExportName(), "Peminjaman Aktif");
+  const handleExportExcel = () => exportToExcel(exportRows, EXPORT_COLUMNS, getExportName(), "Peminjaman Aktif");
 
   const loadData = async () => {
     setLoading(true);
@@ -44,81 +94,19 @@ const PeminjamanAktifManager = () => {
     }
   };
 
-  useEffect(() => {
+    useEffect(() => {
     loadData();
   }, []);
 
-  // Filter Divisi, opsinya diambil otomatis dari data yang ada
-  const [divisiFilter, setDivisiFilter] = useState("Semua");
-  const divisiOptions = useMemo(() => {
-    const unique = Array.from(new Set(items.map((t) => t.divisi)));
-    return ["Semua", ...unique];
-  }, [items]);
-
-  const filteredItems = useMemo(() => {
-    if (divisiFilter === "Semua") return items;
-    return items.filter((t) => t.divisi === divisiFilter);
-  }, [items, divisiFilter]);
-
-  // ---- buka form pengembalian untuk 1 alat ----
-  const handleOpenPengembalian = (item: PeminjamanAktifItemType) => {
-    setActiveItem(item);
-    setReturnModalOpen(true);
-  };
-
-  // ---- submit form pengembalian ----
-  const handleReturnSubmit = async (payload: PengembalianSubmitPayload) => {
-    if (!activeItem) return;
-
-    setReturningId(activeItem.id);
-    try {
-      // 1) tandai peminjaman ini selesai (semua unit fisik sudah kembali)
-      await tandaiDikembalikan(activeItem.id);
-
-      // 2) kalau ada unit yang rusak, kurangi stok alat permanen sejumlah itu.
-      //    Catatan: teks "catatan" belum tersimpan permanen karena belum
-      //    ada tabel riwayat kerusakan di backend -- baru pengurangan stoknya saja.
-      if (payload.jumlahRusak > 0) {
-        await kurangiStokTool(activeItem.toolId, payload.jumlahRusak);
-      }
-
-      setItems((prev) => prev.filter((i) => i.id !== activeItem.id));
-      setReturnModalOpen(false);
-      setActiveItem(null);
-
-      setSuccessMessage(
-        `${activeItem.namaBarang} (${activeItem.kodeBarang}) berhasil ditandai dikembalikan${
-          payload.jumlahRusak > 0 ? ` (${payload.jumlahRusak} unit rusak, stok dikurangi)` : ""
-        }.`
-      );
-      setTimeout(() => setSuccessMessage(null), 5000);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Gagal memproses pengembalian";
-      alert(message);
-    } finally {
-      setReturningId(null);
-    }
-  };
-
   const columns = useMemo(
-    () => getPeminjamanAktifColumns({ onOpenPengembalian: handleOpenPengembalian, returningId }),
-    [returningId]
+    () => getPeminjamanAktifColumns(),
+    []
   );
 
-  return (
-    <>
-      {successMessage && (
-        <Alert
-          variant="success"
-          className="d-flex align-items-center gap-2"
-          dismissible
-          onClose={() => setSuccessMessage(null)}
-        >
-          <IconCircleCheck size={20} />
-          {successMessage}
-        </Alert>
-      )}
+    return (
+    <div className="peminjamanaktif-page">
 
+      {/* ---- Page Header ---- */}
       <Row>
         <Col>
           <Flex
@@ -139,55 +127,102 @@ const PeminjamanAktifManager = () => {
       </Row>
 
       <Card className="card-lg mb-6">
+        {/* ---- Toolbar: Search ---- */}
+        <div className="riwayat-toolbar border-bottom">
+          <div className="riwayat-toolbar-row">
+            <InputGroup className="riwayat-search">
+                <InputGroup.Text>
+                  <IconSearch size={18} />
+                </InputGroup.Text>
+                <Form.Control
+                  type="search"
+                  placeholder="Cari peminjam, kode barang, nama barang, atau area kerja..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  aria-label="Cari peminjaman aktif"
+                />
+                {searchTerm && (
+                  <Button
+                    variant="link"
+                    className="riwayat-search-clear"
+                    onClick={() => setSearchTerm("")}
+                    aria-label="Bersihkan pencarian"
+                  >
+                    <IconX size={16} />
+                  </Button>
+                )}
+            </InputGroup>
+            <span className="riwayat-info text-secondary small">
+                Menampilkan{" "}
+                <span className="fw-semibold text-body">{filteredItems.length}</span>{" "}
+                dari {items.length} data
+            </span>
+          </div>
+          <RiwayatFilterBar
+            bulanFilter={bulanFilter}
+            onBulanFilterChange={setBulanFilter}
+            tahunFilter={tahunFilter}
+            onTahunFilterChange={setTahunFilter}
+            tahunOptions={tahunOptions}
+            namaFilter={namaFilter}
+            onNamaFilterChange={setNamaFilter}
+            namaOptions={namaOptions}
+            namaLabel="Peminjam"
+            onExportPDF={handleExportPdf}
+            onExportExcel={handleExportExcel}
+          />
+        </div>
+
         <CardBody>
           {error && <Alert variant="danger">{error}</Alert>}
-
-          <Row className="align-items-center g-3 mb-2">
-            <Col md={4} sm={6}>
-              <Form.Label className="mb-1 small text-secondary">Filter Divisi</Form.Label>
-              <Form.Select
-                size="sm"
-                value={divisiFilter}
-                onChange={(e) => setDivisiFilter(e.target.value)}
-              >
-                {divisiOptions.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
-                  </option>
-                ))}
-              </Form.Select>
-            </Col>
-          </Row>
 
           {loading ? (
             <div className="text-center py-6">
               <Spinner animation="border" size="sm" className="me-2" />
               Memuat data...
             </div>
+          ) : items.length === 0 ? (
+            /* Empty state: tidak ada peminjaman aktif */
+            <div className="peminjamanaktif-empty text-center py-6">
+              <div className="peminjamanaktif-empty-icon mb-3">
+                <IconClipboardList size={32} />
+              </div>
+              <h5 className="mb-1">Tidak ada peminjaman aktif</h5>
+              <p className="text-secondary mb-0">
+                Semua alat sudah dikembalikan. Peminjaman baru akan muncul di sini.
+              </p>
+            </div>
+          ) : filteredItems.length === 0 ? (
+            /* Empty state: hasil pencarian kosong */
+            <div className="peminjamanaktif-empty text-center py-6">
+              <div className="peminjamanaktif-empty-icon mb-3">
+                <IconMoodEmpty size={32} />
+              </div>
+              <h5 className="mb-1">Tidak ada hasil</h5>
+              <p className="text-secondary mb-4">
+                Tidak ditemukan data yang cocok dengan pencarian.
+              </p>
+              <Button
+                variant="outline-secondary"
+                className="d-inline-flex align-items-center gap-2"
+                onClick={() => setSearchTerm("")}
+              >
+                <IconX size={18} />
+                Reset Pencarian
+              </Button>
+            </div>
           ) : (
             <TanstackTable
               data={filteredItems}
               columns={columns}
-              filter
               pagination
               isSortable
-              filterPlaceholder="Cari nama peminjam / kode barang / area kerja..."
             />
           )}
         </CardBody>
       </Card>
 
-      <FormPengembalianModal
-        show={returnModalOpen}
-        onClose={() => {
-          setReturnModalOpen(false);
-          setActiveItem(null);
-        }}
-        item={activeItem}
-        onSubmit={handleReturnSubmit}
-        submitting={returningId !== null}
-      />
-    </>
+          </div>
   );
 };
 

@@ -6,18 +6,33 @@ export interface ConsumableItemType {
   kode_barang: string;
   nama: string;
   merk: string;
-  tipe: string; // ditambahkan setelah "merk", sebelumnya terlewat
+  tipe: string;
   er_e: string;
   ukuran: string;
+  satuan: string;
   stok_awal: number;
+  stok_awal_asli: number;
+  total_masuk: number;
+  total_keluar: number;
 }
 
-export type ConsumableFormValues = Omit<ConsumableItemType, "id">;
+export interface ConsumableFormValues {
+  kode_barang: string;
+  nama: string;
+  merk: string;
+  tipe: string;
+  er_e: string;
+  ukuran: string;
+  satuan: string;
+  stok_awal: number;
+  stok_awal_asli?: number; // opsional -- cuma dipakai saat koreksi data lewat form Edit
+}
 
 // ------------------------------------------------------------------
 // Keranjang "Ambil Bahan" (dipakai di Data Consumable)
 // ------------------------------------------------------------------
 export interface ConsumableCartItemType {
+  id: string;
   consumable_id: string;
   kode_barang: string;
   nama: string;
@@ -29,10 +44,11 @@ export interface ConsumableCartItemType {
 // Form Pengambilan Bahan (Consumable Keluar)
 // ------------------------------------------------------------------
 export interface ConsumableOutFormValues {
-  tanggalPengambilan: string; // ditampilkan, format "16 Juli 2026"
+  tanggalPengambilan: string;
   pemintaId: string;
   namaPeminta: string;
   divisi: string;
+  namaPekerjaan: string;
   areaKerja: string;
   keterangan: string;
 }
@@ -50,8 +66,18 @@ export interface ConsumableMasukType {
   tipe: string;
   er_e: string;
   ukuran: string;
+  satuan?: string; // <--- TAMBAHAN PROPERTI SATUAN
   jumlah_masuk: number;
   keterangan: string;
+  // --- PASTikan PROPERTI INI ADA ---
+  dicatatOleh?: {
+    id: string;
+    name?: string;
+    nama?: string;
+  };
 }
 
-export type ConsumableMasukFormValues = Omit<ConsumableMasukType, "id">;
+// Jangan lupa update bagian Omit menjadi "dicatatOleh"
+export type ConsumableMasukFormValues = Omit<ConsumableMasukType, "id" | "dicatatOleh"> & {
+  id_card?: string;
+};
