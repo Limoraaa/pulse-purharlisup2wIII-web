@@ -287,8 +287,7 @@ class PeminjamanController extends Controller
         return response()->json($peminjaman);
     }
 
-    // PATCH /api/peminjaman/{id}/kembali
-    public function kembali(string $id)
+    public function kembali(Request $request, string $id)
     {
         $peminjaman = Peminjaman::find($id);
 
@@ -300,11 +299,42 @@ class PeminjamanController extends Controller
             return response()->json(['message' => 'Peminjaman ini sudah ditandai kembali sebelumnya'], 422);
         }
 
-        $peminjaman->update(['tanggal_kembali' => now()]);
+        $validator = Validator::make($request->all(), [
+            'jumlah_dikembalikan' => 'nullable|integer|min:1|max:' . $peminjaman->jumlah,
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $jumlahDikembalikan = $validator->validated()['jumlah_dikembalikan'] ?? $peminjaman->jumlah;
+
+        $hasilRecord = DB::transaction(function () use ($peminjaman, $jumlahDikembalikan) {
+            if ($jumlahDikembalikan >= $peminjaman->jumlah) {
+                $peminjaman->update(['tanggal_kembali' => now()]);
+                return $peminjaman;
+            }
+
+            $peminjaman->decrement('jumlah', $jumlahDikembalikan);
+
+            return Peminjaman::create([
+                'id' => (string) Str::uuid(),
+                'tool_id' => $peminjaman->tool_id,
+                'peminta_id' => $peminjaman->peminta_id,
+                'dicatat_oleh' => $peminjaman->dicatat_oleh,
+                'tanggal' => $peminjaman->tanggal,
+                'jumlah' => $jumlahDikembalikan,
+                'nama_pekerjaan' => $peminjaman->nama_pekerjaan,
+                'area_pekerjaan' => $peminjaman->area_pekerjaan,
+                'spesifikasi' => $peminjaman->spesifikasi,
+                'keterangan' => $peminjaman->keterangan,
+                'tanggal_kembali' => now(),
+            ]);
+        });
 
         return response()->json([
             'message' => 'Alat berhasil ditandai dikembalikan',
-            'data' => $peminjaman->load('tool'),
+            'data' => $hasilRecord->load('tool'),
         ]);
     }
 
