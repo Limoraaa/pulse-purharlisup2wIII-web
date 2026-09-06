@@ -1456,8 +1456,253 @@
       }
     }
 
+    .drp-root {
+      width: 100%;
+    }
+
+    .drp-trigger {
+      width: 100%;
+      min-width: 0;
+    }
+
+    .drp-popover {
+      position: fixed;
+      left: 50%;
+      right: auto;
+      top: auto;
+      bottom: 1rem;
+      transform: translateX(-50%);
+      width: min(320px, calc(100vw - 2rem));
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
     .riwayat-export-controls .btn {
       width: 100%;
+    }
+  }
+}
+
+// ============================================================
+// DateRangePicker - tombol + popup kalender (UI only)
+// ============================================================
+.drp-root {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.drp-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 44px;
+  padding: 0 0.875rem;
+  min-width: 200px;
+  max-width: 100%;
+  background-color: var(--#{$prefix}body-bg);
+  border: 1px solid var(--#{$prefix}border-color);
+  border-radius: $border-radius;
+  color: var(--#{$prefix}gray-600);
+  font-size: 0.875rem;
+  transition: border-color 0.2s ease;
+
+  &:hover {
+    border-color: var(--#{$prefix}primary);
+  }
+
+  &.is-filled {
+    color: var(--#{$prefix}body-color);
+    border-color: var(--#{$prefix}primary);
+  }
+}
+
+.drp-trigger-icon {
+  flex-shrink: 0;
+  color: var(--#{$prefix}gray-600);
+}
+
+.drp-trigger.is-filled .drp-trigger-icon {
+  color: var(--#{$prefix}primary);
+}
+
+.drp-trigger-text {
+  flex: 1 1 auto;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.drp-clear-inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  color: var(--#{$prefix}gray-600);
+
+  &:hover {
+    color: var(--#{$prefix}danger);
+    background-color: var(--#{$prefix}gray-100);
+  }
+}
+
+.drp-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 1050;
+  width: 300px;
+  max-width: calc(100vw - 3rem);
+  background-color: var(--#{$prefix}body-bg);
+  border: 1px solid var(--#{$prefix}border-color);
+  border-radius: $border-radius-lg;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14);
+  padding: 0.75rem;
+}
+
+.drp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.drp-title {
+  flex: 1 1 auto;
+  background: none;
+  border: 0;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--#{$prefix}body-color);
+  padding: 0.375rem 0.25rem;
+  border-radius: $border-radius;
+  text-align: center;
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--#{$prefix}gray-100);
+  }
+}
+
+.drp-nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: $border-radius;
+  background: none;
+  color: var(--#{$prefix}gray-600);
+
+  &:hover {
+    background-color: var(--#{$prefix}gray-100);
+    color: var(--#{$prefix}primary);
+  }
+}
+
+.drp-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: 2px;
+
+  span {
+    text-align: center;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--#{$prefix}gray-600);
+    padding: 0.25rem 0;
+    text-transform: uppercase;
+  }
+}
+
+.drp-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.drp-day {
+  border: 0;
+  background: none;
+  aspect-ratio: 1;
+  min-height: 34px;
+  border-radius: $border-radius;
+  font-size: 0.8125rem;
+  color: var(--#{$prefix}body-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background-color: var(--#{$prefix}gray-100);
+  }
+
+  &.is-inrange {
+    background-color: rgba(var(--#{$prefix}primary-rgb), 0.12);
+    border-radius: 0;
+  }
+
+  &.is-selected {
+    background-color: var(--#{$prefix}primary);
+    color: #fff;
+    font-weight: 600;
+  }
+}
+
+.drp-month-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+.drp-month {
+  border: 0;
+  background: none;
+  padding: 0.625rem 0.25rem;
+  border-radius: $border-radius;
+  font-size: 0.8125rem;
+  color: var(--#{$prefix}body-color);
+
+  &:hover {
+    background-color: var(--#{$prefix}gray-100);
+    color: var(--#{$prefix}primary);
+  }
+}
+
+.drp-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--#{$prefix}border-color);
+}
+
+.drp-action {
+  flex: 1 1 0;
+  border: 1px solid var(--#{$prefix}border-color);
+  background-color: transparent;
+  border-radius: $border-radius;
+  padding: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--#{$prefix}primary);
+
+  &:hover {
+    background-color: rgba(var(--#{$prefix}primary-rgb), 0.08);
+  }
+
+  &.drp-action-danger {
+    color: var(--#{$prefix}danger);
+
+    &:hover {
+      background-color: rgba(var(--#{$prefix}danger-rgb), 0.08);
     }
   }
 }

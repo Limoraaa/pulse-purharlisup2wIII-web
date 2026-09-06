@@ -20,6 +20,11 @@ import Flex from "components/common/Flex";
 import DasherBreadcrumb from "components/common/DasherBreadcrumb";
 import RiwayatFilterBar from "components/ruangtools/riwayat/common/RiwayatFilterBar";
 import {
+  DateFilterValue,
+  dateInFilter,
+  parseRowDate,
+} from "components/ruangtools/common/dateUtils";
+import {
   exportToExcel,
   exportToPDF,
   ExportColumn,
@@ -70,32 +75,9 @@ const RiwayatPerbaikanManager = () => {
     loadData();
   }, []);
 
-  const [bulanFilter, setBulanFilter] = useState(0);
-  const [tahunFilter, setTahunFilter] = useState(0);
+  const [tanggalFilter, setTanggalFilter] = useState<DateFilterValue | null>(null);
   const [namaFilter, setNamaFilter] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-
-  const parseTanggal = (str: string) => {
-    const bulanMap: Record<string, number> = {
-      Jan: 0, Feb: 1, Mar: 2, Apr: 3, Mei: 4, Jun: 5,
-      Jul: 6, Agu: 7, Sep: 8, Okt: 9, Nov: 10, Des: 11,
-    };
-    const match = str.match(/(\d{2}) (\w{3}) (\d{4})/);
-    if (!match) return null;
-    const [, day, bulanStr, year] = match;
-    const month = bulanMap[bulanStr];
-    if (month === undefined) return null;
-    return new Date(Number(year), month, Number(day));
-  };
-
-  const tahunOptions = useMemo(() => {
-    const tahunSet = new Set<number>();
-    riwayatList.forEach((r) => {
-      const tanggal = parseTanggal(r.tanggal_pengembalian);
-      if (tanggal) tahunSet.add(tanggal.getFullYear());
-    });
-    return Array.from(tahunSet).sort((a, b) => b - a);
-  }, [riwayatList]);
 
   const namaOptions = useMemo(() => {
     const namaSet = new Set(riwayatList.map((r) => r.nama_peminjam));
@@ -106,12 +88,9 @@ const RiwayatPerbaikanManager = () => {
     const keyword = searchTerm.trim().toLowerCase();
 
     return riwayatList.filter((r) => {
-      if (bulanFilter !== 0 || tahunFilter !== 0) {
-        const tanggal = parseTanggal(r.tanggal_pengembalian);
-        if (tanggal) {
-          if (bulanFilter !== 0 && tanggal.getMonth() + 1 !== bulanFilter) return false;
-          if (tahunFilter !== 0 && tanggal.getFullYear() !== tahunFilter) return false;
-        }
+      if (tanggalFilter) {
+        const tanggal = parseRowDate(r.tanggal_pengembalian);
+        if (tanggal && !dateInFilter(tanggal, tanggalFilter)) return false;
       }
 
       if (namaFilter !== "" && r.nama_peminjam !== namaFilter) return false;
@@ -126,7 +105,7 @@ const RiwayatPerbaikanManager = () => {
 
       return true;
     });
-  }, [riwayatList, bulanFilter, tahunFilter, namaFilter, searchTerm]);
+  }, [riwayatList, tanggalFilter, namaFilter, searchTerm]);
 
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [activeItem, setActiveItem] = useState<LaporanKerusakanType | null>(null);
@@ -195,11 +174,8 @@ const RiwayatPerbaikanManager = () => {
           </div>
 
           <RiwayatFilterBar
-            bulanFilter={bulanFilter}
-            onBulanFilterChange={setBulanFilter}
-            tahunFilter={tahunFilter}
-            onTahunFilterChange={setTahunFilter}
-            tahunOptions={tahunOptions}
+            tanggalFilter={tanggalFilter}
+            onTanggalFilterChange={setTanggalFilter}
             namaFilter={namaFilter}
             onNamaFilterChange={setNamaFilter}
             namaOptions={namaOptions}
