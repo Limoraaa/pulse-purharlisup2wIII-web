@@ -30,6 +30,11 @@ import Flex from "components/common/Flex";
 import DasherBreadcrumb from "components/common/DasherBreadcrumb";
 import { getPeminjamanAktifColumns } from "components/ruangtools/peminjamanaktif/ColumnDefination";
 import RiwayatFilterBar from "components/ruangtools/riwayat/common/RiwayatFilterBar";
+import {
+  DateFilterValue,
+  dateInFilter,
+  parseRowDate,
+} from "components/ruangtools/common/dateUtils";
 import { exportToExcel, exportToPDF, ExportColumn, getFilteredExportFileName } from "components/ruangtools/riwayat/common/exportUtils";
 
 const PeminjamanAktifManager = () => {
@@ -39,14 +44,8 @@ const PeminjamanAktifManager = () => {
 
   // ---- Toolbar: pencarian (murni UI, tidak menyentuh API/data) ----
   const [searchTerm, setSearchTerm] = useState("");
-  const [bulanFilter, setBulanFilter] = useState(0);
-  const [tahunFilter, setTahunFilter] = useState(0);
+  const [tanggalFilter, setTanggalFilter] = useState<DateFilterValue | null>(null);
   const [namaFilter, setNamaFilter] = useState("");
-
-  const parseTanggal = (value: string) => {
-    const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? null : date;
-  };
 
   const EXPORT_COLUMNS: ExportColumn[] = [
     { header: "Tanggal", key: "tanggal" }, { header: "Kode Barang", key: "kodeBarang" },
@@ -59,9 +58,8 @@ const PeminjamanAktifManager = () => {
   const filteredItems = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
     return items.filter((item) => {
-      const date = parseTanggal(item.tanggal);
-      const cocokPeriode = (!date || bulanFilter === 0 || date.getMonth() + 1 === bulanFilter) &&
-        (!date || tahunFilter === 0 || date.getFullYear() === tahunFilter);
+      const date = parseRowDate(item.tanggal);
+      const cocokTanggal = !tanggalFilter || !date || dateInFilter(date, tanggalFilter);
       const cocokNama = namaFilter === "" || item.namaPeminjam === namaFilter;
       const cocokKeyword =
         item.kodeBarang.toLowerCase().includes(keyword) ||
@@ -69,11 +67,10 @@ const PeminjamanAktifManager = () => {
         item.namaPeminjam.toLowerCase().includes(keyword) ||
         item.namaPekerjaan.toLowerCase().includes(keyword) ||
         item.areaKerja.toLowerCase().includes(keyword);
-      return cocokPeriode && cocokNama && (keyword === "" || cocokKeyword);
+      return cocokTanggal && cocokNama && (keyword === "" || cocokKeyword);
     });
-  }, [items, searchTerm, bulanFilter, tahunFilter, namaFilter]);
+  }, [items, searchTerm, tanggalFilter, namaFilter]);
 
-  const tahunOptions = useMemo(() => Array.from(new Set(items.map((item) => parseTanggal(item.tanggal)?.getFullYear()).filter((year): year is number => Boolean(year)))).sort((a, b) => b - a), [items]);
   const namaOptions = useMemo(() => Array.from(new Set(items.map((item) => item.namaPeminjam))).sort(), [items]);
   const exportRows = useMemo(() => filteredItems.map((item) => ({ ...item })), [filteredItems]);
   const getExportName = () => getFilteredExportFileName("Peminjaman_Aktif", namaFilter);
@@ -159,11 +156,8 @@ const PeminjamanAktifManager = () => {
             </span>
           </div>
           <RiwayatFilterBar
-            bulanFilter={bulanFilter}
-            onBulanFilterChange={setBulanFilter}
-            tahunFilter={tahunFilter}
-            onTahunFilterChange={setTahunFilter}
-            tahunOptions={tahunOptions}
+            tanggalFilter={tanggalFilter}
+            onTanggalFilterChange={setTanggalFilter}
             namaFilter={namaFilter}
             onNamaFilterChange={setNamaFilter}
             namaOptions={namaOptions}
