@@ -325,7 +325,7 @@ const ToolMasukManager = () => {
               </InputGroup.Text>
               <Form.Control
                 type="search"
-                placeholder="Cari kode, nama, merk, atau tipe..."
+                placeholder="Cari kode, nama, atau informasi lainnya..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 aria-label="Cari tools masuk"

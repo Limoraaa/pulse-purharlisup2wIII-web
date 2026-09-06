@@ -149,7 +149,7 @@ const RiwayatPerbaikanManager = () => {
               </InputGroup.Text>
               <Form.Control
                 type="search"
-                placeholder="Cari kode, nama barang, atau nama peminjam..."
+                placeholder="Cari kode, nama barang, atau informasi lainnya..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 aria-label="Cari riwayat perbaikan"

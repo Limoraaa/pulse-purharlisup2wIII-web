@@ -133,7 +133,7 @@ const PeminjamanAktifManager = () => {
                 </InputGroup.Text>
                 <Form.Control
                   type="search"
-                  placeholder="Cari peminjam, kode barang, nama barang, atau area kerja..."
+                  placeholder="Cari kode, nama barang, atau informasi lainnya..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   aria-label="Cari peminjaman aktif"
