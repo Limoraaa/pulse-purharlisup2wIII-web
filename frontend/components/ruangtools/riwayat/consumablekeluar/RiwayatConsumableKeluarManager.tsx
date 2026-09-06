@@ -206,7 +206,7 @@ const RiwayatConsumableKeluarManager = () => {
               </InputGroup.Text>
               <Form.Control
                 type="search"
-                placeholder="kode barang, nama barang, satuan, atau peminta..."
+                placeholder="Cari kode, nama barang, atau informasi lainnya..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 aria-label="Cari riwayat consumable keluar"

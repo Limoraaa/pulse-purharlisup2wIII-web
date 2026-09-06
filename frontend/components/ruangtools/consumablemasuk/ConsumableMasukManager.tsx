@@ -335,7 +335,7 @@ const ConsumableMasukManager = () => {
                 </InputGroup.Text>
                 <Form.Control
                   type="search"
-                  placeholder="Cari kode, nama, er/e, ukuran, satuan, penginput, atau keterangan..."
+                  placeholder="Cari kode, nama barang, atau informasi lainnya..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   aria-label="Cari consumable masuk"

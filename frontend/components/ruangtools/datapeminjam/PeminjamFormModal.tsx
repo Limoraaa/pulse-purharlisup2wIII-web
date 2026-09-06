@@ -18,6 +18,18 @@ const emptyForm: PeminjamFormValues = {
   role: "user",
 };
 
+const JABATAN_OPTIONS = [
+  "MGTI",
+  "HPI",
+  "HL",
+  "QC",
+  "K3L",
+  "Pegawai",
+  "PKL",
+  "Magang",
+  "Lainnya",
+];
+
 interface PeminjamFormModalProps {
   show: boolean;
   onClose: () => void;
@@ -34,20 +46,32 @@ const PeminjamFormModal = ({
   error = null,
 }: PeminjamFormModalProps) => {
   const [form, setForm] = useState<PeminjamFormValues>(emptyForm);
+  const [jabatanSelect, setJabatanSelect] = useState<string>("");
   const isEditMode = Boolean(initialData);
 
   useEffect(() => {
     if (show) {
-      setForm(
-        initialData
-          ? { 
+      if (initialData) {
+        setForm(
+          {
               id: initialData.id, // Ambil ID (RFID/UUID) dari database
-              nama: initialData.nama, 
+              nama: initialData.nama,
               divisi: initialData.divisi,
               role: initialData.role || "user", // Masukkan data role
             }
-          : emptyForm
-      );
+        );
+        // Sinkronkan dropdown: opsi dikenal -> pilih opsi tsb, selain itu -> "Lainnya"
+        setJabatanSelect(
+          JABATAN_OPTIONS.includes(initialData.divisi)
+            ? initialData.divisi
+            : initialData.divisi
+              ? "Lainnya"
+              : ""
+        );
+      } else {
+        setForm(emptyForm);
+        setJabatanSelect("");
+      }
     }
   }, [show, initialData]);
 
@@ -110,16 +134,46 @@ const PeminjamFormModal = ({
               
               <Col md={12}>
                 <Form.Label>
-                  Divisi <span className="text-danger">*</span>
+                  Jabatan / Bagian <span className="text-danger">*</span>
                 </Form.Label>
-                <Form.Control
+                <Form.Select
                   required
-                  placeholder="Contoh: Pemeliharaan"
-                  value={form.divisi}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, divisi: e.target.value }))
-                  }
-                />
+                  value={jabatanSelect}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setJabatanSelect(value);
+                    if (value === "Lainnya") {
+                      // Jika sebelumnya berisi opsi dikenal, kosongkan agar user ketik manual.
+                      // Jika sudah berisi nilai custom (mode edit), pertahankan.
+                      setForm((prev) => ({
+                        ...prev,
+                        divisi: JABATAN_OPTIONS.includes(prev.divisi) ? "" : prev.divisi,
+                      }));
+                    } else {
+                      setForm((prev) => ({ ...prev, divisi: value }));
+                    }
+                  }}
+                >
+                  <option value="" disabled>
+                    -- Pilih Jabatan / Bagian --
+                  </option>
+                  {JABATAN_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </Form.Select>
+                {jabatanSelect === "Lainnya" && (
+                  <Form.Control
+                    required
+                    className="mt-2"
+                    placeholder="Ketik jabatan/bagian lainnya..."
+                    value={form.divisi}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, divisi: e.target.value }))
+                    }
+                  />
+                )}
               </Col>
 
               <Col md={12}>
