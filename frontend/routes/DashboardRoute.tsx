@@ -6,6 +6,7 @@ import {
   IconArrowsExchange,
   IconHistory,
   IconShoppingCart,
+  IconTools,
   IconReportAnalytics,
   IconUsers,
 } from "@tabler/icons-react";
@@ -106,6 +107,26 @@ export const DashboardMenu: MenuItemType[] = [
         id: uuid(),
         name: "Order Tools",
         link: "/order/order-tools",
+      },
+    ],
+  },
+  // ==========================================
+  // MENU PEMELIHARAAN (Hanya Mesin & Motor Konversi)
+  // ==========================================
+  {
+    id: uuid(),
+    title: "Pemeliharaan",
+    icon: <IconTools size={20} strokeWidth={1.5} />,
+    children: [
+      {
+        id: uuid(),
+        name: "Pemeliharaan Mesin",
+        link: "/pemeliharaan/data-mesin",
+      },
+      {
+        id: uuid(),
+        name: "Pemeliharaan Motor Konversi",
+        link: "/pemeliharaan/motor-konversi",
       },
     ],
   },
