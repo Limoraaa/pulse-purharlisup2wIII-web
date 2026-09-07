@@ -36,7 +36,7 @@ const getEmptyItem = (): OrderItem => ({
   er_e: '',
   ukuran: '',
   jumlah: 1,
-  satuan: 'Pcs',
+  satuan: '',
 });
 
 export default function OrderConsumableFormModal({ isOpen, onClose, onSuccess }: OrderConsumableFormModalProps) {
@@ -349,13 +349,16 @@ export default function OrderConsumableFormModal({ isOpen, onClose, onSuccess }:
                       <Form.Label className="fw-semibold text-sm">
                         Satuan <span className="text-danger">*</span>
                       </Form.Label>
-                      <Form.Control
-                        type="text"
+                      <Form.Select
                         required
                         value={item.satuan}
                         onChange={e => handleItemChange(index, 'satuan', e.target.value)}
-                        placeholder="Cth: Kg, Dus, Pcs"
-                      />
+                      >
+                        <option value="" disabled>Pilih satuan</option>
+                        <option value="Pcs">Pcs</option>
+                        <option value="Kg">Kg</option>
+                        <option value="Meter">Meter</option>
+                      </Form.Select>
                     </Form.Group>
                   </Col>
 

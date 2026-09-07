@@ -52,7 +52,7 @@ export default function OrderConsumableEditModal({ isOpen, onClose, onSuccess, o
           ukuran: orderData.ukuran || '',
           pekerjaan: orderData.pekerjaan || '', // <-- LOAD DATA PEKERJAAN
           jumlah: orderData.jumlah || 1,
-          satuan: orderData.satuan || 'Pcs',
+          satuan: ['Pcs', 'Kg', 'Meter'].includes(orderData.satuan) ? orderData.satuan : (orderData.satuan || 'Pcs'),
           status_pembelian: orderData.status_pembelian || 'belum dibeli',
           tanggal_kedatangan: orderData.tanggal_kedatangan || '',
         });
@@ -205,13 +205,16 @@ export default function OrderConsumableEditModal({ isOpen, onClose, onSuccess, o
             <Col md={4}>
               <Form.Group className="mb-3">
                 <Form.Label className="fw-semibold">Satuan</Form.Label>
-                <Form.Control
-                  type="text"
+                <Form.Select
                   required
                   value={form.satuan}
                   onChange={e => handleChange('satuan', e.target.value)}
-                  placeholder="Cth: Pcs, Kg, Dus"
-                />
+                >
+                  <option value="" disabled>Pilih satuan</option>
+                  <option value="Pcs">Pcs</option>
+                  <option value="Kg">Kg</option>
+                  <option value="Meter">Meter</option>
+                </Form.Select>
               </Form.Group>
             </Col>
   
