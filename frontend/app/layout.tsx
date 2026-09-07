@@ -4,7 +4,6 @@ import { Public_Sans } from "next/font/google";
 
 //import custom components
 import ClientWrapper from "components/common/ClientWrapper";
-import UnreturnedAlertModal from "/components/common/UnreturnedAlertModal"; // <-- 1. IMPORT MODAL DI SINI
 
 // Import Swiper styles
 import "swiper/css";
@@ -34,8 +33,7 @@ export default function RootLayout({
     <ClientWrapper>
       <html lang="en" className="expanded">
         <body className={`${publicSans.variable}`}>
-          {/* 2. PASANG KOMPONEN DI DALAM BODY */}
-          <UnreturnedAlertModal />
+          {/* UnreturnedAlertModal DIHAPUS DARI SINI */}
           {children}
         </body>
       </html>

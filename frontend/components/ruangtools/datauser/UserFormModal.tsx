@@ -9,7 +9,7 @@ const emptyForm: UserFormValues = {
   full_name: "",
   username: "",
   password: "",
-  role: "staff",
+  role: "Staff", // Diubah menggunakan huruf kapital awal agar sesuai database
   divisi: "",
 };
 
@@ -36,11 +36,21 @@ const UserFormModal = ({
   useEffect(() => {
     if (show) {
           if (initialData) {
+            
+          // --- LOGIKA MAPPING ---
+          // Memastikan data lama dari DB (huruf kecil) cocok dengan dropdown baru (Kapital)
+          let mappedRole = initialData.role as string;
+          if (mappedRole === "staff") mappedRole = "Staff";
+          if (mappedRole === "super_admin" || mappedRole === "superadmin") mappedRole = "Super Admin";
+          if (mappedRole === "admin") mappedRole = "Admin";
+          if (mappedRole === "pegawai") mappedRole = "Pegawai";
+          // ----------------------
+
           setForm({
             full_name: initialData.full_name,
             username: initialData.username,
             password: "",
-            role: initialData.role,
+            role: mappedRole as UserRole,
             divisi: initialData.divisi || "",
           });
         } else {
@@ -112,8 +122,12 @@ const UserFormModal = ({
                   value={form.role}
                   onChange={(e) => handleChange("role", e.target.value as UserRole)}
                 >
-                  <option value="staff">Staff</option>
-                  <option value="super_admin">Super Admin</option>
+                  {/* Pilihan dropdown role baru yang sudah sesuai dengan seeder */}
+                  <option value="Pegawai">Pegawai</option>
+                  <option value="Staff">Staff</option>
+                  <option value="Admin">Admin</option>
+                  <option value="Team Leader">Team Leader</option>
+                  <option value="Super Admin">Super Admin</option>
                 </Form.Select>
               ) : (
                 <Form.Control value="Staff" disabled readOnly />
