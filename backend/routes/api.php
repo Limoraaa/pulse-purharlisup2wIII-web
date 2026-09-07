@@ -63,6 +63,7 @@ Route::delete('/peminjaman/cart/{id}', [PeminjamanController::class, 'removeCart
 
 Route::get('/order-consumable', [OrderConsumableController::class, 'index']);
 Route::post('/order-consumable', [OrderConsumableController::class, 'store']);
+Route::put('/order-consumable/{id}', [OrderConsumableController::class, 'update']);
 Route::put('/order-consumable/{id}/status', [OrderConsumableController::class, 'updateStatus']);
 
 

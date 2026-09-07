@@ -206,13 +206,16 @@ export default function OrderToolsEditModal({ isOpen, onClose, onSuccess, orderD
             <Col md={4}>
               <Form.Group className="mb-3">
                 <Form.Label className="fw-semibold">Satuan</Form.Label>
-                <Form.Control
-                  type="text"
+                <Form.Select
                   required
                   value={form.satuan}
                   onChange={e => handleChange('satuan', e.target.value)}
-                  placeholder="Cth: Pcs, Kg"
-                />
+                >
+                  <option value="" disabled>Pilih satuan</option>
+                  <option value="Pcs">Pcs</option>
+                  <option value="Kg">Kg</option>
+                  <option value="Meter">Meter</option>
+                </Form.Select>
               </Form.Group>
             </Col>
 
