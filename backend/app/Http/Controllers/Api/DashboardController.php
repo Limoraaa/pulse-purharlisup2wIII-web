@@ -18,14 +18,14 @@ class DashboardController extends Controller
     public function summary()
     {
         // 1. Hitung status Order Tools
-        $orderTools = DB::table('order_tools') 
+        $orderTools = DB::table('order_tools')
             ->select('status_pembelian', DB::raw('count(*) as total'))
             ->groupBy('status_pembelian')
             ->pluck('total', 'status_pembelian')
             ->toArray();
 
         // 2. Hitung status Order Consumable
-        $orderConsumables = DB::table('order_consumables') 
+        $orderConsumables = DB::table('order_consumables')
             ->select('status_pembelian', DB::raw('count(*) as total'))
             ->groupBy('status_pembelian')
             ->pluck('total', 'status_pembelian')
@@ -52,7 +52,7 @@ class DashboardController extends Controller
             'total_consumables' => Consumable::count(),
             'total_peminta' => Peminta::where('aktif', true)->count(),
             'sedang_dipinjam' => Peminjaman::whereNull('tanggal_kembali')->sum('jumlah'),
-            
+
             // --- DATA UNTUK KARTU ORDER DI DASHBOARD ---
             'order_tools_status' => $orderToolsStatus,
             'order_consumable_status' => $orderConsumableStatus,
@@ -62,10 +62,10 @@ class DashboardController extends Controller
     // GET /api/dashboard/stok-menipis
     public function stokMenipis()
     {
-        $data = Consumable::where('stok_awal', '<', 5)
-            ->orderBy('stok_awal', 'asc')
+        $data = Consumable::where('stok_tersedia', '<', 5)
+            ->orderBy('stok_tersedia', 'asc')
             ->limit(5)
-            ->get(['id', 'kode_barang', 'nama', 'stok_awal']);
+            ->get(['id', 'kode_barang', 'nama', 'stok_tersedia']);
 
         return response()->json($data);
     }

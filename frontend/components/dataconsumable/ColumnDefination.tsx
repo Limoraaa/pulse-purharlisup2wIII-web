@@ -86,10 +86,10 @@ export const getConsumableColumns = ({
   ),
 },
   {
-    accessorKey: "stok_awal",
+    accessorKey: "stok_tersedia",
     header: "Stok Tersedia",
     cell: ({ row }) => {
-      const stok = row.original.stok_awal;
+      const stok = row.original.stok_tersedia;
       const perluRestock = stok < 5;
 
       return (
@@ -113,7 +113,7 @@ export const getConsumableColumns = ({
     header: "Aksi",
     cell: ({ row }) => {
       const consumable = row.original;
-      const isHabis = consumable.stok_awal <= 0;
+      const isHabis = consumable.stok_tersedia <= 0;
 
       // <-- Fungsi untuk mendownload QR Code versi In-Memory Canvas -->
       const handleDownloadQR = async () => {

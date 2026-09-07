@@ -30,8 +30,8 @@ class ConsumableController extends Controller
                     'type' => $item->type,
                     'ukuran' => $item->ukuran,
                     'satuan' => $item->satuan,
-                    'stok_awal' => $item->stok_awal,
-                    'stok_akhir' => $item->stok_awal,
+                    'stok_tersedia' => $item->stok_tersedia,
+                    'stok_akhir' => $item->stok_tersedia,
                     'stok_awal_asli' => $item->stok_awal_asli,
                     'total_masuk' => $item->total_masuk ?? 0,
                     'total_keluar' => $item->total_keluar ?? 0,
@@ -54,10 +54,10 @@ class ConsumableController extends Controller
             'type' => 'nullable|string',
             'ukuran' => 'nullable|string',
             'satuan' => 'nullable|string',
-            'stok_awal' => 'required|integer|min:0',
+            'stok_tersedia' => 'required|integer|min:0',
         ]);
 
-        $validated['stok_awal_asli'] = $validated['stok_awal'];
+        $validated['stok_awal_asli'] = $validated['stok_tersedia'];
 
         $consumable = Consumable::create($validated);
 
@@ -70,8 +70,8 @@ class ConsumableController extends Controller
             'type' => $consumable->type,
             'ukuran' => $consumable->ukuran,
             'satuan' => $consumable->satuan,
-            'stok_awal' => $consumable->stok_awal,
-            'stok_akhir' => $consumable->stok_awal,
+            'stok_tersedia' => $consumable->stok_tersedia,
+            'stok_akhir' => $consumable->stok_tersedia,
             'stok_awal_asli' => $consumable->stok_awal_asli,
             'total_masuk' => 0,
             'total_keluar' => 0,
@@ -95,8 +95,8 @@ class ConsumableController extends Controller
             'type' => $consumable->type,
             'ukuran' => $consumable->ukuran,
             'satuan' => $consumable->satuan,
-            'stok_awal' => $consumable->stok_awal,
-            'stok_akhir' => $consumable->stok_awal,
+            'stok_tersedia' => $consumable->stok_tersedia,
+            'stok_akhir' => $consumable->stok_tersedia,
             'riwayat_masuk' => $consumable->masuk,
             'riwayat_keluar' => $consumable->keluar,
         ]);
@@ -116,18 +116,18 @@ class ConsumableController extends Controller
             'type' => 'nullable|string',
             'ukuran' => 'nullable|string',
             'satuan' => 'nullable|string',
-            'stok_awal' => 'sometimes|integer|min:0',
+            'stok_tersedia' => 'sometimes|integer|min:0',
         ]);
 
-        if (array_key_exists('stok_awal', $validated)) {
-            // Input "Stok Awal" dari form merepresentasikan stok_awal_asli
-            // (nilai stok awal yang sebenarnya), bukan field live "stok_awal".
-            // stok_awal (live) dihitung ulang: stok_awal_asli + masuk - keluar.
+        if (array_key_exists('stok_tersedia', $validated)) {
+            // Input "Stok Tersedia" dari form merepresentasikan stok_awal_asli
+            // (nilai stok awal yang sebenarnya), bukan field live "stok_tersedia".
+            // stok_tersedia (live) dihitung ulang: stok_awal_asli + masuk - keluar.
             $totalMasuk = $consumable->masuk()->sum('jumlah_masuk');
             $totalKeluar = $consumable->keluar()->sum('jumlah_keluar');
 
-            $validated['stok_awal_asli'] = $validated['stok_awal'];
-            $validated['stok_awal'] = $validated['stok_awal_asli'] + $totalMasuk - $totalKeluar;
+            $validated['stok_awal_asli'] = $validated['stok_tersedia'];
+            $validated['stok_tersedia'] = $validated['stok_awal_asli'] + $totalMasuk - $totalKeluar;
         }
 
         $consumable->update($validated);
@@ -143,8 +143,8 @@ class ConsumableController extends Controller
             'type' => $consumable->type,
             'ukuran' => $consumable->ukuran,
             'satuan' => $consumable->satuan,
-            'stok_awal' => $consumable->stok_awal,
-            'stok_akhir' => $consumable->stok_awal,
+            'stok_tersedia' => $consumable->stok_tersedia,
+            'stok_akhir' => $consumable->stok_tersedia,
             'stok_awal_asli' => $consumable->stok_awal_asli,
             'total_masuk' => $consumable->total_masuk ?? 0,
             'total_keluar' => $consumable->total_keluar ?? 0,

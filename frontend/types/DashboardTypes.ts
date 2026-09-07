@@ -9,7 +9,7 @@ export interface StokMenipisItem {
   id: string;
   kode_barang: string;
   nama: string;
-  stok_awal: number;
+  stok_tersedia: number;
 }
 
 export interface TelatKembaliItem {

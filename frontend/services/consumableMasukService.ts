@@ -17,7 +17,7 @@ interface ConsumableMasukApiResponse {
     er_e: string | null;
     ukuran: string | null;
     satuan?: string | null; // <-- TAMBAHAN: satuan dari master consumable
-    stok_awal: number;
+    stok_tersedia: number;
   };
   // Digabung menjadi satu deklarasi fleksibel yang bisa berupa string ID atau objek relasi dari Laravel
   dicatat_oleh?: string | {

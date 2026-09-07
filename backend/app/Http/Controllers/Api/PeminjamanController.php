@@ -59,9 +59,9 @@ class PeminjamanController extends Controller
                 ], 422);
             }
         } else {
-            if ($consumable->stok_awal < $totalDiminta) {
+            if ($consumable->stok_tersedia < $totalDiminta) {
                 return response()->json([
-                    'message' => "Stok bahan '{$consumable->nama}' tidak mencukupi! Tersedia maksimal: {$consumable->stok_awal}",
+                    'message' => "Stok bahan '{$consumable->nama}' tidak mencukupi! Tersedia maksimal: {$consumable->stok_tersedia}",
                 ], 422);
             }
         }

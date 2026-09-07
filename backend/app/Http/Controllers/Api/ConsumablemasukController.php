@@ -44,7 +44,7 @@ class ConsumableMasukController extends Controller
             'jumlah_masuk'  => 'required|integer|min:1',
             'satuan'        => 'nullable|string', // <-- TAMBAHAN VALIDASI SATUAN
             'keterangan'    => 'nullable|string',
-            'peminta_id'    => 'required|string|exists:peminta,id', 
+            'peminta_id'    => 'required|string|exists:peminta,id',
         ]);
 
         if ($validator->fails()) {
@@ -98,7 +98,7 @@ class ConsumableMasukController extends Controller
                 $consumable->stok_awal_asli = $data['jumlah_masuk'];
             }
 
-            $consumable->stok_awal += $data['jumlah_masuk'];
+            $consumable->stok_tersedia += $data['jumlah_masuk'];
             $consumable->save();
 
             return ConsumableMasuk::create($data);
@@ -139,13 +139,13 @@ class ConsumableMasukController extends Controller
                 $consumable = Consumable::lockForUpdate()->findOrFail($consumableMasuk->consumable_id);
                 $selisih = $data['jumlah_masuk'] - $consumableMasuk->jumlah_masuk;
 
-                if ($selisih < 0 && $consumable->stok_awal < abs($selisih)) {
+                if ($selisih < 0 && $consumable->stok_tersedia < abs($selisih)) {
                     throw new \RuntimeException(
-                        "Stok tidak cukup untuk mengurangi jumlah ini. Stok saat ini: {$consumable->stok_awal}"
+                        "Stok tidak cukup untuk mengurangi jumlah ini. Stok saat ini: {$consumable->stok_tersedia}"
                     );
                 }
 
-                $consumable->stok_awal += $selisih;
+                $consumable->stok_tersedia += $selisih;
                 $consumable->save();
 
                 $consumableMasuk->update($data);
@@ -173,7 +173,7 @@ class ConsumableMasukController extends Controller
             $consumable = Consumable::lockForUpdate()->find($consumableMasuk->consumable_id);
 
             if ($consumable) {
-                $consumable->stok_awal -= $consumableMasuk->jumlah_masuk;
+                $consumable->stok_tersedia -= $consumableMasuk->jumlah_masuk;
                 $consumable->save();
             }
 
