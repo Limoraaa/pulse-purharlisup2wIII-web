@@ -84,10 +84,6 @@ export const getPeminjamanAktifColumns = (): ColumnDef<PeminjamanAktifItemType>[
     header: "Area Pekerjaan",
   },
   {
-    accessorKey: "spesifikasi",
-    header: "Spesifikasi",
-  },
-    {
     accessorKey: "keterangan",
     header: "Keterangan",
   },
