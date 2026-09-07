@@ -285,7 +285,7 @@ export default function OrderToolsManager() {
               <InputGroup.Text><IconSearch size={18} /></InputGroup.Text>
               <Form.Control
                 type="search"
-                placeholder="Cari nama, merek, pekerjaan, atau pengusul..."
+                placeholder="Cari nama, merek, atau informasi lainnya..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />

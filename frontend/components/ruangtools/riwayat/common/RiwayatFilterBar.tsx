@@ -4,22 +4,14 @@ import { Form, Button, InputGroup } from "react-bootstrap";
 import {
   IconFileTypePdf,
   IconFileTypeXls,
-  IconCalendarMonth,
-  IconCalendar,
   IconUser,
 } from "@tabler/icons-react";
-
-const NAMA_BULAN = [
-  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-  "Juli", "Agustus", "September", "Oktober", "November", "Desember",
-];
+import DateRangePicker from "components/ruangtools/common/DateRangePicker";
+import { DateFilterValue } from "components/ruangtools/common/dateUtils";
 
 interface RiwayatFilterBarProps {
-  bulanFilter: number; // 0 = Semua Bulan, 1-12 = bulan tertentu
-  onBulanFilterChange: (v: number) => void;
-  tahunFilter: number; // 0 = Semua Tahun
-  onTahunFilterChange: (v: number) => void;
-  tahunOptions: number[]; // daftar tahun yang ada di data
+  tanggalFilter: DateFilterValue | null;
+  onTanggalFilterChange: (v: DateFilterValue | null) => void;
 
   namaFilter: string;
   onNamaFilterChange: (v: string) => void;
@@ -31,59 +23,22 @@ interface RiwayatFilterBarProps {
 }
 
 const RiwayatFilterBar = ({
-  bulanFilter,
-  onBulanFilterChange,
-  tahunFilter,
-  onTahunFilterChange,
-  tahunOptions,
-  namaFilter,          // BARU
-  onNamaFilterChange,  // BARU
-  namaOptions = [],         // BARU
+  tanggalFilter,
+  onTanggalFilterChange,
+  namaFilter,
+  onNamaFilterChange,
+  namaOptions = [],
   namaLabel = "Nama",
   onExportPDF,
   onExportExcel,
 }: RiwayatFilterBarProps) => {
   return (
     <div className="riwayat-filterbar">
-      {/* Filter Bulan & Tahun */}
+      {/* Filter Tanggal (date range / bulan) + Nama */}
       <div className="riwayat-filter-controls">
-        <InputGroup className="riwayat-filter-group">
-          <InputGroup.Text>
-            <IconCalendarMonth size={16} />
-          </InputGroup.Text>
-          <Form.Select
-            value={bulanFilter}
-            onChange={(e) => onBulanFilterChange(Number(e.target.value))}
-            aria-label="Filter bulan"
-          >
-            <option value={0}>Semua Bulan</option>
-            {NAMA_BULAN.map((nama, index) => (
-              <option key={nama} value={index + 1}>
-                {nama}
-              </option>
-            ))}
-          </Form.Select>
-        </InputGroup>
+        <DateRangePicker value={tanggalFilter} onChange={onTanggalFilterChange} />
 
-        <InputGroup className="riwayat-filter-group">
-          <InputGroup.Text>
-            <IconCalendar size={16} />
-          </InputGroup.Text>
-          <Form.Select
-            value={tahunFilter}
-            onChange={(e) => onTahunFilterChange(Number(e.target.value))}
-            aria-label="Filter tahun"
-          >
-            <option value={0}>Semua Tahun</option>
-            {tahunOptions.map((tahun) => (
-              <option key={tahun} value={tahun}>
-                {tahun}
-              </option>
-            ))}
-          </Form.Select>
-        </InputGroup>
-
-        <InputGroup className="riwayat-filter-group">
+        <InputGroup className="riwayat-filter-group riwayat-nama-filter">
           <InputGroup.Text>
             <IconUser size={16} />
           </InputGroup.Text>
