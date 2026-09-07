@@ -15,7 +15,8 @@ use App\Http\Controllers\Api\ToolMasukController;
 use App\Http\Controllers\Api\LaporanKerusakanController;
 use App\Http\Controllers\Api\OrderConsumableController;
 use App\Http\Controllers\Api\OrderToolController;
-use App\Http\Controllers\Api\PekerjaanController; // <-- TAMBAHAN IMPORT PEKERJAAN
+use App\Http\Controllers\Api\PekerjaanController;
+use App\Http\Controllers\Api\RolePermissionController; // <-- TAMBAHAN IMPORT RBAC
 
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -23,6 +24,8 @@ Route::get('/peminjaman/belum-kembali', [PeminjamanController::class, 'belumKemb
 
 // ==========================================
 // ROUTE YANG TIDAK BUTUH AUTH (PUBLIC / GENERAL)
+// Catatan: Jika aplikasi ini internal, pertimbangkan untuk memindahkan 
+// aksi POST/PUT/DELETE di bawah ini ke dalam middleware auth.
 // ==========================================
 Route::apiResource('tools', ToolController::class);
 Route::patch('/tools/{tool}/kurangi-stok', [ToolController::class, 'kurangiStok']);
@@ -55,7 +58,7 @@ Route::prefix('dashboard')->group(function () {
     Route::get('/tren-consumable', [DashboardController::class, 'trenConsumable']);
 });
 
-// --- FITUR SCANNER & CART PUBLIK (Agar Flutter & Web Dashboard sinkron tanpa token khusus scan) ---
+// --- FITUR SCANNER & CART PUBLIK ---
 Route::post('/peminjaman/scan', [PeminjamanController::class, 'scan']);
 Route::get('/peminjaman/antrean', [PeminjamanController::class, 'antrean']);
 Route::patch('/peminjaman/cart/{id}', [PeminjamanController::class, 'updateCartItem']);
@@ -65,12 +68,12 @@ Route::get('/order-consumable', [OrderConsumableController::class, 'index']);
 Route::post('/order-consumable', [OrderConsumableController::class, 'store']);
 Route::put('/order-consumable/{id}/status', [OrderConsumableController::class, 'updateStatus']);
 
-
 // --- ORDER TOOLS ---
 Route::get('/order-tools', [OrderToolController::class, 'index']);
 Route::post('/order-tools', [OrderToolController::class, 'store']);
 Route::put('/order-tools/{id}/status', [OrderToolController::class, 'updateStatus']);
 Route::put('/order-tools/{id}', [OrderToolController::class, 'update']);
+
 
 // ==========================================
 // ROUTE YANG WAJIB LOGIN (SANCTUM MIDDLEWARE)
@@ -79,11 +82,17 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Auth & Data User
     Route::post('/logout', [AuthController::class, 'logout']);
+    
+    // Pastikan endpoint /user ini mengembalikan data role & permissions juga
+    // agar Frontend (Next.js) tahu hak akses apa saja yang dimiliki user yang sedang login.
     Route::get('/user', function (Request $request) {
-        return $request->user();
+        $user = $request->user()->load('roles', 'permissions');
+        // Mendapatkan semua nama permission langsung (gabungan direct & via role)
+        $user->all_permissions = $user->getAllPermissions()->pluck('name'); 
+        return $user;
     });
 
-    // 1. Fitur Proses Akhir & Manajemen Peminjaman Utama (Tetap Butuh Login)
+    // 1. Fitur Proses Akhir & Manajemen Peminjaman Utama
     Route::post('/peminjaman/proses', [PeminjamanController::class, 'prosesPeminjaman']);
     Route::patch('/peminjaman/{id}/kembali', [PeminjamanController::class, 'kembali']);
     Route::apiResource('peminjaman', PeminjamanController::class);
@@ -97,17 +106,32 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/consumable-keluar/cart/{id}', [ConsumableKeluarController::class, 'updateCartItem']);
     Route::delete('/consumable-keluar/antrean/{consumable_id}', [ConsumableKeluarController::class, 'hapusAntrean']);
     Route::post('/consumable-keluar/proses', [ConsumableKeluarController::class, 'prosesCartConsumable']);
-
-    // PINDAHKAN KE SINI: Pastikan apiResource selalu berada di BAWAH rute kustom
     Route::apiResource('consumable-keluar', ConsumableKeluarController::class);
 
+    // Profile (Semua user yang login bisa akses)
     Route::get('/profile', [UserController::class, 'profile']);
     Route::put('/profile', [UserController::class, 'updateProfile']);
     Route::patch('/profile', [UserController::class, 'updateProfile']);
     Route::post('/profile/photo', [UserController::class, 'uploadPhoto']);
     Route::patch('/profile/password', [UserController::class, 'changePassword']);
 
-    Route::apiResource('users', UserController::class);
-    Route::patch('/users/{id}/reset-password', [UserController::class, 'resetPassword']);
-    Route::patch('/users/{id}/aktifkan', [UserController::class, 'activate']);
+    // ==========================================
+    // ROUTE KHUSUS SUPER ADMIN / STAFF
+    // ==========================================
+    
+    // Menggunakan middleware 'role' dari Spatie untuk membatasi akses manajemen user
+    Route::middleware(['role:Super Admin'])->group(function () {
+        Route::apiResource('users', UserController::class);
+        Route::patch('/users/{id}/reset-password', [UserController::class, 'resetPassword']);
+        Route::patch('/users/{id}/aktifkan', [UserController::class, 'activate']);
+        
+        // --- RUTE UNTUK MATRIKS RBAC BARU ---
+        Route::get('/permissions/matrix', [RolePermissionController::class, 'getMatrix']);
+        Route::put('/permissions/matrix', [RolePermissionController::class, 'updateMatrix']);
+        
+        // --- RUTE RBAC LAMA (opsional, dibiarkan jika masih dipakai di tempat lain) ---
+        Route::get('/roles', [RolePermissionController::class, 'index']); 
+        Route::get('/roles/{id}/permissions', [RolePermissionController::class, 'getRolePermissions']);
+        Route::put('/roles/{id}/permissions', [RolePermissionController::class, 'updateRolePermissions']);
+    });
 });
