@@ -300,7 +300,7 @@ const PeminjamManager = () => {
                 </InputGroup.Text>
                 <Form.Control
                   type="search"
-                  placeholder="Cari nama, divisi, atau tap kartu RFID..."
+                  placeholder="Cari nama, divisi, atau informasi lainnya..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   aria-label="Cari data peminjam"

@@ -30,6 +30,11 @@ import TanstackTable from "components/table/TanstackTable";
 import Flex from "components/common/Flex";
 import DasherBreadcrumb from "components/common/DasherBreadcrumb";
 import RiwayatFilterBar from "components/ruangtools/riwayat/common/RiwayatFilterBar";
+import {
+  DateFilterValue,
+  dateInFilter,
+  parseRowDate,
+} from "components/ruangtools/common/dateUtils";
 import { exportToExcel, exportToPDF, ExportColumn, getFilteredExportFileName } from "components/ruangtools/riwayat/common/exportUtils";
 import { getToolMasukColumns } from "components/ruangtools/toolsmasuk/ColumnDefination";
 import ToolMasukFormModal from "components/ruangtools/toolsmasuk/ToolMasukFormModal";
@@ -63,14 +68,8 @@ const ToolMasukManager = () => {
 
   // ---- Toolbar: pencarian (murni UI, tidak menyentuh API/data) ----
   const [searchTerm, setSearchTerm] = useState("");
-  const [bulanFilter, setBulanFilter] = useState(0);
-  const [tahunFilter, setTahunFilter] = useState(0);
+  const [tanggalFilter, setTanggalFilter] = useState<DateFilterValue | null>(null);
   const [namaFilter, setNamaFilter] = useState("");
-
-  const parseTanggal = (value: string) => {
-    const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? null : date;
-  };
 
   const getNamaPencatat = (item: ToolMasukType) =>
     item.dicatatOleh?.name || "Tidak diketahui";
@@ -87,10 +86,12 @@ const ToolMasukManager = () => {
     const keyword = searchTerm.trim().toLowerCase();
     
     return masukList.filter((item) => {
-      // 1. Filter periode (bulan/tahun)
-      const date = parseTanggal(item.tanggal);
-      const cocokPeriode = (!date || bulanFilter === 0 || date.getMonth() + 1 === bulanFilter) &&
-        (!date || tahunFilter === 0 || date.getFullYear() === tahunFilter);
+      // 1. Filter tanggal (rentang atau satu bulan)
+      let cocokTanggal = true;
+      if (tanggalFilter) {
+        const date = parseRowDate(item.tanggal);
+        cocokTanggal = !date || dateInFilter(date, tanggalFilter);
+      }
         
       // 2. Filter nama pencatat (dari dropdown)
       const cocokNama = namaFilter === "" || getNamaPencatat(item) === namaFilter;
@@ -123,11 +124,10 @@ const ToolMasukManager = () => {
           keterangan.includes(keyword);
       }
 
-      return cocokPeriode && cocokNama && cocokKeyword;
+      return cocokTanggal && cocokNama && cocokKeyword;
     });
-  }, [masukList, searchTerm, bulanFilter, tahunFilter, namaFilter]);
+  }, [masukList, searchTerm, tanggalFilter, namaFilter]);
 
-  const tahunOptions = useMemo(() => Array.from(new Set(masukList.map((item) => parseTanggal(item.tanggal)?.getFullYear()).filter((year): year is number => Boolean(year)))).sort((a, b) => b - a), [masukList]);
   const namaOptions = useMemo(() => Array.from(new Set(masukList.map(getNamaPencatat))).sort(), [masukList]);
   const exportRows = useMemo(() => filteredMasukList.map((item) => ({
     ...item,
@@ -325,7 +325,7 @@ const ToolMasukManager = () => {
               </InputGroup.Text>
               <Form.Control
                 type="search"
-                placeholder="Cari kode, nama, merk, atau tipe..."
+                placeholder="Cari kode, nama, atau informasi lainnya..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 aria-label="Cari tools masuk"
@@ -348,11 +348,8 @@ const ToolMasukManager = () => {
             </span>
           </div>
           <RiwayatFilterBar
-            bulanFilter={bulanFilter}
-            onBulanFilterChange={setBulanFilter}
-            tahunFilter={tahunFilter}
-            onTahunFilterChange={setTahunFilter}
-            tahunOptions={tahunOptions}
+            tanggalFilter={tanggalFilter}
+            onTanggalFilterChange={setTanggalFilter}
             namaFilter={namaFilter}
             onNamaFilterChange={setNamaFilter}
             namaOptions={namaOptions}

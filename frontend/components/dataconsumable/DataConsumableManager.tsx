@@ -616,7 +616,7 @@ const DataConsumableManager = () => {
                 <InputGroup.Text><IconSearch size={18} /></InputGroup.Text>
                 <Form.Control
                   type="search"
-                  placeholder="Cari kode, nama, merk, ukuran, atau status..."
+                  placeholder="Cari kode, nama, merk, atau informasi lainnya..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
