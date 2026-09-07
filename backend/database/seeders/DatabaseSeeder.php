@@ -19,6 +19,8 @@ class DatabaseSeeder extends Seeder
             PeminjamanSeeder::class,
             ConsumableKeluarSeeder::class,
             PekerjaanSeeder::class,
+            MesinProduksiSeeder::class,
+            LogAktivitasMesinSeeder::class,
         ]);
     }
 }
