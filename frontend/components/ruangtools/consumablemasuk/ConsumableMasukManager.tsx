@@ -232,7 +232,7 @@ const ConsumableMasukManager = () => {
         
         setMasukList((prev) => [created, ...prev]);
 
-        // refresh Data Consumable supaya stok_awal yang tampil di halaman lain akurat
+        // refresh Data Consumable supaya stok_tersedia yang tampil di halaman lain akurat
         await loadConsumables();
 
         setSuccessMessage(

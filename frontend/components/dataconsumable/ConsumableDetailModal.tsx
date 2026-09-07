@@ -36,7 +36,7 @@ interface ConsumableDetailModalProps {
 const ConsumableDetailModal = ({ show, onClose, consumable }: ConsumableDetailModalProps) => {
   if (!consumable) return null;
 
-  const perluRestock = consumable.stok_awal < 5;
+  const perluRestock = consumable.stok_tersedia < 10;
 
   return (
     <Modal show={show} onHide={onClose} centered size="lg" className="consumable-detail-modal">
@@ -86,7 +86,7 @@ const ConsumableDetailModal = ({ show, onClose, consumable }: ConsumableDetailMo
                 <IconBoxSeam size={28} />
               </div>
               <div>
-                <div className="h3 mb-0 lh-1">{consumable.stok_awal}</div>
+                <div className="h3 mb-0 lh-1">{consumable.stok_tersedia}</div>
                 <div className="text-secondary small mt-1">Stok Tersedia</div>
               </div>
             </div>

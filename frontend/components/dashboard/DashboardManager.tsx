@@ -246,8 +246,8 @@ const DashboardManager = () => {
                           {item.nama} <span className="text-secondary fw-normal">({item.kode_barang})</span>
                         </div>
                       </div>
-                      <Badge bg={item.stok_awal === 0 ? "danger" : "warning"}>
-                        {item.stok_awal} unit
+                      <Badge bg={item.stok_tersedia === 0 ? "danger" : "warning"}>
+                        {item.stok_tersedia} unit
                       </Badge>
                     </li>
                   ))}

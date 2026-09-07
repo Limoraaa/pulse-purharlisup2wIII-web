@@ -75,7 +75,7 @@ const EXPORT_COLUMNS: ExportColumn[] = [
   { header: "ER/E", key: "er_e" },
   { header: "Ukuran", key: "ukuran" },
   { header: "Satuan", key: "satuan" },
-  { header: "Stok Tersedia", key: "stok_awal" },
+  { header: "Stok Tersedia", key: "stok_tersedia" },
 ];
 
 interface AntreanConsumableApiItem {
@@ -209,7 +209,7 @@ const DataConsumableManager = () => {
 
         return {
           ...item,
-          stok_awal: item.stok_awal - jumlahDiKeranjang, 
+          stok_tersedia: item.stok_tersedia - jumlahDiKeranjang, 
         };
       })
       .filter((item) => {
@@ -227,14 +227,14 @@ const DataConsumableManager = () => {
 
         // 2. Konversi angka stok ke string agar bisa dicari
         // (Pakai as any untuk jaga-jaga jika tipe properti masuk/keluar ada di object aslinya)
-        const stokAwal = String(item.stok_awal ?? 0);
+        const stokAwal = String(item.stok_tersedia?? 0);
         const masuk = String((item as any).masuk ?? 0);
         const keluar = String((item as any).keluar ?? 0);
-        const stokTersedia = String((item as any).stok_tersedia ?? item.stok_awal ?? 0);
+        const stokTersedia = String((item as any).stok_tersedia ?? item.stok_tersedia ?? 0);
 
         // 3. Tambahkan alias untuk status "Cukup" atau "Perlu Restock" 
         // (Berdasarkan gambar, stok 4 = Perlu Restock. Asumsi batasnya <= 5)
-        const sisaStok = Number(item.stok_awal); 
+        const sisaStok = Number(item.stok_tersedia); 
         const statusLabel = sisaStok <= 5 ? "perlu restock" : "cukup";
 
         // 4. Cocokkan keyword dengan semua properti yang ada di tabel
@@ -320,7 +320,7 @@ const DataConsumableManager = () => {
     item: ConsumableItemType,
     event?: React.MouseEvent<HTMLButtonElement>
   ) => {
-    if (item.stok_awal <= 0) {
+    if (item.stok_tersedia <= 0) {
       alert(`Stok untuk ${item.nama} sudah habis!`);
       return;
     }
@@ -378,9 +378,9 @@ const DataConsumableManager = () => {
     // VALIDASI STOK (Khusus Consumable, kalau Tool validasi di backend karena dipinjam dinamis)
     if (targetItem.item_type === 'consumable') {
       const itemAsli = consumables.find((c) => c.id === targetItem.consumable_id); 
-      // Karena stok_awal di filteredConsumables itu dinamis, kita pakai stok asli
+      // Karena stok_tersedia di filteredConsumables itu dinamis, kita pakai stok asli
       // PENTING: maxJumlah / stok harus sudah ditangani dengan baik agar tidak minus
-      if (itemAsli && qty > (itemAsli.stok_awal + targetItem.jumlah)) {
+      if (itemAsli && qty > (itemAsli.stok_tersedia + targetItem.jumlah)) {
         alert(`Jumlah melebihi stok yang tersedia!`);
         return;
       }

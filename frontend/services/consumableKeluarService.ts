@@ -20,7 +20,7 @@ interface ConsumableApiItem {
   er_e?: string | null;
   ukuran?: string | null;
   satuan?: string | null; // <-- TAMBAHAN: Definisi satuan
-  stok_awal?: number;
+  stok_tersedia?: number;
   stok_awal_asli?: number;
   total_masuk?: number;
   total_keluar?: number;
@@ -52,8 +52,8 @@ export async function getConsumables(): Promise<ConsumableItemType[]> {
     er_e: item.er_e || "-",
     ukuran: item.ukuran || "-",
     satuan: item.satuan || "", // <-- TAMBAHAN: Mapping satuan
-    stok_awal: item.stok_awal ?? 0,
-    stok_awal_asli: item.stok_awal_asli ?? item.stok_awal ?? 0,
+    stok_tersedia: item.stok_tersedia ?? 0,
+    stok_awal_asli: item.stok_awal_asli ?? item.stok_tersedia ?? 0,
     total_masuk: item.total_masuk ?? 0,
     total_keluar: item.total_keluar ?? 0,
   }));
@@ -80,8 +80,8 @@ export async function createConsumable(values: ConsumableFormValues): Promise<Co
     er_e: item.er_e || "-",
     ukuran: item.ukuran || "-",
     satuan: item.satuan || "", // <-- TAMBAHAN: Mapping satuan
-    stok_awal: item.stok_awal ?? 0,
-    stok_awal_asli: item.stok_awal_asli ?? item.stok_awal ?? 0,
+    stok_tersedia: item.stok_tersedia ?? 0,
+    stok_awal_asli: item.stok_awal_asli ?? item.stok_tersedia ?? 0,
     total_masuk: item.total_masuk ?? 0,
     total_keluar: item.total_keluar ?? 0,
   };
@@ -108,8 +108,8 @@ export async function updateConsumable(id: string, values: ConsumableFormValues)
     er_e: item.er_e || "-",
     ukuran: item.ukuran || "-",
     satuan: item.satuan || "", // <-- TAMBAHAN: Mapping satuan
-    stok_awal: item.stok_awal ?? 0,
-    stok_awal_asli: item.stok_awal_asli ?? item.stok_awal ?? 0,
+    stok_tersedia: item.stok_tersedia ?? 0,
+    stok_awal_asli: item.stok_awal_asli ?? item.stok_tersedia ?? 0,
     total_masuk: item.total_masuk ?? 0,
     total_keluar: item.total_keluar ?? 0,
   };

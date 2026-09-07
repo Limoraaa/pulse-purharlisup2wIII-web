@@ -43,7 +43,7 @@ class ConsumableMasukSeeder extends Seeder
             );
 
             if ($masuk->wasRecentlyCreated) {
-                $consumable->increment('stok_awal', $item['jumlah_masuk']);
+                $consumable->increment('stok_tersedia', $item['jumlah_masuk']);
             }
         }
     }

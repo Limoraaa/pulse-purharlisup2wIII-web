@@ -27,7 +27,10 @@ async function apiFetch<T = unknown>(
       localStorage.removeItem("userId");
       localStorage.removeItem("userName");
       localStorage.removeItem("userRole");
-      window.location.href = "/signin";
+
+      if (window.location.pathname !== "/signin") {
+        window.location.href = "/signin";
+      }
       // hentikan eksekusi lanjutan (redirect sedang berjalan)
       return new Promise<T>(() => {});
     }

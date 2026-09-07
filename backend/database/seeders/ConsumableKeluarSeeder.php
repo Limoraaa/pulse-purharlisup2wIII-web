@@ -52,7 +52,7 @@ class ConsumableKeluarSeeder extends Seeder
             );
 
             if ($keluar->wasRecentlyCreated) {
-                $consumable->decrement('stok_awal', $item['jumlah_keluar']);
+                $consumable->decrement('stok_tersedia', $item['jumlah_keluar']);
             }
         }
     }

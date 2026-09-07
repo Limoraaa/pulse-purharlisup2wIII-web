@@ -10,7 +10,7 @@ export interface ConsumableItemType {
   er_e: string;
   ukuran: string;
   satuan: string;
-  stok_awal: number;
+  stok_tersedia: number;
   stok_awal_asli: number;
   total_masuk: number;
   total_keluar: number;
@@ -24,7 +24,7 @@ export interface ConsumableFormValues {
   er_e: string;
   ukuran: string;
   satuan: string;
-  stok_awal: number;
+  stok_tersedia: number;
   stok_awal_asli?: number; // opsional -- cuma dipakai saat koreksi data lewat form Edit
 }
 

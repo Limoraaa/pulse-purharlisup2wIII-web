@@ -71,9 +71,9 @@ class ConsumableKeluarController extends Controller
                 ], 422);
             }
         } else {
-            if ($consumable->stok_awal < $totalDiminta) {
+            if ($consumable->stok_tersedia < $totalDiminta) {
                 return response()->json([
-                    'message' => "Stok bahan '{$consumable->nama}' tidak mencukupi! Tersedia maksimal: {$consumable->stok_awal}",
+                    'message' => "Stok bahan '{$consumable->nama}' tidak mencukupi! Tersedia maksimal: {$consumable->stok_tersedia}",
                 ], 422);
             }
         }
@@ -124,7 +124,7 @@ class ConsumableKeluarController extends Controller
             if ($consumable) {
                 $item->namaBarang    = $consumable->nama;
                 $item->kodeBarang    = $consumable->kode_barang;
-                $item->stok_tersedia = $consumable->stok_awal;
+                $item->stok_tersedia = $consumable->stok_tersedia;
             } else {
                 $item->namaBarang    = 'Bahan Dihapus';
                 $item->kodeBarang    = '-';
@@ -156,9 +156,9 @@ class ConsumableKeluarController extends Controller
         $consumable = Consumable::find($cart->consumable_id);
         if (!$consumable) return response()->json(['message' => 'Bahan tidak ditemukan'], 404);
 
-        if ($request->qty > $consumable->stok_awal) {
+        if ($request->qty > $consumable->stok_tersedia) {
             return response()->json([
-                'message' => 'Stok tidak mencukupi! Tersedia maksimal: ' . $consumable->stok_awal,
+                'message' => 'Stok tidak mencukupi! Tersedia maksimal: ' . $consumable->stok_tersedia,
             ], 422);
         }
 
@@ -229,9 +229,9 @@ class ConsumableKeluarController extends Controller
             if (!$consumable) {
                 return response()->json(['message' => 'Salah satu bahan di keranjang sudah tidak ada'], 422);
             }
-            if ($item->qty > $consumable->stok_awal) {
+            if ($item->qty > $consumable->stok_tersedia) {
                 return response()->json([
-                    'message' => "Stok {$consumable->nama} tidak mencukupi! Tersedia maksimal: {$consumable->stok_awal}",
+                    'message' => "Stok {$consumable->nama} tidak mencukupi! Tersedia maksimal: {$consumable->stok_tersedia}",
                 ], 422);
             }
         }
@@ -252,7 +252,7 @@ class ConsumableKeluarController extends Controller
                     'jumlah_keluar'  => $item->qty,
                 ]);
 
-                $consumable->decrement('stok_awal', $item->qty);
+                $consumable->decrement('stok_tersedia', $item->qty);
             }
 
             DB::table('temporary_cart')
@@ -293,15 +293,15 @@ class ConsumableKeluarController extends Controller
         $data = $validator->validated();
         $consumable = Consumable::findOrFail($data['consumable_id']);
 
-        if ($consumable->stok_awal < $data['jumlah_keluar']) {
+        if ($consumable->stok_tersedia < $data['jumlah_keluar']) {
             return response()->json([
-                'message' => "Stok tidak cukup. Tersedia: {$consumable->stok_awal}, diminta: {$data['jumlah_keluar']}",
+                'message' => "Stok tidak cukup. Tersedia: {$consumable->stok_tersedia}, diminta: {$data['jumlah_keluar']}",
             ], 422);
         }
 
         $data['id'] = (string) Str::uuid();
         $consumableKeluar = ConsumableKeluar::create($data);
-        $consumable->decrement('stok_awal', $data['jumlah_keluar']);
+        $consumable->decrement('stok_tersedia', $data['jumlah_keluar']);
 
         return response()->json($consumableKeluar->load(['consumable', 'peminta']), 201);
     }
