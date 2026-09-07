@@ -66,7 +66,6 @@ Route::post('/order-consumable', [OrderConsumableController::class, 'store']);
 Route::put('/order-consumable/{id}', [OrderConsumableController::class, 'update']);
 Route::put('/order-consumable/{id}/status', [OrderConsumableController::class, 'updateStatus']);
 
-
 // --- ORDER TOOLS ---
 Route::get('/order-tools', [OrderToolController::class, 'index']);
 Route::post('/order-tools', [OrderToolController::class, 'store']);
