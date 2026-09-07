@@ -18,6 +18,7 @@ import DasherBreadcrumb from "components/common/DasherBreadcrumb";
 import PengembalianScanForm from "components/ruangtools/pengembalian/PengembalianScanForm";
 import PengembalianChecklist, {
   PengembalianBatchItem,
+  PengembalianGroupItem,
 } from "components/ruangtools/pengembalian/PengembalianChecklist";
 
 const PengembalianManager = () => {
@@ -30,7 +31,8 @@ const PengembalianManager = () => {
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
   const [namaPeminjamAktif, setNamaPeminjamAktif] = useState<string | null>(null);
-  const [itemsPeminjam, setItemsPeminjam] = useState<PeminjamanAktifItemType[] | null>(null);
+  const [itemsPeminjam, setItemsPeminjam] = useState<PengembalianGroupItem[] | null>(null);
+  const [recordsByGroup, setRecordsByGroup] = useState<Record<string, PeminjamanAktifItemType[]>>({});
   const [submitting, setSubmitting] = useState(false);
 
   const loadData = async () => {
@@ -71,8 +73,36 @@ const PengembalianManager = () => {
         return;
       }
 
+      // Gabungkan alat yang sama (dipinjam di transaksi berbeda) jadi 1 baris
+      // untuk tampilan, tapi simpan record aslinya untuk alokasi saat submit.
+      const grouped: PengembalianGroupItem[] = [];
+      const records: Record<string, PeminjamanAktifItemType[]> = {};
+
+      milikPeminjamIni.forEach((item) => {
+        if (!records[item.toolId]) {
+          records[item.toolId] = [];
+          grouped.push({
+            id: item.toolId,
+            toolId: item.toolId,
+            kodeBarang: item.kodeBarang,
+            namaBarang: item.namaBarang,
+            jumlah: 0,
+          });
+        }
+        records[item.toolId].push(item);
+        const g = grouped.find((g) => g.id === item.toolId)!;
+        g.jumlah += item.jumlah;
+      });
+
+      // Data dari API terurut terbaru->terlama; balik urutan tiap grup
+      // supaya alokasi pengembalian FIFO (transaksi terlama duluan).
+      Object.keys(records).forEach((toolId) => {
+        records[toolId].reverse();
+      });
+
       setNamaPeminjamAktif(peminta.nama);
-      setItemsPeminjam(milikPeminjamIni);
+      setItemsPeminjam(grouped);
+      setRecordsByGroup(records);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Gagal memverifikasi kartu";
       setScanError(message);
@@ -81,41 +111,78 @@ const PengembalianManager = () => {
     }
   };
 
-  const handleBackToScan = () => {
+    const handleBackToScan = () => {
     setNamaPeminjamAktif(null);
     setItemsPeminjam(null);
+    setRecordsByGroup({});
     setScanError(null);
   };
 
   // ---- Submit pengembalian sekaligus ----
-  const handleBatchSubmit = async (batch: PengembalianBatchItem[]) => {
+    const handleBatchSubmit = async (batch: PengembalianBatchItem[]) => {
     setSubmitting(true);
     try {
       const dicatatOleh = localStorage.getItem("userId");
 
-        for (const item of batch) {
-        await tandaiDikembalikan(item.id, item.jumlahDikembalikan);
+      for (const item of batch) {
+        const records = recordsByGroup[item.id] || [];
 
-        for (const kerusakan of item.kerusakan) {
-          if (!dicatatOleh) {
-            throw new Error("Sesi login tidak ditemukan. Silakan login ulang.");
+        let sisaDikembalikan = item.jumlahDikembalikan;
+        let poolBisaDiperbaiki = item.kerusakan.find((k) => k.jenisKerusakan === "bisa_diperbaiki")?.jumlah ?? 0;
+        let poolRusakPermanen = item.kerusakan.find((k) => k.jenisKerusakan === "rusak_permanen")?.jumlah ?? 0;
+        const catatanBisaDiperbaiki = item.kerusakan.find((k) => k.jenisKerusakan === "bisa_diperbaiki")?.catatan ?? "";
+        const catatanRusakPermanen = item.kerusakan.find((k) => k.jenisKerusakan === "rusak_permanen")?.catatan ?? "";
+
+        // Alokasikan ke transaksi peminjaman asli, mulai dari yang paling
+        // lama (FIFO), sampai jumlahDikembalikan terpenuhi.
+        for (const record of records) {
+          if (sisaDikembalikan <= 0) break;
+
+          const ambil = Math.min(record.jumlah, sisaDikembalikan);
+          await tandaiDikembalikan(record.id, ambil);
+
+          let terpakai = 0;
+          const ambilBisaDiperbaiki = Math.min(poolBisaDiperbaiki, ambil);
+          if (ambilBisaDiperbaiki > 0) {
+            if (!dicatatOleh) throw new Error("Sesi login tidak ditemukan. Silakan login ulang.");
+            await createLaporanKerusakan({
+              tanggal: new Date().toISOString(),
+              tool_id: item.toolId,
+              peminjaman_id: record.id,
+              jumlah: ambilBisaDiperbaiki,
+              keterangan: catatanBisaDiperbaiki,
+              status: "bisa_diperbaiki",
+              dilaporkan_oleh: dicatatOleh,
+            });
+            poolBisaDiperbaiki -= ambilBisaDiperbaiki;
+            terpakai += ambilBisaDiperbaiki;
           }
-          await createLaporanKerusakan({
-            tanggal: new Date().toISOString(),
-            tool_id: item.toolId,
-            peminjaman_id: item.id,
-            jumlah: kerusakan.jumlah,
-            keterangan: kerusakan.catatan,
-            status: kerusakan.jenisKerusakan,
-            dilaporkan_oleh: dicatatOleh,
-          });
+
+          const ambilRusakPermanen = Math.min(poolRusakPermanen, ambil - terpakai);
+          if (ambilRusakPermanen > 0) {
+            if (!dicatatOleh) throw new Error("Sesi login tidak ditemukan. Silakan login ulang.");
+            await createLaporanKerusakan({
+              tanggal: new Date().toISOString(),
+              tool_id: item.toolId,
+              peminjaman_id: record.id,
+              jumlah: ambilRusakPermanen,
+              keterangan: catatanRusakPermanen,
+              status: "rusak_permanen",
+              dilaporkan_oleh: dicatatOleh,
+            });
+            poolRusakPermanen -= ambilRusakPermanen;
+          }
+
+          sisaDikembalikan -= ambil;
         }
       }
 
-      const idKembali = new Set(batch.map((b) => b.id));
-      setItems((prev) => prev.filter((i) => !idKembali.has(i.id)));
+      // Data bisa berubah kompleks (sebagian record berkurang, sebagian
+      // selesai), jadi refresh langsung dari server daripada menebak
+      // perubahan di state lokal.
+      await loadData();
 
-    const totalUnitRusak = batch.reduce(
+      const totalUnitRusak = batch.reduce(
         (sum, b) => sum + b.kerusakan.reduce((s, k) => s + k.jumlah, 0),
         0
       );

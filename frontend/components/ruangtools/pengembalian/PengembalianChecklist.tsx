@@ -3,9 +3,16 @@ import { useState, useMemo } from "react";
 import { Card, CardBody, Table, Form, Button, Badge, Alert, InputGroup } from "react-bootstrap";
 import { IconRotateClockwise2, IconArrowLeft, IconSearch, IconX } from "@tabler/icons-react";
 
-import { PeminjamanAktifItemType } from "types/DataToolsTypes";
 
 export type JenisKerusakan = "bisa_diperbaiki" | "rusak_permanen";
+
+export interface PengembalianGroupItem {
+  id: string; // dipakai toolId sebagai id grup
+  toolId: string;
+  kodeBarang: string;
+  namaBarang: string;
+  jumlah: number; // total gabungan dari semua transaksi pinjam alat ini
+}
 
 interface ChecklistState {
   [id: string]: {
@@ -34,7 +41,7 @@ export interface PengembalianBatchItem {
 
 interface PengembalianChecklistProps {
   namaPeminjam: string;
-  items: PeminjamanAktifItemType[];
+  items: PengembalianGroupItem[];
   onBack: () => void;
   onSubmit: (items: PengembalianBatchItem[]) => void;
   submitting?: boolean;
