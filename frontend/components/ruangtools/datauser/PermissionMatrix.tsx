@@ -24,7 +24,12 @@ export default function PermissionMatrix() {
     { key: 'view_transaksi', label: 'Transaksi' },
     { key: 'view_riwayat', label: 'Riwayat' },
     { key: 'view_order', label: 'Pengajuan Order' },
-    { key: 'view_pemeliharaan', label: 'Laporan Kerusakan' },
+    { key: 'view_kerusakan_alat', label: 'Laporan Kerusakan Alat' },
+  ];
+   const pemeliharaanNavbars = [
+    { key: 'view_pemeliharaan_mesin', label: 'Pemeliharaan Mesin' },
+  ];
+  const administrasiNavbars = [
     { key: 'view_users', label: 'Manajemen User' },
   ];
 
@@ -147,6 +152,9 @@ export default function PermissionMatrix() {
       </Row>
 
       {/* Kontainer Card Utama (Persis seperti tampilan tabel pada Daftar Pengguna) */}
+      <div className="text-uppercase text-secondary fs-7 fw-semibold mb-2 mt-1">
+        Operasional Alat
+      </div>
       <Card className="card-lg mb-6 border shadow-sm">
         <div className="table-responsive">
           <table className="table table-hover align-middle mb-0 text-nowrap">
@@ -165,7 +173,6 @@ export default function PermissionMatrix() {
             <tbody>
               {roles.map((role) => {
                 const isSuperAdmin = role.name === 'Super Admin';
-                const hasNoPermissions = !isSuperAdmin && role.permissions.length === 0;
                 const badgeVariant = roleBadgeVariant[role.name] ?? 'secondary';
 
                 return (
@@ -175,21 +182,129 @@ export default function PermissionMatrix() {
                         <Badge bg={`${badgeVariant}-subtle`} text={`${badgeVariant}-emphasis` as any}>
                           {role.name}
                         </Badge>
-                        {isSuperAdmin && (
-                          <span title="Super Admin memiliki akses penuh permanen">
-                            <IconShieldLock size={15} className="text-muted" />
-                          </span>
-                        )}
-                        {hasNoPermissions && (
-                          <Badge bg="light" text="secondary" className="fw-normal border">
-                            Belum ada izin
-                          </Badge>
-                        )}
                       </div>
                     </td>
                     {navbars.map((nav) => {
                       const isChecked = role.permissions.includes(nav.key);
 
+                      return (
+                        <td key={nav.key} className="py-3 px-3 text-center">
+                          <div className="d-flex justify-content-center">
+                            <Form.Check
+                              type="switch"
+                              id={`switch-${role.id}-${nav.key}`}
+                              checked={isSuperAdmin ? true : isChecked}
+                              disabled={isSuperAdmin}
+                              onChange={() => handleToggle(role.id, nav.key)}
+                              style={{
+                                cursor: isSuperAdmin ? 'not-allowed' : 'pointer',
+                                transform: 'scale(1.1)',
+                              }}
+                            />
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
+            </tbody>
+                    </table>
+        </div>
+      </Card>
+
+      {/* Section terpisah: domain Pemeliharaan Mesin, di luar Operasional Alat */}
+      <div className="text-uppercase text-secondary fs-7 fw-semibold mb-2 mt-1">
+        Pemeliharaan Mesin
+      </div>
+      <Card className="card-lg mb-6 border shadow-sm">
+        <div className="table-responsive">
+          <table className="table table-hover align-middle mb-0 text-nowrap">
+            <thead className="table-light text-uppercase fs-7 text-secondary border-bottom">
+              <tr>
+                <th className="py-3 px-4 fw-semibold" style={{ width: '220px' }}>
+                  Role Pengguna
+                </th>
+                {pemeliharaanNavbars.map((nav) => (
+                  <th key={nav.key} className="py-3 px-3 text-center fw-semibold">
+                    {nav.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {roles.map((role) => {
+                const isSuperAdmin = role.name === 'Super Admin';
+                const badgeVariant = roleBadgeVariant[role.name] ?? 'secondary';
+
+                return (
+                  <tr key={role.id}>
+                    <td className="py-3 px-4">
+                      <Badge bg={`${badgeVariant}-subtle`} text={`${badgeVariant}-emphasis` as any}>
+                        {role.name}
+                      </Badge>
+                    </td>
+                    {pemeliharaanNavbars.map((nav) => {
+                      const isChecked = role.permissions.includes(nav.key);
+                      return (
+                        <td key={nav.key} className="py-3 px-3 text-center">
+                          <div className="d-flex justify-content-center">
+                            <Form.Check
+                              type="switch"
+                              id={`switch-${role.id}-${nav.key}`}
+                              checked={isSuperAdmin ? true : isChecked}
+                              disabled={isSuperAdmin}
+                              onChange={() => handleToggle(role.id, nav.key)}
+                              style={{
+                                cursor: isSuperAdmin ? 'not-allowed' : 'pointer',
+                                transform: 'scale(1.1)',
+                              }}
+                            />
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
+                        </tbody>
+          </table>
+        </div>
+      </Card>
+
+      {/* Section terpisah: domain Administrasi (akun & hak akses) */}
+      <div className="text-uppercase text-secondary fs-7 fw-semibold mb-2 mt-1">
+        Administrasi
+      </div>
+      <Card className="card-lg mb-6 border shadow-sm">
+        <div className="table-responsive">
+          <table className="table table-hover align-middle mb-0 text-nowrap">
+            <thead className="table-light text-uppercase fs-7 text-secondary border-bottom">
+              <tr>
+                <th className="py-3 px-4 fw-semibold" style={{ width: '220px' }}>
+                  Role Pengguna
+                </th>
+                {administrasiNavbars.map((nav) => (
+                  <th key={nav.key} className="py-3 px-3 text-center fw-semibold">
+                    {nav.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {roles.map((role) => {
+                const isSuperAdmin = role.name === 'Super Admin';
+                const badgeVariant = roleBadgeVariant[role.name] ?? 'secondary';
+
+                return (
+                  <tr key={role.id}>
+                    <td className="py-3 px-4">
+                      <Badge bg={`${badgeVariant}-subtle`} text={`${badgeVariant}-emphasis` as any}>
+                        {role.name}
+                      </Badge>
+                    </td>
+                    {administrasiNavbars.map((nav) => {
+                      const isChecked = role.permissions.includes(nav.key);
                       return (
                         <td key={nav.key} className="py-3 px-3 text-center">
                           <div className="d-flex justify-content-center">
