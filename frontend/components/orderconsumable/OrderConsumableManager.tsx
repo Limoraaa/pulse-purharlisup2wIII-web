@@ -1,14 +1,15 @@
 'use client';
 import { useEffect, useMemo, useState } from "react";
 import { Row, Col, Card, CardBody, Alert, Spinner, InputGroup, Form, Button } from "react-bootstrap";
-import { IconCircleCheck, IconSearch, IconX, IconClipboardList, IconShoppingCart, IconEdit } from "@tabler/icons-react";
+import { IconCircleCheck, IconSearch, IconX, IconClipboardList, IconShoppingCart, IconEdit, IconTrash } from "@tabler/icons-react";
 import TanstackTable from "components/table/TanstackTable";
 import Flex from "components/common/Flex";
 import DasherBreadcrumb from "components/common/DasherBreadcrumb";
 
+import { Modal } from "react-bootstrap";
 import OrderConsumableFormModal from './OrderConsumableFormModal';
 import OrderConsumableEditModal from './OrderConsumableEditModal';
-import { getOrderConsumables, updateOrderConsumableStatus } from '/services/orderConsumableService';
+import { getOrderConsumables, updateOrderConsumableStatus, deleteOrderConsumable } from '/services/orderConsumableService';
 
 import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
 
@@ -61,12 +62,15 @@ export default function OrderConsumableManager() {
   const [editData, setEditData] = useState<OrderData | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState("semua");
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const fetchOrders = async () => {
+  const fetchOrders = async (status: string = statusFilter) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await getOrderConsumables();
+      const data = await getOrderConsumables(status);
       setOrders(data || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal memuat data");
@@ -76,8 +80,8 @@ export default function OrderConsumableManager() {
   };
 
   useEffect(() => {
-    fetchOrders();
-  }, []);
+    fetchOrders(statusFilter);
+  }, [statusFilter]);
 
   const handleStatusChange = async (id: number, newStatus: string) => {
     try {
@@ -96,9 +100,29 @@ export default function OrderConsumableManager() {
     }
   };
 
-  const handleEdit = (order: OrderData) => {
+    const handleEdit = (order: OrderData) => {
     setEditData(order);
     setIsEditModalOpen(true);
+  };
+
+    const handleDelete = (id: number) => {
+    setDeleteId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (deleteId === null) return;
+    setIsDeleting(true);
+    try {
+      await deleteOrderConsumable(deleteId);
+      setSuccessMessage("Data order berhasil dihapus.");
+      fetchOrders();
+      setTimeout(() => setSuccessMessage(null), 4000);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Gagal menghapus data order");
+    } finally {
+      setIsDeleting(false);
+      setDeleteId(null);
+    }
   };
 
   const filteredOrders = useMemo(() => {
@@ -230,10 +254,16 @@ export default function OrderConsumableManager() {
       header: "Aksi",
       id: "aksi",
       cell: ({ row }: any) => (
-        <Button variant="outline-primary" size="sm" className="d-flex align-items-center gap-1" onClick={() => handleEdit(row.original)}>
-          <IconEdit size={16} />
-          Edit
-        </Button>
+        <div className="d-flex gap-2">
+          <Button variant="outline-primary" size="sm" className="d-flex align-items-center gap-1" onClick={() => handleEdit(row.original)}>
+            <IconEdit size={16} />
+            Edit
+          </Button>
+          <Button variant="outline-danger" size="sm" className="d-flex align-items-center gap-1" onClick={() => handleDelete(row.original.id)}>
+            <IconTrash size={16} />
+            Hapus
+          </Button>
+        </div>
       ),
     },
   ], []);
@@ -280,20 +310,34 @@ export default function OrderConsumableManager() {
       <Card className="card-lg mb-6">
         <div className="riwayat-toolbar border-bottom p-3">
           <div className="riwayat-toolbar-row d-flex justify-content-between align-items-center gap-3 flex-wrap">
-            <InputGroup className="riwayat-search" style={{ maxWidth: "350px" }}>
-              <InputGroup.Text><IconSearch size={18} /></InputGroup.Text>
-              <Form.Control
-                type="search"
-                placeholder="Cari nama, merek, atau informasi lainnya..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              {searchTerm && (
-                <Button variant="link" className="riwayat-search-clear" onClick={() => setSearchTerm("")}>
-                  <IconX size={16} />
-                </Button>
-              )}
-            </InputGroup>
+            <div className="d-flex gap-2 flex-wrap">
+              <InputGroup className="riwayat-search" style={{ maxWidth: "350px" }}>
+                <InputGroup.Text><IconSearch size={18} /></InputGroup.Text>
+                <Form.Control
+                  type="search"
+                  placeholder="Cari nama, merek, atau informasi lainnya..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                {searchTerm && (
+                  <Button variant="link" className="riwayat-search-clear" onClick={() => setSearchTerm("")}>
+                    <IconX size={16} />
+                  </Button>
+                )}
+              </InputGroup>
+
+              <Form.Select
+                style={{ maxWidth: "180px" }}
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <option value="semua">Semua Status</option>
+                <option value="belum dibeli">Belum Dibeli</option>
+                <option value="on progres">On Progres</option>
+                <option value="sudah dibeli">Sudah Dibeli</option>
+                <option value="ditolak">Ditolak</option>
+              </Form.Select>
+            </div>
 
             {/* AREA TOMBOL EXPORT DAN INFO DATA */}
             <div className="d-flex align-items-center gap-3">
@@ -341,6 +385,23 @@ export default function OrderConsumableManager() {
         onSuccess={fetchOrders}
         orderData={editData}
       />
+
+      <Modal show={deleteId !== null} onHide={() => setDeleteId(null)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title className="h6 mb-0">Hapus Data Order</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          Yakin ingin menghapus data order ini? Tindakan ini tidak bisa dibatalkan.
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="outline-secondary" onClick={() => setDeleteId(null)} disabled={isDeleting}>
+            Batal
+          </Button>
+          <Button variant="danger" onClick={confirmDelete} disabled={isDeleting}>
+            {isDeleting ? 'Menghapus...' : 'Ya, Hapus'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 }
