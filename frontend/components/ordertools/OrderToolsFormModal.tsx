@@ -334,7 +334,10 @@ export default function OrderToolsFormModal({ isOpen, onClose, onSuccess }: Orde
                         min="1"
                         required
                         value={item.jumlah}
-                        onChange={e => handleItemChange(index, 'jumlah', Number(e.target.value))}
+                        onChange={e => {
+                          const raw = e.target.value.replace(/^0+(?=\d)/, '');
+                          handleItemChange(index, 'jumlah', raw === '' ? '' : Number(raw));
+                        }}
                       />
                     </Form.Group>
                   </Col>

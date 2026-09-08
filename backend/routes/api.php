@@ -65,11 +65,13 @@ Route::get('/order-consumable', [OrderConsumableController::class, 'index']);
 Route::post('/order-consumable', [OrderConsumableController::class, 'store']);
 Route::put('/order-consumable/{id}', [OrderConsumableController::class, 'update']);
 Route::put('/order-consumable/{id}/status', [OrderConsumableController::class, 'updateStatus']);
+Route::delete('/order-consumable/{id}', [OrderConsumableController::class, 'destroy']);
 
 // --- ORDER TOOLS ---
 Route::get('/order-tools', [OrderToolController::class, 'index']);
 Route::post('/order-tools', [OrderToolController::class, 'store']);
 Route::put('/order-tools/{id}/status', [OrderToolController::class, 'updateStatus']);
+Route::delete('/order-tools/{id}', [OrderToolController::class, 'destroy']);
 Route::put('/order-tools/{id}', [OrderToolController::class, 'update']);
 
 // ==========================================

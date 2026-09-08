@@ -18,7 +18,16 @@ class OrderConsumableController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $query->orderBy('tanggal_pengajuan', 'desc')->get()
+            'data' => $query
+                ->orderByRaw("CASE status_pembelian
+                    WHEN 'belum dibeli' THEN 1
+                    WHEN 'on progres' THEN 2
+                    WHEN 'sudah dibeli' THEN 3
+                    WHEN 'ditolak' THEN 4
+                    ELSE 5 END")
+                ->orderBy('tanggal_pengajuan', 'desc')
+                ->orderBy('id', 'asc')
+                ->get()
         ]);
     }
 
@@ -74,7 +83,7 @@ class OrderConsumableController extends Controller
         ]);
     }
 
-    public function updateStatus(Request $request, $id)
+        public function updateStatus(Request $request, $id)
     {
         $order = OrderConsumable::findOrFail($id);
 
@@ -96,6 +105,17 @@ class OrderConsumableController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Status dan riwayat kedatangan berhasil diperbarui.',
+        ]);
+    }
+
+    public function destroy($id)
+    {
+        $order = OrderConsumable::findOrFail($id);
+        $order->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data order consumable berhasil dihapus.',
         ]);
     }
 }

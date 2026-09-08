@@ -2,8 +2,9 @@ import apiFetch from "/lib/api";
 
 // Service untuk Order Tools — mirror dari orderConsumableService,
 // dengan endpoint /order-tools dan sumber data dari /tools (Data Tools).
-export const getOrderTools = async () => {
-  const json = await apiFetch<any>("/order-tools");
+export const getOrderTools = async (status?: string) => {
+  const query = status && status !== 'semua' ? `?status_pembelian=${encodeURIComponent(status)}` : '';
+  const json = await apiFetch<any>(`/order-tools${query}`);
   return json.data || json;
 };
 
@@ -40,5 +41,11 @@ export const updateOrderTools = async (id: number, data: any) => {
   return await apiFetch<any>(`/order-tools/${id}`, {
     method: "PUT",
     body: JSON.stringify(data),
+  });
+};
+
+export const deleteOrderTools = async (id: number) => {
+  return await apiFetch<any>(`/order-tools/${id}`, {
+    method: "DELETE",
   });
 };
