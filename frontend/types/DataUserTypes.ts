@@ -1,9 +1,11 @@
-export type UserRole = "staff" | "super_admin";
+// Sesuaikan dengan nama role di Seeder database (Kapital)
+export type UserRole = "Pegawai" | "Staff" | "Admin" | "Team Leader" | "Super Admin";
 
 export interface UserItemType {
   id: string;
   full_name: string;
   username: string;
+  email: string | null; // <--- TAMBAHKAN BARIS INI
   role: UserRole;
   divisi: string | null;
   avatar_path: string | null;
