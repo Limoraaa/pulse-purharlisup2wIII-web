@@ -372,7 +372,7 @@ export default function OrderToolsManager() {
             </div>
           ) : (
             <div style={{ overflowX: 'auto', whiteSpace: 'nowrap' }}>
-              <TanstackTable data={filteredOrders} columns={columns} pagination isSortable />
+              <TanstackTable data={filteredOrders} columns={columns} pagination />
             </div>
           )}
         </CardBody>

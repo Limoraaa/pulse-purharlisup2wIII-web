@@ -2629,6 +2629,149 @@ html.collapsed #miniSidebar,
   }
 }
 
+// ============================================================
+// Toolbar grid proporsional Search/Filter/Export (UI only)
+// Berlaku untuk 7 halaman: Laporan Kerusakan Alat, Riwayat Peminjaman
+// Tools, Riwayat Consumable Keluar, Riwayat Perbaikan, Peminjaman Aktif,
+// Consumable Masuk, Tools Masuk.
+// Mobile/tablet (< lg): tetap stack vertikal (search+info, lalu filter
+// tanggal+nama sejajar 2 kolom, lalu export di bawahnya).
+// Desktop (>= lg): SATU BARIS penuh berisi [Filter Tanggal][Filter Nama]
+// [Export PDF][Export Excel] -- filter tumbuh mengisi ruang (lebar sama
+// besar satu sama lain), 2 tombol export ukurannya sama persis, gap 16px
+// konsisten di semua celah, tidak ada sisa ruang kosong besar di kanan.
+// Halaman lain di luar 7 ini tidak terpengaruh.
+// ============================================================
+.laporan-kerusakan-page,
+.riwayat-peminjaman-page,
+.riwayat-consumablekeluar-page,
+.riwayat-perbaikan-page,
+.peminjamanaktif-page,
+.consumablemasuk-page,
+.toolsmasuk-page {
+  // ---- Baris 1: search + info jumlah data ----
+  .riwayat-search {
+    flex: 1 1 0;
+    max-width: none;
+  }
+
+  // ---- Default (mobile & tablet): stack vertikal ----
+  .riwayat-filterbar {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 0.75rem;
+  }
+  .riwayat-filter-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: stretch;
+    width: 100%;
+    gap: 0.75rem;
+  }
+  .drp-root,
+  .riwayat-filter-group.riwayat-nama-filter {
+    width: 100%;
+    min-width: 0;
+  }
+  .drp-trigger {
+    width: 100%;
+    min-width: 0;
+  }
+  .riwayat-export-controls {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 0.5rem;
+    width: 100%;
+    .btn {
+      flex: 0 0 auto;
+      width: auto;
+    }
+  }
+
+  // Chevron kecil di date picker, biar affordance-nya konsisten dengan
+  // dropdown "Semua Nama Peminjam" yang sudah ada chevron-nya.
+  .drp-trigger {
+    position: relative;
+    padding-right: 2.25rem;
+
+    &::after {
+      content: "";
+      position: absolute;
+      right: 0.9rem;
+      top: 50%;
+      width: 7px;
+      height: 7px;
+      border-right: 2px solid var(--#{$prefix}gray-500);
+      border-bottom: 2px solid var(--#{$prefix}gray-500);
+      transform: translateY(-65%) rotate(45deg);
+      pointer-events: none;
+    }
+  }
+
+  // ---- Layar sempit (< md): filter jadi 1 kolom, tombol export full-width ----
+  @include media-breakpoint-down(md) {
+    .riwayat-filter-controls {
+      grid-template-columns: 1fr;
+    }
+    .riwayat-export-controls {
+      flex-direction: column;
+      .btn {
+        width: 100%;
+      }
+    }
+  }
+
+  // ---- Desktop (>= lg): SATU BARIS [Tanggal][Nama][Export PDF][Export Excel] ----
+  @include media-breakpoint-up(lg) {
+    // batasi lebar search supaya "Menampilkan X dari Y data" tidak
+    // terpisah jauh di ujung kanan (baris 1, tidak diubah selain ini)
+    .riwayat-toolbar-row {
+      .riwayat-search {
+        flex: 0 1 420px;
+        max-width: 420px;
+      }
+    }
+
+    // Baris filter jadi satu flex row penuh, tidak boleh wrap ke baris baru
+    .riwayat-filterbar {
+      flex-direction: row;
+      flex-wrap: nowrap;
+      align-items: stretch;
+      gap: 1rem; // 16px konsisten
+      width: 100%;
+    }
+
+    // Grup 2 filter: tumbuh mengisi SISA ruang (setelah tombol export
+    // dikurangi), dua filter di dalamnya lebar sama persis (1fr 1fr)
+    .riwayat-filter-controls {
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem; // 16px konsisten, sama dengan gap luar
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    // Grup 2 tombol export: ukuran natural (tidak ikut tumbuh mengisi
+    // ruang), tapi 2 tombol di dalamnya dipaksa sama lebar persis
+    .riwayat-export-controls {
+      flex: 0 0 auto;
+      align-items: stretch;
+      gap: 1rem; // 16px konsisten
+      width: auto;
+      margin-left: 0; // full row sudah diatur lewat flex, tidak perlu auto-margin lagi
+
+      .btn {
+        flex: 1 1 0; // dua tombol export sama lebar persis satu sama lain
+        width: auto;
+        white-space: nowrap; // teks tombol tidak boleh wrap/turun baris
+      }
+    }
+  }
+}
+
+
 // Action cell Data Tools / Data Consumable: slot tetap menjaga tombol titik tiga
 // berada pada koordinat horizontal yang sama meski tombol utama disabled.
 .datatools-action-cell,

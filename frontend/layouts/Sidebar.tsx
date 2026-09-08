@@ -18,6 +18,12 @@ import { MenuItemType } from "types/menuTypes";
 //import custom components
 import CustomToggle, { CustomToggleLevel2 } from "./SidebarMenuToggle";
 
+//import custom hooks
+import useMenu from "hooks/useMenu";
+
+//import redux store
+import { useAppSelector } from "store/store";
+
 // import required routes
 import { getAssetPath } from "helper/assetPath";
 import { DashboardMenu } from "routes/DashboardRoute";
@@ -29,6 +35,17 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
   const location = usePathname();
   const router = useRouter();
+  const { handleCollapsed } = useMenu();
+  const collapsed = useAppSelector((state) => state.app.collapsed);
+
+  // Saat sidebar dalam keadaan menutup (collapsed), cukup arahkan kursor
+  // ke area sidebar maka otomatis terbuka. Menutup kembali hanya lewat
+  // tombol toggle (tidak otomatis saat kursor pergi).
+  const handleSidebarMouseEnter = () => {
+    if (collapsed === "collapsed") {
+      handleCollapsed("expanded");
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -71,7 +88,7 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
   };
 
   return (
-    <div id={containerId}>
+    <div id={containerId} onMouseEnter={handleSidebarMouseEnter}>
       <div>
         {hideLogo || (
           <div className='brand-logo'>

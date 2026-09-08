@@ -150,7 +150,7 @@ const RiwayatPeminjamanManager = () => {
   });
 
   return (
-    <div className="riwayat-page">
+    <div className="riwayat-page riwayat-peminjaman-page">
       {/* ---- Page Header ---- */}
       <Row>
         <Col>
@@ -249,7 +249,6 @@ const RiwayatPeminjamanManager = () => {
               data={filteredList}
               columns={columns}
               pagination
-              isSortable
             />
           )}
         </CardBody>

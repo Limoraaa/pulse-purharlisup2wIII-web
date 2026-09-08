@@ -30,3 +30,10 @@ $gray-800: #1f2937; // Text Primary
 $body-bg:      #f8fafc; // Background aplikasi
 $body-color:   #1f2937; // Text Primary
 $border-color: #e5e7eb; // Border netral
+
+// --- Form inputs: teks ketikan hitam pekat (bukan abu) ---
+// Memakai var body-color agar tetap terbaca di dark mode.
+// (Prefix ditulis eksplisit "ds-" karena $prefix baru didefinisikan
+// di theme/_variables.scss yang diimpor setelah file ini.)
+// Placeholder sengaja tetap abu (tidak diubah).
+$input-color: var(--ds-body-color);
