@@ -161,7 +161,23 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
             }
             // ----------------------------------
 
-            if (menu.grouptitle) {
+                        if (menu.grouptitle) {
+              // Cek apakah ada minimal satu menu di bawah section ini yang
+              // masih terlihat untuk role user sekarang. Kalau semua anaknya
+              // disembunyikan (misal Staff tidak punya akses sama sekali ke
+              // domain ini), judul section-nya ikut disembunyikan juga.
+              const nextGroupOffset = DashboardMenu.slice(index + 1).findIndex((m) => m.grouptitle);
+              const sectionEnd = nextGroupOffset === -1 ? DashboardMenu.length : index + 1 + nextGroupOffset;
+              const sectionChildren = DashboardMenu.slice(index + 1, sectionEnd);
+
+              const hasVisibleChild = sectionChildren.some((childMenu) => {
+                const childTitle = childMenu.title || childMenu.name || "";
+                const childPerm = permissionMap[childTitle];
+                return !(childPerm && userRole !== "Super Admin" && !userPermissions.includes(childPerm));
+              });
+
+              if (!hasVisibleChild) return null;
+
               return (
                 <Nav.Item key={index} as='li'>
                   <div className='nav-heading'>{menu.title}</div>
