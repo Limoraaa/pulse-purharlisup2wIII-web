@@ -18,8 +18,8 @@ return new class extends Migration
             $table->string('er_e')->nullable();
             $table->string('ukuran')->nullable();
             $table->string('satuan')->nullable();
-            $table->integer('stok_tersedia')->default(0);
             $table->integer('stok_awal_asli')->default(0);
+            $table->integer('stok_tersedia')->default(0);
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });

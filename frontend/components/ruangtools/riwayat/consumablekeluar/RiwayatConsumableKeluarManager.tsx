@@ -179,7 +179,7 @@ const RiwayatConsumableKeluarManager = () => {
 });
   
   return (
-    <div className="riwayat-page">
+    <div className="riwayat-page riwayat-consumablekeluar-page">
       {/* ---- Page Header ---- */}
       <Row>
         <Col>
@@ -278,7 +278,6 @@ const RiwayatConsumableKeluarManager = () => {
               data={filteredList}
               columns={columns}
               pagination
-              isSortable
             />
           )}
         </CardBody>

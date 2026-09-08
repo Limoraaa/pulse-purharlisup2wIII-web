@@ -228,7 +228,7 @@ const LaporanKerusakanManager = () => {
 });
 
   return (
-    <div className="riwayat-page">
+    <div className="riwayat-page laporan-kerusakan-page">
       {successMessage && (
         <Alert variant="success" dismissible onClose={() => setSuccessMessage(null)}>
           {successMessage}
@@ -328,7 +328,6 @@ const LaporanKerusakanManager = () => {
               data={filteredList}
               columns={columns}
               pagination
-              isSortable
             />
           )}
         </CardBody>
