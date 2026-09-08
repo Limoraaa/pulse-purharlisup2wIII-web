@@ -23,6 +23,7 @@ class RolePermissionSeeder extends Seeder
             'view_order',
             'view_pemeliharaan',
             'view_users',
+            'manage_master_data',
 
             // --- PERMISSIONS CRUD LAMA (Biarkan saja jika backend API masih menggunakannya) ---
             'view_tools', 'create_tools', 'edit_tools', 'delete_tools',
@@ -30,6 +31,18 @@ class RolePermissionSeeder extends Seeder
             'view_peminjaman', 'create_peminjaman', 'edit_peminjaman', 'delete_peminjaman',
             'create_pemeliharaan', 'edit_pemeliharaan', 'delete_pemeliharaan',
             'create_users', 'edit_users', 'delete_users',
+
+            // --- PERMISSIONS UNTUK CRUD PENUH DI OPERASIONAL ALAT ---
+            'manage_inventaris',
+            'process_transaksi', 'manage_transaksi',
+            'create_order', 'process_order', 'manage_order',
+            'manage_master_data',
+
+            // --- LAPORAN KERUSAKAN ALAT (domain Operasional Alat) ---
+            'view_kerusakan_alat', 'create_kerusakan_alat', 'process_kerusakan_alat', 'manage_kerusakan_alat',
+
+            // --- PEMELIHARAAN MESIN (domain terpisah, TIDAK full akses untuk Staff) ---
+            'view_pemeliharaan_mesin', 'create_pemeliharaan_mesin', 'process_pemeliharaan_mesin', 'manage_pemeliharaan_mesin',
         ];
 
         foreach ($permissions as $permission) {
@@ -46,13 +59,20 @@ class RolePermissionSeeder extends Seeder
         // 3. Beri default permission Navbar untuk role tertentu
         // Contoh untuk Staff: Hanya bisa melihat Dashboard, Inventaris, Transaksi, dan Laporan Kerusakan
         $roleStaff->givePermissionTo([
+            // Operasional Alat — FULL ACCESS
             'view_dashboard',
-            'view_inventaris',
-            'view_transaksi',
-            'view_pemeliharaan',
-            
+            'view_inventaris', 'manage_inventaris',
+            'view_transaksi', 'process_transaksi', 'manage_transaksi',
+            'view_riwayat',
+            'view_order', 'create_order', 'process_order',
+            'view_kerusakan_alat', 'create_kerusakan_alat', 'process_kerusakan_alat', 'manage_kerusakan_alat',
+            'manage_master_data',
+
+            // Pemeliharaan Mesin — HANYA LIHAT, tidak CRUD
+            'view_pemeliharaan_mesin',
+
             // Sertakan juga permission CRUD lama agar fungsi backend tidak error
-            'view_tools', 'view_consumable', 
+            'view_tools', 'view_consumable',
             'view_peminjaman', 'create_peminjaman', 'edit_peminjaman',
             'create_pemeliharaan', 'edit_pemeliharaan'
         ]);

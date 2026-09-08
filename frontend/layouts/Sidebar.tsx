@@ -86,8 +86,8 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
     "Transaksi": "view_transaksi",
     "Riwayat": "view_riwayat",
     "Pengajuan Order": "view_order",
-    "Laporan Kerusakan Alat": "view_pemeliharaan", // Sesuai dengan nama di sidebar Anda
-    "Laporan Kerusakan": "view_pemeliharaan", // Cadangan jika namanya berbeda
+    "Laporan Kerusakan Alat": "view_kerusakan_alat",
+    "Pemeliharaan": "view_pemeliharaan_mesin", // sebelumnya tidak ada mapping, jadi selalu tampil ke semua role
     "Manajemen User": "view_users",
   };
 
