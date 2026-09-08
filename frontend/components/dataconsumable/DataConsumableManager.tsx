@@ -669,7 +669,7 @@ const DataConsumableManager = () => {
               </Button>
             </div>
           ) : (
-            <TanstackTable data={filteredConsumables} columns={columns} pagination isSortable />
+            <TanstackTable data={filteredConsumables} columns={columns} pagination />
           )}
         </CardBody>
       </Card>

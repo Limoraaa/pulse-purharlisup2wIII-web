@@ -125,7 +125,7 @@ const RiwayatPerbaikanManager = () => {
   });
 
   return (
-    <div className="riwayat-page">
+    <div className="riwayat-page riwayat-perbaikan-page">
       <Row>
         <Col>
           <Flex justifyContent="between" alignItems="center" className="mb-4 w-100" breakpoint="md">
@@ -218,7 +218,6 @@ const RiwayatPerbaikanManager = () => {
               data={filteredList}
               columns={columns}
               pagination
-              isSortable
             />
           )}
         </CardBody>

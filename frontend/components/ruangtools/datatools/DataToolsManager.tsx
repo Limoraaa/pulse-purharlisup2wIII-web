@@ -614,7 +614,7 @@ const DataToolsManager = () => {
               </Button>
             </div>
           ) : (
-            <TanstackTable data={filteredTools} columns={columns} pagination isSortable />
+            <TanstackTable data={filteredTools} columns={columns} pagination />
           )}
         </CardBody>
       </Card>

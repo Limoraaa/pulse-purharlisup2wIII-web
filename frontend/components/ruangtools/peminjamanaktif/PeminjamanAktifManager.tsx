@@ -210,7 +210,6 @@ const PeminjamanAktifManager = () => {
               data={filteredItems}
               columns={columns}
               pagination
-              isSortable
             />
           )}
         </CardBody>

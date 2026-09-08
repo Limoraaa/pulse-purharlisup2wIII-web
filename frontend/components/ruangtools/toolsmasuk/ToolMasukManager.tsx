@@ -409,7 +409,6 @@ const ToolMasukManager = () => {
               data={filteredMasukList}
               columns={columns}
               pagination
-              isSortable
             />
           )}
         </CardBody>

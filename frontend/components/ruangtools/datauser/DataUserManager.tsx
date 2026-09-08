@@ -321,7 +321,7 @@ const DataUserManager = () => {
               </Button>
             </div>
           ) : (
-            <TanstackTable data={filteredUsers} columns={columns} pagination isSortable />
+            <TanstackTable data={filteredUsers} columns={columns} pagination />
           )}
         </CardBody>
       </Card>
