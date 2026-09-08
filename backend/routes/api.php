@@ -99,15 +99,18 @@ Route::middleware('auth:sanctum')->group(function () {
     // C. MODUL INVENTARIS (termasuk master data Peminta & Pekerjaan)
     // ------------------------------------------
     // Hanya Melihat (View)
-    Route::middleware('permission:view_inventaris')->group(function () {
+       Route::middleware('permission:view_inventaris')->group(function () {
         Route::apiResource('tools', ToolController::class)->only(['index', 'show']);
         Route::apiResource('consumable', ConsumableController::class)->only(['index', 'show']);
-        Route::apiResource('mesin-produksi', MesinProduksiController::class)->only(['index', 'show']);
         Route::apiResource('tools-masuk', ToolMasukController::class)->only(['index', 'show']);
         Route::apiResource('consumable-masuk', ConsumableMasukController::class)->only(['index', 'show']);
         Route::apiResource('peminta', PemintaController::class)->only(['index', 'show']);
         Route::get('/pekerjaan/active', [PekerjaanController::class, 'getActive']);
         Route::apiResource('pekerjaan', PekerjaanController::class)->only(['index', 'show']);
+    });
+
+    Route::middleware('permission:view_inventaris|view_pemeliharaan_mesin')->group(function () {
+        Route::apiResource('mesin-produksi', MesinProduksiController::class)->only(['index', 'show']);
     });
 
     // Mengelola Penuh (Create, Update, Delete)
@@ -169,7 +172,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/order-tools', [OrderToolController::class, 'store']);
     });
 
-    Route::middleware('permission:process_order|permission:manage_order')->group(function () {
+    Route::middleware('permission:process_order|manage_order')->group(function () {
         Route::put('/order-consumable/{id}/status', [OrderConsumableController::class, 'updateStatus']);
         Route::put('/order-tools/{id}/status', [OrderToolController::class, 'updateStatus']);
         Route::put('/order-tools/{id}', [OrderToolController::class, 'update']);

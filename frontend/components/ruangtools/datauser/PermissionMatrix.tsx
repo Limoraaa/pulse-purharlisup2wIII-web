@@ -18,19 +18,19 @@ export default function PermissionMatrix() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Daftar menu navbar sesuai urutan di sidebar aplikasi Anda
-  const navbars = [
-    { key: 'view_dashboard', label: 'Dashboard' },
-    { key: 'view_inventaris', label: 'Inventaris' },
-    { key: 'view_transaksi', label: 'Transaksi' },
-    { key: 'view_riwayat', label: 'Riwayat' },
-    { key: 'view_order', label: 'Pengajuan Order' },
-    { key: 'view_kerusakan_alat', label: 'Laporan Kerusakan Alat' },
+    const navbars = [
+    { key: 'view_dashboard', permissions: ['view_dashboard'], label: 'Dashboard' },
+    { key: 'view_inventaris', permissions: ['view_inventaris', 'manage_inventaris'], label: 'Inventaris' },
+    { key: 'view_transaksi', permissions: ['view_transaksi', 'process_transaksi', 'manage_transaksi'], label: 'Transaksi' },
+    { key: 'view_riwayat', permissions: ['view_riwayat'], label: 'Riwayat' },
+    { key: 'view_order', permissions: ['view_order', 'create_order', 'process_order', 'manage_order'], label: 'Pengajuan Order' },
+    { key: 'view_kerusakan_alat', permissions: ['view_kerusakan_alat', 'create_kerusakan_alat', 'process_kerusakan_alat', 'manage_kerusakan_alat'], label: 'Laporan Kerusakan Alat' },
   ];
    const pemeliharaanNavbars = [
-    { key: 'view_pemeliharaan_mesin', label: 'Pemeliharaan Mesin' },
+    { key: 'view_pemeliharaan_mesin', permissions: ['view_pemeliharaan_mesin', 'process_pemeliharaan_mesin'], label: 'Pemeliharaan Mesin' },
   ];
   const administrasiNavbars = [
-    { key: 'view_users', label: 'Manajemen User' },
+    { key: 'view_users', permissions: ['view_users', 'manage_users'], label: 'Manajemen User' },
   ];
 
   // Sama seperti mapping warna badge ROLE di tab Daftar Pengguna,
@@ -59,14 +59,15 @@ export default function PermissionMatrix() {
     fetchMatrix();
   }, []);
 
-  const handleToggle = (roleId: number, permKey: string) => {
+  const handleToggle = (roleId: number, permKeys: string[]) => {
     setRoles((prevRoles) =>
       prevRoles.map((role) => {
         if (role.id === roleId) {
-          const hasPerm = role.permissions.includes(permKey);
+          // Cek berdasarkan permission utama (elemen pertama) untuk tentukan mode: nyalakan atau matikan semua
+          const hasPerm = role.permissions.includes(permKeys[0]);
           const newPerms = hasPerm
-            ? role.permissions.filter((p) => p !== permKey)
-            : [...role.permissions, permKey];
+            ? role.permissions.filter((p) => !permKeys.includes(p))
+            : Array.from(new Set([...role.permissions, ...permKeys]));
 
           return { ...role, permissions: newPerms };
         }
@@ -185,7 +186,7 @@ export default function PermissionMatrix() {
                       </div>
                     </td>
                     {navbars.map((nav) => {
-                      const isChecked = role.permissions.includes(nav.key);
+                      const isChecked = role.permissions.includes(nav.permissions[0]);
 
                       return (
                         <td key={nav.key} className="py-3 px-3 text-center">
@@ -195,7 +196,7 @@ export default function PermissionMatrix() {
                               id={`switch-${role.id}-${nav.key}`}
                               checked={isSuperAdmin ? true : isChecked}
                               disabled={isSuperAdmin}
-                              onChange={() => handleToggle(role.id, nav.key)}
+                              onChange={() => handleToggle(role.id, nav.permissions)}
                               style={{
                                 cursor: isSuperAdmin ? 'not-allowed' : 'pointer',
                                 transform: 'scale(1.1)',
@@ -245,7 +246,7 @@ export default function PermissionMatrix() {
                       </Badge>
                     </td>
                     {pemeliharaanNavbars.map((nav) => {
-                      const isChecked = role.permissions.includes(nav.key);
+                      const isChecked = role.permissions.includes(nav.permissions[0]);
                       return (
                         <td key={nav.key} className="py-3 px-3 text-center">
                           <div className="d-flex justify-content-center">
@@ -254,7 +255,7 @@ export default function PermissionMatrix() {
                               id={`switch-${role.id}-${nav.key}`}
                               checked={isSuperAdmin ? true : isChecked}
                               disabled={isSuperAdmin}
-                              onChange={() => handleToggle(role.id, nav.key)}
+                              onChange={() => handleToggle(role.id, nav.permissions)}
                               style={{
                                 cursor: isSuperAdmin ? 'not-allowed' : 'pointer',
                                 transform: 'scale(1.1)',
@@ -304,7 +305,7 @@ export default function PermissionMatrix() {
                       </Badge>
                     </td>
                     {administrasiNavbars.map((nav) => {
-                      const isChecked = role.permissions.includes(nav.key);
+                      const isChecked = role.permissions.includes(nav.permissions[0]);
                       return (
                         <td key={nav.key} className="py-3 px-3 text-center">
                           <div className="d-flex justify-content-center">
@@ -313,7 +314,7 @@ export default function PermissionMatrix() {
                               id={`switch-${role.id}-${nav.key}`}
                               checked={isSuperAdmin ? true : isChecked}
                               disabled={isSuperAdmin}
-                              onChange={() => handleToggle(role.id, nav.key)}
+                              onChange={() => handleToggle(role.id, nav.permissions)}
                               style={{
                                 cursor: isSuperAdmin ? 'not-allowed' : 'pointer',
                                 transform: 'scale(1.1)',
