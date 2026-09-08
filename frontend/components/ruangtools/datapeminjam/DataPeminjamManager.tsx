@@ -386,7 +386,6 @@ const PeminjamManager = () => {
               data={filteredPeminjam}
               columns={columns}
               pagination
-              isSortable
             />
           )}
         </CardBody>

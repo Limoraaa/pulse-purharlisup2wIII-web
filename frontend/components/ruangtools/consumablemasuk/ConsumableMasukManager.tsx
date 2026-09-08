@@ -419,7 +419,6 @@ const ConsumableMasukManager = () => {
               data={filteredMasukList}
               columns={columns}
               pagination
-              isSortable
             />
           )}
         </CardBody>

@@ -327,7 +327,7 @@ export default function OrderConsumableManager() {
             </div>
           ) : (
             <div style={{ overflowX: 'auto', whiteSpace: 'nowrap' }}>
-              <TanstackTable data={filteredOrders} columns={columns} pagination isSortable />
+              <TanstackTable data={filteredOrders} columns={columns} pagination />
             </div>
           )}
         </CardBody>
