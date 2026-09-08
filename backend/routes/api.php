@@ -78,10 +78,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/profile/photo', [UserController::class, 'uploadPhoto']);
     Route::patch('/profile/password', [UserController::class, 'changePassword']);
 
-    Route::apiResource('users', UserController::class);
-    Route::patch('/users/{id}/reset-password', [UserController::class, 'resetPassword']);
-    Route::patch('/users/{id}/aktifkan', [UserController::class, 'activate']);
-
 
     // ------------------------------------------
     // B. MODUL DASHBOARD
@@ -100,7 +96,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
     // ------------------------------------------
-    // C. MODUL INVENTARIS
+    // C. MODUL INVENTARIS (termasuk master data Peminta & Pekerjaan)
     // ------------------------------------------
     // Hanya Melihat (View)
     Route::middleware('permission:view_inventaris')->group(function () {
@@ -109,6 +105,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('mesin-produksi', MesinProduksiController::class)->only(['index', 'show']);
         Route::apiResource('tools-masuk', ToolMasukController::class)->only(['index', 'show']);
         Route::apiResource('consumable-masuk', ConsumableMasukController::class)->only(['index', 'show']);
+        Route::apiResource('peminta', PemintaController::class)->only(['index', 'show']);
+        Route::get('/pekerjaan/active', [PekerjaanController::class, 'getActive']);
+        Route::apiResource('pekerjaan', PekerjaanController::class)->only(['index', 'show']);
     });
 
     // Mengelola Penuh (Create, Update, Delete)
@@ -122,10 +121,25 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('consumable-masuk', ConsumableMasukController::class)->except(['index', 'show']);
     });
 
+    // Master Data Peminta & Pekerjaan — CRUD penuh (domain Operasional Alat, Staff full akses)
+    Route::middleware('permission:manage_master_data')->group(function () {
+        Route::apiResource('peminta', PemintaController::class)->except(['index', 'show']);
+        Route::patch('/peminta/{id}/aktifkan', [PemintaController::class, 'aktifkan']);
+
+        Route::apiResource('pekerjaan', PekerjaanController::class)->except(['index', 'show']);
+        Route::patch('/pekerjaan/{id}/toggle-status', [PekerjaanController::class, 'toggleStatus']);
+    });
+
 
     // ------------------------------------------
     // D. MODUL TRANSAKSI (Peminjaman & Keluar)
     // ------------------------------------------
+    // Route spesifik HARUS didaftarkan sebelum apiResource, agar tidak
+    // tertangkap oleh pola /peminjaman/{peminjaman} milik method show()
+    Route::middleware('permission:view_riwayat')->group(function () {
+        Route::get('/peminjaman/belum-kembali', [PeminjamanController::class, 'belumKembali']);
+    });
+
     Route::middleware('permission:view_transaksi')->group(function () {
         Route::apiResource('peminjaman', PeminjamanController::class)->only(['index', 'show']);
         Route::apiResource('consumable-keluar', ConsumableKeluarController::class)->only(['index', 'show']);
@@ -163,63 +177,60 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
     // ------------------------------------------
-    // F. MODUL PEMELIHARAAN & KERUSAKAN
+    // F1. MODUL LAPORAN KERUSAKAN ALAT (domain Operasional Alat — Staff full akses)
     // ------------------------------------------
-    Route::middleware('permission:view_pemeliharaan')->group(function () {
+    Route::middleware('permission:view_kerusakan_alat')->group(function () {
         Route::apiResource('laporan-kerusakan', LaporanKerusakanController::class)->only(['index', 'show']);
+    });
+
+    Route::middleware('permission:create_kerusakan_alat')->group(function () {
+        Route::post('/laporan-kerusakan', [LaporanKerusakanController::class, 'store']);
+    });
+
+    Route::middleware('permission:process_kerusakan_alat')->group(function () {
+        Route::patch('/laporan-kerusakan/{id}/repair', [LaporanKerusakanController::class, 'repair']);
+        Route::patch('/laporan-kerusakan/{id}/tandai-permanen', [LaporanKerusakanController::class, 'tandaiPermanen']);
+    });
+
+    Route::middleware('permission:manage_kerusakan_alat')->group(function () {
+        Route::apiResource('laporan-kerusakan', LaporanKerusakanController::class)->except(['index', 'show', 'store']);
+    });
+
+
+    // ------------------------------------------
+    // F2. MODUL PEMELIHARAAN MESIN (domain terpisah — Staff hanya lihat)
+    // ------------------------------------------
+    Route::middleware('permission:view_pemeliharaan_mesin')->group(function () {
         Route::get('/log-pemeliharaan/mesin/{mesin_id}', [LogPemeliharaanMesinController::class, 'getByMesin']);
         Route::get('/log-aktivitas', [LogAktivitasMesinController::class, 'index']);
         Route::get('/log-aktivitas/mesin/{mesin_id}', [LogAktivitasMesinController::class, 'getByMesin']);
     });
 
-    Route::middleware('permission:create_pemeliharaan')->group(function () {
-        Route::post('/laporan-kerusakan', [LaporanKerusakanController::class, 'store']);
-    });
-
-    Route::middleware('permission:process_pemeliharaan')->group(function () {
-        Route::patch('/laporan-kerusakan/{id}/repair', [LaporanKerusakanController::class, 'repair']);
-        Route::patch('/laporan-kerusakan/{id}/tandai-permanen', [LaporanKerusakanController::class, 'tandaiPermanen']);
+    Route::middleware('permission:process_pemeliharaan_mesin')->group(function () {
         Route::post('/log-pemeliharaan', [LogPemeliharaanMesinController::class, 'store']);
         Route::post('/log-aktivitas', [LogAktivitasMesinController::class, 'store']);
-    });
-
-    Route::middleware('permission:manage_pemeliharaan')->group(function () {
-        Route::apiResource('laporan-kerusakan', LaporanKerusakanController::class)->except(['index', 'show', 'store']);
     });
 
 
     // ------------------------------------------
     // G. MODUL RIWAYAT
     // ------------------------------------------
-    Route::middleware('permission:view_riwayat')->group(function () {
-        Route::get('/peminjaman/belum-kembali', [PeminjamanController::class, 'belumKembali']);
-    });
+    // (route /peminjaman/belum-kembali dipindahkan ke Modul Transaksi di atas
+    //  agar urutan route benar — tidak tertangkap oleh /peminjaman/{id})
 
 
     // ------------------------------------------
-    // H. MODUL MANAJEMEN USER & MASTER DATA
+    // H. MODUL MANAJEMEN USER (khusus akun & RBAC — TIDAK termasuk master data)
     // ------------------------------------------
     Route::middleware('permission:view_users')->group(function () {
         Route::apiResource('users', UserController::class)->only(['index', 'show']);
-        Route::apiResource('peminta', PemintaController::class)->only(['index', 'show']);
-
-        Route::get('/pekerjaan/active', [PekerjaanController::class, 'getActive']);
-        Route::apiResource('pekerjaan', PekerjaanController::class)->only(['index', 'show']);
     });
 
     Route::middleware('permission:manage_users')->group(function () {
-        // Akun Users
+        // Akun Users — khusus Super Admin
         Route::apiResource('users', UserController::class)->except(['index', 'show']);
         Route::patch('/users/{id}/reset-password', [UserController::class, 'resetPassword']);
         Route::patch('/users/{id}/aktifkan', [UserController::class, 'activate']);
-
-        // Master Data Peminta
-        Route::apiResource('peminta', PemintaController::class)->except(['index', 'show']);
-        Route::patch('/peminta/{id}/aktifkan', [PemintaController::class, 'aktifkan']);
-
-        // Master Data Pekerjaan
-        Route::apiResource('pekerjaan', PekerjaanController::class)->except(['index', 'show']);
-        Route::patch('/pekerjaan/{id}/toggle-status', [PekerjaanController::class, 'toggleStatus']);
 
         // Pengaturan RBAC (Role & Permissions Matrix)
         Route::get('/permissions/matrix', [RolePermissionController::class, 'getMatrix']);
@@ -229,4 +240,4 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/roles/{id}/permissions', [RolePermissionController::class, 'updateRolePermissions']);
     });
 
-}); 
+}); // Penutup grup auth:sanctum — mencakup semua modul A-H

@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { getColumns, Pekerjaan } from './ColumnDefination';
 import PekerjaanFormModal from './PekerjaanFormModal';
 import DeleteConfirmModal from './DeleteConfirmModal';
+import apiFetch from "lib/api";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
@@ -27,8 +28,7 @@ export default function DataPekerjaanManager() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/pekerjaan`);
-      const json = await res.json();
+      const json = await apiFetch<{ success: boolean; data: Pekerjaan[] }>("/pekerjaan");
       if (json.success) {
         setData(json.data);
       }
@@ -52,11 +52,9 @@ export default function DataPekerjaanManager() {
   // 2. TOGGLE STATUS: Mengubah status aktif/nonaktif via API
   const handleToggleStatus = async (pekerjaan: Pekerjaan) => {
     try {
-      const res = await fetch(`${API_URL}/pekerjaan/${pekerjaan.id}/toggle-status`, {
+      const json = await apiFetch<{ success: boolean }>(`/pekerjaan/${pekerjaan.id}/toggle-status`, {
         method: 'PATCH',
-        headers: { 'Accept': 'application/json' }
       });
-      const json = await res.json();
       if (json.success) {
         fetchData(); // Refresh tabel setelah status diubah
       }
@@ -74,11 +72,9 @@ export default function DataPekerjaanManager() {
   const confirmDelete = async () => {
     if (selectedPekerjaan) {
       try {
-        const res = await fetch(`${API_URL}/pekerjaan/${selectedPekerjaan.id}`, {
+        const json = await apiFetch<{ success: boolean }>(`/pekerjaan/${selectedPekerjaan.id}`, {
           method: 'DELETE',
-          headers: { 'Accept': 'application/json' }
         });
-        const json = await res.json();
         if (json.success) {
           fetchData(); // Refresh tabel setelah dihapus
         }
@@ -96,16 +92,11 @@ export default function DataPekerjaanManager() {
     const url = isEdit ? `${API_URL}/pekerjaan/${selectedPekerjaan.id}` : `${API_URL}/pekerjaan`;
     const method = isEdit ? 'PUT' : 'POST';
 
-    try {
-      const res = await fetch(url, {
+  try {
+      const json = await apiFetch<{ success: boolean; message?: string }>(url.replace(API_URL, ""), {
         method: method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
         body: JSON.stringify(formData)
       });
-      const json = await res.json();
       if (json.success) {
         fetchData(); // Refresh tabel
         setIsFormOpen(false);
