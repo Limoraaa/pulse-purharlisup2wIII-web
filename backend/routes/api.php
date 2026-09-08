@@ -81,7 +81,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('users', UserController::class);
     Route::patch('/users/{id}/reset-password', [UserController::class, 'resetPassword']);
     Route::patch('/users/{id}/aktifkan', [UserController::class, 'activate']);
-});
+
 
     // ------------------------------------------
     // B. MODUL DASHBOARD
@@ -228,3 +228,5 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/roles/{id}/permissions', [RolePermissionController::class, 'getRolePermissions']);
         Route::put('/roles/{id}/permissions', [RolePermissionController::class, 'updateRolePermissions']);
     });
+
+}); 
