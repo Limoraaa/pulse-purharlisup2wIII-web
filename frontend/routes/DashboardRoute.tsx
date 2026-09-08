@@ -17,6 +17,11 @@ import { MenuItemType } from "types/menuTypes";
 export const DashboardMenu: MenuItemType[] = [
   {
     id: uuid(),
+    title: "Operasional Alat",
+    grouptitle: true,
+  },
+  {
+    id: uuid(),
     title: "Dashboard",
     link: "/",
     icon: <IconLayoutDashboard size={20} strokeWidth={1.5} />,
@@ -110,9 +115,20 @@ export const DashboardMenu: MenuItemType[] = [
       },
     ],
   },
+  {
+    id: uuid(),
+    title: "Laporan Kerusakan Alat",
+    link: "/laporan",
+    icon: <IconReportAnalytics size={20} strokeWidth={1.5} />,
+  },
   // ==========================================
   // MENU PEMELIHARAAN (Hanya Mesin & Motor Konversi)
   // ==========================================
+  {
+    id: uuid(),
+    title: "Pemeliharaan Mesin",
+    grouptitle: true,
+  },
   {
     id: uuid(),
     title: "Pemeliharaan",
@@ -130,11 +146,10 @@ export const DashboardMenu: MenuItemType[] = [
       },
     ],
   },
-  {
+    {
     id: uuid(),
-    title: "Laporan Kerusakan Alat",
-    link: "/laporan",
-    icon: <IconReportAnalytics size={20} strokeWidth={1.5} />,
+    title: "Administrasi",
+    grouptitle: true,
   },
   {
     id: uuid(),
