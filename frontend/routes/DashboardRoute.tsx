@@ -131,6 +131,12 @@ export const DashboardMenu: MenuItemType[] = [
   },
   {
     id: uuid(),
+    title: "Dashboard Pemeliharaan",
+    link: "/pemeliharaan/dashboard",
+    icon: <IconLayoutDashboard size={20} strokeWidth={1.5} />,
+  },
+  {
+    id: uuid(),
     title: "Pemeliharaan",
     icon: <IconTools size={20} strokeWidth={1.5} />,
     children: [
