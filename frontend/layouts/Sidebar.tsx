@@ -80,14 +80,15 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
 
   // --- KAMUS MAPPING MENU KE PERMISSION ---
   // Mencocokkan nama judul di sidebar (kiri) dengan nama permission di database (kanan)
-  const permissionMap: Record<string, string> = {
+    const permissionMap: Record<string, string> = {
     "Dashboard": "view_dashboard",
     "Inventaris": "view_inventaris",
     "Transaksi": "view_transaksi",
     "Riwayat": "view_riwayat",
     "Pengajuan Order": "view_order",
     "Laporan Kerusakan Alat": "view_kerusakan_alat",
-    "Pemeliharaan": "view_pemeliharaan_mesin", // sebelumnya tidak ada mapping, jadi selalu tampil ke semua role
+    "Dashboard Pemeliharaan": "view_dashboard_pemeliharaan",
+    "Pemeliharaan": "view_pemeliharaan_mesin",
     "Manajemen User": "view_users",
   };
 
