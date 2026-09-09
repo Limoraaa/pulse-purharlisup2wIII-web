@@ -123,8 +123,8 @@ class UserController extends Controller
 
         $data['must_change_password'] = false;
         $data['is_active'] = true;
-        
-        $user = User::create($data); 
+
+        $user = User::create($data);
 
         // Tempelkan role Spatie ke user yang baru dibuat
         $user->assignRole($data['role']);
@@ -141,15 +141,19 @@ class UserController extends Controller
             return response()->json(['message' => 'User tidak ditemukan'], 404);
         }
 
+        if ($targetUser->hasRole('Super Admin') && !auth()->user()->hasRole('Super Admin')) {
+            return response()->json(['message' => 'Anda tidak memiliki izin untuk mengubah akun ini.'], 403);
+        }
+
         $validator = Validator::make($request->all(), [
             'full_name' => 'sometimes|required|string|max:255',
             'username' => 'sometimes|required|string|max:255|unique:users,username,' . $targetUser->id,
             'email' => 'sometimes|nullable|email|unique:users,email,' . $targetUser->id,
             'password' => 'nullable|string|min:6',
-            
+
             // PERBAIKAN DI SINI: Sesuaikan dengan daftar role baru
             'role' => 'sometimes|required|in:Pegawai,Staff,Admin,Team Leader,Super Admin',
-            
+
             'divisi' => 'sometimes|nullable|string|max:255',
             'no_hp' => 'sometimes|nullable|string|max:20',
         ]);
@@ -182,8 +186,12 @@ class UserController extends Controller
             return response()->json(['message' => 'User tidak ditemukan'], 404);
         }
 
+        if ($user->hasRole('Super Admin') && !auth()->user()->hasRole('Super Admin')) {
+            return response()->json(['message' => 'Anda tidak memiliki izin untuk mengubah akun ini.'], 403);
+        }
+
         $user->update(['is_active' => false]);
-        $user->tokens()->delete(); 
+        $user->tokens()->delete();
 
         return response()->json(['message' => 'User berhasil dinonaktifkan']);
     }
@@ -194,6 +202,10 @@ class UserController extends Controller
 
         if (! $user) {
             return response()->json(['message' => 'User tidak ditemukan'], 404);
+        }
+
+        if ($user->hasRole('Super Admin') && !auth()->user()->hasRole('Super Admin')) {
+            return response()->json(['message' => 'Anda tidak memiliki izin untuk mengubah akun ini.'], 403);
         }
 
         $user->update(['is_active' => true]);
@@ -207,6 +219,10 @@ class UserController extends Controller
 
         if (! $targetUser) {
             return response()->json(['message' => 'User tidak ditemukan'], 404);
+        }
+
+        if ($targetUser->hasRole('Super Admin') && !auth()->user()->hasRole('Super Admin')) {
+            return response()->json(['message' => 'Anda tidak memiliki izin untuk mengubah akun ini.'], 403);
         }
 
         $validator = Validator::make($request->all(), [

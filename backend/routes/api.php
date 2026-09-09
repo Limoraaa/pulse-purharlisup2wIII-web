@@ -282,12 +282,18 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::middleware('permission:manage_users')->group(function () {
-        // Akun Users — khusus Super Admin
+        // Akun Users — bisa diberikan ke role selain Super Admin lewat matrix
         Route::apiResource('users', UserController::class)->except(['index', 'show']);
         Route::patch('/users/{id}/reset-password', [UserController::class, 'resetPassword']);
         Route::patch('/users/{id}/aktifkan', [UserController::class, 'activate']);
+    });
 
-        // Pengaturan RBAC (Role & Permissions Matrix)
+    // Pengaturan RBAC (Role & Permissions Matrix) — SENGAJA dicek pakai role langsung,
+    // BUKAN permission biasa, supaya tidak bisa "diaktifkan" secara tidak sengaja
+    // lewat matrix untuk role manapun selain Super Admin (mencegah privilege escalation:
+    // kalau ini pakai permission biasa, role manapun yang punya izin ini bisa
+    // memberi dirinya sendiri permission apapun lewat matrix).
+    Route::middleware('role:Super Admin')->group(function () {
         Route::get('/permissions/matrix', [RolePermissionController::class, 'getMatrix']);
         Route::put('/permissions/matrix', [RolePermissionController::class, 'updateMatrix']);
         Route::get('/roles', [RolePermissionController::class, 'index']);

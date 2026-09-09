@@ -30,6 +30,7 @@ import {
   resetUserPassword,
 } from "services/userService";
 import { getProfile } from "services/profileService";
+import api from "lib/api";
 
 import TanstackTable from "components/table/TanstackTable";
 import Flex from "components/common/Flex";
@@ -46,6 +47,7 @@ const DataUserManager = () => {
   const [error, setError] = useState<string | null>(null);
 
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -62,14 +64,18 @@ const DataUserManager = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    getProfile()
-      .then((data) => {
-        setIsAdmin(data.role === "super_admin");
-        localStorage.setItem("userRole", data.role);
+    api("/user")
+      .then((res: any) => {
+        const data = res?.data || res;
+        const perms: string[] = data?.all_permissions || [];
+        const roles: string[] = (data?.roles || []).map((r: any) => r.name ?? r);
+        const canManage = roles.includes("Super Admin") || perms.includes("manage_users");
+        setIsAdmin(canManage);
+        setIsSuperAdmin(roles.includes("Super Admin"));
       })
       .catch(() => {
-        const role = localStorage.getItem("userRole");
-        setIsAdmin(role === "super_admin");
+        setIsAdmin(false);
+        setIsSuperAdmin(false);
       });
   }, []);
 
@@ -95,9 +101,10 @@ const DataUserManager = () => {
     setTimeout(() => setSuccessMessage(null), 4000);
   };
 
-  const filteredUsers = useMemo(() => {
+    const filteredUsers = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
     return users
+      .filter((u) => isAdmin || u.role !== "Super Admin") // Sembunyikan Super Admin dari yang bukan Super Admin
       .filter(
         (u) =>
           keyword === "" ||
