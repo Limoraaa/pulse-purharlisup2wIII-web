@@ -9,7 +9,11 @@ interface ConsumableApiResponse {
   type: string | null;
   er_e: string | null;
   ukuran: string | null;
-  stok_awal: number;
+  satuan: string | null;
+  stok_tersedia: number;
+  stok_awal_asli: number;
+  total_masuk: number;
+  total_keluar: number;
 }
 
 interface ConsumableApiPayload {
@@ -19,7 +23,9 @@ interface ConsumableApiPayload {
   type: string;
   er_e: string;
   ukuran: string;
-  stok_awal: number;
+  satuan: string;
+  stok_tersedia: number;
+  stok_awal_asli?: number;
 }
 
 function mapConsumableFromApi(item: ConsumableApiResponse): ConsumableItemType {
@@ -31,26 +37,37 @@ function mapConsumableFromApi(item: ConsumableApiResponse): ConsumableItemType {
     tipe: item.type ?? "-",
     er_e: item.er_e ?? "-",
     ukuran: item.ukuran ?? "-",
-    stok_awal: item.stok_awal,
+    satuan: item.satuan ?? "-",
+    stok_tersedia: item.stok_tersedia,
+    stok_awal_asli: item.stok_awal_asli,
+    total_masuk: item.total_masuk,
+    total_keluar: item.total_keluar,
   };
 }
 
 function mapConsumableToApi(values: ConsumableFormValues): ConsumableApiPayload {
-  return {
+  const payload: ConsumableApiPayload = {
     kode_barang: values.kode_barang,
     nama: values.nama,
     merk: values.merk,
     type: values.tipe,
     er_e: values.er_e,
     ukuran: values.ukuran,
-    stok_awal: values.stok_awal,
+    satuan: values.satuan,
+    stok_tersedia: values.stok_tersedia,
   };
+
+  if (values.stok_awal_asli !== undefined) {
+    payload.stok_awal_asli = values.stok_awal_asli;
+  }
+
+  return payload;
 }
 
 // urutan natural: T-1, T-2, T-3, ... T-10 (bukan T-1, T-10, T-2 ala alfabetis biasa)
 function sortByKode(items: ConsumableItemType[]): ConsumableItemType[] {
   return [...items].sort((a, b) =>
-    a.kode_barang.localeCompare(b.kode_barang, undefined, { numeric: true })
+    b.kode_barang.localeCompare(a.kode_barang, undefined, { numeric: true })
   );
 }
 

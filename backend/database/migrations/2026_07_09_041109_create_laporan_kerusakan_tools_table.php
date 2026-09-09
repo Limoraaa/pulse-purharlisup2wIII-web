@@ -11,10 +11,16 @@ return new class extends Migration
     {
         Schema::create('laporan_kerusakan_tools', function (Blueprint $table) {
             $table->uuid('id')->default(DB::raw('gen_random_uuid()'))->primary();
-            $table->date('tanggal');
+            $table->timestamp('tanggal');
             $table->foreignUuid('tool_id')->constrained('tools');
-            $table->integer('jumlah')->default(1);
+            $table->foreignUuid('peminjaman_id')->nullable()->constrained('peminjaman'); // ← baru
+            $table->integer('jumlah');
             $table->text('keterangan')->nullable();
+            $table->string('status')->default('rusak'); // rusak / diperbaiki
+            $table->timestamp('tanggal_diperbaiki')->nullable();
+            $table->text('catatan_perbaikan')->nullable();
+            $table->string('tingkat_kerusakan')->nullable();
+            $table->integer('perbaikan_ke')->nullable();
             $table->foreignUuid('dilaporkan_oleh')->constrained('users');
             $table->timestamps();
         });

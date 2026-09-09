@@ -6,29 +6,26 @@ import { useMediaQuery } from "react-responsive";
 import {
   IconArrowBarLeft,
   IconArrowBarRight,
-  IconBell,
   IconMenu2,
-  IconSearch,
 } from "@tabler/icons-react";
-import { Container, ListGroup, Navbar, Button } from "react-bootstrap";
+import { Container, ListGroup, Navbar } from "react-bootstrap";
 
 //import custom components
 import UserMenu from "./UserMenu";
+import ThemeToggle from "./ThemeToggle";
 import Flex from "components/common/Flex";
-import NoficationList from "components/common/NoficationList";
 import OffcanvasSidebar from "layouts/OffcanvasSidebar";
 
 //import custom hooks
 import useMenu from "hooks/useMenu";
 
 const Header = () => {
-  const [isNoficationOpen, setIsNotificationOpen] = useState<boolean>(false);
   const { toggleMenuHandler, handleCollapsed } = useMenu();
 
   // 1. Tambahkan state untuk mendeteksi apakah komponen sudah dimuat di browser
   const [hasMounted, setHasMounted] = useState<boolean>(false);
 
-  const isTablet = useMediaQuery({ maxWidth: 990 });
+  const isTablet = useMediaQuery({ maxWidth: 1024 });
 
   // 2. Set state menjadi true setelah render pertama (client-side)
   useEffect(() => {
@@ -44,7 +41,7 @@ const Header = () => {
             {/* 3. Gunakan hasMounted untuk mencegah render di server sebelum ukuran layar diketahui */}
             {hasMounted && isTablet && (
               <div
-                className="d-block d-lg-none"
+                className="d-flex align-items-center"
                 style={{ cursor: "pointer" }}
                 onClick={() => toggleMenuHandler(true)}
               >
@@ -83,42 +80,19 @@ const Header = () => {
           <ListGroup
             bsPrefix="list-unstyled"
             as={"ul"}
-            className="d-flex align-items-center mb-0 gap-2"
+            className="d-flex align-items-center mb-0 header-actions"
           >
-            <ListGroup.Item as="li">
-              <Button variant="white">
-                <span>
-                  <IconSearch size={16} />
-                </span>
-                <small className="ms-1">⌘K</small>
-              </Button>
+            <ListGroup.Item as="li" className="d-flex align-items-center">
+              <ThemeToggle />
             </ListGroup.Item>
 
-            <ListGroup.Item as="li">
-              <Button
-                variant="ghost"
-                className="position-relative btn-icon rounded-circle"
-                onClick={() => setIsNotificationOpen(true)}
-              >
-                <IconBell size={20} />
-                <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger mt-2 ms-n2">
-                  2<span className="visually-hidden">unread messages</span>
-                </span>
-              </Button>
-            </ListGroup.Item>
-            
-            <ListGroup.Item as="li">
+            <ListGroup.Item as="li" className="d-flex align-items-center">
               <UserMenu />
             </ListGroup.Item>
           </ListGroup>
         </Container>
       </Navbar>
-      
-      <NoficationList
-        isOpen={isNoficationOpen}
-        onClose={() => setIsNotificationOpen(false)}
-      />
-      
+
       {/* 4. Terapkan juga pada sidebar offcanvas agar tidak memicu error yang sama */}
       {hasMounted && isTablet && <OffcanvasSidebar />}
     </Fragment>

@@ -10,18 +10,21 @@ class ToolSeeder extends Seeder
     public function run(): void
     {
         $data = [
-            ['kode_barang' => 'I-300', 'nama_barang' => 'MATA BOR', 'type' => 'BETON', 'stok' => 20, 'keadaan' => 'B'],
-            ['kode_barang' => 'I-117', 'nama_barang' => 'KLEM', 'merk' => 'BENZ', 'type' => 'HASTON', 'warna' => 'BIRU', 'ukuran' => '3"', 'stok' => 3, 'keadaan' => 'B'],
-            ['kode_barang' => 'I-120', 'nama_barang' => 'KLEM', 'type' => 'HASTON', 'warna' => 'KUNING', 'ukuran' => '6"', 'stok' => 4, 'keadaan' => 'B'],
-            ['kode_barang' => 'I-420', 'nama_barang' => 'PALU', 'type' => 'BESI', 'stok' => 2, 'keadaan' => 'B'],
-            ['kode_barang' => 'I-023', 'nama_barang' => 'CHAIN BLOCK', 'merk' => 'SANJIA&GS(1)', 'ukuran' => '2TON', 'stok' => 1, 'keadaan' => 'B'],
-            ['kode_barang' => 'I-187', 'nama_barang' => 'KUNCI RING', 'merk' => 'KRISBOW&WIPRO(1)', 'type' => 'PUKUL', 'ukuran' => '30mm', 'stok' => 2, 'keadaan' => 'B'],
-            ['kode_barang' => 'I-389', 'nama_barang' => 'METERAN', 'merk' => 'HASTON', 'type' => 'LOCK-BUTTON&MAGNET', 'ukuran' => '10mx25mm', 'stok' => 3, 'keadaan' => 'B'],
-            ['kode_barang' => 'I-427', 'nama_barang' => 'PENGGARIS', 'merk' => 'SELLERY', 'type' => 'SIKU', 'warna' => 'SILVER', 'ukuran' => '30cm', 'stok' => 5, 'keadaan' => 'B'],
+            // Alat biasa (hand tools) - stok boleh lebih dari 1
+            ['kode_barang' => 'T-101', 'nama_barang' => 'Kunci Pas Set', 'merk' => 'Krisbow', 'type' => '8-24mm', 'warna' => '-', 'ukuran' => '-', 'stok' => 5, 'keadaan' => 'B', 'kategori' => 'alat_biasa'],
+            ['kode_barang' => 'T-102', 'nama_barang' => 'Obeng Set', 'merk' => 'Tekiro', 'type' => 'Plus-Minus', 'warna' => '-', 'ukuran' => '-', 'stok' => 10, 'keadaan' => 'B', 'kategori' => 'alat_biasa'],
+            ['kode_barang' => 'T-103', 'nama_barang' => 'Palu Konde', 'merk' => 'Krisbow', 'type' => '-', 'warna' => '-', 'ukuran' => '500gr', 'stok' => 6, 'keadaan' => 'B', 'kategori' => 'alat_biasa'],
+            ['kode_barang' => 'T-104', 'nama_barang' => 'Mata Bor Beton', 'merk' => 'Bosch', 'type' => 'Beton', 'warna' => '-', 'ukuran' => '10mm', 'stok' => 8, 'keadaan' => 'B', 'kategori' => 'alat_biasa'],
+            ['kode_barang' => 'T-105', 'nama_barang' => 'Tang Ampere', 'merk' => 'Sanwa', 'type' => 'Digital', 'warna' => '-', 'ukuran' => '-', 'stok' => 3, 'keadaan' => 'B', 'kategori' => 'alat_biasa'],
+
+            // Mesin - 1 kode = 1 unit fisik (stok selalu 1)
+            ['kode_barang' => 'T-201', 'nama_barang' => 'Gerinda Tangan', 'merk' => 'Makita', 'type' => 'Potong', 'warna' => 'Hijau', 'ukuran' => '4 inch', 'stok' => 1, 'keadaan' => 'B', 'kategori' => 'mesin'],
+            ['kode_barang' => 'T-202', 'nama_barang' => 'Mesin Bor Duduk', 'merk' => 'Krisbow', 'type' => 'Meja', 'warna' => 'Kuning', 'ukuran' => '-', 'stok' => 1, 'keadaan' => 'B', 'kategori' => 'mesin'],
+            ['kode_barang' => 'T-203', 'nama_barang' => 'Mesin Las Listrik', 'merk' => 'Lakoni', 'type' => 'Inverter 200A', 'warna' => 'Merah', 'ukuran' => '-', 'stok' => 1, 'keadaan' => 'B', 'kategori' => 'mesin'],
         ];
 
         foreach ($data as $item) {
-            Tool::create($item);
+            Tool::updateOrCreate(['kode_barang' => $item['kode_barang']], $item);
         }
     }
 }

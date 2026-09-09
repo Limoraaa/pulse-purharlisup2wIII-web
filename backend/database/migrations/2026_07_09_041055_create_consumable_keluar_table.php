@@ -11,11 +11,13 @@ return new class extends Migration
     {
         Schema::create('consumable_keluar', function (Blueprint $table) {
             $table->uuid('id')->default(DB::raw('gen_random_uuid()'))->primary();
-            $table->date('tanggal');
+            $table->timestamp('tanggal');
             $table->foreignUuid('consumable_id')->constrained('consumables');
-            $table->foreignUuid('peminta_id')->constrained('peminta');
+            $table->string('peminta_id'); 
             $table->integer('jumlah_keluar');
+            $table->string('satuan')->nullable(); // Kolom satuan disesuaikan
             $table->string('pekerjaan_area')->nullable();
+            $table->string('nama_pekerjaan')->nullable();
             $table->text('keterangan')->nullable();
             $table->foreignUuid('dicatat_oleh')->constrained('users');
             $table->timestamps();
