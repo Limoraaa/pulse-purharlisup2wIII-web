@@ -1,15 +1,27 @@
 "use client";
 
 // import node module libraries
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Tabs, Tab } from "react-bootstrap";
 
 // import custom components
 import DataUserManager from "components/ruangtools/datauser/DataUserManager";
 import PermissionMatrix from "components/ruangtools/datauser/PermissionMatrix";
+import api from "lib/api";
 
 export default function DataUserPage() {
   const [key, setKey] = useState("users");
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+
+    useEffect(() => {
+    api("/user")
+      .then((res: any) => {
+        const data = res?.data || res;
+        const roles: string[] = (data?.roles || []).map((r: any) => r.name ?? r);
+        setIsSuperAdmin(roles.includes("Super Admin"));
+      })
+      .catch(() => setIsSuperAdmin(false));
+  }, []);
 
   return (
     <div className="p-6 animate-fade-in-up">
@@ -34,12 +46,14 @@ export default function DataUserPage() {
             </div>
           </Tab>
 
-          {/* TAB 2: Pengaturan Hak Akses / Permission Matrix */}
-          <Tab eventKey="permissions" title="🔐 Pengaturan Hak Akses">
-            <div className="pt-3">
-              <PermissionMatrix />
-            </div>
-          </Tab>
+          {/* TAB 2: Pengaturan Hak Akses / Permission Matrix — khusus Super Admin */}
+          {isSuperAdmin && (
+            <Tab eventKey="permissions" title="🔐 Pengaturan Hak Akses">
+              <div className="pt-3">
+                <PermissionMatrix />
+              </div>
+            </Tab>
+          )}
         </Tabs>
       </div>
     </div>
