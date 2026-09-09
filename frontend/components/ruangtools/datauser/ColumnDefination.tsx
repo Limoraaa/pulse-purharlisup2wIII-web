@@ -33,7 +33,7 @@ const getRoleBadgeStyle = (role: string) => {
   }
   
   // Default (Staff atau tidak dikenal)
-  return { bg: "success-subtle", text: "success-emphasis", label: "Staff" }; // Hijau
+  return { bg: "success-subtle", text: "success-emphasis", label: "Staff Tools" }; // Hijau
 };
 
 export const getDataUserColumns = ({

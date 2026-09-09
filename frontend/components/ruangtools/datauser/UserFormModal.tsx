@@ -124,7 +124,7 @@ const UserFormModal = ({
                 >
                   {/* Pilihan dropdown role baru yang sudah sesuai dengan seeder */}
                   <option value="Pegawai">Pegawai</option>
-                  <option value="Staff">Staff</option>
+                  <option value="Staff">Staff Tools</option>
                   <option value="Admin">Admin</option>
                   <option value="Team Leader">Team Leader</option>
                   <option value="Super Admin">Super Admin</option>
