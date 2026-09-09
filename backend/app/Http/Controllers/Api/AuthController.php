@@ -28,10 +28,15 @@ class AuthController extends Controller
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
+        $user->load('roles');
+        $allPermissions = $user->getAllPermissions()->pluck('name');
+
         return response()->json([
             'user' => $user,
             'token' => $token,
             'must_change_password' => $user->must_change_password,
+            'roles' => $user->roles->pluck('name'),
+            'all_permissions' => $allPermissions,
         ]);
     }
 
