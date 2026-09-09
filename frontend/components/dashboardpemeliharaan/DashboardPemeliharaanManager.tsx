@@ -1,14 +1,25 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link"; 
-import { Row, Col, Card, CardBody, Spinner, Alert, Badge } from "react-bootstrap";
+import { Row, Col, Card, CardBody, Spinner, Alert, Badge, Button } from "react-bootstrap";
 import {
   IconTool,
   IconServer,
   IconAlertTriangle,
   IconChecklist,
   IconActivity,
+  IconPlus,
+  IconTrendingUp,
 } from "@tabler/icons-react";
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+} from "recharts";
 
 import Flex from "components/common/Flex";
 import DasherBreadcrumb from "components/common/DasherBreadcrumb";
@@ -31,6 +42,15 @@ const DashboardPemeliharaanManager = () => {
   const [aktivitas, setAktivitas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Data dummy untuk grafik tren agar tidak kosong (bisa diganti data API nantinya)
+  const dummyChartData = [
+    { tanggal: "01 Sep", total: 2 },
+    { tanggal: "03 Sep", total: 5 },
+    { tanggal: "05 Sep", total: 3 },
+    { tanggal: "07 Sep", total: 8 },
+    { tanggal: "09 Sep", total: 4 },
+  ];
 
   useEffect(() => {
     const loadAll = async () => {
@@ -70,6 +90,13 @@ const DashboardPemeliharaanManager = () => {
             </p>
             <DasherBreadcrumb />
           </div>
+          <div className="mt-3 mt-md-0">
+            <Link href="/pemeliharaan/data-mesin">
+              <Button variant="primary" className="d-flex align-items-center gap-2">
+                <IconPlus size={18} /> Catat Log Pemeliharaan
+              </Button>
+            </Link>
+          </div>
         </Flex>
       </Col>
     </Row>
@@ -79,7 +106,7 @@ const DashboardPemeliharaanManager = () => {
     return (
       <>
         {PageHeader}
-        <div className="text-center py-6">
+        <div className="text-center py-5">
           <Spinner animation="border" size="sm" className="me-2" />
           Memuat dashboard pemeliharaan...
         </div>
@@ -106,7 +133,7 @@ const DashboardPemeliharaanManager = () => {
           <Link href="/pemeliharaan/data-mesin" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
             <StatCard
               icon={<IconServer size={26} />}
-              title="Total Mesin"
+              title="Total Mesin Terdaftar"
               value={summary?.total_mesin ?? 0}
               variant="primary"
             />
@@ -126,7 +153,7 @@ const DashboardPemeliharaanManager = () => {
           <Link href="/pemeliharaan/data-mesin" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
             <StatCard
               icon={<IconChecklist size={26} />}
-              title="Pemeliharaan Rutin"
+              title="Total Pemeliharaan Rutin"
               value={summary?.pemeliharaan_rutin ?? 0}
               variant="success"
             />
@@ -134,72 +161,101 @@ const DashboardPemeliharaanManager = () => {
         </Col>
       </Row>
 
-      {/* Baris 2: Shortcut / Akses Cepat Modul */}
+      {/* Baris 2: Grafik Tren & Shortcut Modul (Membuat layout lebih padat dan berisi) */}
       <Row className="g-3 mb-4">
-        <Col md={6}>
-          <Link 
-            href="/pemeliharaan/data-mesin" 
-            style={{ textDecoration: "none", color: "inherit" }} 
-            className="d-block h-100"
-          >
-            <Card className="card-lg h-100 border-primary border-opacity-25 shadow-sm hover-shadow transition" style={{ cursor: "pointer" }}>
-              <CardBody className="d-flex align-items-center gap-3">
-                <div className="p-3 bg-primary bg-opacity-10 text-primary rounded-3">
-                  <IconTool size={28} />
-                </div>
-                <div>
-                  <h5 className="mb-1">Kelola Data Mesin</h5>
-                  <p className="text-secondary small mb-0">Tambah, ubah, atau lihat spesifikasi mesin produksi.</p>
-                </div>
-              </CardBody>
-            </Card>
-          </Link>
+        {/* Kolom Kiri: Grafik Tren Aktivitas */}
+        <Col lg={7}>
+          <Card className="card-lg h-100 shadow-sm border-0">
+            <CardBody>
+              <div className="d-flex align-items-center gap-2 mb-3">
+                <IconTrendingUp className="text-primary" size={20} />
+                <h5 className="mb-0">Tren Aktivitas Pemeliharaan</h5>
+              </div>
+              <ResponsiveContainer width="100%" height={220}>
+                <AreaChart data={dummyChartData}>
+                  <defs>
+                    <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#006492" stopOpacity={0.4}/>
+                      <stop offset="95%" stopColor="#006492" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                  <XAxis dataKey="tanggal" fontSize={12} stroke="#a0a0a0" />
+                  <YAxis allowDecimals={false} fontSize={12} stroke="#a0a0a0" />
+                  <Tooltip />
+                  <Area type="monotone" dataKey="total" stroke="#006492" strokeWidth={2} fillOpacity={1} fill="url(#colorTotal)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </CardBody>
+          </Card>
         </Col>
 
-        <Col md={6}>
-          <Link 
-            href="/pemeliharaan/motor-konversi" 
-            style={{ textDecoration: "none", color: "inherit" }} 
-            className="d-block h-100"
-          >
-            <Card className="card-lg h-100 border-success border-opacity-25 shadow-sm hover-shadow transition" style={{ cursor: "pointer" }}>
-              <CardBody className="d-flex align-items-center gap-3">
-                <div className="p-3 bg-success bg-opacity-10 text-success rounded-3">
-                  <IconActivity size={28} />
-                </div>
-                <div>
-                  <h5 className="mb-1">Pemeliharaan Motor Konversi</h5>
-                  <p className="text-secondary small mb-0">Monitoring khusus pemeliharaan unit motor konversi.</p>
-                </div>
-              </CardBody>
-            </Card>
-          </Link>
+        {/* Kolom Kanan: Shortcut Akses Cepat Modul */}
+        <Col lg={5}>
+          <Card className="card-lg h-100 shadow-sm border-0">
+            <CardBody className="d-flex flex-column justify-content-between">
+              <h5 className="mb-3">Akses Modul Cepat</h5>
+              <div className="space-y-3">
+                <Link 
+                  href="/pemeliharaan/data-mesin" 
+                  style={{ textDecoration: "none" }} 
+                  className="d-block mb-3"
+                >
+                  <div className="p-3 border rounded-3 bg-light hover-bg-white transition d-flex align-items-center gap-3">
+                    <div className="p-2 bg-primary text-white rounded-2">
+                      <IconTool size={20} />
+                    </div>
+                    <div>
+                      <h6 className="mb-0 text-dark fw-semibold">Kelola Data Mesin</h6>
+                      <small className="text-secondary">Tambah & lihat spesifikasi unit</small>
+                    </div>
+                  </div>
+                </Link>
+
+                <Link 
+                  href="/pemeliharaan/motor-konversi" 
+                  style={{ textDecoration: "none" }} 
+                  className="d-block"
+                >
+                  <div className="p-3 border rounded-3 bg-light hover-bg-white transition d-flex align-items-center gap-3">
+                    <div className="p-2 bg-success text-white rounded-2">
+                      <IconActivity size={20} />
+                    </div>
+                    <div>
+                      <h6 className="mb-0 text-dark fw-semibold">Pemeliharaan Motor Konversi</h6>
+                      <small className="text-secondary">Monitoring unit konversi khusus</small>
+                    </div>
+                  </div>
+                </Link>
+              </div>
+            </CardBody>
+          </Card>
         </Col>
       </Row>
 
       {/* Baris 3: Aktivitas Pemeliharaan Terbaru */}
       <Row className="g-3 mb-4">
         <Col md={12}>
-          <Card className="card-lg h-100">
+          <Card className="card-lg h-100 shadow-sm border-0">
             <CardBody>
               <h5 className="mb-3">Aktivitas Pemeliharaan Terbaru</h5>
               {aktivitas.length === 0 ? (
                 <p className="text-secondary small mb-0">Belum ada aktivitas pemeliharaan tercatat.</p>
               ) : (
-                <div style={{ maxHeight: 300, overflowY: "auto", paddingRight: "5px" }}>
+                <div style={{ maxHeight: 320, overflowY: "auto", paddingRight: "5px" }}>
                   <ul className="list-unstyled mb-0 dash-list">
                     {aktivitas.map((item, idx) => (
-                      <li key={idx} className="px-2 py-3 rounded border-bottom">
+                      <li key={idx} className="px-3 py-3 rounded border-bottom bg-white hover-bg-light transition">
                         <div className="d-flex justify-content-between align-items-center gap-2">
                           <div>
-                            <div className="fw-semibold text-dark">{item.nama_mesin}</div>
+                            <div className="fw-semibold text-dark fs-6">{item.nama_mesin}</div>
                             <div className="small text-secondary mt-1">{item.deskripsi}</div>
                             <div className="text-muted mt-1" style={{ fontSize: "0.75rem" }}>
                               {item.tanggal ? formatWaktu(item.tanggal) : "-"}
                             </div>
                           </div>
-                          <Badge bg="primary" className="flex-shrink-0 px-2 py-1">
-                            {item.status || "Tercatat"}
+                          <Badge bg="success" className="flex-shrink-0 px-2 py-1 text-uppercase" style={{ fontSize: "0.7rem" }}>
+                            {item.status || "Selesai / Tercatat"}
                           </Badge>
                         </div>
                       </li>

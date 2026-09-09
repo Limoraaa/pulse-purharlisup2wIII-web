@@ -19,26 +19,26 @@ import {
   IconX,
   IconBox,
   IconMoodEmpty,
-  IconClipboardList,
   IconArrowLeft,
-  IconActivity,
+  IconClipboardList,
 } from "@tabler/icons-react";
-import Link from "next/link";
 
 import TanstackTable from "components/table/TanstackTable";
 import Flex from "components/common/Flex";
 import DasherBreadcrumb from "components/common/DasherBreadcrumb";
 import api from "lib/api";
 import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
-import { useMesinColumns } from "./ColumnDefination";
 import MesinFormModal from "./MesinFormModal";
+
+// Import definisi kolom dari file terpisah
+import { useMesinColumns } from "./ColumnDefination"; 
 
 interface MesinItemType {
   id: number | string;
   kode_mesin: string;
   nama_mesin: string;
   lokasi_ruang: string;
-  status: 'Aktif' | 'Maintenance' | 'Rusak';
+  status: 'Aktif' | 'Tidak Aktif';
 }
 
 interface LogItemType {
@@ -103,7 +103,7 @@ const DataMesinManager = () => {
     loadMesin();
   }, [loadMesin]);
 
-  const handleOpenDetail = async (mesin: MesinItemType) => {
+  const handleOpenDetail = useCallback(async (mesin: MesinItemType) => {
     setSelectedMesin(mesin);
     setViewMode("detail");
     setLoadingLogs(true);
@@ -118,7 +118,32 @@ const DataMesinManager = () => {
     } finally {
       setLoadingLogs(false);
     }
-  };
+  }, []);
+
+  const handleToggleStatus = useCallback(async (id: number | string) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await api<{ success: boolean; message: string }>(`/mesin-produksi/${id}/toggle-status`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (res && res.success) {
+        setSuccessMessage(res.message);
+        loadMesin(); // Refresh data di tabel
+        setTimeout(() => setSuccessMessage(null), 3000);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Gagal mengubah status mesin");
+      setTimeout(() => setError(null), 3000);
+    }
+  }, [loadMesin]);
+
+  // PANGGIL HOOK KOLOM DI SINI
+  const columns = useMesinColumns({
+    onToggleStatus: handleToggleStatus,
+    onOpenDetail: handleOpenDetail,
+  });
 
   const filteredMesin = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
@@ -177,54 +202,6 @@ const DataMesinManager = () => {
     }
   };
 
-  const columns = useMemo(
-    () => [
-      { header: "No", cell: (info: any) => info.row.index + 1 },
-      { accessorKey: "kode_mesin", header: "Kode Mesin" },
-      { accessorKey: "nama_mesin", header: "Nama Mesin" },
-      { accessorKey: "lokasi_ruang", header: "Lokasi / Ruang" },
-      {
-        accessorKey: "status",
-        header: "Status",
-        cell: (info: any) => {
-          const val = info.getValue();
-          const badgeClass =
-            val === "Aktif"
-              ? "bg-success text-white px-2 py-1 rounded small"
-              : val === "Maintenance"
-              ? "bg-warning text-dark px-2 py-1 rounded small"
-              : "bg-danger text-white px-2 py-1 rounded small";
-          return <span className={badgeClass}>{val}</span>;
-        },
-      },
-      {
-        id: "aksi",
-        header: "Aksi Log",
-        cell: (info: any) => {
-          const mesin = info.row.original;
-          return (
-            <div className="d-flex gap-2">
-              <Button
-                variant="outline-primary"
-                size="sm"
-                className="d-flex align-items-center gap-1"
-                onClick={() => handleOpenDetail(mesin)}
-              >
-                <IconClipboardList size={14} /> Pemeliharaan
-              </Button>
-              <Link href={`/pemeliharaan/aktivitas-mesin?id=${mesin.id}`}>
-                <Button variant="outline-success" size="sm" className="d-flex align-items-center gap-1">
-                  <IconActivity size={14} /> Aktivitas
-                </Button>
-              </Link>
-            </div>
-          );
-        },
-      },
-    ],
-    []
-  );
-
   return (
     <div className="datamesin-page">
       {successMessage && (
@@ -234,7 +211,7 @@ const DataMesinManager = () => {
         </Alert>
       )}
 
-      {error && <Alert variant="danger">{error}</Alert>}
+      {error && <Alert variant="danger" dismissible onClose={() => setError(null)}>{error}</Alert>}
 
       {viewMode === "list" ? (
         <>

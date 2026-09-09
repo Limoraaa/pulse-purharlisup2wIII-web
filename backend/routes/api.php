@@ -58,7 +58,7 @@ Route::post('/consumable-keluar/proses', [ConsumableKeluarController::class, 'pr
 //
 // Prinsip permission di file ini mengikuti 3 domain sidebar + matrix RBAC:
 //   - OPERASIONAL ALAT   : Dashboard, Inventaris, Transaksi, Riwayat,
-//                           Pengajuan Order, Laporan Kerusakan Alat
+//                          Pengajuan Order, Laporan Kerusakan Alat
 //   - PEMELIHARAAN MESIN : domain terpisah, permission *_pemeliharaan_mesin
 //   - ADMINISTRASI        : Manajemen User (+ pengaturan RBAC)
 //
@@ -146,7 +146,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('mesin-produksi', MesinProduksiController::class)->only(['index', 'show']);
     });
 
-        Route::middleware('permission:manage_inventaris')->group(function () {
+    Route::middleware('permission:manage_inventaris')->group(function () {
         Route::apiResource('tools', ToolController::class)->except(['index', 'show']);
         Route::patch('/tools/{tool}/kurangi-stok', [ToolController::class, 'kurangiStok']);
 
@@ -164,6 +164,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // khusus Pemeliharaan Mesin (karena mesin bisa ditambah/diedit langsung
     // dari halaman Pemeliharaan Mesin, bukan cuma dari halaman Inventaris).
     Route::middleware('permission:manage_inventaris|manage_pemeliharaan_mesin')->group(function () {
+        Route::patch('/mesin-produksi/{id}/toggle-status', [MesinProduksiController::class, 'toggleStatus']);
         Route::apiResource('mesin-produksi', MesinProduksiController::class)->except(['index', 'show']);
     });
 
@@ -231,7 +232,7 @@ Route::middleware('auth:sanctum')->group(function () {
     //    + berbagi endpoint index/show dengan MODUL RIWAYAT (halaman "Riwayat Perbaikan")
     // ------------------------------------------
     Route::middleware('permission:view_kerusakan_alat|view_riwayat')->group(function () {
-    Route::apiResource('laporan-kerusakan', LaporanKerusakanController::class)->only(['index', 'show']);
+        Route::apiResource('laporan-kerusakan', LaporanKerusakanController::class)->only(['index', 'show']);
     });
 
     Route::middleware('permission:create_kerusakan_alat')->group(function () {
