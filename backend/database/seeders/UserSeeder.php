@@ -12,9 +12,9 @@ class UserSeeder extends Seeder
     {
         // 1. Buat user Admin/Staff
         $staff = User::create([
-            'full_name' => 'Admin Testing',
-            'username' => 'admin',
-            'email' => 'admin@test.com',
+            'full_name' => 'Staff Tools',
+            'username' => 'staff',
+            'email' => 'staff@test.com',
             'password' => Hash::make('password123'),
             'role' => 'staff',
             'must_change_password' => false,
