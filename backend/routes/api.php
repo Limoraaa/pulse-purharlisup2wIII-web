@@ -28,8 +28,6 @@ use App\Http\Controllers\Api\LogAktivitasMesinController;
 // ==========================================
 Route::post('/login', [AuthController::class, 'login']);
 
-// Fitur Scanner/Kiosk Umum: Tetap di luar auth JIKA berjalan di tablet publik (tanpa login).
-// Jika tablet ini juga mengharuskan operator login, pindahkan blok ini ke dalam auth:sanctum.
 Route::post('/peminjaman/scan', [PeminjamanController::class, 'scan']);
 Route::get('/peminjaman/antrean', [PeminjamanController::class, 'antrean']);
 Route::patch('/peminjaman/cart/{id}', [PeminjamanController::class, 'updateCartItem']);
@@ -233,7 +231,7 @@ Route::middleware('auth:sanctum')->group(function () {
     //    + berbagi endpoint index/show dengan MODUL RIWAYAT (halaman "Riwayat Perbaikan")
     // ------------------------------------------
     Route::middleware('permission:view_kerusakan_alat|view_riwayat')->group(function () {
-        Route::apiResource('laporan-kerusakan', LaporanKerusakanController::class)->only(['index', 'show']);
+    Route::apiResource('laporan-kerusakan', LaporanKerusakanController::class)->only(['index', 'show']);
     });
 
     Route::middleware('permission:create_kerusakan_alat')->group(function () {
@@ -258,6 +256,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // G. MODUL PEMELIHARAAN MESIN (switch: view_pemeliharaan_mesin)
     // ------------------------------------------
     Route::middleware('permission:view_pemeliharaan_mesin')->group(function () {
+        // Rute untuk statistik dashboard pemeliharaan (dari teman)
+        Route::get('/pemeliharaan/dashboard-stats', [LogPemeliharaanMesinController::class, 'getDashboardStats']);
+
         Route::get('/log-pemeliharaan/mesin/{mesin_id}', [LogPemeliharaanMesinController::class, 'getByMesin']);
         Route::get('/log-aktivitas', [LogAktivitasMesinController::class, 'index']);
         Route::get('/log-aktivitas/mesin/{mesin_id}', [LogAktivitasMesinController::class, 'getByMesin']);
