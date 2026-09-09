@@ -36,7 +36,12 @@ export default function PermissionMatrix() {
     { key: 'view_order', label: 'Pengajuan Order', type: 'dropdown', managePerms: ['create_order', 'process_order', 'manage_order'] },
     { key: 'view_kerusakan_alat', label: 'Laporan Kerusakan Alat', type: 'dropdown', managePerms: ['create_kerusakan_alat', 'process_kerusakan_alat', 'manage_kerusakan_alat'] },
   ];
-    const pemeliharaanNavbars: ModuleConfig[] = [
+  const pemeliharaanNavbars: ModuleConfig[] = [
+    {
+      key: 'view_dashboard_pemeliharaan',
+      label: 'Dashboard Pemeliharaan',
+      type: 'switch',
+    },
     {
       key: 'view_pemeliharaan_mesin',
       label: 'Pemeliharaan Mesin',

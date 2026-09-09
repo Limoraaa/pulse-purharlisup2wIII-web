@@ -255,10 +255,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // ------------------------------------------
     // G. MODUL PEMELIHARAAN MESIN (switch: view_pemeliharaan_mesin)
     // ------------------------------------------
-    Route::middleware('permission:view_pemeliharaan_mesin')->group(function () {
-        // Rute untuk statistik dashboard pemeliharaan (dari teman)
+    Route::middleware('permission:view_dashboard_pemeliharaan')->group(function () {
         Route::get('/pemeliharaan/dashboard-stats', [LogPemeliharaanMesinController::class, 'getDashboardStats']);
+    });
 
+    Route::middleware('permission:view_pemeliharaan_mesin')->group(function () {
         Route::get('/log-pemeliharaan/mesin/{mesin_id}', [LogPemeliharaanMesinController::class, 'getByMesin']);
         Route::get('/log-aktivitas', [LogAktivitasMesinController::class, 'index']);
         Route::get('/log-aktivitas/mesin/{mesin_id}', [LogAktivitasMesinController::class, 'getByMesin']);
