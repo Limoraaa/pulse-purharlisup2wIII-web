@@ -42,6 +42,7 @@ class RolePermissionSeeder extends Seeder
             'view_kerusakan_alat', 'create_kerusakan_alat', 'process_kerusakan_alat', 'manage_kerusakan_alat',
 
             // --- PEMELIHARAAN MESIN (domain terpisah, TIDAK full akses untuk Staff) ---
+            'view_dashboard_pemeliharaan',
             'view_pemeliharaan_mesin', 'create_pemeliharaan_mesin', 'process_pemeliharaan_mesin', 'manage_pemeliharaan_mesin',
         ];
 
@@ -69,6 +70,7 @@ class RolePermissionSeeder extends Seeder
             'manage_master_data',
 
             // Pemeliharaan Mesin — HANYA LIHAT, tidak CRUD
+            'view_dashboard_pemeliharaan',
             'view_pemeliharaan_mesin',
 
             // Sertakan juga permission CRUD lama agar fungsi backend tidak error
