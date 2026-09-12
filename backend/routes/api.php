@@ -300,6 +300,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/permissions/matrix', [RolePermissionController::class, 'getMatrix']);
         Route::put('/permissions/matrix', [RolePermissionController::class, 'updateMatrix']);
         Route::get('/roles', [RolePermissionController::class, 'index']);
+        Route::post('/roles', [RolePermissionController::class, 'store']);
+        Route::patch('/roles/{id}/color', [RolePermissionController::class, 'updateColor']);
+        Route::delete('/roles/{id}', [RolePermissionController::class, 'destroy']);
         Route::get('/roles/{id}/permissions', [RolePermissionController::class, 'getRolePermissions']);
         Route::put('/roles/{id}/permissions', [RolePermissionController::class, 'updateRolePermissions']);
     });
