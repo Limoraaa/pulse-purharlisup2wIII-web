@@ -1,15 +1,26 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Form, Spinner, Button, Card, Row, Col, Alert, Badge, Breadcrumb } from 'react-bootstrap';
-import { IconDeviceFloppy, IconShieldLock, IconCircleCheck } from '@tabler/icons-react';
+import { Form, Spinner, Button, Card, Row, Col, Alert, Badge, Breadcrumb, Modal, Dropdown } from 'react-bootstrap';
+import { IconDeviceFloppy, IconShieldLock, IconCircleCheck, IconPlus, IconTrash, IconDotsVertical, IconPalette } from '@tabler/icons-react';
 import api from '/lib/api';
 
 interface RoleMatrix {
   id: number;
   name: string;
+  color?: string;
   permissions: string[];
 }
+
+const AVAILABLE_COLORS = [
+  { value: 'primary', label: 'Biru' },
+  { value: 'success', label: 'Hijau' },
+  { value: 'info', label: 'Cyan' },
+  { value: 'warning', label: 'Kuning' },
+  { value: 'danger', label: 'Merah' },
+  { value: 'secondary', label: 'Abu-abu' },
+  { value: 'dark', label: 'Gelap' },
+];
 
 // 'switch' = modul cuma punya 1 permission (on/off biasa).
 // 'dropdown' = modul punya level "Lihat saja" vs "Kelola penuh".
@@ -26,6 +37,15 @@ export default function PermissionMatrix() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const [showAddRoleModal, setShowAddRoleModal] = useState(false);
+  const [newRoleName, setNewRoleName] = useState('');
+  const [newRoleColor, setNewRoleColor] = useState('secondary');
+  const [addRoleError, setAddRoleError] = useState<string | null>(null);
+  const [addingRole, setAddingRole] = useState(false);
+
+  const [deletingRoleId, setDeletingRoleId] = useState<number | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Daftar menu navbar sesuai urutan di sidebar aplikasi Anda
   const navbars: ModuleConfig[] = [
@@ -53,16 +73,6 @@ export default function PermissionMatrix() {
     { key: 'view_users', label: 'Manajemen User', type: 'dropdown', managePerms: ['manage_users'] },
   ];
 
-  // Sama seperti mapping warna badge ROLE di tab Daftar Pengguna,
-  // supaya nama role di kedua tab konsisten secara visual.
-    const roleBadgeVariant: Record<string, string> = {
-    Pegawai: 'info',
-    Staff: 'success',
-    Admin: 'success',
-    'Super Admin': 'warning',
-    'Team Leader': 'secondary',
-  };
-
   // Teks yang ditampilkan di badge boleh beda dari nama role asli di database.
   // Key (sisi kiri) HARUS tetap sama persis dengan nama role di database.
   const roleDisplayLabel: Record<string, string> = {
@@ -71,6 +81,11 @@ export default function PermissionMatrix() {
     Admin: 'Admin',
     'Team Leader': 'Team Leader',
     'Super Admin': 'Super Admin',
+  };
+
+  const showSuccess = (msg: string) => {
+    setSuccessMessage(msg);
+    setTimeout(() => setSuccessMessage(null), 4000);
   };
 
   const fetchMatrix = async () => {
@@ -88,6 +103,62 @@ export default function PermissionMatrix() {
   useEffect(() => {
     fetchMatrix();
   }, []);
+
+  const handleAddRole = async () => {
+    const name = newRoleName.trim();
+    if (!name) {
+      setAddRoleError('Nama role tidak boleh kosong.');
+      return;
+    }
+
+    setAddingRole(true);
+    setAddRoleError(null);
+    try {
+      const res: any = await api('/roles', {
+        method: 'POST',
+        body: JSON.stringify({ name, color: newRoleColor }),
+      });
+      const created = res?.data || res;
+      setRoles((prev) => [...prev, { id: created.id, name: created.name, color: created.color, permissions: [] }]);
+      setShowAddRoleModal(false);
+      setNewRoleName('');
+      setNewRoleColor('secondary');
+      showSuccess(`Role "${created.name}" berhasil dibuat. Atur hak aksesnya di tabel di bawah.`);
+    } catch (error: any) {
+      setAddRoleError(error?.message || 'Gagal membuat role baru.');
+    } finally {
+      setAddingRole(false);
+    }
+  };
+
+  const handleColorChange = async (roleId: number, color: string) => {
+    setRoles((prev) => prev.map((r) => (r.id === roleId ? { ...r, color } : r)));
+    try {
+      await api(`/roles/${roleId}/color`, {
+        method: 'PATCH',
+        body: JSON.stringify({ color }),
+      });
+    } catch (error) {
+      console.error('Gagal menyimpan warna role', error);
+    }
+  };
+
+  const handleDeleteRole = async (roleId: number, roleName: string) => {
+    if (!confirm(`Hapus role "${roleName}"? Tindakan ini tidak dapat dibatalkan.`)) return;
+
+    setDeletingRoleId(roleId);
+    setDeleteError(null);
+    try {
+      await api(`/roles/${roleId}`, { method: 'DELETE' });
+      setRoles((prev) => prev.filter((r) => r.id !== roleId));
+      showSuccess(`Role "${roleName}" berhasil dihapus.`);
+    } catch (error: any) {
+      setDeleteError(error?.message || 'Gagal menghapus role.');
+      setTimeout(() => setDeleteError(null), 5000);
+    } finally {
+      setDeletingRoleId(null);
+    }
+  };
 
   const handleToggle = (roleId: number, permKey: string) => {
     setRoles((prevRoles) =>
@@ -223,7 +294,14 @@ export default function PermissionMatrix() {
                 <Breadcrumb.Item active>Hak Akses</Breadcrumb.Item>
               </Breadcrumb>
             </div>
-            <div>
+            <div className="d-flex gap-2">
+              <Button
+                variant="outline-primary"
+                onClick={() => setShowAddRoleModal(true)}
+                className="d-flex align-items-center gap-2"
+              >
+                <IconShieldLock size={18} /> Kelola Role
+              </Button>
               <Button
                 variant="primary"
                 onClick={handleSave}
@@ -267,16 +345,14 @@ export default function PermissionMatrix() {
             <tbody>
               {roles.map((role) => {
                 const isSuperAdmin = role.name === 'Super Admin';
-                const badgeVariant = roleBadgeVariant[role.name] ?? 'secondary';
+                const badgeVariant = role.color ?? 'secondary';
 
                 return (
                   <tr key={role.id}>
                     <td className="py-3 px-4">
-                      <div className="d-flex align-items-center gap-2">
-                        <Badge bg={`${badgeVariant}-subtle`} text={`${badgeVariant}-emphasis` as any}>
-                          {roleDisplayLabel[role.name] ?? role.name}
-                        </Badge>
-                      </div>
+                      <Badge bg={`${badgeVariant}-subtle`} text={`${badgeVariant}-emphasis` as any}>
+                        {roleDisplayLabel[role.name] ?? role.name}
+                      </Badge>
                     </td>
                     {navbars.map((nav) => (
                       <td key={nav.key} className="py-3 px-3 text-center">
@@ -313,7 +389,7 @@ export default function PermissionMatrix() {
             <tbody>
               {roles.map((role) => {
                 const isSuperAdmin = role.name === 'Super Admin';
-                const badgeVariant = roleBadgeVariant[role.name] ?? 'secondary';
+                const badgeVariant = role.color ?? 'secondary';
 
                 return (
                   <tr key={role.id}>
@@ -357,7 +433,7 @@ export default function PermissionMatrix() {
             <tbody>
               {roles.map((role) => {
                 const isSuperAdmin = role.name === 'Super Admin';
-                const badgeVariant = roleBadgeVariant[role.name] ?? 'secondary';
+                const badgeVariant = role.color ?? 'secondary';
 
                 return (
                   <tr key={role.id}>
@@ -378,6 +454,111 @@ export default function PermissionMatrix() {
           </table>
         </div>
       </Card>
+      {/* Modal Tambah Role */}
+      <Modal show={showAddRoleModal} onHide={() => { setShowAddRoleModal(false); setAddRoleError(null); setNewRoleName(''); }} centered>
+        <Modal.Header closeButton>
+          <Modal.Title className="d-flex align-items-center gap-2">
+            <IconShieldLock size={20} /> Kelola Role
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {addRoleError && <Alert variant="danger">{addRoleError}</Alert>}
+          <Form.Group className="mb-3">
+            <Form.Label>Nama Role Baru</Form.Label>
+            <Form.Control
+              type="text"
+              placeholder="Contoh: Supervisor Gudang"
+              value={newRoleName}
+              onChange={(e) => setNewRoleName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAddRole()}
+              autoFocus
+            />
+            <Form.Text className="text-secondary">
+              Role baru akan dibuat tanpa hak akses apa pun. Atur hak aksesnya di tabel matrix setelah dibuat.
+            </Form.Text>
+          </Form.Group>
+          <Form.Group className="mb-4">
+            <Form.Label>Warna Badge</Form.Label>
+            <div className="d-flex gap-2 flex-wrap">
+              {AVAILABLE_COLORS.map((c) => (
+                <span
+                  key={c.value}
+                  onClick={() => setNewRoleColor(c.value)}
+                  title={c.label}
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: '50%',
+                    cursor: 'pointer',
+                    display: 'inline-block',
+                    border: newRoleColor === c.value ? '2px solid #333' : '1px solid #ddd',
+                  }}
+                  className={`bg-${c.value}`}
+                />
+              ))}
+            </div>
+          </Form.Group>
+          <div className="d-flex justify-content-end mb-4">
+            <Button variant="primary" size="sm" onClick={handleAddRole} disabled={addingRole}>
+              {addingRole ? <><Spinner size="sm" animation="border" /> Menyimpan...</> : 'Buat Role'}
+            </Button>
+          </div>
+
+          <hr />
+
+          <Form.Label className="fw-semibold">Role yang Sudah Ada</Form.Label>
+          <div className="d-flex flex-column gap-2">
+            {roles.filter((r) => r.name !== 'Super Admin').map((role) => (
+              <div key={role.id} className="d-flex align-items-center justify-content-between border rounded p-2">
+                <Badge bg={`${role.color ?? 'secondary'}-subtle`} text={`${role.color ?? 'secondary'}-emphasis` as any}>
+                  {roleDisplayLabel[role.name] ?? role.name}
+                </Badge>
+                <div className="d-flex align-items-center gap-3">
+                  <div className="d-flex gap-1">
+                    {AVAILABLE_COLORS.map((c) => (
+                      <span
+                        key={c.value}
+                        onClick={() => handleColorChange(role.id, c.value)}
+                        title={c.label}
+                        style={{
+                          width: 16,
+                          height: 16,
+                          borderRadius: '50%',
+                          cursor: 'pointer',
+                          display: 'inline-block',
+                          border: (role.color ?? 'secondary') === c.value ? '2px solid #333' : '1px solid #ddd',
+                        }}
+                        className={`bg-${c.value}`}
+                      />
+                    ))}
+                  </div>
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="text-danger p-0"
+                    disabled={deletingRoleId === role.id}
+                    onClick={() => handleDeleteRole(role.id, role.name)}
+                    title="Hapus role"
+                  >
+                    {deletingRoleId === role.id ? <Spinner size="sm" animation="border" /> : <IconTrash size={16} />}
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => { setShowAddRoleModal(false); setAddRoleError(null); setNewRoleName(''); }}>
+            Tutup
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {deleteError && (
+        <Alert variant="danger" className="mt-3" dismissible onClose={() => setDeleteError(null)}>
+          {deleteError}
+        </Alert>
+      )}
     </div>
   );
 }

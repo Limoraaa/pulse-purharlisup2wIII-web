@@ -76,12 +76,13 @@ export const getConsumableMasukColumns = ({
     cell: ({ row }) => {
       // Mengambil satuan dari transaksi masuk, 
       // JIKA KOSONG (karena data lama), ambil dari master data consumable-nya.
-      const satuan = (row.original as any).satuan || (row.original as any).consumable?.satuan || "";
+      const rawSatuan = (row.original as any).satuan || (row.original as any).consumable?.satuan || "";
+      const satuan = rawSatuan === "-" ? "" : rawSatuan;
       
       return (
         <span className="d-flex justify-content-center">
           <Badge bg="success-subtle" text="success-emphasis" className="fw-semibold">
-            +{formatNumber(row.original.jumlah_masuk)} {satuan}
+            +{formatNumber(row.original.jumlah_masuk)}{satuan ? ` ${satuan}` : ""}
           </Badge>
         </span>
       );

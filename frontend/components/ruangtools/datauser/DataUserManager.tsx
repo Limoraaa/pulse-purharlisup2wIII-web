@@ -48,8 +48,10 @@ const DataUserManager = () => {
 
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [roleColorMap, setRoleColorMap] = useState<Record<string, string>>({});
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [showDeleted, setShowDeleted] = useState(false);
 
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [deactivateModalOpen, setDeactivateModalOpen] = useState(false);
@@ -96,6 +98,18 @@ const DataUserManager = () => {
     loadUsers();
   }, []);
 
+  useEffect(() => {
+    api("/roles")
+      .then((res: any) => {
+        const data = res?.data || res || [];
+        const list = Array.isArray(data) ? data : [];
+        const map: Record<string, string> = {};
+        list.forEach((r: any) => { map[r.name] = r.color ?? "secondary"; });
+        setRoleColorMap(map);
+      })
+      .catch(() => setRoleColorMap({}));
+  }, []);
+
   const showSuccess = (msg: string) => {
     setSuccessMessage(msg);
     setTimeout(() => setSuccessMessage(null), 4000);
@@ -105,6 +119,7 @@ const DataUserManager = () => {
     const keyword = searchTerm.trim().toLowerCase();
     return users
       .filter((u) => isAdmin || u.role !== "Super Admin") // Sembunyikan Super Admin dari yang bukan Super Admin
+      .filter((u) => showDeleted || u.is_active) // Sembunyikan yang sudah "dihapus" kecuali toggle dinyalakan
       .filter(
         (u) =>
           keyword === "" ||
@@ -120,7 +135,7 @@ const DataUserManager = () => {
         // Di dalam grup yang sama, urutkan abjad nama
         return a.full_name.localeCompare(b.full_name);
       });
-  }, [users, searchTerm]);
+  }, [users, searchTerm, showDeleted]);
 
   const openAddModal = () => {
     setActiveUser(null);
@@ -224,12 +239,13 @@ const DataUserManager = () => {
   () =>
      getDataUserColumns({
       isAdmin,
+      roleColorMap,
       onEdit: openEditModal,
       onDeactivate: openDeactivateModal,
       onActivate: openActivateModal,
       onResetPassword: openResetModal,
     }),
-  [isAdmin]
+  [isAdmin, roleColorMap]
 );
 
   return (
@@ -291,7 +307,17 @@ const DataUserManager = () => {
                 )}
               </InputGroup>
             </Col>
-            <Col lg={6} md={5} className="text-md-end">
+            <Col lg={6} md={5} className="text-md-end d-flex justify-content-end align-items-center gap-3">
+              {isAdmin && (
+                <Form.Check
+                  type="switch"
+                  id="show-deleted-switch"
+                  label="Tampilkan yang dihapus"
+                  checked={showDeleted}
+                  onChange={(e) => setShowDeleted(e.target.checked)}
+                  className="small text-secondary mb-0"
+                />
+              )}
               <span className="text-secondary small">
                 Menampilkan <span className="fw-semibold text-body">{filteredUsers.length}</span> dari {users.length} data
               </span>

@@ -5,6 +5,7 @@ import { IconClipboardList, IconCheck } from "@tabler/icons-react";
 
 import { PeminjamType } from "types/DataToolsTypes";
 import { getPemintaAktif } from "services/pemintaService";
+import apiFetch from "lib/api";
 // Jika Anda memiliki service untuk pekerjaan, Anda bisa mengimpornya di sini.
 // import { getPekerjaanAktif } from "services/pekerjaanService";
 
@@ -80,11 +81,8 @@ const LoanFormModal = ({
         .finally(() => setLoadingPeminjam(false));
 
       // Fetch Pekerjaan Aktif
-      setLoadingPekerjaan(true);
-      // Ganti URL ini dengan konfigurasi API / axios instance Anda jika diperlukan
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
-      fetch(`${apiUrl}/pekerjaan/active`)
-        .then((res) => res.json())
+    setLoadingPekerjaan(true);
+      apiFetch<{ success: boolean; data: any[] }>("/pekerjaan/active")
         .then((data) => {
           if (data.success) {
             setPekerjaanList(data.data);

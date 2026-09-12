@@ -4,6 +4,7 @@ import { Modal, Form, Row, Col, Button } from "react-bootstrap";
 import { IconUser, IconPencil, IconPlus } from "@tabler/icons-react";
 
 import { UserFormValues, UserItemType, UserRole } from "types/DataUserTypes";
+import api from "lib/api";
 
 const emptyForm: UserFormValues = {
   full_name: "",
@@ -33,6 +34,18 @@ const UserFormModal = ({
   const [form, setForm] = useState<UserFormValues>(emptyForm);
   const isEditMode = Boolean(initialData);
 
+  const [roleOptions, setRoleOptions] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!show) return;
+    api("/roles")
+      .then((res: any) => {
+        const data = res?.data || res || [];
+        const names = Array.isArray(data) ? data.map((r: any) => r.name) : [];
+        setRoleOptions(names);
+      })
+      .catch(() => setRoleOptions([]));
+  }, [show]);
   useEffect(() => {
     if (show) {
           if (initialData) {
@@ -122,12 +135,9 @@ const UserFormModal = ({
                   value={form.role}
                   onChange={(e) => handleChange("role", e.target.value as UserRole)}
                 >
-                  {/* Pilihan dropdown role baru yang sudah sesuai dengan seeder */}
-                  <option value="Pegawai">Pegawai</option>
-                  <option value="Staff">Staff Tools</option>
-                  <option value="Admin">Admin</option>
-                  <option value="Team Leader">Team Leader</option>
-                  <option value="Super Admin">Super Admin</option>
+                  {roleOptions.map((roleName) => (
+                    <option key={roleName} value={roleName}>{roleName}</option>
+                  ))}
                 </Form.Select>
               ) : (
                 <Form.Control value="Staff" disabled readOnly />

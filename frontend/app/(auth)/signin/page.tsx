@@ -43,7 +43,7 @@ const SignIn = () => {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
-      router.replace("/dashboard");
+      router.replace("/");
     }
   }, [router]);
 
