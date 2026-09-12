@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Modal, Form, Row, Col, Button } from "react-bootstrap";
-import { IconUser, IconPencil, IconPlus } from "@tabler/icons-react";
+import { IconUser, IconPencil, IconPlus, IconEye, IconEyeOff } from "@tabler/icons-react";
 
 import { UserFormValues, UserItemType, UserRole } from "types/DataUserTypes";
 import api from "lib/api";
@@ -32,17 +32,23 @@ const UserFormModal = ({
   error,
 }: UserFormModalProps) => {
   const [form, setForm] = useState<UserFormValues>(emptyForm);
+  const [showPassword, setShowPassword] = useState(false);
   const isEditMode = Boolean(initialData);
 
   const [roleOptions, setRoleOptions] = useState<string[]>([]);
 
-  useEffect(() => {
+    useEffect(() => {
     if (!show) return;
+    const currentUserRole = typeof window !== "undefined" ? localStorage.getItem("userRole") : null;
+    const isSuperAdmin = currentUserRole?.toLowerCase().replace(/[\s_]/g, "") === "superadmin";
+
     api("/roles")
       .then((res: any) => {
         const data = res?.data || res || [];
         const names = Array.isArray(data) ? data.map((r: any) => r.name) : [];
-        setRoleOptions(names);
+        // Sembunyikan opsi "Super Admin" dari dropdown kalau yang login bukan Super Admin
+        const filteredNames = isSuperAdmin ? names : names.filter((n) => n !== "Super Admin");
+        setRoleOptions(filteredNames);
       })
       .catch(() => setRoleOptions([]));
   }, [show]);
@@ -120,12 +126,28 @@ const UserFormModal = ({
                 <Form.Label>
                   Password <span className="text-danger">*</span>
                 </Form.Label>
-                <Form.Control
-                  required
-                  type="password"
-                  value={form.password}
-                  onChange={(e) => handleChange("password", e.target.value)}
-                />
+                <div className="position-relative">
+                  <Form.Control
+                    required
+                    type={showPassword ? "text" : "password"}
+                    value={form.password}
+                    onChange={(e) => handleChange("password", e.target.value)}
+                    style={{ paddingRight: "40px" }}
+                  />
+                  <span
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    style={{
+                      position: "absolute",
+                      right: "12px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      cursor: "pointer",
+                      color: "#6c757d",
+                    }}
+                  >
+                    {showPassword ? <IconEyeOff size={18} /> : <IconEye size={18} />}
+                  </span>
+                </div>
               </Col>
             )}
             <Col md={6}>

@@ -77,7 +77,7 @@ export default function PermissionMatrix() {
   // Key (sisi kiri) HARUS tetap sama persis dengan nama role di database.
   const roleDisplayLabel: Record<string, string> = {
     Pegawai: 'Pegawai',
-    Staff: 'Staff Tools',
+    Staff: 'Staff',
     Admin: 'Admin',
     'Team Leader': 'Team Leader',
     'Super Admin': 'Super Admin',

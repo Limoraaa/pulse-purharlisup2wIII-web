@@ -289,6 +289,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('users', UserController::class)->except(['index', 'show']);
         Route::patch('/users/{id}/reset-password', [UserController::class, 'resetPassword']);
         Route::patch('/users/{id}/aktifkan', [UserController::class, 'activate']);
+
+        // Perlu list role (bukan kelola/edit role) untuk dropdown form Tambah/Edit User
+        Route::get('/roles', [RolePermissionController::class, 'index']);
     });
 
     // Pengaturan RBAC (Role & Permissions Matrix) — SENGAJA dicek pakai role langsung,
@@ -299,7 +302,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:Super Admin')->group(function () {
         Route::get('/permissions/matrix', [RolePermissionController::class, 'getMatrix']);
         Route::put('/permissions/matrix', [RolePermissionController::class, 'updateMatrix']);
-        Route::get('/roles', [RolePermissionController::class, 'index']);
         Route::post('/roles', [RolePermissionController::class, 'store']);
         Route::patch('/roles/{id}/color', [RolePermissionController::class, 'updateColor']);
         Route::delete('/roles/{id}', [RolePermissionController::class, 'destroy']);
