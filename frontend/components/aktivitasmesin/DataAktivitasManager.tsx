@@ -11,6 +11,7 @@ import {
   InputGroup,
   Form,
   Table,
+  Modal, // Tambahan Import Modal
 } from "react-bootstrap";
 import {
   IconSearch,
@@ -20,6 +21,7 @@ import {
   IconActivity,
   IconArrowLeft,
   IconCircleCheck,
+  IconPlus, // Tambahan Import IconPlus
 } from "@tabler/icons-react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -34,7 +36,7 @@ interface MesinItemType {
   kode_mesin: string;
   nama_mesin: string;
   lokasi_ruang: string;
-  status: 'Aktif' | 'Maintenance' | 'Rusak';
+  status: 'Aktif' | 'Tidak Aktif';
 }
 
 interface LogAktivitasType {
@@ -79,9 +81,13 @@ const DataAktivitasManager = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  // State Modal Form Aktivitas
+  const [showFormModal, setShowFormModal] = useState(false);
+
   // State Log Aktivitas
   const [logsAktivitas, setLogsAktivitas] = useState<LogAktivitasType[]>([]);
   const [loadingAktivitas, setLoadingAktivitas] = useState(false);
+  const [submitLoading, setSubmitLoading] = useState(false); // State loading untuk tombol submit form
   const [operator, setOperator] = useState("");
   const [uraianAkt, setUraianAkt] = useState("");
   const [tglAkt, setTglAkt] = useState(new Date().toISOString().split("T")[0]);
@@ -95,9 +101,9 @@ const DataAktivitasManager = () => {
     setError(null);
     try {
       const token = localStorage.getItem("token");
-      const res = await api<{ data: MesinItemType[] } | MesinItemType[]>("/mesin-produksi", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const headers = { Authorization: `Bearer ${token}` };
+      
+      const res = await api<{ data: MesinItemType[] } | MesinItemType[]>("/mesin-produksi", { headers });
       const data = Array.isArray(res) ? res : res.data || [];
       setMesinList(data);
 
@@ -106,12 +112,17 @@ const DataAktivitasManager = () => {
         if (found) {
           setSelectedMesin(found);
           setViewMode("detail");
+          
           setLoadingAktivitas(true);
-          const resAkt = await api<{ data: LogAktivitasType[] } | LogAktivitasType[]>(`/log-aktivitas/mesin/${found.id}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          setLogsAktivitas(Array.isArray(resAkt) ? resAkt : resAkt.data || []);
-          setLoadingAktivitas(false);
+          try {
+            const resAkt = await api<{ data: LogAktivitasType[] } | LogAktivitasType[]>(`/log-aktivitas/mesin/${found.id}`, { headers });
+            setLogsAktivitas(Array.isArray(resAkt) ? resAkt : resAkt.data || []);
+          } catch (errAkt) {
+            console.error("Gagal memuat log aktivitas:", errAkt);
+            setLogsAktivitas([]); 
+          } finally {
+            setLoadingAktivitas(false); 
+          }
         }
       }
     } catch (err) {
@@ -122,6 +133,9 @@ const DataAktivitasManager = () => {
   }, [mesinIdParam]);
 
   useEffect(() => {
+    // Set auto-fill operator
+    const userName = localStorage.getItem("userName") || "";
+    setOperator(userName);
     loadMesinAndLogs();
   }, [loadMesinAndLogs]);
 
@@ -143,8 +157,12 @@ const DataAktivitasManager = () => {
   };
 
   const handleBack = () => {
-    // Kembalikan user ke halaman utama Data Pemeliharaan Mesin
-    router.push("/pemeliharaan/data-mesin");
+    if (mesinIdParam) {
+      router.push("/pemeliharaan/data-mesin");
+    } else {
+      setViewMode("list");
+      setSelectedMesin(null);
+    }
   };
 
   const filteredMesin = useMemo(() => {
@@ -174,6 +192,7 @@ const DataAktivitasManager = () => {
   const handleAddAktivitasLog = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedMesin) return;
+    setSubmitLoading(true);
 
     try {
       const token = localStorage.getItem("token");
@@ -196,15 +215,21 @@ const DataAktivitasManager = () => {
         }),
       });
 
-      setOperator("");
+      // Reset form
+      const userName = localStorage.getItem("userName") || "";
+      setOperator(userName);
       setUraianAkt("");
       setJumlahAkt(1);
       setPemeriksaAkt("");
+      
+      setShowFormModal(false); // TUTUP MODAL SETELAH SUKSES
       setSuccessMessage("Log aktivitas berhasil dicatat!");
-      handleOpenDetail(selectedMesin);
+      handleOpenDetail(selectedMesin); // Refresh tabel
       setTimeout(() => setSuccessMessage(null), 4000);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Gagal menyimpan log aktivitas");
+    } finally {
+      setSubmitLoading(false);
     }
   };
 
@@ -222,8 +247,6 @@ const DataAktivitasManager = () => {
           const badgeClass =
             val === "Aktif"
               ? "bg-success text-white px-2 py-1 rounded small"
-              : val === "Maintenance"
-              ? "bg-warning text-dark px-2 py-1 rounded small"
               : "bg-danger text-white px-2 py-1 rounded small";
           return <span className={badgeClass}>{val}</span>;
         },
@@ -369,7 +392,7 @@ const DataAktivitasManager = () => {
             <CardBody>
               <div className="d-flex justify-content-between align-items-start mb-2">
                 <span className="text-muted small fw-bold tracking-wider">MONITORING OPERASIONAL MESIN PRODUKSI</span>
-                <span className="badge bg-success">{selectedMesin?.status}</span>
+                <span className={`badge ${selectedMesin?.status === 'Aktif' ? 'bg-success' : 'bg-danger'}`}>{selectedMesin?.status}</span>
               </div>
               <Row>
                 <Col md={6}>
@@ -390,83 +413,18 @@ const DataAktivitasManager = () => {
             </CardBody>
           </Card>
 
-          {/* TABEL & FORM LOG AKTIVITAS */}
+          {/* TABEL DATA AKTIVITAS */}
           <Card>
             <CardBody>
-              <h5 className="mb-4 d-flex align-items-center gap-2">
-                <IconActivity size={20} /> Log Aktivitas Harian Operator
-              </h5>
-
-              <Card className="mb-4 border bg-light">
-                <CardBody>
-                  <h6 className="fw-bold mb-3">+ Tambah Log Aktivitas Baru</h6>
-                  <Form onSubmit={handleAddAktivitasLog}>
-                    <Row className="g-3">
-                      <Col md={3}>
-                        <Form.Control
-                          required
-                          placeholder="Operator Pelaksana"
-                          value={operator}
-                          onChange={(e) => setOperator(e.target.value)}
-                        />
-                      </Col>
-                      <Col md={3}>
-                        <Form.Control
-                          required
-                          placeholder="Uraian Pekerjaan"
-                          value={uraianAkt}
-                          onChange={(e) => setUraianAkt(e.target.value)}
-                        />
-                      </Col>
-                      <Col md={2}>
-                        <Form.Control
-                          type="date"
-                          required
-                          value={tglAkt}
-                          onChange={(e) => setTglAkt(e.target.value)}
-                        />
-                      </Col>
-                      <Col md={2}>
-                        <Form.Control
-                          type="time"
-                          required
-                          value={jamMulai}
-                          onChange={(e) => setJamMulai(e.target.value)}
-                        />
-                      </Col>
-                      <Col md={2}>
-                        <Form.Control
-                          type="time"
-                          required
-                          value={jamSelesai}
-                          onChange={(e) => setJamSelesai(e.target.value)}
-                        />
-                      </Col>
-                      <Col md={2}>
-                        <Form.Control
-                          type="number"
-                          min={1}
-                          required
-                          placeholder="Jumlah / Output"
-                          value={jumlahAkt}
-                          onChange={(e) => setJumlahAkt(Number(e.target.value))}
-                        />
-                      </Col>
-                      <Col md={3}>
-                        <Form.Control
-                          required
-                          placeholder="Pemeriksa"
-                          value={pemeriksaAkt}
-                          onChange={(e) => setPemeriksaAkt(e.target.value)}
-                        />
-                      </Col>
-                      <Col md={7} className="d-grid">
-                        <Button variant="success" type="submit">Catat Log Aktivitas</Button>
-                      </Col>
-                    </Row>
-                  </Form>
-                </CardBody>
-              </Card>
+              <div className="d-flex justify-content-between align-items-center mb-4">
+                <h5 className="mb-0 d-flex align-items-center gap-2">
+                  <IconActivity size={20} /> Log Aktivitas Harian Operator
+                </h5>
+                {/* TOMBOL UNTUK MEMBUKA POP-UP FORM */}
+                <Button variant="primary" className="d-flex align-items-center gap-1" onClick={() => setShowFormModal(true)}>
+                  <IconPlus size={16} /> Tambah Log Aktivitas
+                </Button>
+              </div>
 
               <div className="table-responsive">
                 <Table bordered hover className="align-middle">
@@ -505,8 +463,8 @@ const DataAktivitasManager = () => {
                           <td>{log.operator_pelaksana}</td>
                           <td>{log.uraian_pekerjaan}</td>
                           <td className="text-center">{log.tanggal}</td>
-                          <td className="text-center">{log.waktu_mulai}</td>
-                          <td className="text-center">{log.waktu_selesai}</td>
+                          <td className="text-center">{log.waktu_mulai?.slice(0, 5) || "-"}</td>
+                          <td className="text-center">{log.waktu_selesai?.slice(0, 5) || "-"}</td>
                           <td className="text-center fw-semibold">{log.jumlah}</td>
                           <td className="text-center">{log.pemeriksa}</td>
                         </tr>
@@ -517,6 +475,116 @@ const DataAktivitasManager = () => {
               </div>
             </CardBody>
           </Card>
+
+          {/* MODAL POP-UP FORM AKTIVITAS */}
+          <Modal show={showFormModal} onHide={() => setShowFormModal(false)} size="lg" centered>
+            <Modal.Header closeButton>
+              <Modal.Title className="h5 fw-bold d-flex align-items-center gap-2">
+                <IconActivity size={20} className="text-success" /> Tambah Log Aktivitas Baru
+              </Modal.Title>
+            </Modal.Header>
+            <Modal.Body>
+              <Form onSubmit={handleAddAktivitasLog} id="form-aktivitas">
+                <Row className="g-3 mb-3">
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="small fw-semibold text-secondary">Operator Pelaksana</Form.Label>
+                      <Form.Control
+                        required
+                        placeholder="Nama Operator"
+                        value={operator}
+                        onChange={(e) => setOperator(e.target.value)}
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="small fw-semibold text-secondary">Uraian Pekerjaan</Form.Label>
+                      <Form.Control
+                        required
+                        placeholder="Detail pekerjaan..."
+                        value={uraianAkt}
+                        onChange={(e) => setUraianAkt(e.target.value)}
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+                
+                <Row className="g-3 mb-3">
+                  <Col md={4}>
+                    <Form.Group>
+                      <Form.Label className="small fw-semibold text-secondary">Tanggal</Form.Label>
+                      <Form.Control
+                        type="date"
+                        required
+                        value={tglAkt}
+                        onChange={(e) => setTglAkt(e.target.value)}
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={4}>
+                    <Form.Group>
+                      <Form.Label className="small fw-semibold text-secondary">Waktu Mulai</Form.Label>
+                      <Form.Control
+                        type="time"
+                        required
+                        value={jamMulai}
+                        onChange={(e) => setJamMulai(e.target.value)}
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={4}>
+                    <Form.Group>
+                      <Form.Label className="small fw-semibold text-secondary">Waktu Selesai</Form.Label>
+                      <Form.Control
+                        type="time"
+                        required
+                        value={jamSelesai}
+                        onChange={(e) => setJamSelesai(e.target.value)}
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+
+                <Row className="g-3 mb-2">
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="small fw-semibold text-secondary">Jumlah / Output</Form.Label>
+                      <Form.Control
+                        type="number"
+                        min={1}
+                        required
+                        placeholder="Contoh: 10"
+                        value={jumlahAkt}
+                        onChange={(e) => setJumlahAkt(Number(e.target.value))}
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="small fw-semibold text-secondary">Pemeriksa</Form.Label>
+                      <Form.Control
+                        required
+                        placeholder="Nama Pemeriksa"
+                        value={pemeriksaAkt}
+                        onChange={(e) => setPemeriksaAkt(e.target.value)}
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+              </Form>
+            </Modal.Body>
+            <Modal.Footer className="bg-light">
+              <Button variant="outline-secondary" onClick={() => setShowFormModal(false)}>
+                Batal
+              </Button>
+              <Button variant="success" type="submit" form="form-aktivitas" disabled={submitLoading} className="fw-bold px-4">
+                {submitLoading ? <Spinner size="sm" className="me-2" /> : null}
+                Simpan Log Aktivitas
+              </Button>
+            </Modal.Footer>
+          </Modal>
+
         </div>
       )}
     </div>
