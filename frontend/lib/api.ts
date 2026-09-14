@@ -21,8 +21,10 @@ async function apiFetch<T = unknown>(
   });
 
   if (!res.ok) {
-    // Token invalid/dicabut (misal user dinonaktifkan admin) -- paksa logout
-    if (res.status === 401 && typeof window !== "undefined") {
+    // Token invalid/dicabut (misal user dinonaktifkan admin) -- paksa logout.
+    // Endpoint /login dikecualikan: 401 di sana berarti kredensial salah,
+    // bukan sesi habis, jadi harus tetap lempar error biasa ke pemanggil.
+    if (res.status === 401 && endpoint !== "/login" && typeof window !== "undefined") {
       localStorage.removeItem("token");
       localStorage.removeItem("userId");
       localStorage.removeItem("userName");

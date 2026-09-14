@@ -8,36 +8,23 @@ import ActionMenu from "components/common/ActionMenu";
 
 interface ColumnHandlers {
   isAdmin: boolean;
+  roleColorMap: Record<string, string>;
   onEdit: (item: UserItemType) => void;
   onDeactivate: (item: UserItemType) => void;
   onActivate: (item: UserItemType) => void;
   onResetPassword: (item: UserItemType) => void;
 }
 
-// Fungsi pembantu untuk memetakan warna badge dan label berdasarkan Role
-const getRoleBadgeStyle = (role: string) => {
-  // Ubah ke huruf kecil untuk menangani sisa-sisa data lama di database
-  const normalizedRole = role?.toLowerCase() || "";
-
-  if (normalizedRole === "super admin" || normalizedRole === "super_admin" || normalizedRole === "superadmin") {
-    return { bg: "danger-subtle", text: "danger-emphasis", label: "Super Admin" }; // Merah
-  }
-  if (normalizedRole === "admin") {
-    return { bg: "primary-subtle", text: "primary-emphasis", label: "Admin" }; // Biru
-  }
-  if (normalizedRole === "team leader") {
-    return { bg: "warning-subtle", text: "warning-emphasis", label: "Team Leader" }; // Kuning
-  }
-  if (normalizedRole === "pegawai") {
-    return { bg: "info-subtle", text: "info-emphasis", label: "Pegawai" }; // Biru Muda/Cyan
-  }
-  
-  // Default (Staff atau tidak dikenal)
-  return { bg: "success-subtle", text: "success-emphasis", label: "Staff Tools" }; // Hijau
+// Peta warna role diambil dari database (lihat DataUserManager), bukan hardcode di sini.
+// Kalau data role belum ter-load (misal masih loading), fallback ke abu-abu.
+const getRoleBadgeStyle = (role: string, roleColorMap: Record<string, string>) => {
+  const color = roleColorMap[role] ?? "secondary";
+  return { bg: `${color}-subtle`, text: `${color}-emphasis`, label: role };
 };
 
 export const getDataUserColumns = ({
   isAdmin,
+  roleColorMap,
   onEdit,
   onDeactivate,
   onActivate,
@@ -56,8 +43,7 @@ export const getDataUserColumns = ({
       accessorKey: "role",
       header: "Role",
       cell: ({ row }) => {
-        // Panggil fungsi pembantu di atas
-        const badgeStyle = getRoleBadgeStyle(row.original.role);
+        const badgeStyle = getRoleBadgeStyle(row.original.role, roleColorMap);
         return (
           <Badge bg={badgeStyle.bg} text={badgeStyle.text}>
             {badgeStyle.label}
@@ -108,12 +94,12 @@ export const getDataUserColumns = ({
             <Dropdown.Item onClick={() => onResetPassword(target)}>Reset Password</Dropdown.Item>
             {target.is_active && (
               <Dropdown.Item className="text-danger" onClick={() => onDeactivate(target)}>
-                Nonaktifkan
+                Hapus
               </Dropdown.Item>
             )}
             {!target.is_active && (
               <Dropdown.Item className="text-success" onClick={() => onActivate(target)}>
-                Aktifkan
+                Pulihkan
               </Dropdown.Item>
             )}
           </ActionMenu>
