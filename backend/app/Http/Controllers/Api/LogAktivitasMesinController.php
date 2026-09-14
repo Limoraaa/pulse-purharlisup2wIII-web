@@ -44,4 +44,48 @@ class LogAktivitasMesinController extends Controller
             'data' => $log
         ], 201);
     }
+
+    // Memperbarui log aktivitas berdasarkan ID (Untuk Fitur Edit)
+    public function update(Request $request, $id)
+    {
+        $log = LogAktivitasMesin::find($id);
+
+        if (!$log) {
+            return response()->json(['message' => 'Data log aktivitas tidak ditemukan'], 404);
+        }
+
+        $validated = $request->validate([
+            'mesin_produksi_id' => 'required|exists:mesin_produksi,id',
+            'operator_pelaksana' => 'required|string|max:255',
+            'uraian_pekerjaan' => 'required|string',
+            'tanggal' => 'required|date',
+            'waktu_mulai' => 'required',
+            'waktu_selesai' => 'required',
+            'jumlah' => 'required|integer',
+            'pemeriksa' => 'required|string|max:255',
+        ]);
+
+        $log->update($validated);
+
+        return response()->json([
+            'message' => 'Log aktivitas berhasil diperbarui',
+            'data' => $log
+        ], 200);
+    }
+
+    // Menghapus log aktivitas berdasarkan ID (Untuk Fitur Hapus)
+    public function destroy($id)
+    {
+        $log = LogAktivitasMesin::find($id);
+
+        if (!$log) {
+            return response()->json(['message' => 'Data log aktivitas tidak ditemukan'], 404);
+        }
+
+        $log->delete();
+
+        return response()->json([
+            'message' => 'Log aktivitas berhasil dihapus'
+        ], 200);
+    }
 }
