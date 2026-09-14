@@ -30,7 +30,7 @@ class RolePermissionSeeder extends Seeder
             'view_consumable', 'create_consumable', 'edit_consumable', 'delete_consumable',
             'view_peminjaman', 'create_peminjaman', 'edit_peminjaman', 'delete_peminjaman',
             'create_pemeliharaan', 'edit_pemeliharaan', 'delete_pemeliharaan',
-            'create_users', 'edit_users', 'delete_users',
+            'create_users', 'edit_users', 'delete_users', 'manage_users',
 
             // --- PERMISSIONS UNTUK CRUD PENUH DI OPERASIONAL ALAT ---
             'manage_inventaris',

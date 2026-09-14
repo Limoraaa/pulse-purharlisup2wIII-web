@@ -109,8 +109,7 @@ class UserController extends Controller
             'password' => 'required|string|min:6',
             'divisi' => 'nullable|string|max:255',
             'no_hp' => 'nullable|string|max:20',
-            // Perbaikan daftar Role yang diizinkan sesuai kapitalisasi seeder
-            'role' => 'required|in:Pegawai,Staff,Admin,Team Leader,Super Admin',
+            'role' => 'required|exists:roles,name',
         ];
 
         $validator = Validator::make($request->all(), $rules);
@@ -150,10 +149,7 @@ class UserController extends Controller
             'username' => 'sometimes|required|string|max:255|unique:users,username,' . $targetUser->id,
             'email' => 'sometimes|nullable|email|unique:users,email,' . $targetUser->id,
             'password' => 'nullable|string|min:6',
-
-            // PERBAIKAN DI SINI: Sesuaikan dengan daftar role baru
-            'role' => 'sometimes|required|in:Pegawai,Staff,Admin,Team Leader,Super Admin',
-
+            'role' => 'sometimes|required|exists:roles,name',
             'divisi' => 'sometimes|nullable|string|max:255',
             'no_hp' => 'sometimes|nullable|string|max:20',
         ]);

@@ -601,7 +601,7 @@ const DataConsumableManager = () => {
             </div>
             <div>
               <Button variant="primary" className="d-flex align-items-center gap-2" onClick={openAddModal}>
-                <IconPlus size={18} /> Tambah Bahan
+                <IconPlus size={18} /> Tambah Data
               </Button>
             </div>
           </Flex>
