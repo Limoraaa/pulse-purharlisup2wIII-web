@@ -186,10 +186,10 @@ class UserController extends Controller
             return response()->json(['message' => 'Anda tidak memiliki izin untuk mengubah akun ini.'], 403);
         }
 
-        $user->update(['is_active' => false]);
         $user->tokens()->delete();
+        $user->delete();
 
-        return response()->json(['message' => 'User berhasil dinonaktifkan']);
+        return response()->json(['message' => 'User berhasil dihapus']);
     }
 
     public function activate(Request $request, string $id)

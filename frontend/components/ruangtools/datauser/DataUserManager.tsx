@@ -188,12 +188,10 @@ const DataUserManager = () => {
     if (!activeUser) return;
     try {
       await deleteUser(activeUser.id);
-      setUsers((prev) =>
-        prev.map((u) => (u.id === activeUser.id ? { ...u, is_active: false } : u))
-      );
-      showSuccess("User berhasil dinonaktifkan.");
+      setUsers((prev) => prev.filter((u) => u.id !== activeUser.id));
+      showSuccess("User berhasil dihapus.");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Gagal menonaktifkan user");
+      alert(err instanceof Error ? err.message : "Gagal menghapus user");
     } finally {
       setDeactivateModalOpen(false);
       setActiveUser(null);
