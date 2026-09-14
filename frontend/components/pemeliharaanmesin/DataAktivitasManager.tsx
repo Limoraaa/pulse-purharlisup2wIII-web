@@ -11,7 +11,7 @@ import {
   InputGroup,
   Form,
   Table,
-  Modal, // Tambahan Import Modal
+  Modal,
 } from "react-bootstrap";
 import {
   IconSearch,
@@ -21,7 +21,9 @@ import {
   IconActivity,
   IconArrowLeft,
   IconCircleCheck,
-  IconPlus, // Tambahan Import IconPlus
+  IconPlus,
+  IconEdit,
+  IconTrash,
 } from "@tabler/icons-react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -81,13 +83,14 @@ const DataAktivitasManager = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // State Modal Form Aktivitas
+  // State Modal Form Aktivitas (Tambah & Edit)
   const [showFormModal, setShowFormModal] = useState(false);
+  const [editingLogId, setEditingLogId] = useState<number | null>(null);
 
   // State Log Aktivitas
   const [logsAktivitas, setLogsAktivitas] = useState<LogAktivitasType[]>([]);
   const [loadingAktivitas, setLoadingAktivitas] = useState(false);
-  const [submitLoading, setSubmitLoading] = useState(false); // State loading untuk tombol submit form
+  const [submitLoading, setSubmitLoading] = useState(false);
   const [operator, setOperator] = useState("");
   const [uraianAkt, setUraianAkt] = useState("");
   const [tglAkt, setTglAkt] = useState(new Date().toISOString().split("T")[0]);
@@ -133,7 +136,6 @@ const DataAktivitasManager = () => {
   }, [mesinIdParam]);
 
   useEffect(() => {
-    // Set auto-fill operator
     const userName = localStorage.getItem("userName") || "";
     setOperator(userName);
     loadMesinAndLogs();
@@ -189,16 +191,43 @@ const DataAktivitasManager = () => {
   const handleExportLogExcel = () =>
     exportToExcel(logsAktivitas as unknown as Record<string, unknown>[], EXPORT_COLUMNS_LOG, `log-aktivitas-${selectedMesin?.kode_mesin}`);
 
-  const handleAddAktivitasLog = async (e: React.FormEvent) => {
+  const handleOpenAddModal = () => {
+    setEditingLogId(null);
+    const userName = localStorage.getItem("userName") || "";
+    setOperator(userName);
+    setUraianAkt("");
+    setTglAkt(new Date().toISOString().split("T")[0]);
+    setJamMulai("08:00");
+    setJamSelesai("16:00");
+    setJumlahAkt(1);
+    setPemeriksaAkt("");
+    setShowFormModal(true);
+  };
+
+  const handleOpenEditModal = (log: LogAktivitasType) => {
+    setEditingLogId(log.id);
+    setOperator(log.operator_pelaksana);
+    setUraianAkt(log.uraian_pekerjaan);
+    setTglAkt(log.tanggal);
+    setJamMulai(log.waktu_mulai?.slice(0, 5) || "08:00");
+    setJamSelesai(log.waktu_selesai?.slice(0, 5) || "16:00");
+    setJumlahAkt(log.jumlah);
+    setPemeriksaAkt(log.pemeriksa);
+    setShowFormModal(true);
+  };
+
+  const handleAddOrUpdateAktivitas = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedMesin) return;
     setSubmitLoading(true);
 
     try {
       const token = localStorage.getItem("token");
+      const url = editingLogId ? `/log-aktivitas/${editingLogId}` : "/log-aktivitas";
+      const method = editingLogId ? "PUT" : "POST";
 
-      await api("/log-aktivitas", {
-        method: "POST",
+      await api(url, {
+        method: method,
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -215,21 +244,37 @@ const DataAktivitasManager = () => {
         }),
       });
 
-      // Reset form
-      const userName = localStorage.getItem("userName") || "";
-      setOperator(userName);
+      setShowFormModal(false);
+      setEditingLogId(null);
       setUraianAkt("");
       setJumlahAkt(1);
       setPemeriksaAkt("");
       
-      setShowFormModal(false); // TUTUP MODAL SETELAH SUKSES
-      setSuccessMessage("Log aktivitas berhasil dicatat!");
-      handleOpenDetail(selectedMesin); // Refresh tabel
+      setSuccessMessage(editingLogId ? "Log aktivitas berhasil diperbarui!" : "Log aktivitas berhasil dicatat!");
+      handleOpenDetail(selectedMesin); 
       setTimeout(() => setSuccessMessage(null), 4000);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Gagal menyimpan log aktivitas");
     } finally {
       setSubmitLoading(false);
+    }
+  };
+
+  const handleDeleteAktivitas = async (id: number) => {
+    if (!confirm("Apakah Anda yakin ingin menghapus catatan log aktivitas ini?")) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      await api(`/log-aktivitas/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setSuccessMessage("Log aktivitas berhasil dihapus!");
+      if (selectedMesin) handleOpenDetail(selectedMesin);
+      setTimeout(() => setSuccessMessage(null), 4000);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Gagal menghapus log aktivitas");
     }
   };
 
@@ -275,74 +320,74 @@ const DataAktivitasManager = () => {
   return (
     <div className="dataaktivitas-page">
       {successMessage && (
-        <Alert variant="success" className="d-flex align-items-center gap-2" dismissible onClose={() => setSuccessMessage(null)}>
-          <IconCircleCheck size={20} />
+        <Alert variant="success" className="d-flex align-items-center gap-2 py-2 small" dismissible onClose={() => setSuccessMessage(null)}>
+          <IconCircleCheck size={18} />
           {successMessage}
         </Alert>
       )}
 
-      {error && <Alert variant="danger">{error}</Alert>}
+      {error && <Alert variant="danger" className="py-2 small">{error}</Alert>}
 
       {viewMode === "list" ? (
         <>
           <Row>
             <Col>
-              <Flex justifyContent="between" alignItems="center" className="mb-4 w-100" breakpoint="md">
+              <Flex justifyContent="between" alignItems="center" className="mb-3 w-100" breakpoint="md">
                 <div>
-                  <h1 className="mb-2 h2">Monitoring Aktivitas Mesin</h1>
-                  <p className="text-secondary mb-0">Mengelola catatan operasional harian operator mesin produksi.</p>
+                  <h1 className="mb-1 h4 h2-md">Monitoring Aktivitas Mesin</h1>
+                  <p className="text-secondary mb-0 small">Mengelola catatan operasional harian operator mesin produksi.</p>
                 </div>
               </Flex>
             </Col>
           </Row>
 
-          <Card className="card-lg mb-6">
-            <div className="datatools-toolbar border-bottom p-3">
+          <Card className="card-lg mb-4">
+            <div className="datatools-toolbar border-bottom p-2 p-md-3">
               <Row className="g-2 align-items-center">
-                <Col lg={5} md={5}>
-                  <InputGroup className="datatools-search">
-                    <InputGroup.Text><IconSearch size={18} /></InputGroup.Text>
+                <Col xs={12} md={5}>
+                  <InputGroup className="datatools-search input-group-sm">
+                    <InputGroup.Text><IconSearch size={16} /></InputGroup.Text>
                     <Form.Control
                       type="search"
-                      placeholder="Cari kode, nama mesin, atau lokasi ruang..."
+                      placeholder="Cari kode, nama mesin, atau lokasi..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
                     {searchTerm && (
                       <Button variant="link" className="datatools-search-clear" onClick={() => setSearchTerm("")}>
-                        <IconX size={16} />
+                        <IconX size={14} />
                       </Button>
                     )}
                   </InputGroup>
                 </Col>
-                <Col lg={3} md={3} className="text-muted small">
-                  Menampilkan <span className="fw-semibold text-body">{filteredMesin.length}</span> dari {mesinList.length} data mesin
+                <Col xs={6} md={3} className="text-muted small">
+                  <span className="fw-semibold text-body">{filteredMesin.length}</span> dari {mesinList.length} data
                 </Col>
-                <Col lg={4} md={4} className="d-flex justify-content-md-end gap-2">
-                  <Button variant="outline-danger" size="sm" onClick={handleExportPDF}>Export PDF</Button>
-                  <Button variant="outline-success" size="sm" onClick={handleExportExcel}>Export Excel</Button>
+                <Col xs={6} md={4} className="d-flex justify-content-end gap-1">
+                  <Button variant="outline-danger" size="sm" className="py-1 px-2" style={{ fontSize: "0.75rem" }} onClick={handleExportPDF}>PDF</Button>
+                  <Button variant="outline-success" size="sm" className="py-1 px-2" style={{ fontSize: "0.75rem" }} onClick={handleExportExcel}>Excel</Button>
                 </Col>
               </Row>
             </div>
 
-            <CardBody>
+            <CardBody className="p-2 p-md-3">
               {loading ? (
-                <div className="text-center py-6">
+                <div className="text-center py-4 small">
                   <Spinner animation="border" size="sm" className="me-2" /> Memuat data mesin...
                 </div>
               ) : mesinList.length === 0 ? (
-                <div className="datatools-empty text-center py-6">
-                  <div className="datatools-empty-icon mb-3"><IconBox size={32} /></div>
-                  <h5 className="mb-1">Belum ada data mesin produksi</h5>
-                  <p className="text-secondary mb-4">Tambahkan data mesin melalui menu pemeliharaan terlebih dahulu.</p>
+                <div className="datatools-empty text-center py-4">
+                  <div className="datatools-empty-icon mb-2"><IconBox size={28} /></div>
+                  <h6 className="mb-1">Belum ada data mesin produksi</h6>
+                  <p className="text-secondary small mb-3">Tambahkan data mesin melalui menu pemeliharaan terlebih dahulu.</p>
                 </div>
               ) : filteredMesin.length === 0 ? (
-                <div className="datatools-empty text-center py-6">
-                  <div className="datatools-empty-icon mb-3"><IconMoodEmpty size={32} /></div>
-                  <h5 className="mb-1">Tidak ada hasil</h5>
-                  <p className="text-secondary mb-4">Tidak ditemukan mesin yang cocok dengan pencarian.</p>
-                  <Button variant="outline-secondary" className="d-inline-flex align-items-center gap-2" onClick={() => setSearchTerm("")}>
-                    <IconX size={18} /> Reset Pencarian
+                <div className="datatools-empty text-center py-4">
+                  <div className="datatools-empty-icon mb-2"><IconMoodEmpty size={28} /></div>
+                  <h6 className="mb-1">Tidak ada hasil</h6>
+                  <p className="text-secondary small mb-3">Tidak ditemukan mesin yang cocok.</p>
+                  <Button variant="outline-secondary" size="sm" onClick={() => setSearchTerm("")}>
+                    Reset Pencarian
                   </Button>
                 </div>
               ) : (
@@ -353,14 +398,14 @@ const DataAktivitasManager = () => {
         </>
       ) : (
         <div>
-          {/* Header & Breadcrumb Interaktif */}
-          <Row className="mb-4">
+          {/* Header & Breadcrumb Compact untuk Mobile */}
+          <Row className="mb-3">
             <Col>
-              <div className="d-flex justify-content-between align-items-center">
+              <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
                 <div>
-                  <h1 className="mb-2 h2">{selectedMesin?.nama_mesin}</h1>
+                  <h2 className="mb-1 fs-5 fw-bold">{selectedMesin?.nama_mesin}</h2>
                   <nav aria-label="breadcrumb">
-                    <ol className="breadcrumb mb-0 small text-secondary">
+                    <ol className="breadcrumb mb-0 text-secondary" style={{ fontSize: "0.75rem" }}>
                       <li className="breadcrumb-item">Home</li>
                       <li className="breadcrumb-item">Pemeliharaan</li>
                       <li 
@@ -368,75 +413,71 @@ const DataAktivitasManager = () => {
                         style={{ cursor: "pointer" }}
                         onClick={handleBack}
                       >
-                        Aktivitas Mesin
+                        Aktivitas
                       </li>
-                      <li className="breadcrumb-item active text-dark fw-semibold">
-                        {selectedMesin?.kode_mesin} - {selectedMesin?.nama_mesin}
+                      <li className="breadcrumb-item active text-body fw-semibold">
+                        {selectedMesin?.kode_mesin}
                       </li>
                     </ol>
                   </nav>
                 </div>
-                <div className="d-flex gap-2">
-                  <Button variant="outline-danger" size="sm" onClick={handleExportLogPDF}>Export PDF</Button>
-                  <Button variant="outline-success" size="sm" onClick={handleExportLogExcel}>Export Excel</Button>
-                  <Button variant="outline-secondary" size="sm" onClick={handleBack} className="d-flex align-items-center gap-1">
-                    <IconArrowLeft size={16} /> Kembali
+                <div className="d-flex flex-wrap gap-1 mt-1 mt-md-0">
+                  <Button variant="outline-danger" size="sm" className="py-1 px-2" style={{ fontSize: "0.75rem" }} onClick={handleExportLogPDF}>PDF</Button>
+                  <Button variant="outline-success" size="sm" className="py-1 px-2" style={{ fontSize: "0.75rem" }} onClick={handleExportLogExcel}>Excel</Button>
+                  <Button variant="outline-secondary" size="sm" className="py-1 px-2 d-flex align-items-center gap-1" style={{ fontSize: "0.75rem" }} onClick={handleBack}>
+                    <IconArrowLeft size={14} /> Kembali
                   </Button>
                 </div>
               </div>
             </Col>
           </Row>
 
-          {/* Info Singkat Mesin */}
-          <Card className="mb-4 border-primary">
-            <CardBody>
-              <div className="d-flex justify-content-between align-items-start mb-2">
-                <span className="text-muted small fw-bold tracking-wider">MONITORING OPERASIONAL MESIN PRODUKSI</span>
-                <span className={`badge ${selectedMesin?.status === 'Aktif' ? 'bg-success' : 'bg-danger'}`}>{selectedMesin?.status}</span>
+          {/* Info Singkat Mesin Compact */}
+          <Card className="mb-3 border-primary shadow-none">
+            <CardBody className="p-2 p-md-3">
+              <div className="d-flex justify-content-between align-items-start mb-1">
+                <span className="text-muted small fw-bold" style={{ fontSize: "0.7rem" }}>MONITORING OPERASIONAL</span>
+                <span className={`badge ${selectedMesin?.status === 'Aktif' ? 'bg-success' : 'bg-danger'}`} style={{ fontSize: "0.65rem" }}>{selectedMesin?.status}</span>
               </div>
-              <Row>
-                <Col md={6}>
-                  <table className="w-100 text-sm">
-                    <tbody>
-                      <tr>
-                        <td className="fw-semibold text-secondary py-1" style={{ width: "130px" }}>Kode Mesin</td>
-                        <td>: {selectedMesin?.kode_mesin}</td>
-                      </tr>
-                      <tr>
-                        <td className="fw-semibold text-secondary py-1">Lokasi / Ruang</td>
-                        <td>: {selectedMesin?.lokasi_ruang}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </Col>
-              </Row>
+              <table className="w-100" style={{ fontSize: "0.8rem" }}>
+                <tbody>
+                  <tr>
+                    <td className="fw-semibold text-secondary py-0.5" style={{ width: "110px" }}>Kode Mesin</td>
+                    <td className="py-0.5">: {selectedMesin?.kode_mesin}</td>
+                  </tr>
+                  <tr>
+                    <td className="fw-semibold text-secondary py-0.5">Lokasi / Ruang</td>
+                    <td className="py-0.5">: {selectedMesin?.lokasi_ruang}</td>
+                  </tr>
+                </tbody>
+              </table>
             </CardBody>
           </Card>
 
-          {/* TABEL DATA AKTIVITAS */}
-          <Card>
-            <CardBody>
-              <div className="d-flex justify-content-between align-items-center mb-4">
-                <h5 className="mb-0 d-flex align-items-center gap-2">
-                  <IconActivity size={20} /> Log Aktivitas Harian Operator
-                </h5>
-                {/* TOMBOL UNTUK MEMBUKA POP-UP FORM */}
-                <Button variant="primary" className="d-flex align-items-center gap-1" onClick={() => setShowFormModal(true)}>
-                  <IconPlus size={16} /> Tambah Log Aktivitas
+          {/* TABEL DATA AKTIVITAS COMPACT */}
+          <Card className="shadow-none">
+            <CardBody className="p-2 p-md-3">
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <h6 className="mb-0 d-flex align-items-center gap-1 fw-bold fs-6">
+                  <IconActivity size={18} /> Log Aktivitas Harian
+                </h6>
+                <Button variant="primary" size="sm" className="d-flex align-items-center gap-1 py-1 px-2" style={{ fontSize: "0.75rem" }} onClick={handleOpenAddModal}>
+                  <IconPlus size={14} /> Tambah Log
                 </Button>
               </div>
 
               <div className="table-responsive">
-                <Table bordered hover className="align-middle">
+                <Table bordered hover className="align-middle table-sm text-nowrap" style={{ fontSize: "0.75rem" }}>
                   <thead className="table-light text-center">
                     <tr>
-                      <th rowSpan={2} style={{ width: "50px", verticalAlign: "middle" }}>No</th>
+                      <th rowSpan={2} style={{ width: "40px", verticalAlign: "middle" }}>No</th>
                       <th rowSpan={2} style={{ verticalAlign: "middle" }}>Operator Pelaksana</th>
                       <th rowSpan={2} style={{ verticalAlign: "middle" }}>Uraian Pekerjaan</th>
                       <th rowSpan={2} style={{ verticalAlign: "middle" }}>Tanggal</th>
                       <th colSpan={2}>Waktu</th>
                       <th rowSpan={2} style={{ verticalAlign: "middle" }}>Jumlah</th>
                       <th rowSpan={2} style={{ verticalAlign: "middle" }}>Pemeriksa</th>
+                      <th rowSpan={2} style={{ width: "80px", verticalAlign: "middle" }}>Aksi</th>
                     </tr>
                     <tr>
                       <th>Mulai</th>
@@ -446,14 +487,14 @@ const DataAktivitasManager = () => {
                   <tbody>
                     {loadingAktivitas ? (
                       <tr>
-                        <td colSpan={8} className="text-center py-4">
-                          <Spinner animation="border" size="sm" /> Memuat data log aktivitas...
+                        <td colSpan={9} className="text-center py-3 text-muted">
+                          <Spinner animation="border" size="sm" /> Memuat data...
                         </td>
                       </tr>
                     ) : logsAktivitas.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="text-center py-4 text-secondary">
-                          Belum ada catatan log aktivitas untuk mesin ini.
+                        <td colSpan={9} className="text-center py-3 text-secondary">
+                          Belum ada catatan log aktivitas.
                         </td>
                       </tr>
                     ) : (
@@ -467,6 +508,28 @@ const DataAktivitasManager = () => {
                           <td className="text-center">{log.waktu_selesai?.slice(0, 5) || "-"}</td>
                           <td className="text-center fw-semibold">{log.jumlah}</td>
                           <td className="text-center">{log.pemeriksa}</td>
+                          <td className="text-center">
+                            <div className="d-flex justify-content-center gap-1">
+                              <Button 
+                                variant="outline-warning" 
+                                size="sm" 
+                                className="p-1"
+                                title="Edit"
+                                onClick={() => handleOpenEditModal(log)}
+                              >
+                                <IconEdit size={12} />
+                              </Button>
+                              <Button 
+                                variant="outline-danger" 
+                                size="sm" 
+                                className="p-1"
+                                title="Hapus"
+                                onClick={() => handleDeleteAktivitas(log.id)}
+                              >
+                                <IconTrash size={12} />
+                              </Button>
+                            </div>
+                          </td>
                         </tr>
                       ))
                     )}
@@ -476,20 +539,22 @@ const DataAktivitasManager = () => {
             </CardBody>
           </Card>
 
-          {/* MODAL POP-UP FORM AKTIVITAS */}
-          <Modal show={showFormModal} onHide={() => setShowFormModal(false)} size="lg" centered>
-            <Modal.Header closeButton>
-              <Modal.Title className="h5 fw-bold d-flex align-items-center gap-2">
-                <IconActivity size={20} className="text-success" /> Tambah Log Aktivitas Baru
+          {/* MODAL POP-UP FORM AKTIVITAS (COMPACT) */}
+          <Modal show={showFormModal} onHide={() => setShowFormModal(false)} size="lg" centered backdrop="static">
+            <Modal.Header closeButton className="py-2 px-3">
+              <Modal.Title className="fs-6 fw-bold d-flex align-items-center gap-2">
+                <IconActivity size={18} className="text-success" /> 
+                {editingLogId ? "Edit Log Aktivitas" : "Tambah Log Aktivitas Baru"}
               </Modal.Title>
             </Modal.Header>
-            <Modal.Body>
-              <Form onSubmit={handleAddAktivitasLog} id="form-aktivitas">
-                <Row className="g-3 mb-3">
+            <Modal.Body className="p-3">
+              <Form onSubmit={handleAddOrUpdateAktivitas} id="form-aktivitas">
+                <Row className="g-2 mb-2">
                   <Col md={6}>
                     <Form.Group>
-                      <Form.Label className="small fw-semibold text-secondary">Operator Pelaksana</Form.Label>
+                      <Form.Label className="small fw-semibold text-secondary mb-1" style={{ fontSize: "0.75rem" }}>Operator Pelaksana</Form.Label>
                       <Form.Control
+                        size="sm"
                         required
                         placeholder="Nama Operator"
                         value={operator}
@@ -499,8 +564,9 @@ const DataAktivitasManager = () => {
                   </Col>
                   <Col md={6}>
                     <Form.Group>
-                      <Form.Label className="small fw-semibold text-secondary">Uraian Pekerjaan</Form.Label>
+                      <Form.Label className="small fw-semibold text-secondary mb-1" style={{ fontSize: "0.75rem" }}>Uraian Pekerjaan</Form.Label>
                       <Form.Control
+                        size="sm"
                         required
                         placeholder="Detail pekerjaan..."
                         value={uraianAkt}
@@ -510,11 +576,12 @@ const DataAktivitasManager = () => {
                   </Col>
                 </Row>
                 
-                <Row className="g-3 mb-3">
+                <Row className="g-2 mb-2">
                   <Col md={4}>
                     <Form.Group>
-                      <Form.Label className="small fw-semibold text-secondary">Tanggal</Form.Label>
+                      <Form.Label className="small fw-semibold text-secondary mb-1" style={{ fontSize: "0.75rem" }}>Tanggal</Form.Label>
                       <Form.Control
+                        size="sm"
                         type="date"
                         required
                         value={tglAkt}
@@ -524,8 +591,9 @@ const DataAktivitasManager = () => {
                   </Col>
                   <Col md={4}>
                     <Form.Group>
-                      <Form.Label className="small fw-semibold text-secondary">Waktu Mulai</Form.Label>
+                      <Form.Label className="small fw-semibold text-secondary mb-1" style={{ fontSize: "0.75rem" }}>Waktu Mulai</Form.Label>
                       <Form.Control
+                        size="sm"
                         type="time"
                         required
                         value={jamMulai}
@@ -535,8 +603,9 @@ const DataAktivitasManager = () => {
                   </Col>
                   <Col md={4}>
                     <Form.Group>
-                      <Form.Label className="small fw-semibold text-secondary">Waktu Selesai</Form.Label>
+                      <Form.Label className="small fw-semibold text-secondary mb-1" style={{ fontSize: "0.75rem" }}>Waktu Selesai</Form.Label>
                       <Form.Control
+                        size="sm"
                         type="time"
                         required
                         value={jamSelesai}
@@ -546,11 +615,12 @@ const DataAktivitasManager = () => {
                   </Col>
                 </Row>
 
-                <Row className="g-3 mb-2">
+                <Row className="g-2 mb-1">
                   <Col md={6}>
                     <Form.Group>
-                      <Form.Label className="small fw-semibold text-secondary">Jumlah / Output</Form.Label>
+                      <Form.Label className="small fw-semibold text-secondary mb-1" style={{ fontSize: "0.75rem" }}>Jumlah / Output</Form.Label>
                       <Form.Control
+                        size="sm"
                         type="number"
                         min={1}
                         required
@@ -562,8 +632,9 @@ const DataAktivitasManager = () => {
                   </Col>
                   <Col md={6}>
                     <Form.Group>
-                      <Form.Label className="small fw-semibold text-secondary">Pemeriksa</Form.Label>
+                      <Form.Label className="small fw-semibold text-secondary mb-1" style={{ fontSize: "0.75rem" }}>Pemeriksa</Form.Label>
                       <Form.Control
+                        size="sm"
                         required
                         placeholder="Nama Pemeriksa"
                         value={pemeriksaAkt}
@@ -574,13 +645,13 @@ const DataAktivitasManager = () => {
                 </Row>
               </Form>
             </Modal.Body>
-            <Modal.Footer className="bg-light">
-              <Button variant="outline-secondary" onClick={() => setShowFormModal(false)}>
+            <Modal.Footer className="bg-light py-2 px-3">
+              <Button variant="outline-secondary" size="sm" onClick={() => setShowFormModal(false)}>
                 Batal
               </Button>
-              <Button variant="success" type="submit" form="form-aktivitas" disabled={submitLoading} className="fw-bold px-4">
-                {submitLoading ? <Spinner size="sm" className="me-2" /> : null}
-                Simpan Log Aktivitas
+              <Button variant="success" size="sm" type="submit" form="form-aktivitas" disabled={submitLoading} className="fw-bold px-3">
+                {submitLoading ? <Spinner size="sm" className="me-1" /> : null}
+                {editingLogId ? "Perbarui" : "Simpan"}
               </Button>
             </Modal.Footer>
           </Modal>

@@ -1,6 +1,5 @@
 "use client";
 // import node module libraries
-// Tambahkan useRef di import ini
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
 import {
@@ -24,6 +23,11 @@ import {
 } from "@tabler/icons-react";
 import { v4 as uuid } from "uuid";
 
+// Redux & Services untuk Universal Scanner
+import { useAppDispatch, useAppSelector } from "store/store";
+import { fetchTools } from "store/slices/inventoryToolsSlice";
+import { scanTool, fetchAntrean, prosesPeminjamanApi, updateCartItem } from "services/peminjamanService";
+
 import {
   ConsumableItemType,
   ConsumableFormValues,
@@ -32,7 +36,7 @@ import {
 
 interface ConsumableCartItem extends ConsumableCartItemType {
   id: string;
-  cartId?: string | number;   // ← tambahkan, dipakai khusus item bertipe 'tool'
+  cartId?: string | number;
   item_type?: 'tool' | 'consumable';
 }
 
@@ -56,8 +60,6 @@ import {
   updateConsumable,
   deleteConsumable,
 } from "services/consumableService";
-
-import { prosesPeminjamanApi, updateCartItem } from "services/peminjamanService"; // Tambahkan updateCartItem
 
 import api from "lib/api";
 
@@ -91,6 +93,9 @@ interface AntreanConsumableApiItem {
 }
 
 const DataConsumableManager = () => {
+  const dispatch = useAppDispatch();
+  const tools = useAppSelector((state) => state.inventoryTools.tools);
+
   const [consumables, setConsumables] = useState<ConsumableItemType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -167,16 +172,14 @@ const DataConsumableManager = () => {
     }
   }, []);
 
-
-  
   useEffect(() => {
     const token = localStorage.getItem("token"); 
     if (!token) return; 
 
     loadConsumables();
     loadCart();
+    dispatch(fetchTools()); // Fetch tools untuk Universal Scanner
 
-    // 1. Sinkronisasi instan saat localStorage berubah dari halaman lain (misal dari halaman Tools)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === "global_shared_tools_cart" || e.key === "global_shared_consumable_cart") {
         loadCart();
@@ -185,7 +188,6 @@ const DataConsumableManager = () => {
 
     window.addEventListener("storage", handleStorageChange);
 
-    // 2. Sinkronisasi saat window kembali difokuskan
     const handleFocus = () => {
       loadCart();
     };
@@ -196,7 +198,107 @@ const DataConsumableManager = () => {
       window.removeEventListener("storage", handleStorageChange);
       window.removeEventListener("focus", handleFocus);
     };
-  }, [loadCart]);
+  }, [loadCart, dispatch]);
+
+  // ================= BARCODE SCANNER UNIVERSAL =================
+  const barcodeBuffer = useRef('');
+  const lastKeyTime = useRef(Date.now());
+
+  useEffect(() => {
+    const handleGlobalScan = async (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      const currentTime = Date.now();
+      if (currentTime - lastKeyTime.current > 50) barcodeBuffer.current = '';
+      lastKeyTime.current = currentTime;
+
+      if (e.key === 'Enter') {
+        if (barcodeBuffer.current.length > 3) {
+          const scannedCode = barcodeBuffer.current;
+          barcodeBuffer.current = ''; 
+
+          // 1. Cari di database Consumable terlebih dahulu
+          const foundItem = consumables.find((c) => 
+            (c.kode_barang && c.kode_barang.toLowerCase() === scannedCode.toLowerCase()) || c.id === scannedCode
+          );
+
+          if (foundItem) {
+            const itemDiKeranjang = cart.find((c) => c.consumable_id === foundItem.id && c.item_type === 'consumable');
+            const jumlahDiKeranjang = itemDiKeranjang ? itemDiKeranjang.jumlah : 0;
+            const tersedia = foundItem.stok_tersedia - jumlahDiKeranjang;
+
+            if (tersedia > 0) {
+              try {
+                const token = localStorage.getItem("token");
+                const userId = localStorage.getItem("userId");
+                await api("/consumable-keluar/scan", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                  body: JSON.stringify({ consumable_id: foundItem.id, jumlah: 1, ...(userId ? { user_id: userId } : {}) }),
+                });
+
+                await loadCart();
+                setSuccessMessage(`Berhasil: Consumable ${foundItem.nama} ditambahkan ke keranjang.`);
+                setTimeout(() => setSuccessMessage(null), 3000);
+              } catch (err) {
+                console.error("Gagal menambah Consumable", err);
+              }
+            } else {
+               alert(`Gagal: Stok Consumable ${foundItem.nama} sudah habis!`);
+            }
+          } 
+          // 2. Jika tidak ada di Consumable, cari di database Tools
+          else {
+            const foundTool = tools.find((t) => 
+              (t.kodeBarang && t.kodeBarang.toLowerCase() === scannedCode.toLowerCase()) || t.id === scannedCode
+            );
+
+            if (foundTool) {
+              const tersedia = foundTool.stok - foundTool.dipinjam;
+              if (tersedia > 0) {
+                try {
+                  await scanTool(foundTool.id, 1);
+                  
+                  // Sinkronisasi data keranjang tools dari API ke LocalStorage
+                  const dbCartTools = await fetchAntrean();
+                  const groupedToolsCart = dbCartTools.reduce((acc: any[], item: any) => {
+                    const existingItem = acc.find((c: any) => c.toolId === item.tools_id);
+                    if (existingItem) {
+                      existingItem.jumlah += item.qty ?? 1;
+                    } else {
+                      acc.push({
+                        cartId: item.id, toolId: item.tools_id,
+                        namaBarang: item.nama_barang || "Nama Alat Tidak Ditemukan",
+                        kodeBarang: item.kode_barang || "-",
+                        jumlah: item.qty ?? 1, maxJumlah: item.max_jumlah ?? 99, item_type: "tool",
+                      });
+                    }
+                    return acc;
+                  }, []);
+                  localStorage.setItem("global_shared_tools_cart", JSON.stringify(groupedToolsCart));
+                  
+                  await loadCart(); // Trigger update UI
+                  setSuccessMessage(`Berhasil: Tool ${foundTool.namaBarang} ditambahkan ke keranjang.`);
+                  setTimeout(() => setSuccessMessage(null), 3000);
+                } catch (err) {
+                  console.error("Gagal menambah Tool", err);
+                }
+              } else {
+                 alert(`Gagal: Stok Tool ${foundTool.namaBarang} kosong/dipinjam semua.`);
+              }
+            } else {
+               alert(`Barcode tidak terdaftar di sistem manapun: ${scannedCode}`);
+            }
+          }
+        }
+      } else if (e.key.length === 1) {
+        barcodeBuffer.current += e.key;
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalScan);
+    return () => window.removeEventListener('keydown', handleGlobalScan);
+  }, [consumables, tools, cart, loadCart]);
 
   const filteredConsumables = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
@@ -216,7 +318,6 @@ const DataConsumableManager = () => {
         // Jika kolom pencarian kosong, loloskan semua data
         if (!keyword) return true;
 
-        // 1. Amankan teks dari nilai null/undefined (Null-Safety)
         const kodeBarang = (item.kode_barang || "").toLowerCase();
         const nama = (item.nama || "").toLowerCase();
         const merk = (item.merk || "").toLowerCase();
@@ -225,19 +326,14 @@ const DataConsumableManager = () => {
         const ukuran = (item.ukuran || "").toLowerCase();
         const satuan = (item.satuan || "").toLowerCase();
 
-        // 2. Konversi angka stok ke string agar bisa dicari
-        // (Pakai as any untuk jaga-jaga jika tipe properti masuk/keluar ada di object aslinya)
         const stokAwal = String(item.stok_tersedia?? 0);
         const masuk = String((item as any).masuk ?? 0);
         const keluar = String((item as any).keluar ?? 0);
         const stokTersedia = String((item as any).stok_tersedia ?? item.stok_tersedia ?? 0);
 
-        // 3. Tambahkan alias untuk status "Cukup" atau "Perlu Restock" 
-        // (Berdasarkan gambar, stok 4 = Perlu Restock. Asumsi batasnya <= 5)
         const sisaStok = Number(item.stok_tersedia); 
         const statusLabel = sisaStok <= 5 ? "perlu restock" : "cukup";
 
-        // 4. Cocokkan keyword dengan semua properti yang ada di tabel
         return (
           kodeBarang.includes(keyword) ||
           nama.includes(keyword) ||
@@ -375,11 +471,8 @@ const DataConsumableManager = () => {
     );
     if (!targetItem) return;
 
-    // VALIDASI STOK (Khusus Consumable, kalau Tool validasi di backend karena dipinjam dinamis)
     if (targetItem.item_type === 'consumable') {
       const itemAsli = consumables.find((c) => c.id === targetItem.consumable_id); 
-      // Karena stok_tersedia di filteredConsumables itu dinamis, kita pakai stok asli
-      // PENTING: maxJumlah / stok harus sudah ditangani dengan baik agar tidak minus
       if (itemAsli && qty > (itemAsli.stok_tersedia + targetItem.jumlah)) {
         alert(`Jumlah melebihi stok yang tersedia!`);
         return;
@@ -413,7 +506,6 @@ const DataConsumableManager = () => {
     const timer = setTimeout(async () => {
       try {
         if (targetItem.item_type === 'tool') {
-           // Asumsi fungsi updateCartItem juga menerima cartId bertipe apapun yg valid
            await updateCartItem(cartId, qty);
         } else {
            const token = localStorage.getItem("token");
@@ -427,12 +519,10 @@ const DataConsumableManager = () => {
            });
         }
         debounceTimers.current.delete(cartId);
-        // Bisa memanggil loadCart() secara diam-diam, 
-        // tapi karena UI sudah benar, kita biarkan saja agar tidak flicker
       } catch (err) {
         console.error("Gagal memperbarui jumlah item:", err);
         alert("Gagal update stok ke database. Mengembalikan data ke kondisi semula.");
-        await loadCart(); // Revert ke data database asli
+        await loadCart(); 
       }
     }, 500);
 
@@ -445,14 +535,12 @@ const DataConsumableManager = () => {
     );
     if (!targetItem) return;
 
-    // 1. Optimistic hapus dari layar
     setCart((prev) => prev.filter((c) => c.id !== cartId && c.consumable_id !== cartId && c.cartId !== cartId));
 
     if (targetItem.item_type === 'tool') {
       const savedTools = JSON.parse(localStorage.getItem("global_shared_tools_cart") || "[]");
       const updatedToolCart = savedTools.filter((c: any) => c.cartId !== cartId);
       localStorage.setItem("global_shared_tools_cart", JSON.stringify(updatedToolCart));
-      // Proses hapus item tool di database (asumsi Anda memanggil endpoint remove tool cart)
       try {
           // Hanya memicu event untuk memberitahu halaman DataTools (jika diperlukan)
       } catch (e) {
@@ -461,7 +549,6 @@ const DataConsumableManager = () => {
       return;
     }
 
-    // Hapus Consumable
     const savedCons = JSON.parse(localStorage.getItem("global_shared_consumable_cart") || "[]");
     const updatedCons = savedCons.filter((c: any) => c.id !== cartId && c.consumable_id !== cartId);
     localStorage.setItem("global_shared_consumable_cart", JSON.stringify(updatedCons));
@@ -472,11 +559,10 @@ const DataConsumableManager = () => {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
       });
-      // Kita tidak await loadCart agar tidak berkedip, karena state lokal sudah bersih
     } catch (err) {
       console.error(err);
       alert(err instanceof Error ? err.message : "Gagal menghapus item dari keranjang.");
-      await loadCart(); // Revert jika gagal
+      await loadCart(); 
     }
   };
 
@@ -608,7 +694,7 @@ const DataConsumableManager = () => {
         </Col>
       </Row>
 
-            <Card className="card-lg mb-6">
+      <Card className="card-lg mb-6">
         <div className="datatools-toolbar border-bottom">
           <Row className="g-2 align-items-center">
             <Col lg={5} md={6}>
@@ -642,7 +728,6 @@ const DataConsumableManager = () => {
             </Col>
           </Row>
         </div>
-
 
         <CardBody>
           {error && <Alert variant="danger">{error}</Alert>}

@@ -55,22 +55,6 @@ Route::post('/consumable-keluar/proses', [ConsumableKeluarController::class, 'pr
 
 // ==========================================
 // 2. ROUTE TERLINDUNG (WAJIB LOGIN & CEK HAK AKSES)
-//
-// Prinsip permission di file ini mengikuti 3 domain sidebar + matrix RBAC:
-//   - OPERASIONAL ALAT   : Dashboard, Inventaris, Transaksi, Riwayat,
-//                          Pengajuan Order, Laporan Kerusakan Alat
-//   - PEMELIHARAAN MESIN : domain terpisah, permission *_pemeliharaan_mesin
-//   - ADMINISTRASI        : Manajemen User (+ pengaturan RBAC)
-//
-// Tiap modul di matrix RBAC punya level:
-//   - 'switch'   -> 1 permission saja (view_X)
-//   - 'dropdown' -> view_X (Lihat saja) vs view_X + manage/process/create_X (Kelola penuh)
-//
-// Kalau satu endpoint DIPAKAI oleh lebih dari satu domain/halaman
-// (misal data mesin dipakai halaman Inventaris DAN Pemeliharaan Mesin,
-// atau data transaksi dipakai halaman Transaksi DAN Riwayat), middleware-nya
-// pakai OR ('permission:a|b') supaya boleh diakses oleh siapapun yang
-// punya salah satu dari kedua izin tersebut.
 // ==========================================
 Route::middleware('auth:sanctum')->group(function () {
 
@@ -79,7 +63,6 @@ Route::middleware('auth:sanctum')->group(function () {
     // ------------------------------------------
     Route::post('/logout', [AuthController::class, 'logout']);
 
-    // Memberikan info profil lengkap dengan role dan permissions ke Next.js
     Route::get('/user', function (Request $request) {
         $user = $request->user()->load('roles', 'permissions');
         $user->all_permissions = $user->getAllPermissions()->pluck('name');
@@ -114,34 +97,24 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
     // ------------------------------------------
-    // C. MODUL INVENTARIS (dropdown: view_inventaris / manage_inventaris)
-    //    termasuk master data Peminta & Pekerjaan
+    // C. MODUL INVENTARIS
     // ------------------------------------------
-    // Lihat saja
     Route::middleware('permission:view_inventaris')->group(function () {
         Route::get('/pekerjaan/active', [PekerjaanController::class, 'getActive']);
         Route::apiResource('pekerjaan', PekerjaanController::class)->only(['index', 'show']);
     });
 
-    // Tools Masuk & Consumable Masuk ditampilkan di menu Transaksi (bukan Inventaris),
-    // jadi boleh diakses lewat izin Inventaris ATAU izin Transaksi.
     Route::middleware('permission:view_inventaris|view_transaksi')->group(function () {
         Route::apiResource('tools-masuk', ToolMasukController::class)->only(['index', 'show']);
         Route::apiResource('consumable-masuk', ConsumableMasukController::class)->only(['index', 'show']);
     });
 
-    // Data master Tools, Consumable & Peminta juga dibaca oleh alur Transaksi/Riwayat
-    // (misal untuk menampilkan nama barang & peminta saat scan/riwayat consumable
-    // keluar) dan Pengajuan Order (memilih nama alat/barang/peminta saat bikin order),
-    // jadi boleh diakses oleh salah satu dari izin domain terkait.
     Route::middleware('permission:view_inventaris|view_transaksi|view_riwayat|view_order')->group(function () {
         Route::apiResource('tools', ToolController::class)->only(['index', 'show']);
         Route::apiResource('consumable', ConsumableController::class)->only(['index', 'show']);
         Route::apiResource('peminta', PemintaController::class)->only(['index', 'show']);
     });
 
-    // Master data Mesin Produksi dipakai baik oleh Inventaris (Operasional Alat)
-    // maupun Pemeliharaan Mesin, jadi boleh diakses oleh salah satu dari kedua izin.
     Route::middleware('permission:view_inventaris|view_pemeliharaan_mesin')->group(function () {
         Route::apiResource('mesin-produksi', MesinProduksiController::class)->only(['index', 'show']);
     });
@@ -149,47 +122,34 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:manage_inventaris')->group(function () {
         Route::apiResource('tools', ToolController::class)->except(['index', 'show']);
         Route::patch('/tools/{tool}/kurangi-stok', [ToolController::class, 'kurangiStok']);
-
         Route::apiResource('consumable', ConsumableController::class)->except(['index', 'show']);
     });
 
-    // Tambah/edit/hapus Tools Masuk & Consumable Masuk juga bagian alur kerja Transaksi,
-    // jadi boleh dilakukan lewat izin Inventaris ATAU izin kelola Transaksi.
     Route::middleware('permission:manage_inventaris|manage_transaksi')->group(function () {
         Route::apiResource('tools-masuk', ToolMasukController::class)->except(['index', 'show']);
         Route::apiResource('consumable-masuk', ConsumableMasukController::class)->except(['index', 'show']);
     });
 
-    // Kelola data Mesin Produksi bisa dilakukan lewat izin Inventaris ATAU izin
-    // khusus Pemeliharaan Mesin (karena mesin bisa ditambah/diedit langsung
-    // dari halaman Pemeliharaan Mesin, bukan cuma dari halaman Inventaris).
     Route::middleware('permission:manage_inventaris|manage_pemeliharaan_mesin')->group(function () {
         Route::patch('/mesin-produksi/{id}/toggle-status', [MesinProduksiController::class, 'toggleStatus']);
         Route::apiResource('mesin-produksi', MesinProduksiController::class)->except(['index', 'show']);
     });
 
-    // Master Data Peminta & Pekerjaan — CRUD penuh (domain Operasional Alat, Staff full akses)
     Route::middleware('permission:manage_master_data')->group(function () {
         Route::apiResource('peminta', PemintaController::class)->except(['index', 'show']);
         Route::patch('/peminta/{id}/aktifkan', [PemintaController::class, 'aktifkan']);
-
         Route::apiResource('pekerjaan', PekerjaanController::class)->except(['index', 'show']);
         Route::patch('/pekerjaan/{id}/toggle-status', [PekerjaanController::class, 'toggleStatus']);
     });
 
 
     // ------------------------------------------
-    // D. MODUL TRANSAKSI (dropdown: view_transaksi / process_transaksi + manage_transaksi)
-    //    + MODUL RIWAYAT (switch: view_riwayat) — berbagi endpoint data yang sama
+    // D. MODUL TRANSAKSI & RIWAYAT
     // ------------------------------------------
-    // Route spesifik HARUS didaftarkan sebelum apiResource, agar tidak
-    // tertangkap oleh pola /peminjaman/{peminjaman} milik method show()
     Route::middleware('permission:view_riwayat')->group(function () {
         Route::get('/peminjaman/belum-kembali', [PeminjamanController::class, 'belumKembali']);
     });
 
-    // Endpoint ini dipakai baik oleh halaman Transaksi (aktif) maupun Riwayat (histori),
-    // jadi boleh diakses kalau punya salah satu dari kedua permission ini.
     Route::middleware('permission:view_transaksi|view_riwayat')->group(function () {
         Route::apiResource('peminjaman', PeminjamanController::class)->only(['index', 'show']);
         Route::apiResource('consumable-keluar', ConsumableKeluarController::class)->only(['index', 'show']);
@@ -207,7 +167,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
     // ------------------------------------------
-    // E. MODUL PENGAJUAN ORDER (dropdown: view_order / create_order + process_order + manage_order)
+    // E. MODUL PENGAJUAN ORDER
     // ------------------------------------------
     Route::middleware('permission:view_order')->group(function () {
         Route::get('/order-consumable', [OrderConsumableController::class, 'index']);
@@ -228,8 +188,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ------------------------------------------
     // F. MODUL LAPORAN KERUSAKAN ALAT
-    //    (dropdown: view_kerusakan_alat / create + process + manage_kerusakan_alat)
-    //    + berbagi endpoint index/show dengan MODUL RIWAYAT (halaman "Riwayat Perbaikan")
     // ------------------------------------------
     Route::middleware('permission:view_kerusakan_alat|view_riwayat')->group(function () {
         Route::apiResource('laporan-kerusakan', LaporanKerusakanController::class)->only(['index', 'show']);
@@ -250,12 +208,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
     // ==========================================
-    // DOMAIN: PEMELIHARAAN MESIN (terpisah dari Operasional Alat)
+    // DOMAIN: PEMELIHARAAN MESIN
     // ==========================================
-
-    // ------------------------------------------
-    // G. MODUL PEMELIHARAAN MESIN (switch: view_pemeliharaan_mesin)
-    // ------------------------------------------
     Route::middleware('permission:view_dashboard_pemeliharaan')->group(function () {
         Route::get('/pemeliharaan/dashboard-stats', [LogPemeliharaanMesinController::class, 'getDashboardStats']);
     });
@@ -267,38 +221,32 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::middleware('permission:process_pemeliharaan_mesin')->group(function () {
+        // Log Pemeliharaan (CRUD Lengkap)
         Route::post('/log-pemeliharaan', [LogPemeliharaanMesinController::class, 'store']);
+        Route::put('/log-pemeliharaan/{id}', [LogPemeliharaanMesinController::class, 'update']);
+        Route::delete('/log-pemeliharaan/{id}', [LogPemeliharaanMesinController::class, 'destroy']);
+        
+        // Log Aktivitas (CRUD Lengkap)
         Route::post('/log-aktivitas', [LogAktivitasMesinController::class, 'store']);
+        Route::put('/log-aktivitas/{id}', [LogAktivitasMesinController::class, 'update']);
+        Route::delete('/log-aktivitas/{id}', [LogAktivitasMesinController::class, 'destroy']);
     });
 
 
     // ==========================================
     // DOMAIN: ADMINISTRASI
     // ==========================================
-
-    // ------------------------------------------
-    // H. MODUL MANAJEMEN USER (dropdown: view_users / manage_users)
-    //    khusus akun & RBAC — TIDAK termasuk master data
-    // ------------------------------------------
     Route::middleware('permission:view_users')->group(function () {
         Route::apiResource('users', UserController::class)->only(['index', 'show']);
     });
 
     Route::middleware('permission:manage_users')->group(function () {
-        // Akun Users — bisa diberikan ke role selain Super Admin lewat matrix
         Route::apiResource('users', UserController::class)->except(['index', 'show']);
         Route::patch('/users/{id}/reset-password', [UserController::class, 'resetPassword']);
         Route::patch('/users/{id}/aktifkan', [UserController::class, 'activate']);
-
-        // Perlu list role (bukan kelola/edit role) untuk dropdown form Tambah/Edit User
         Route::get('/roles', [RolePermissionController::class, 'index']);
     });
 
-    // Pengaturan RBAC (Role & Permissions Matrix) — SENGAJA dicek pakai role langsung,
-    // BUKAN permission biasa, supaya tidak bisa "diaktifkan" secara tidak sengaja
-    // lewat matrix untuk role manapun selain Super Admin (mencegah privilege escalation:
-    // kalau ini pakai permission biasa, role manapun yang punya izin ini bisa
-    // memberi dirinya sendiri permission apapun lewat matrix).
     Route::middleware('role:Super Admin')->group(function () {
         Route::get('/permissions/matrix', [RolePermissionController::class, 'getMatrix']);
         Route::put('/permissions/matrix', [RolePermissionController::class, 'updateMatrix']);
@@ -309,4 +257,4 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/roles/{id}/permissions', [RolePermissionController::class, 'updateRolePermissions']);
     });
 
-}); // Penutup grup auth:sanctum
+});
