@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('spesifikasi')->nullable();
             $table->text('keterangan')->nullable();
             $table->timestamp('tanggal_kembali')->nullable();
-            $table->foreignUuid('dicatat_oleh')->constrained('users');
+            $table->uuid('dicatat_oleh');
             $table->timestamps();
         });
     }

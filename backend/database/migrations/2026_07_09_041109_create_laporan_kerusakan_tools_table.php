@@ -21,7 +21,7 @@ return new class extends Migration
             $table->text('catatan_perbaikan')->nullable();
             $table->string('tingkat_kerusakan')->nullable();
             $table->integer('perbaikan_ke')->nullable();
-            $table->foreignUuid('dilaporkan_oleh')->constrained('users');
+            $table->uuid('dilaporkan_oleh');
             $table->timestamps();
         });
     }
