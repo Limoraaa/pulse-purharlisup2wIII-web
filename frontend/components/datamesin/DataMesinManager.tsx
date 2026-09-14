@@ -11,6 +11,7 @@ import {
   InputGroup,
   Form,
   Table,
+  Modal,
 } from "react-bootstrap";
 import {
   IconPlus,
@@ -78,9 +79,16 @@ const DataMesinManager = () => {
   // State Log Pemeliharaan
   const [logs, setLogs] = useState<LogItemType[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
-  const [uraian, setUraian] = useState("");
+  const [submitLoading, setSubmitLoading] = useState(false);
+  
+  // State Khusus Form Modal Checklist
+  const [showLogModal, setShowLogModal] = useState(false); // State Pop-Up Form
   const [waktu, setWaktu] = useState(new Date().toISOString().split("T")[0]);
-  const [keteranganLog, setKeteranganLog] = useState("");
+  const [checkFilter, setCheckFilter] = useState(false);
+  const [checkCoolant, setCheckCoolant] = useState(false);
+  const [valCoolant, setValCoolant] = useState("");
+  const [checkOli, setCheckOli] = useState(false);
+  const [temuan, setTemuan] = useState("");
 
   const loadMesin = useCallback(async () => {
     setLoading(true);
@@ -139,7 +147,6 @@ const DataMesinManager = () => {
     }
   }, [loadMesin]);
 
-  // PANGGIL HOOK KOLOM DI SINI
   const columns = useMesinColumns({
     onToggleStatus: handleToggleStatus,
     onOpenDetail: handleOpenDetail,
@@ -172,6 +179,16 @@ const DataMesinManager = () => {
   const handleAddLog = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedMesin) return;
+    setSubmitLoading(true);
+
+    // Gabungkan checklist yang dicentang menjadi satu string Uraian
+    const uraianArr = [];
+    if (checkFilter) uraianArr.push("Membersihkan filter udara");
+    if (checkCoolant) uraianArr.push(`Pengisian coolant (${valCoolant || "0"} L)`);
+    if (checkOli) uraianArr.push("Pengisian oli slideway");
+    
+    // Jika tidak ada yang dicentang, beri nilai default
+    const finalUraian = uraianArr.length > 0 ? uraianArr.join(", ") : "Pengecekan rutin";
 
     try {
       const token = localStorage.getItem("token");
@@ -185,20 +202,28 @@ const DataMesinManager = () => {
         },
         body: JSON.stringify({
           mesin_produksi_id: selectedMesin.id,
-          uraian_pemeliharaan: uraian,
+          uraian_pemeliharaan: finalUraian,
           waktu_pelaksana: waktu,
-          keterangan: keteranganLog,
+          keterangan: temuan,
           paraf: userName,
         }),
       });
 
-      setUraian("");
-      setKeteranganLog("");
+      // Tutup Pop-Up dan Reset Form state
+      setShowLogModal(false);
+      setCheckFilter(false);
+      setCheckCoolant(false);
+      setValCoolant("");
+      setCheckOli(false);
+      setTemuan("");
+      
       setSuccessMessage("Log pemeliharaan berhasil ditambahkan!");
       handleOpenDetail(selectedMesin);
       setTimeout(() => setSuccessMessage(null), 4000);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Gagal menyimpan log");
+    } finally {
+      setSubmitLoading(false);
     }
   };
 
@@ -352,46 +377,16 @@ const DataMesinManager = () => {
 
           <Card>
             <CardBody>
-              <h5 className="mb-4 d-flex align-items-center gap-2">
-                <IconClipboardList size={20} /> Riwayat Log Pemeliharaan
-              </h5>
+              <div className="d-flex justify-content-between align-items-center mb-4">
+                <h5 className="mb-0 d-flex align-items-center gap-2">
+                  <IconClipboardList size={20} /> Riwayat Log Pemeliharaan
+                </h5>
+                <Button variant="primary" size="sm" className="d-flex align-items-center gap-1" onClick={() => setShowLogModal(true)}>
+                  <IconPlus size={16} /> Tambah Catatan
+                </Button>
+              </div>
 
-              <Card className="mb-4 border bg-light">
-                <CardBody>
-                  <h6 className="fw-bold mb-3">+ Tambah Catatan Pelaksanaan Baru</h6>
-                  <Form onSubmit={handleAddLog}>
-                    <Row className="g-3">
-                      <Col md={5}>
-                        <Form.Control
-                          required
-                          placeholder="Uraian Pemeliharaan (Cth: Ganti oli, filter...)"
-                          value={uraian}
-                          onChange={(e) => setUraian(e.target.value)}
-                        />
-                      </Col>
-                      <Col md={3}>
-                        <Form.Control
-                          type="date"
-                          required
-                          value={waktu}
-                          onChange={(e) => setWaktu(e.target.value)}
-                        />
-                      </Col>
-                      <Col md={3}>
-                        <Form.Control
-                          placeholder="Keterangan / Suku Cadang"
-                          value={keteranganLog}
-                          onChange={(e) => setKeteranganLog(e.target.value)}
-                        />
-                      </Col>
-                      <Col md={1} className="d-grid">
-                        <Button variant="primary" type="submit">Catat</Button>
-                      </Col>
-                    </Row>
-                  </Form>
-                </CardBody>
-              </Card>
-
+              {/* TABEL DATA */}
               <div className="table-responsive">
                 <Table bordered hover className="align-middle">
                   <thead className="table-light text-center">
@@ -434,6 +429,102 @@ const DataMesinManager = () => {
           </Card>
         </div>
       )}
+
+      {/* POP-UP FORM TAMBAH LOG PEMELIHARAAN */}
+      <Modal show={showLogModal} onHide={() => setShowLogModal(false)} centered backdrop="static">
+        <Modal.Header closeButton>
+          <Modal.Title className="h5 fw-bold text-dark">Tambah Catatan Pemeliharaan</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form id="formPemeliharaan" onSubmit={handleAddLog}>
+            <Row className="mb-4">
+              <Col md={8}>
+                <Form.Group>
+                  <Form.Label className="small fw-semibold text-secondary">Waktu Pelaksana</Form.Label>
+                  <Form.Control
+                    type="date"
+                    required
+                    value={waktu}
+                    onChange={(e) => setWaktu(e.target.value)}
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <h6 className="fw-semibold text-dark mb-3">Checklist Pemeliharaan</h6>
+            
+            {/* Item 1 */}
+            <Form.Group className="mb-3 d-flex align-items-center">
+              <Form.Check 
+                type="checkbox" 
+                id="check-filter" 
+                label={<span className="fw-medium ms-2">Membersihkan filter udara</span>}
+                checked={checkFilter}
+                onChange={(e) => setCheckFilter(e.target.checked)}
+              />
+            </Form.Group>
+
+            {/* Item 2 (Dengan Input Liter) */}
+            <Form.Group className="mb-3 d-flex align-items-center gap-3">
+              <Form.Check 
+                type="checkbox" 
+                id="check-coolant" 
+                label={<span className="fw-medium ms-2">Pengisian coolant</span>}
+                checked={checkCoolant}
+                onChange={(e) => {
+                  setCheckCoolant(e.target.checked);
+                  if (!e.target.checked) setValCoolant(""); // Reset nilai jika di-uncheck
+                }}
+              />
+              {checkCoolant && (
+                <InputGroup size="sm" style={{ width: "100px" }}>
+                  <Form.Control 
+                    type="number" 
+                    placeholder="0" 
+                    min="0.1"
+                    step="0.1"
+                    value={valCoolant}
+                    onChange={(e) => setValCoolant(e.target.value)}
+                    required 
+                  />
+                  <InputGroup.Text>L</InputGroup.Text>
+                </InputGroup>
+              )}
+            </Form.Group>
+
+            {/* Item 3 */}
+            <Form.Group className="mb-4 d-flex align-items-center">
+              <Form.Check 
+                type="checkbox" 
+                id="check-oli" 
+                label={<span className="fw-medium ms-2">Pengisian oli slideway</span>}
+                checked={checkOli}
+                onChange={(e) => setCheckOli(e.target.checked)}
+              />
+            </Form.Group>
+
+            {/* Temuan Opsional */}
+            <Form.Group className="mb-2">
+              <Form.Label className="small fw-semibold text-secondary">Temuan saat pemeliharaan (Opsional)</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                placeholder="Contoh: baut penutup filter kendor"
+                value={temuan}
+                onChange={(e) => setTemuan(e.target.value)}
+              />
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer className="bg-light">
+          <Button variant="outline-secondary" onClick={() => setShowLogModal(false)}>
+            Batal
+          </Button>
+          <Button variant="primary" type="submit" form="formPemeliharaan" disabled={submitLoading} className="fw-semibold">
+            {submitLoading ? <Spinner size="sm" /> : "Simpan Pemeliharaan"}
+          </Button>
+        </Modal.Footer>
+      </Modal>
 
       <MesinFormModal
         show={formModalOpen}
