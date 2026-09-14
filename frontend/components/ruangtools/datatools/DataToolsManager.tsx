@@ -2,7 +2,6 @@
 // import node module libraries
 import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
 import { AntreanItemResponse } from "services/peminjamanService";
-// Tambahkan useRef di sini
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import {
   Row,
@@ -34,6 +33,7 @@ import {
   removeCartItem,
   prosesPeminjamanApi,
 } from "services/peminjamanService";
+import { getConsumables } from "services/consumableService"; // Tambahan untuk Universal Scanner
 
 import api from "lib/api";
 
@@ -52,6 +52,7 @@ import {
   ToolFormValues,
   CartItemType,
 } from "types/DataToolsTypes";
+import { ConsumableItemType } from "types/DataConsumableTypes"; // Tambahan untuk Universal Scanner
 
 // import custom components
 import TanstackTable from "components/table/TanstackTable";
@@ -123,6 +124,9 @@ const DataToolsManager = () => {
   const loadingTools = useAppSelector((state) => state.inventoryTools.loadingTools);
   const toolsError = useAppSelector((state) => state.inventoryTools.toolsError);
 
+  // Data consumable untuk Universal Scanner
+  const [consumables, setConsumables] = useState<ConsumableItemType[]>([]);
+
   // ---- State modal ----
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
@@ -190,15 +194,12 @@ const DataToolsManager = () => {
   }, [dbCart]);
 
   // Data filter tabel
-  // Data filter tabel (Diperbarui untuk mencari di semua kolom & Null-Safety)
   const filteredTools = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
     
-    // Jika kolom pencarian kosong, langsung kembalikan semua data
     if (!keyword) return tools;
 
     return tools.filter((tool) => {
-      // 1. Amankan teks dari nilai null/undefined (Null-Safety)
       const kodeBarang = (tool.kodeBarang || "").toLowerCase();
       const namaBarang = (tool.namaBarang || "").toLowerCase();
       const merk = (tool.merk || "").toLowerCase();
@@ -207,12 +208,10 @@ const DataToolsManager = () => {
       const ukuran = (tool.ukuran || "").toLowerCase();
       const kondisi = (tool.kondisi || "").toLowerCase();
 
-      // 2. Konversi tipe data angka menjadi teks agar bisa di-search
       const stok = String(tool.stok || 0);
       const dipinjam = String(tool.dipinjam || 0);
       const tersedia = String((tool.stok || 0) - (tool.dipinjam || 0));
 
-      // 3. Cocokkan keyword dengan semua properti yang ada di tabel
       return (
         kodeBarang.includes(keyword) ||
         namaBarang.includes(keyword) ||
@@ -231,7 +230,106 @@ const DataToolsManager = () => {
   // ================= LOAD DATA DARI DATABASE =================
   useEffect(() => {
     dispatch(fetchTools());
+    getConsumables().then(setConsumables).catch(console.error); // Load consumables untuk Universal Scanner
   }, [dispatch]);
+
+  // ================= BARCODE SCANNER UNIVERSAL =================
+  const barcodeBuffer = useRef('');
+  const lastKeyTime = useRef(Date.now());
+
+  useEffect(() => {
+    const handleGlobalScan = async (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      const currentTime = Date.now();
+      if (currentTime - lastKeyTime.current > 50) barcodeBuffer.current = '';
+      lastKeyTime.current = currentTime;
+
+      if (e.key === 'Enter') {
+        if (barcodeBuffer.current.length > 3) {
+          const scannedCode = barcodeBuffer.current;
+          barcodeBuffer.current = ''; 
+
+          // 1. Cari di database Tools terlebih dahulu
+          const foundTool = tools.find((t) => 
+            (t.kodeBarang && t.kodeBarang.toLowerCase() === scannedCode.toLowerCase()) || t.id === scannedCode
+          );
+
+          if (foundTool) {
+            const tersedia = foundTool.stok - foundTool.dipinjam;
+            if (tersedia > 0) {
+              try {
+                await scanTool(foundTool.id, 1);
+                mutate("/peminjaman/antrean");
+                setSuccessMessage(`Berhasil: Tool ${foundTool.namaBarang} ditambahkan ke keranjang.`);
+                setTimeout(() => setSuccessMessage(null), 3000);
+              } catch (err) {
+                console.error("Gagal menambah Tool", err);
+              }
+            } else {
+               alert(`Gagal: Stok Tool ${foundTool.namaBarang} kosong/dipinjam semua.`);
+            }
+          } 
+          // 2. Jika tidak ada di Tools, cari di database Consumable
+          else {
+            const foundConsumable = consumables.find((c) => 
+              (c.kode_barang && c.kode_barang.toLowerCase() === scannedCode.toLowerCase()) || c.id === scannedCode
+            );
+
+            if (foundConsumable) {
+              const itemDiKeranjang = cart.find((c) => c.consumable_id === foundConsumable.id && c.item_type === 'consumable');
+              const jumlahDiKeranjang = itemDiKeranjang ? itemDiKeranjang.jumlah : 0;
+              const tersedia = foundConsumable.stok_tersedia - jumlahDiKeranjang;
+
+              if (tersedia > 0) {
+                try {
+                  const token = localStorage.getItem("token");
+                  const userId = localStorage.getItem("userId");
+                  
+                  // Tembak API Consumable
+                  await api("/consumable-keluar/scan", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ consumable_id: foundConsumable.id, jumlah: 1, ...(userId ? { user_id: userId } : {}) }),
+                  });
+
+                  // Sinkronisasi data keranjang consumable dari API ke LocalStorage
+                  const json = await api("/consumable-keluar/antrean", {
+                    method: "GET",
+                    headers: { Authorization: `Bearer ${token}`, ...(userId ? { "x-user-id": userId } : {}) },
+                  });
+                  const rawItems = Array.isArray(json) ? json : (json as any).data || [];
+                  const mappedConsumable = rawItems.map((item: any) => ({
+                    id: item.id, consumable_id: item.consumable_id,
+                    kode_barang: item.kodeBarang || item.kode_barang || "-",
+                    nama: item.namaBarang || item.nama || "Bahan Dihapus",
+                    jumlah: item.qty || item.jumlah || 1,
+                    stok_tersedia: item.stok_tersedia ?? 0, item_type: 'consumable',
+                  }));
+                  localStorage.setItem("global_shared_consumable_cart", JSON.stringify(mappedConsumable));
+                  
+                  mutate("/peminjaman/antrean"); // Trigger update UI
+                  setSuccessMessage(`Berhasil: Consumable ${foundConsumable.nama} ditambahkan ke keranjang.`);
+                  setTimeout(() => setSuccessMessage(null), 3000);
+                } catch (err) {
+                  console.error("Gagal menambah Consumable", err);
+                }
+              } else {
+                 alert(`Gagal: Stok Consumable ${foundConsumable.nama} habis!`);
+              }
+            } else {
+               alert(`Barcode tidak terdaftar di sistem manapun: ${scannedCode}`);
+            }
+          }
+        }
+      } else if (e.key.length === 1) {
+        barcodeBuffer.current += e.key;
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalScan);
+    return () => window.removeEventListener('keydown', handleGlobalScan);
+  }, [tools, consumables, cart, mutate]);
 
   // ================= CRUD TOOLS =================
   const openAddModal = () => {
@@ -377,7 +475,7 @@ const DataToolsManager = () => {
         debounceTimers.current.delete(cartId);
         
         // Mutate secara silent agar UI tidak jumpy, karena layar sudah benar angkanya
-        mutate("/peminjaman/antrean"); // Sinkronisasi senyap tanpa mengosongkan layar
+        mutate("/peminjaman/antrean"); 
       } catch (err) {
         console.error("Gagal memperbarui jumlah item:", err);
         // Jika backend menolak (misal error server/stok limit), paksa ambil nilai asli dari database

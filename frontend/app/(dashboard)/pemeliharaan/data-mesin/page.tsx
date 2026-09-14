@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import DataMesinManager from "components/datamesin/DataMesinManager";
+import DataMesinManager from "components/pemeliharaanmesin/DataMesinManager";
 
 export const metadata: Metadata = {
   title: "Data Mesin Produksi | PULSE PUSHARLIS",

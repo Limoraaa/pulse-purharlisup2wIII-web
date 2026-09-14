@@ -29,7 +29,7 @@ class LogPemeliharaanMesinController extends Controller
                         'nama_mesin' => $mesin ? $mesin->nama_mesin : 'Mesin #' . $item->mesin_produksi_id,
                         'deskripsi' => $item->uraian_pemeliharaan,
                         'tanggal' => $item->waktu_pelaksana,
-                        'status' => 'Selesai / Tercatat', // Sesuaikan jika ada kolom status
+                        'status' => 'Selesai / Tercatat',
                     ];
                 });
 
@@ -37,7 +37,7 @@ class LogPemeliharaanMesinController extends Controller
                 'success' => true,
                 'data' => [
                     'total_mesin' => $totalMesin,
-                    'mesin_perbaikan' => $totalLogPemeliharaan, // Bisa disesuaikan dengan filter status perbaikan
+                    'mesin_perbaikan' => $totalLogPemeliharaan,
                     'pemeliharaan_rutin' => $totalLogPemeliharaan,
                     'aktivitas_terbaru' => $aktivitasTerbaru,
                 ]
@@ -67,6 +67,7 @@ class LogPemeliharaanMesinController extends Controller
             'mesin_produksi_id' => 'required|exists:mesin_produksi,id',
             'uraian_pemeliharaan' => 'required|string',
             'waktu_pelaksana' => 'required|date',
+            'keterangan' => 'nullable|string',
             'paraf' => 'required|string', // Diisi nama user login/teknisi
         ]);
 
@@ -74,10 +75,50 @@ class LogPemeliharaanMesinController extends Controller
             'mesin_produksi_id' => $request->mesin_produksi_id,
             'uraian_pemeliharaan' => $request->uraian_pemeliharaan,
             'waktu_pelaksana' => $request->waktu_pelaksana,
-            'keterangan' => $request->keterangan,
+            'keterangan' => $request->keterangan ?? '',
             'paraf' => $request->paraf,
         ]);
 
         return response()->json(['message' => 'Log pemeliharaan berhasil dicatat', 'data' => $log], 201);
+    }
+
+    // Memperbarui log pemeliharaan berdasarkan ID (Untuk Fitur Edit)
+    public function update(Request $request, $id)
+    {
+        $log = LogPemeliharaanMesin::find($id);
+
+        if (!$log) {
+            return response()->json(['message' => 'Data log pemeliharaan tidak ditemukan'], 404);
+        }
+
+        $request->validate([
+            'uraian_pemeliharaan' => 'required|string',
+            'waktu_pelaksana' => 'required|date',
+            'keterangan' => 'nullable|string',
+            'paraf' => 'required|string',
+        ]);
+
+        $log->update([
+            'uraian_pemeliharaan' => $request->uraian_pemeliharaan,
+            'waktu_pelaksana' => $request->waktu_pelaksana,
+            'keterangan' => $request->keterangan ?? '',
+            'paraf' => $request->paraf,
+        ]);
+
+        return response()->json(['message' => 'Log pemeliharaan berhasil diperbarui', 'data' => $log], 200);
+    }
+
+    // Menghapus log pemeliharaan berdasarkan ID (Untuk Fitur Hapus)
+    public function destroy($id)
+    {
+        $log = LogPemeliharaanMesin::find($id);
+
+        if (!$log) {
+            return response()->json(['message' => 'Data log pemeliharaan tidak ditemukan'], 404);
+        }
+
+        $log->delete();
+
+        return response()->json(['message' => 'Log pemeliharaan berhasil dihapus'], 200);
     }
 }
