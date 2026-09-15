@@ -29,7 +29,6 @@ import {
   activateUser,
   resetUserPassword,
 } from "services/userService";
-import { getProfile } from "services/profileService";
 import api from "lib/api";
 
 import TanstackTable from "components/table/TanstackTable";
@@ -98,7 +97,7 @@ const DataUserManager = () => {
     loadUsers();
   }, []);
 
-  useEffect(() => {
+  const loadRoleColors = () => {
     api("/roles")
       .then((res: any) => {
         const data = res?.data || res || [];
@@ -108,6 +107,12 @@ const DataUserManager = () => {
         setRoleColorMap(map);
       })
       .catch(() => setRoleColorMap({}));
+  };
+
+  useEffect(() => {
+    loadRoleColors();
+    window.addEventListener("roles-updated", loadRoleColors);
+    return () => window.removeEventListener("roles-updated", loadRoleColors);
   }, []);
 
   const showSuccess = (msg: string) => {
@@ -118,7 +123,7 @@ const DataUserManager = () => {
     const filteredUsers = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
     return users
-      .filter((u) => isAdmin || u.role !== "Super Admin") // Sembunyikan Super Admin dari yang bukan Super Admin
+      .filter((u) => isSuperAdmin || u.role !== "Super Admin") // Hanya Super Admin yang bisa melihat user Super Admin
       .filter((u) => showDeleted || u.is_active) // Sembunyikan yang sudah "dihapus" kecuali toggle dinyalakan
       .filter(
         (u) =>
@@ -135,7 +140,7 @@ const DataUserManager = () => {
         // Di dalam grup yang sama, urutkan abjad nama
         return a.full_name.localeCompare(b.full_name);
       });
-  }, [users, searchTerm, showDeleted]);
+  }, [users, searchTerm, showDeleted, isAdmin, isSuperAdmin]);
 
   const openAddModal = () => {
     setActiveUser(null);
