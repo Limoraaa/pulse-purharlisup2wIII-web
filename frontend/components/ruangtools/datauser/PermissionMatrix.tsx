@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Form, Spinner, Button, Card, Row, Col, Alert, Badge, Breadcrumb, Modal, Dropdown } from 'react-bootstrap';
-import { IconDeviceFloppy, IconShieldLock, IconCircleCheck, IconPlus, IconTrash, IconDotsVertical, IconPalette } from '@tabler/icons-react';
+import { Form, Spinner, Button, Card, Row, Col, Alert, Badge, Breadcrumb, Modal } from 'react-bootstrap';
+import { IconDeviceFloppy, IconShieldLock, IconCircleCheck, IconTrash } from '@tabler/icons-react';
 import api from '/lib/api';
 
 interface RoleMatrix {
@@ -123,6 +123,7 @@ export default function PermissionMatrix() {
       setShowAddRoleModal(false);
       setNewRoleName('');
       setNewRoleColor('secondary');
+      window.dispatchEvent(new Event('roles-updated'));
       showSuccess(`Role "${created.name}" berhasil dibuat. Atur hak aksesnya di tabel di bawah.`);
     } catch (error: any) {
       setAddRoleError(error?.message || 'Gagal membuat role baru.');
@@ -138,6 +139,7 @@ export default function PermissionMatrix() {
         method: 'PATCH',
         body: JSON.stringify({ color }),
       });
+      window.dispatchEvent(new Event('roles-updated'));
     } catch (error) {
       console.error('Gagal menyimpan warna role', error);
     }
@@ -507,6 +509,11 @@ export default function PermissionMatrix() {
           <hr />
 
           <Form.Label className="fw-semibold">Role yang Sudah Ada</Form.Label>
+          {deleteError && (
+            <Alert variant="danger" className="mb-2" dismissible onClose={() => setDeleteError(null)}>
+              {deleteError}
+            </Alert>
+          )}
           <div className="d-flex flex-column gap-2">
             {roles.filter((r) => r.name !== 'Super Admin').map((role) => (
               <div key={role.id} className="d-flex align-items-center justify-content-between border rounded p-2">
@@ -553,12 +560,6 @@ export default function PermissionMatrix() {
           </Button>
         </Modal.Footer>
       </Modal>
-
-      {deleteError && (
-        <Alert variant="danger" className="mt-3" dismissible onClose={() => setDeleteError(null)}>
-          {deleteError}
-        </Alert>
-      )}
     </div>
   );
 }
