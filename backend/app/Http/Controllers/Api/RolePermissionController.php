@@ -69,6 +69,31 @@ class RolePermissionController extends Controller
     }
 
         // Mengubah warna role yang sudah ada
+    public function updateName(Request $request, $id)
+    {
+        $role = Role::find($id);
+        if (! $role) {
+            return response()->json(['message' => 'Role tidak ditemukan'], 404);
+        }
+
+        if ($role->name === 'Super Admin') {
+            return response()->json(['message' => 'Nama role Super Admin tidak dapat diubah.'], 422);
+        }
+
+        $request->validate([
+            'name' => 'required|string|max:255|unique:roles,name,' . $id,
+        ]);
+
+        if (strtolower(trim($request->name)) === 'super admin') {
+            return response()->json(['message' => 'Nama role tidak boleh "Super Admin".'], 422);
+        }
+
+        $role->update(['name' => trim($request->name)]);
+
+        return response()->json(['id' => $role->id, 'name' => $role->name, 'color' => $role->color]);
+    }
+
+    // Mengubah warna role yang sudah ada
     public function updateColor(Request $request, $id)
     {
         $allowedColors = ['primary', 'secondary', 'success', 'danger', 'warning', 'info', 'dark'];

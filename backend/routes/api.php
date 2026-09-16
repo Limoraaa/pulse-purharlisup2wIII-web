@@ -217,7 +217,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:view_pemeliharaan_mesin')->group(function () {
         // --- RUTE BARU: GET SEMUA LOG PEMELIHARAAN UNTUK EXPORT ---
         Route::get('/log-pemeliharaan', [LogPemeliharaanMesinController::class, 'index']);
-        
+
         Route::get('/log-pemeliharaan/mesin/{mesin_id}', [LogPemeliharaanMesinController::class, 'getByMesin']);
         Route::get('/log-aktivitas', [LogAktivitasMesinController::class, 'index']);
         Route::get('/log-aktivitas/mesin/{mesin_id}', [LogAktivitasMesinController::class, 'getByMesin']);
@@ -227,7 +227,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/log-pemeliharaan', [LogPemeliharaanMesinController::class, 'store']);
         Route::put('/log-pemeliharaan/{id}', [LogPemeliharaanMesinController::class, 'update']);
         Route::delete('/log-pemeliharaan/{id}', [LogPemeliharaanMesinController::class, 'destroy']);
-        
+
         Route::post('/log-aktivitas', [LogAktivitasMesinController::class, 'store']);
         Route::put('/log-aktivitas/{id}', [LogAktivitasMesinController::class, 'update']);
         Route::delete('/log-aktivitas/{id}', [LogAktivitasMesinController::class, 'destroy']);
@@ -253,6 +253,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/permissions/matrix', [RolePermissionController::class, 'updateMatrix']);
         Route::post('/roles', [RolePermissionController::class, 'store']);
         Route::patch('/roles/{id}/color', [RolePermissionController::class, 'updateColor']);
+        Route::patch('/roles/{id}/name', [RolePermissionController::class, 'updateName']);
         Route::delete('/roles/{id}', [RolePermissionController::class, 'destroy']);
         Route::get('/roles/{id}/permissions', [RolePermissionController::class, 'getRolePermissions']);
         Route::put('/roles/{id}/permissions', [RolePermissionController::class, 'updateRolePermissions']);
