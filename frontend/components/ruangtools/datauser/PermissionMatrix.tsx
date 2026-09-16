@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Form, Spinner, Button, Card, Row, Col, Alert, Badge, Breadcrumb, Modal } from 'react-bootstrap';
-import { IconDeviceFloppy, IconShieldLock, IconCircleCheck, IconTrash } from '@tabler/icons-react';
+import { IconDeviceFloppy, IconShieldLock, IconCircleCheck, IconPlus, IconTrash, IconDotsVertical, IconPalette, IconPencil, IconCheck, IconX } from '@tabler/icons-react';
 import api from '/lib/api';
 
 interface RoleMatrix {
@@ -46,6 +46,12 @@ export default function PermissionMatrix() {
 
   const [deletingRoleId, setDeletingRoleId] = useState<number | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [roleToDelete, setRoleToDelete] = useState<{ id: number; name: string } | null>(null);
+
+  const [editingRoleId, setEditingRoleId] = useState<number | null>(null);
+  const [editingName, setEditingName] = useState('');
+  const [savingName, setSavingName] = useState(false);
+  const [editNameError, setEditNameError] = useState<string | null>(null);
 
   // Daftar menu navbar sesuai urutan di sidebar aplikasi Anda
   const navbars: ModuleConfig[] = [
@@ -132,6 +138,45 @@ export default function PermissionMatrix() {
     }
   };
 
+const startEditName = (role: RoleMatrix) => {
+    setEditingRoleId(role.id);
+    setEditingName(role.name);
+    setEditNameError(null);
+  };
+
+  const cancelEditName = () => {
+    setEditingRoleId(null);
+    setEditingName('');
+    setEditNameError(null);
+  };
+
+  const saveEditName = async (roleId: number) => {
+    const name = editingName.trim();
+    if (!name) {
+      setEditNameError('Nama role tidak boleh kosong.');
+      return;
+    }
+
+    setSavingName(true);
+    setEditNameError(null);
+    try {
+      const res: any = await api(`/roles/${roleId}/name`, {
+        method: 'PATCH',
+        body: JSON.stringify({ name }),
+      });
+      const updated = res?.data || res;
+      setRoles((prev) => prev.map((r) => (r.id === roleId ? { ...r, name: updated?.name ?? name } : r)));
+      window.dispatchEvent(new Event('roles-updated'));
+      setEditingRoleId(null);
+      setEditingName('');
+      showSuccess('Nama role berhasil diperbarui.');
+    } catch (error: any) {
+      setEditNameError(error?.message || 'Gagal mengubah nama role.');
+    } finally {
+      setSavingName(false);
+    }
+  };
+
   const handleColorChange = async (roleId: number, color: string) => {
     setRoles((prev) => prev.map((r) => (r.id === roleId ? { ...r, color } : r)));
     try {
@@ -145,20 +190,27 @@ export default function PermissionMatrix() {
     }
   };
 
-  const handleDeleteRole = async (roleId: number, roleName: string) => {
-    if (!confirm(`Hapus role "${roleName}"? Tindakan ini tidak dapat dibatalkan.`)) return;
+ const handleDeleteRole = (roleId: number, roleName: string) => {
+    setRoleToDelete({ id: roleId, name: roleName });
+  };
+
+  const confirmDeleteRole = async () => {
+    if (!roleToDelete) return;
+    const { id: roleId, name: roleName } = roleToDelete;
 
     setDeletingRoleId(roleId);
     setDeleteError(null);
     try {
       await api(`/roles/${roleId}`, { method: 'DELETE' });
       setRoles((prev) => prev.filter((r) => r.id !== roleId));
+      window.dispatchEvent(new Event('roles-updated'));
       showSuccess(`Role "${roleName}" berhasil dihapus.`);
     } catch (error: any) {
       setDeleteError(error?.message || 'Gagal menghapus role.');
       setTimeout(() => setDeleteError(null), 5000);
     } finally {
       setDeletingRoleId(null);
+      setRoleToDelete(null);
     }
   };
 
@@ -516,47 +568,119 @@ export default function PermissionMatrix() {
           )}
           <div className="d-flex flex-column gap-2">
             {roles.filter((r) => r.name !== 'Super Admin').map((role) => (
-              <div key={role.id} className="d-flex align-items-center justify-content-between border rounded p-2">
-                <Badge bg={`${role.color ?? 'secondary'}-subtle`} text={`${role.color ?? 'secondary'}-emphasis` as any}>
-                  {roleDisplayLabel[role.name] ?? role.name}
-                </Badge>
-                <div className="d-flex align-items-center gap-3">
-                  <div className="d-flex gap-1">
-                    {AVAILABLE_COLORS.map((c) => (
-                      <span
-                        key={c.value}
-                        onClick={() => handleColorChange(role.id, c.value)}
-                        title={c.label}
-                        style={{
-                          width: 16,
-                          height: 16,
-                          borderRadius: '50%',
-                          cursor: 'pointer',
-                          display: 'inline-block',
-                          border: (role.color ?? 'secondary') === c.value ? '2px solid #333' : '1px solid #ddd',
+              <div key={role.id} className="border rounded p-2">
+                <div className="d-flex align-items-center justify-content-between">
+                  {editingRoleId === role.id ? (
+                    <div className="d-flex align-items-center gap-2 flex-grow-1 me-2">
+                      <Form.Control
+                        size="sm"
+                        type="text"
+                        value={editingName}
+                        onChange={(e) => setEditingName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') saveEditName(role.id);
+                          if (e.key === 'Escape') cancelEditName();
                         }}
-                        className={`bg-${c.value}`}
+                        autoFocus
+                        disabled={savingName}
                       />
-                    ))}
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="text-success p-0"
+                        onClick={() => saveEditName(role.id)}
+                        disabled={savingName}
+                        title="Simpan nama"
+                      >
+                        {savingName ? <Spinner size="sm" animation="border" /> : <IconCheck size={18} />}
+                      </Button>
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="text-secondary p-0"
+                        onClick={cancelEditName}
+                        disabled={savingName}
+                        title="Batal"
+                      >
+                        <IconX size={18} />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="d-flex align-items-center gap-2">
+                      <Badge bg={`${role.color ?? 'secondary'}-subtle`} text={`${role.color ?? 'secondary'}-emphasis` as any}>
+                        {roleDisplayLabel[role.name] ?? role.name}
+                      </Badge>
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="text-secondary p-0"
+                        onClick={() => startEditName(role)}
+                        title="Ubah nama role"
+                      >
+                        <IconPencil size={14} />
+                      </Button>
+                    </div>
+                  )}
+
+                  <div className="d-flex align-items-center gap-3">
+                    <div className="d-flex gap-1">
+                      {AVAILABLE_COLORS.map((c) => (
+                        <span
+                          key={c.value}
+                          onClick={() => handleColorChange(role.id, c.value)}
+                          title={c.label}
+                          style={{
+                            width: 16,
+                            height: 16,
+                            borderRadius: '50%',
+                            cursor: 'pointer',
+                            display: 'inline-block',
+                            border: (role.color ?? 'secondary') === c.value ? '2px solid #333' : '1px solid #ddd',
+                          }}
+                          className={`bg-${c.value}`}
+                        />
+                      ))}
+                    </div>
+                    <Button
+                      variant="link"
+                      size="sm"
+                      className="text-danger p-0"
+                      disabled={deletingRoleId === role.id}
+                      onClick={() => handleDeleteRole(role.id, role.name)}
+                      title="Hapus role"
+                    >
+                      {deletingRoleId === role.id ? <Spinner size="sm" animation="border" /> : <IconTrash size={16} />}
+                    </Button>
                   </div>
-                  <Button
-                    variant="link"
-                    size="sm"
-                    className="text-danger p-0"
-                    disabled={deletingRoleId === role.id}
-                    onClick={() => handleDeleteRole(role.id, role.name)}
-                    title="Hapus role"
-                  >
-                    {deletingRoleId === role.id ? <Spinner size="sm" animation="border" /> : <IconTrash size={16} />}
-                  </Button>
                 </div>
+                {editingRoleId === role.id && editNameError && (
+                  <div className="text-danger small mt-1">{editNameError}</div>
+                )}
               </div>
             ))}
           </div>
         </Modal.Body>
-        <Modal.Footer>
+          <Modal.Footer>
           <Button variant="secondary" onClick={() => { setShowAddRoleModal(false); setAddRoleError(null); setNewRoleName(''); }}>
             Tutup
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Modal Konfirmasi Hapus Role */}
+      <Modal show={!!roleToDelete} onHide={() => setRoleToDelete(null)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Hapus Role</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          Hapus role <strong>&quot;{roleToDelete?.name}&quot;</strong>? Tindakan ini tidak dapat dibatalkan.
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setRoleToDelete(null)} disabled={deletingRoleId !== null}>
+            Batal
+          </Button>
+          <Button variant="danger" onClick={confirmDeleteRole} disabled={deletingRoleId !== null}>
+            {deletingRoleId !== null ? <><Spinner size="sm" animation="border" /> Menghapus...</> : 'Hapus Role'}
           </Button>
         </Modal.Footer>
       </Modal>

@@ -73,7 +73,7 @@ export const getToolMasukColumns = ({
     cell: ({ row }) => (
       <span className="d-flex justify-content-center">
         <Badge bg="success-subtle" text="success-emphasis" className="fw-semibold">
-          +{row.original.jumlah_masuk}
+          +{row.original.jumlah_masuk.toLocaleString("id-ID")}
         </Badge>
       </span>
     ),

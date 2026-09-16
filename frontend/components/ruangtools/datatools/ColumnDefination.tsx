@@ -78,14 +78,18 @@ export const getDataToolsColumns = ({
     accessorKey: "stok",
     header: "Stok",
     cell: ({ row }) => (
-      <span className="text-center d-block">{row.original.stok}</span>
+      <span className="text-center d-block">
+        {row.original.stok.toLocaleString("id-ID")}
+      </span>
     ),
   },
   {
     accessorKey: "dipinjam",
     header: "Dipinjam",
     cell: ({ row }) => (
-      <span className="text-center d-block">{row.original.dipinjam}</span>
+      <span className="text-center d-block">
+        {row.original.dipinjam.toLocaleString("id-ID")}
+      </span>
     ),
   },
   {
@@ -109,7 +113,7 @@ export const getDataToolsColumns = ({
             text={habis ? "danger-emphasis" : "success-emphasis"}
             className="fw-semibold"
           >
-            {sisaStokReal >= 0 ? sisaStokReal : 0}
+            {(sisaStokReal >= 0 ? sisaStokReal : 0).toLocaleString("id-ID")}
           </Badge>
         </span>
       );
