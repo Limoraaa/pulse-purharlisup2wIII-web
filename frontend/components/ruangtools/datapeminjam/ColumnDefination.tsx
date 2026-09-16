@@ -7,6 +7,7 @@ import { PeminjamType } from "types/DataToolsTypes";
 import ActionMenu from "components/common/ActionMenu";
 
 interface ColumnHandlers {
+  canManage?: boolean;
   onEdit: (item: PeminjamType) => void;
   onDelete: (item: PeminjamType) => void; // nonaktifkan
   onAktifkan: (item: PeminjamType) => void;
@@ -16,6 +17,7 @@ interface ColumnHandlers {
 }
 
 export const getPeminjamColumns = ({
+  canManage = false,
   onEdit,
   onDelete,
   onAktifkan,
@@ -72,6 +74,10 @@ export const getPeminjamColumns = ({
       const item = row.original;
       const isToggling = togglingId === item.id;
       const isInventoryMan = item.role === "inventory man";
+
+      if (!canManage) {
+        return <span className="text-secondary">—</span>;
+      }
 
       return (
         <ActionMenu

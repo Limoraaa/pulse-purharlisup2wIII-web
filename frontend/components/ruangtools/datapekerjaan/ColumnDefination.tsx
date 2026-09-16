@@ -12,12 +12,13 @@ export interface Pekerjaan {
 }
 
 interface ColumnProps {
+  canManage?: boolean;
   onEdit: (pekerjaan: Pekerjaan) => void;
   onToggleStatus: (pekerjaan: Pekerjaan) => void;
   onDelete: (pekerjaan: Pekerjaan) => void;
 }
 
-export const getColumns = ({ onEdit, onToggleStatus, onDelete }: ColumnProps): ColumnDef<Pekerjaan>[] => [
+export const getColumns = ({ canManage = false, onEdit, onToggleStatus, onDelete }: ColumnProps): ColumnDef<Pekerjaan>[] => [
   {
     header: 'NAMA PEKERJAAN',
     accessorKey: 'nama_pekerjaan',
@@ -43,6 +44,11 @@ export const getColumns = ({ onEdit, onToggleStatus, onDelete }: ColumnProps): C
     id: 'actions',
     cell: (info) => {
       const pekerjaan = info.row.original;
+
+      if (!canManage) {
+        return <span className="text-muted">—</span>;
+      }
+
       return (
         <Dropdown>
           <Dropdown.Toggle as="div" bsPrefix=" " className="cursor-pointer text-muted" style={{ cursor: 'pointer' }}>

@@ -62,6 +62,7 @@ import {
 } from "services/consumableService";
 
 import api from "lib/api";
+import { usePermission } from "hooks/usePermissions";
 
 function sortByKode(items: ConsumableItemType[]): ConsumableItemType[] {
   return [...items].sort((a, b) =>
@@ -95,6 +96,7 @@ interface AntreanConsumableApiItem {
 const DataConsumableManager = () => {
   const dispatch = useAppDispatch();
   const tools = useAppSelector((state) => state.inventoryTools.tools);
+  const canManage = usePermission("manage_inventaris");
 
   const [consumables, setConsumables] = useState<ConsumableItemType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -644,17 +646,18 @@ const DataConsumableManager = () => {
     }
   };
 
-  const columns = useMemo(
+const columns = useMemo(
     () =>
       getConsumableColumns({
+        canManage,
         onDetail: openDetailModal,
         onEdit: openEditModal,
         onDelete: openDeleteModal,
         onStockOut: handleAddToCart,
       }),
-    [openDetailModal, openEditModal, openDeleteModal, handleAddToCart]
+    [openDetailModal, openEditModal, openDeleteModal, handleAddToCart, canManage]
   );
-
+  
   return (
     <div className="datatools-page">
       {successMessage && (
@@ -686,9 +689,11 @@ const DataConsumableManager = () => {
               <DasherBreadcrumb />
             </div>
             <div>
-              <Button variant="primary" className="d-flex align-items-center gap-2" onClick={openAddModal}>
-                <IconPlus size={18} /> Tambah Data
-              </Button>
+              {canManage && (
+                <Button variant="primary" className="d-flex align-items-center gap-2" onClick={openAddModal}>
+                  <IconPlus size={18} /> Tambah Data
+                </Button>
+              )}
             </div>
           </Flex>
         </Col>
@@ -740,9 +745,11 @@ const DataConsumableManager = () => {
               <div className="datatools-empty-icon mb-3"><IconBox size={32} /></div>
               <h5 className="mb-1">Belum ada data consumable</h5>
               <p className="text-secondary mb-4">Mulai dengan menambahkan bahan pertama ke Ruang Tools.</p>
-              <Button variant="primary" className="d-inline-flex align-items-center gap-2" onClick={openAddModal}>
-                <IconPlus size={18} /> Tambah Bahan
-              </Button>
+              {canManage && (
+                <Button variant="primary" className="d-inline-flex align-items-center gap-2" onClick={openAddModal}>
+                  <IconPlus size={18} /> Tambah Bahan
+                </Button>
+              )}
             </div>
           ) : filteredConsumables.length === 0 ? (
             <div className="datatools-empty text-center py-6">

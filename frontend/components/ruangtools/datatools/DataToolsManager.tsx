@@ -36,6 +36,7 @@ import {
 import { getConsumables } from "services/consumableService"; // Tambahan untuk Universal Scanner
 
 import api from "lib/api";
+import { usePermission } from "hooks/usePermissions";
 
 // import redux store
 import { useAppDispatch, useAppSelector } from "store/store";
@@ -118,6 +119,7 @@ const EXPORT_COLUMNS: ExportColumn[] = [
 const DataToolsManager = () => {
   const dispatch = useAppDispatch();
   const { mutate } = useSWRConfig();
+  const canManage = usePermission("manage_inventaris");
 
   // Data tools dari Redux store
   const tools = useAppSelector((state) => state.inventoryTools.tools);
@@ -597,6 +599,7 @@ const DataToolsManager = () => {
   const columns = useMemo(
     () =>
       getDataToolsColumns({
+        canManage,
         onDetail: openDetailModal,
         onEdit: openEditModal,
         onDelete: openDeleteModal,
@@ -612,7 +615,7 @@ const DataToolsManager = () => {
             maxJumlah: c.maxJumlah ?? 99,
           })),
       }),
-    [cart, handleAddToCart]
+    [cart, handleAddToCart, canManage]
   );
 
   return (
@@ -642,10 +645,12 @@ const DataToolsManager = () => {
               <DasherBreadcrumb />
             </div>
             <div>
-              <Button variant="primary" className="d-flex align-items-center gap-2" onClick={openAddModal}>
-                <IconPlus size={18} />
-                Tambah Data
-              </Button>
+              {canManage && (
+                <Button variant="primary" className="d-flex align-items-center gap-2" onClick={openAddModal}>
+                  <IconPlus size={18} />
+                  Tambah Data
+                </Button>
+              )}
             </div>
           </Flex>
         </Col>
@@ -698,9 +703,11 @@ const DataToolsManager = () => {
               <div className="datatools-empty-icon mb-3"><IconTool size={32} /></div>
               <h5 className="mb-1">Belum ada data tools</h5>
               <p className="text-secondary mb-4">Mulai dengan menambahkan peralatan pertama ke Ruang Tools.</p>
-              <Button variant="primary" className="d-inline-flex align-items-center gap-2" onClick={openAddModal}>
-                <IconPlus size={18} /> Tambah Data
-              </Button>
+              {canManage && (
+                <Button variant="primary" className="d-inline-flex align-items-center gap-2" onClick={openAddModal}>
+                  <IconPlus size={18} /> Tambah Data
+                </Button>
+              )}
             </div>
           ) : filteredTools.length === 0 ? (
             <div className="datatools-empty text-center py-6">

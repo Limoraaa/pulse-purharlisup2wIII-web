@@ -56,7 +56,7 @@ export default function PermissionMatrix() {
   // Daftar menu navbar sesuai urutan di sidebar aplikasi Anda
   const navbars: ModuleConfig[] = [
     { key: 'view_dashboard', label: 'Dashboard', type: 'switch' },
-    { key: 'view_inventaris', label: 'Inventaris', type: 'dropdown', managePerms: ['manage_inventaris'] },
+    { key: 'view_inventaris', label: 'Inventaris', type: 'dropdown', managePerms: ['manage_inventaris', 'manage_master_data'] },
     { key: 'view_transaksi', label: 'Transaksi', type: 'dropdown', managePerms: ['process_transaksi', 'manage_transaksi'] },
     { key: 'view_riwayat', label: 'Riwayat', type: 'switch' },
     { key: 'view_order', label: 'Pengajuan Order', type: 'dropdown', managePerms: ['create_order', 'process_order', 'manage_order'] },

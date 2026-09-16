@@ -8,10 +8,12 @@ import { getColumns, Pekerjaan } from './ColumnDefination';
 import PekerjaanFormModal from './PekerjaanFormModal';
 import DeleteConfirmModal from './DeleteConfirmModal';
 import apiFetch from "lib/api";
+import { usePermission } from "hooks/usePermissions";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
 export default function DataPekerjaanManager() {
+  const canManage = usePermission("manage_master_data");
   const [data, setData] = useState<Pekerjaan[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -108,11 +110,12 @@ export default function DataPekerjaanManager() {
     }
   };
 
-  const columns = useMemo(() => getColumns({
+ const columns = useMemo(() => getColumns({
+    canManage,
     onEdit: handleEdit,
     onToggleStatus: handleToggleStatus,
     onDelete: handleDeleteClick
-  }), [data]);
+  }), [data, canManage]);
 
   return (
     <div className="container-fluid p-4">
@@ -128,9 +131,11 @@ export default function DataPekerjaanManager() {
             <span className="text-muted">Data Pekerjaan</span>
           </div>
         </div>
-        <Button variant="primary" className="d-flex align-items-center gap-2" onClick={handleAdd}>
-          <IconPlus size={18} /> Tambah Data
-        </Button>
+        {canManage && (
+          <Button variant="primary" className="d-flex align-items-center gap-2" onClick={handleAdd}>
+            <IconPlus size={18} /> Tambah Data
+          </Button>
+        )}
       </div>
 
       <Card className="border-0 shadow-sm">
