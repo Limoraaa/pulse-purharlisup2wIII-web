@@ -39,6 +39,7 @@ import {
   aktifkanPeminta,
   updateRolePeminta,
 } from "services/pemintaService";
+import { usePermission } from "hooks/usePermissions";
 
 function sortByNama(items: PeminjamType[]): PeminjamType[] {
   return [...items].sort((a, b) => {
@@ -60,6 +61,7 @@ const EXPORT_COLUMNS: ExportColumn[] = [
 ];
 
 const PeminjamManager = () => {
+  const canManage = usePermission("manage_master_data");
   const [peminjamList, setPeminjamList] = useState<PeminjamType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -245,13 +247,14 @@ const PeminjamManager = () => {
   const columns = useMemo(
     () =>
       getPeminjamColumns({
+        canManage,
         onEdit: openEditModal,
         onDelete: openDeleteModal,
         onAktifkan: handleAktifkan,
         onGantiRole: handleGantiRole,
         togglingId,
       }),
-    [togglingId]
+    [togglingId, canManage]
   );
 
   return (
@@ -280,10 +283,12 @@ const PeminjamManager = () => {
               <DasherBreadcrumb />
             </div>
             <div>
-              <Button variant="primary" className="d-flex align-items-center gap-2" onClick={openAddModal}>
-                <IconPlus size={18} />
-                Tambah Data
-              </Button>
+              {canManage && (
+                <Button variant="primary" className="d-flex align-items-center gap-2" onClick={openAddModal}>
+                  <IconPlus size={18} />
+                  Tambah Data
+                </Button>
+              )}
             </div>
           </Flex>
         </Col>
@@ -353,14 +358,16 @@ const PeminjamManager = () => {
               <p className="text-secondary mb-4">
                 Mulai dengan menambahkan pegawai yang dapat meminjam alat atau mengambil bahan.
               </p>
-              <Button
-                variant="primary"
-                className="d-inline-flex align-items-center gap-2"
-                onClick={openAddModal}
-              >
-                <IconPlus size={18} />
-                Tambah Data
-              </Button>
+              {canManage && (
+                <Button
+                  variant="primary"
+                  className="d-inline-flex align-items-center gap-2"
+                  onClick={openAddModal}
+                >
+                  <IconPlus size={18} />
+                  Tambah Data
+                </Button>
+              )}
             </div>
           ) : filteredPeminjam.length === 0 ? (
             /* Empty state: hasil pencarian / filter kosong */

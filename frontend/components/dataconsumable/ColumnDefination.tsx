@@ -13,6 +13,7 @@ import ActionMenu from "components/common/ActionMenu";
 const formatNumber = (n: number) => n.toLocaleString("en-US");
 
 interface ColumnHandlers {
+  canManage?: boolean;
   onDetail: (consumable: ConsumableItemType) => void;
   onEdit: (consumable: ConsumableItemType) => void;
   onDelete: (consumable: ConsumableItemType) => void;
@@ -23,6 +24,7 @@ interface ColumnHandlers {
 }
 
 export const getConsumableColumns = ({
+  canManage = false,
   onDetail,
   onEdit,
   onDelete,
@@ -177,21 +179,23 @@ export const getConsumableColumns = ({
         }
       };
 
-      return (
+ return (
         <div className="dataconsumable-action-cell">
-          <div className="dataconsumable-action-main">
-          {/* Tombol Utama: Ambil Bahan */}
-          <button
-            type="button"
-            className="btn btn-primary btn-sm d-flex align-items-center gap-1"
-            disabled={isHabis}
-            title={isHabis ? "Stok habis" : "Ambil bahan"}
-            onClick={(e) => onStockOut(consumable, e)}
-          >
-            <IconShoppingCartPlus size={16} />
-            <span className="d-none d-lg-inline">Ambil Bahan</span>
-          </button>
-          </div>
+          {canManage && (
+            <div className="dataconsumable-action-main">
+            {/* Tombol Utama: Ambil Bahan */}
+            <button
+              type="button"
+              className="btn btn-primary btn-sm d-flex align-items-center gap-1"
+              disabled={isHabis}
+              title={isHabis ? "Stok habis" : "Ambil bahan"}
+              onClick={(e) => onStockOut(consumable, e)}
+            >
+              <IconShoppingCartPlus size={16} />
+              <span className="d-none d-lg-inline">Ambil Bahan</span>
+            </button>
+            </div>
+          )}
 
           {/* Menu Aksi Lainnya */}
           <div className="dataconsumable-action-menu">
@@ -205,15 +209,19 @@ export const getConsumableColumns = ({
             <Dropdown.Item onClick={() => onDetail(consumable)}>
               Detail Bahan
             </Dropdown.Item>
-            <Dropdown.Item onClick={() => onEdit(consumable)}>
-              Edit Data
-            </Dropdown.Item>
-            <Dropdown.Item
-              className="text-danger"
-              onClick={() => onDelete(consumable)}
-            >
-              Hapus Data
-            </Dropdown.Item>
+            {canManage && (
+              <Dropdown.Item onClick={() => onEdit(consumable)}>
+                Edit Data
+              </Dropdown.Item>
+            )}
+            {canManage && (
+              <Dropdown.Item
+                className="text-danger"
+                onClick={() => onDelete(consumable)}
+              >
+                Hapus Data
+              </Dropdown.Item>
+            )}
             
             {/* <-- Tambahan Menu Download QR --> */}
             <Dropdown.Item onClick={handleDownloadQR}>

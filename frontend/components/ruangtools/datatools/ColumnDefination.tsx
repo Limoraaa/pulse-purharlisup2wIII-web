@@ -21,6 +21,7 @@ const kondisiVariant = (kondisi: ToolCondition) => {
 };
 
 interface ColumnHandlers {
+  canManage?: boolean;
   onDetail: (tool: ToolItemType) => void;
   onEdit: (tool: ToolItemType) => void;
   onDelete: (tool: ToolItemType) => void;
@@ -29,6 +30,7 @@ interface ColumnHandlers {
 }
 
 export const getDataToolsColumns = ({
+  canManage = false,
   onDetail,
   onEdit,
   onDelete,
@@ -197,20 +199,22 @@ export const getDataToolsColumns = ({
 
       return (
         <div className="datatools-action-cell">
-          <div className="datatools-action-main">
-            <button
-              type="button"
-              className="btn btn-primary btn-sm d-flex align-items-center gap-1"
-              disabled={habis} 
-              title={habis ? "Stok habis (sudah masuk keranjang/dipinjam)" : "Tambah ke Peminjaman"}
-              onClick={(e) => onAddToCart(tool, e)}
-            >
-              <IconShoppingCartPlus size={16} />
-              <span className="d-none d-lg-inline">
-                {habis ? "Stok Habis" : "Tambah ke Peminjaman"}
-              </span>
-            </button>
-          </div>
+          {canManage && (
+            <div className="datatools-action-main">
+              <button
+                type="button"
+                className="btn btn-primary btn-sm d-flex align-items-center gap-1"
+                disabled={habis} 
+                title={habis ? "Stok habis (sudah masuk keranjang/dipinjam)" : "Tambah ke Peminjaman"}
+                onClick={(e) => onAddToCart(tool, e)}
+              >
+                <IconShoppingCartPlus size={16} />
+                <span className="d-none d-lg-inline">
+                  {habis ? "Stok Habis" : "Tambah ke Peminjaman"}
+                </span>
+              </button>
+            </div>
+          )}
           <div className="datatools-action-menu">
             <ActionMenu
               toggleButton={<IconDotsVertical size={20} />}
@@ -219,18 +223,22 @@ export const getDataToolsColumns = ({
               align="start"
               closeOnScroll
             >
-            <Dropdown.Item onClick={() => onDetail(tool)}>
+<Dropdown.Item onClick={() => onDetail(tool)}>
               Detail Alat
             </Dropdown.Item>
-            <Dropdown.Item onClick={() => onEdit(tool)}>
-              Edit Data
-            </Dropdown.Item>
-            <Dropdown.Item
-              className="text-danger"
-              onClick={() => onDelete(tool)}
-            >
-              Hapus Data
-            </Dropdown.Item>
+            {canManage && (
+              <Dropdown.Item onClick={() => onEdit(tool)}>
+                Edit Data
+              </Dropdown.Item>
+            )}
+            {canManage && (
+              <Dropdown.Item
+                className="text-danger"
+                onClick={() => onDelete(tool)}
+              >
+                Hapus Data
+              </Dropdown.Item>
+            )}
 
             {/* <-- Tambahan Menu Download QR --> */}
             <Dropdown.Item onClick={handleDownloadQR}>
