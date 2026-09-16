@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Button } from "react-bootstrap";
-import { IconClipboardList, IconActivity } from "@tabler/icons-react";
+import { IconClipboardList, IconActivity, IconQrcode } from "@tabler/icons-react";
 import Link from "next/link";
 
 // Tambahkan interface untuk menerima fungsi dari komponen induk (Manager)
@@ -10,6 +10,34 @@ interface UseMesinColumnsProps {
 }
 
 export const useMesinColumns = ({ onToggleStatus, onOpenDetail }: UseMesinColumnsProps) => {
+  
+  // Fungsi untuk mendownload QR Code berdasarkan kode mesin
+  const handleDownloadQR = async (mesin: any) => {
+    try {
+      // Teks yang akan disimpan di dalam QR Code
+      const qrText = `MESIN-${mesin.kode_mesin}`; 
+      const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrText)}`;
+
+      // Ambil gambar QR sebagai blob agar bisa di-download oleh browser
+      const response = await fetch(qrApiUrl);
+      const blob = await response.blob();
+      
+      // Buat link unduhan virtual
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = `QR-Code-${mesin.kode_mesin}.png`;
+      document.body.appendChild(link);
+      link.click();
+      
+      // Bersihkan DOM
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      alert("Gagal mendownload QR Code");
+    }
+  };
+
   return useMemo(
     () => [
       { header: "No", cell: (info: any) => info.row.index + 1 },
@@ -47,7 +75,7 @@ export const useMesinColumns = ({ onToggleStatus, onOpenDetail }: UseMesinColumn
         cell: (info: any) => {
           const mesin = info.row.original;
           return (
-            <div className="d-flex gap-2">
+            <div className="d-flex flex-wrap gap-2 align-items-center">
               {/* Gunakan fungsi onOpenDetail untuk beralih viewMode */}
               <Button 
                 variant="outline-primary" 
@@ -57,11 +85,23 @@ export const useMesinColumns = ({ onToggleStatus, onOpenDetail }: UseMesinColumn
               >
                 <IconClipboardList size={14} /> Pemeliharaan
               </Button>
+              
               <Link href={`/pemeliharaan/aktivitas-mesin?id=${mesin.id}`}>
                 <Button variant="outline-success" size="sm" className="d-flex align-items-center gap-1">
                   <IconActivity size={14} /> Aktivitas
                 </Button>
               </Link>
+
+              {/* Tombol Download QR Code */}
+              <Button
+                variant="outline-secondary"
+                size="sm"
+                className="d-flex align-items-center gap-1"
+                title="Download QR Code Mesin"
+                onClick={() => handleDownloadQR(mesin)}
+              >
+                <IconQrcode size={14} /> QR
+              </Button>
             </div>
           );
         },

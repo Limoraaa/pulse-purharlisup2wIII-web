@@ -215,18 +215,19 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::middleware('permission:view_pemeliharaan_mesin')->group(function () {
+        // --- RUTE BARU: GET SEMUA LOG PEMELIHARAAN UNTUK EXPORT ---
+        Route::get('/log-pemeliharaan', [LogPemeliharaanMesinController::class, 'index']);
+        
         Route::get('/log-pemeliharaan/mesin/{mesin_id}', [LogPemeliharaanMesinController::class, 'getByMesin']);
         Route::get('/log-aktivitas', [LogAktivitasMesinController::class, 'index']);
         Route::get('/log-aktivitas/mesin/{mesin_id}', [LogAktivitasMesinController::class, 'getByMesin']);
     });
 
     Route::middleware('permission:process_pemeliharaan_mesin')->group(function () {
-        // Log Pemeliharaan (CRUD Lengkap)
         Route::post('/log-pemeliharaan', [LogPemeliharaanMesinController::class, 'store']);
         Route::put('/log-pemeliharaan/{id}', [LogPemeliharaanMesinController::class, 'update']);
         Route::delete('/log-pemeliharaan/{id}', [LogPemeliharaanMesinController::class, 'destroy']);
         
-        // Log Aktivitas (CRUD Lengkap)
         Route::post('/log-aktivitas', [LogAktivitasMesinController::class, 'store']);
         Route::put('/log-aktivitas/{id}', [LogAktivitasMesinController::class, 'update']);
         Route::delete('/log-aktivitas/{id}', [LogAktivitasMesinController::class, 'destroy']);
