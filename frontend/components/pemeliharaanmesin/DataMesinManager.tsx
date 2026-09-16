@@ -67,6 +67,16 @@ const EXPORT_COLUMNS_LOG: ExportColumn[] = [
   { header: "Paraf", key: "paraf" },
 ];
 
+// Kolom untuk export seluruh log semua mesin
+const EXPORT_COLUMNS_ALL_LOGS: ExportColumn[] = [
+  { header: "Kode Mesin", key: "kode_mesin" },
+  { header: "Nama Mesin", key: "nama_mesin" },
+  { header: "Uraian Pemeliharaan", key: "uraian_pemeliharaan" },
+  { header: "Tanggal", key: "waktu_pelaksana" },
+  { header: "Keterangan", key: "keterangan" },
+  { header: "Teknisi", key: "paraf" },
+];
+
 const DataMesinManager = () => {
   const [viewMode, setViewMode] = useState<"list" | "detail">("list");
   const [selectedMesin, setSelectedMesin] = useState<MesinItemType | null>(null);
@@ -83,6 +93,7 @@ const DataMesinManager = () => {
   const [logs, setLogs] = useState<LogItemType[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
+  const [exportingAll, setExportingAll] = useState(false); // State loading untuk export seluruh log
   
   // State Khusus Form Modal (Tambah & Edit Log)
   const [showLogModal, setShowLogModal] = useState(false); 
@@ -168,15 +179,45 @@ const DataMesinManager = () => {
     });
   }, [mesinList, searchTerm]);
 
+  // Export Data Mesin
   const handleExportPDF = () =>
     exportToPDF(filteredMesin as unknown as Record<string, unknown>[], EXPORT_COLUMNS_MESIN, "data-mesin-produksi", "Data Mesin Produksi");
   const handleExportExcel = () =>
     exportToExcel(filteredMesin as unknown as Record<string, unknown>[], EXPORT_COLUMNS_MESIN, "data-mesin-produksi");
 
+  // Export Log Spesifik Mesin
   const handleExportLogPDF = () =>
     exportToPDF(logs as unknown as Record<string, unknown>[], EXPORT_COLUMNS_LOG, `kartu-gantung-${selectedMesin?.kode_mesin}`, `Kartu Gantung - ${selectedMesin?.nama_mesin}`);
   const handleExportLogExcel = () =>
     exportToExcel(logs as unknown as Record<string, unknown>[], EXPORT_COLUMNS_LOG, `kartu-gantung-${selectedMesin?.kode_mesin}`);
+
+  // Export Seluruh Log Pemeliharaan
+  const handleExportAllLogs = async (type: 'pdf' | 'excel') => {
+    setExportingAll(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await api<{ data: any[] }>("/log-pemeliharaan", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      const allLogs = res.data || [];
+      if (allLogs.length === 0) {
+        alert("Belum ada data log pemeliharaan yang tercatat di sistem.");
+        return;
+      }
+
+      if (type === 'pdf') {
+        exportToPDF(allLogs, EXPORT_COLUMNS_ALL_LOGS, "semua-log-pemeliharaan", "Seluruh Riwayat Pemeliharaan Mesin");
+      } else {
+        exportToExcel(allLogs, EXPORT_COLUMNS_ALL_LOGS, "semua-log-pemeliharaan");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Gagal mengambil seluruh data log pemeliharaan");
+    } finally {
+      setExportingAll(false);
+    }
+  };
 
   const handleOpenAddModal = () => {
     setEditingLogId(null);
@@ -304,7 +345,7 @@ const DataMesinManager = () => {
           <Card className="card-lg mb-4">
             <div className="datatools-toolbar border-bottom p-2 p-md-3">
               <Row className="g-2 align-items-center">
-                <Col xs={12} md={5}>
+                <Col xs={12} md={4}>
                   <InputGroup className="datatools-search input-group-sm">
                     <InputGroup.Text><IconSearch size={16} /></InputGroup.Text>
                     <Form.Control
@@ -320,12 +361,26 @@ const DataMesinManager = () => {
                     )}
                   </InputGroup>
                 </Col>
-                <Col xs={6} md={3} className="text-muted small">
-                  <span className="fw-semibold text-body">{filteredMesin.length}</span> dari {mesinList.length} data
-                </Col>
-                <Col xs={6} md={4} className="d-flex justify-content-end gap-1">
-                  <Button variant="outline-danger" size="sm" className="py-1 px-2 text-danger fw-semibold" style={{ fontSize: "0.75rem" }} onClick={handleExportPDF}>PDF</Button>
-                  <Button variant="outline-success" size="sm" className="py-1 px-2 text-success fw-semibold" style={{ fontSize: "0.75rem" }} onClick={handleExportExcel}>Excel</Button>
+                <Col xs={12} md={8} className="d-flex justify-content-md-end gap-1 flex-wrap align-items-center">
+                  
+                  {/* Ekspor Data Mesin */}
+                  <div className="d-flex align-items-center me-md-2 border-end pe-md-2 mb-2 mb-md-0">
+                    <span className="me-2 small text-secondary" style={{ fontSize: "0.7rem" }}>Data Mesin:</span>
+                    <Button variant="outline-danger" size="sm" className="py-1 px-2 mx-1" style={{ fontSize: "0.75rem" }} onClick={handleExportPDF}>PDF</Button>
+                    <Button variant="outline-success" size="sm" className="py-1 px-2" style={{ fontSize: "0.75rem" }} onClick={handleExportExcel}>Excel</Button>
+                  </div>
+
+                  {/* Ekspor Seluruh Log */}
+                  <div className="d-flex align-items-center mb-2 mb-md-0">
+                    <span className="me-2 small text-secondary" style={{ fontSize: "0.7rem" }}>Seluruh Log Pemeliharaan:</span>
+                    <Button variant="outline-danger" size="sm" className="py-1 px-2 mx-1" style={{ fontSize: "0.75rem" }} onClick={() => handleExportAllLogs('pdf')} disabled={exportingAll}>
+                      {exportingAll ? <Spinner size="sm" /> : 'PDF'}
+                    </Button>
+                    <Button variant="outline-success" size="sm" className="py-1 px-2" style={{ fontSize: "0.75rem" }} onClick={() => handleExportAllLogs('excel')} disabled={exportingAll}>
+                      {exportingAll ? <Spinner size="sm" /> : 'Excel'}
+                    </Button>
+                  </div>
+                  
                 </Col>
               </Row>
             </div>
@@ -385,9 +440,9 @@ const DataMesinManager = () => {
                   </nav>
                 </div>
                 <div className="d-flex flex-wrap gap-1 mt-1 mt-md-0">
-                  <Button variant="outline-danger" size="sm" className="py-1 px-2 text-danger fw-semibold" style={{ fontSize: "0.75rem" }} onClick={handleExportLogPDF}>PDF</Button>
-                  <Button variant="outline-success" size="sm" className="py-1 px-2 text-success fw-semibold" style={{ fontSize: "0.75rem" }} onClick={handleExportLogExcel}>Excel</Button>
-                  <Button variant="outline-secondary" size="sm" className="py-1 px-2 text-body d-flex align-items-center gap-1 fw-semibold" style={{ fontSize: "0.75rem" }} onClick={() => setViewMode("list")}>
+                  <Button variant="outline-danger" size="sm" className="py-1 px-2" style={{ fontSize: "0.75rem" }} onClick={handleExportLogPDF}>PDF</Button>
+                  <Button variant="outline-success" size="sm" className="py-1 px-2" style={{ fontSize: "0.75rem" }} onClick={handleExportLogExcel}>Excel</Button>
+                  <Button variant="outline-secondary" size="sm" className="py-1 px-2 d-flex align-items-center gap-1" style={{ fontSize: "0.75rem" }} onClick={() => setViewMode("list")}>
                     <IconArrowLeft size={14} /> Kembali
                   </Button>
                 </div>
@@ -495,10 +550,10 @@ const DataMesinManager = () => {
         </div>
       )}
 
-      {/* MODAL POP-UP FORM PEMELIHARAAN (COMPACT & DARK MODE SAFE) */}
+      {/* MODAL POP-UP FORM PEMELIHARAAN (COMPACT) */}
       <Modal show={showLogModal} onHide={() => setShowLogModal(false)} centered backdrop="static">
         <Modal.Header closeButton className="py-2 px-3">
-          <Modal.Title className="fs-6 fw-bold text-body">
+          <Modal.Title className="fs-6 fw-bold text-dark">
             {editingLogId ? "Edit Catatan Pemeliharaan" : "Tambah Catatan Pemeliharaan"}
           </Modal.Title>
         </Modal.Header>
@@ -553,7 +608,7 @@ const DataMesinManager = () => {
 
           </Modal.Body>
           <Modal.Footer className="bg-light py-2 px-3">
-            <Button variant="outline-secondary" size="sm" className="text-body" onClick={() => setShowLogModal(false)}>
+            <Button variant="outline-secondary" size="sm" onClick={() => setShowLogModal(false)}>
               Batal
             </Button>
             <Button variant="primary" size="sm" type="submit" disabled={submitLoading} className="fw-semibold px-3">

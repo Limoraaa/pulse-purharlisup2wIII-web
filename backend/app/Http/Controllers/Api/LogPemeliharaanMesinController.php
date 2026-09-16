@@ -9,6 +9,24 @@ use Illuminate\Http\Request;
 
 class LogPemeliharaanMesinController extends Controller
 {
+    // Mengambil SEMUA log pemeliharaan dari semua mesin
+    public function index()
+    {
+        $logs = LogPemeliharaanMesin::orderBy('waktu_pelaksana', 'desc')->get()->map(function ($item) {
+            $mesin = MesinProduksi::find($item->mesin_produksi_id);
+            return [
+                'id' => $item->id,
+                'kode_mesin' => $mesin ? $mesin->kode_mesin : '-',
+                'nama_mesin' => $mesin ? $mesin->nama_mesin : '-',
+                'uraian_pemeliharaan' => $item->uraian_pemeliharaan,
+                'waktu_pelaksana' => $item->waktu_pelaksana,
+                'keterangan' => $item->keterangan,
+                'paraf' => $item->paraf,
+            ];
+        });
+
+        return response()->json(['data' => $logs], 200);
+    }
     // Method untuk statistik dashboard pemeliharaan terpisah
     public function getDashboardStats()
     {
