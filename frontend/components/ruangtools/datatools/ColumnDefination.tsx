@@ -9,6 +9,8 @@ import { ToolItemType, ToolCondition, CartItemType } from "types/DataToolsTypes"
 
 // import custom components
 import ActionMenu from "components/common/ActionMenu";
+import { kodeBarangSortingFn } from "components/table/kodeBarangSort";
+import KodeBarangSortHeader from "components/table/KodeBarangSortHeader";
 
 // warna badge sesuai kondisi alat
 const kondisiVariant = (kondisi: ToolCondition) => {
@@ -37,7 +39,11 @@ export const getDataToolsColumns = ({
 }: ColumnHandlers): ColumnDef<ToolItemType>[] => [
   {
     accessorKey: "kodeBarang",
-    header: "Kode Barang",
+    header: ({ column }) => (
+      <KodeBarangSortHeader label="Kode Barang" sortState={column.getIsSorted()} />
+    ),
+    meta: { hideDefaultSortIcon: true },
+    sortingFn: kodeBarangSortingFn,
     cell: ({ row }) => (
       <span className="fw-semibold">{row.original.kodeBarang}</span>
     ),

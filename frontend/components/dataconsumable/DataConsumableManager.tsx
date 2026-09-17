@@ -651,7 +651,15 @@ const DataConsumableManager = () => {
         onEdit: openEditModal,
         onDelete: openDeleteModal,
         onStockOut: handleAddToCart,
-      }),
+        // Hanya kolom Kode Barang yang boleh di-sort; kolom lain dikunci
+        // agar klik header-nya tidak mengubah urutan data.
+      }).map((col) => ({
+        ...col,
+        enableSorting:
+          "accessorKey" in col && col.accessorKey === "kode_barang",
+        // Siklus klik: Neutral → Asc → Desc → Asc (tidak kembali neutral)
+        enableSortingRemoval: false,
+      })),
     [openDetailModal, openEditModal, openDeleteModal, handleAddToCart]
   );
 
@@ -754,7 +762,7 @@ const DataConsumableManager = () => {
               </Button>
             </div>
           ) : (
-            <TanstackTable data={filteredConsumables} columns={columns} pagination />
+            <TanstackTable data={filteredConsumables} columns={columns} pagination isSortable />
           )}
         </CardBody>
       </Card>
