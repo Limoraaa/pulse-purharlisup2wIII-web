@@ -33,18 +33,9 @@ Route::get('/peminjaman/antrean', [PeminjamanController::class, 'antrean']);
 Route::patch('/peminjaman/cart/{id}', [PeminjamanController::class, 'updateCartItem']);
 Route::delete('/peminjaman/cart/{id}', [PeminjamanController::class, 'removeCartItem']);
 
-Route::get('/order-consumable', [OrderConsumableController::class, 'index']);
-Route::post('/order-consumable', [OrderConsumableController::class, 'store']);
-Route::put('/order-consumable/{id}', [OrderConsumableController::class, 'update']);
-Route::put('/order-consumable/{id}/status', [OrderConsumableController::class, 'updateStatus']);
-Route::delete('/order-consumable/{id}', [OrderConsumableController::class, 'destroy']);
 
-// --- ORDER TOOLS ---
-Route::get('/order-tools', [OrderToolController::class, 'index']);
-Route::post('/order-tools', [OrderToolController::class, 'store']);
-Route::put('/order-tools/{id}/status', [OrderToolController::class, 'updateStatus']);
-Route::delete('/order-tools/{id}', [OrderToolController::class, 'destroy']);
-Route::put('/order-tools/{id}', [OrderToolController::class, 'update']);
+
+
 
 Route::post('/consumable-keluar/scan', [ConsumableKeluarController::class, 'scan']);
 Route::get('/consumable-keluar/antrean', [ConsumableKeluarController::class, 'antrean']);
@@ -125,7 +116,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('consumable', ConsumableController::class)->except(['index', 'show']);
     });
 
-    Route::middleware('permission:manage_inventaris|manage_transaksi')->group(function () {
+    Route::middleware('permission:manage_transaksi')->group(function () {
         Route::apiResource('tools-masuk', ToolMasukController::class)->except(['index', 'show']);
         Route::apiResource('consumable-masuk', ConsumableMasukController::class)->except(['index', 'show']);
     });
@@ -179,10 +170,28 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/order-tools', [OrderToolController::class, 'store']);
     });
 
+     Route::middleware('permission:process_order|manage_order')->group(function () {
+        Route::put('/order-consumable/{id}/status', [OrderConsumableController::class, 'updateStatus']);
+        Route::put('/order-consumable/{id}', [OrderConsumableController::class, 'update']);
+        Route::delete('/order-consumable/{id}', [OrderConsumableController::class, 'destroy']);
+        Route::put('/order-tools/{id}/status', [OrderToolController::class, 'updateStatus']);
+        Route::put('/order-tools/{id}', [OrderToolController::class, 'update']);
+        Route::delete('/order-tools/{id}', [OrderToolController::class, 'destroy']);
+    });
+
+    Route::middleware('permission:view_order')->group(function () {
+        Route::get('/order-tools', [OrderToolController::class, 'index']);
+    });
+
+    Route::middleware('permission:create_order')->group(function () {
+        Route::post('/order-tools', [OrderToolController::class, 'store']);
+    });
+
     Route::middleware('permission:process_order|manage_order')->group(function () {
         Route::put('/order-consumable/{id}/status', [OrderConsumableController::class, 'updateStatus']);
         Route::put('/order-tools/{id}/status', [OrderToolController::class, 'updateStatus']);
         Route::put('/order-tools/{id}', [OrderToolController::class, 'update']);
+        Route::delete('/order-tools/{id}', [OrderToolController::class, 'destroy']);
     });
 
 
@@ -237,6 +246,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // ==========================================
     // DOMAIN: ADMINISTRASI
     // ==========================================
+    Route::middleware('permission:view_users|manage_users')->group(function () {
+        Route::get('/roles', [RolePermissionController::class, 'index']);
+    });
+
     Route::middleware('permission:view_users')->group(function () {
         Route::apiResource('users', UserController::class)->only(['index', 'show']);
     });
@@ -245,7 +258,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('users', UserController::class)->except(['index', 'show']);
         Route::patch('/users/{id}/reset-password', [UserController::class, 'resetPassword']);
         Route::patch('/users/{id}/aktifkan', [UserController::class, 'activate']);
-        Route::get('/roles', [RolePermissionController::class, 'index']);
     });
 
     Route::middleware('role:Super Admin')->group(function () {

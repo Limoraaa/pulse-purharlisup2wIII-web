@@ -167,7 +167,7 @@ export default function DataPekerjaanManager() {
                   <tr>
                     <th className="fw-semibold py-3 border-0">NAMA PEKERJAAN</th>
                     <th className="fw-semibold py-3 border-0">STATUS</th>
-                    <th className="fw-semibold py-3 border-0">AKSI</th>
+                    {canManage && <th className="fw-semibold py-3 border-0">AKSI</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -189,7 +189,7 @@ export default function DataPekerjaanManager() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={3} className="text-center py-4 text-muted">Belum ada data pekerjaan.</td>
+                      <td colSpan={canManage ? 3 : 2} className="text-center py-4 text-muted">Belum ada data pekerjaan.</td>
                     </tr>
                   )}
                 </tbody>

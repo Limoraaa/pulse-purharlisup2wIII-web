@@ -35,6 +35,7 @@ import DetailLaporanModal from "components/ruangtools/laporan/kerusakan/DetailLa
 import ConfirmActionModal from "components/ruangtools/laporan/kerusakan/ConfirmActionModal";
 
 import { getLaporanKerusakan, repairLaporanKerusakan, tandaiPermanenLaporanKerusakan } from "services/laporanKerusakanService";
+import { usePermission } from "hooks/usePermissions";
 
 const EXPORT_COLUMNS: ExportColumn[] = [
   { header: "Tgl & Jam Pengembalian", key: "tanggal_pengembalian" },
@@ -58,6 +59,7 @@ const EXPORT_COLUMNS: ExportColumn[] = [
   };
 
 const LaporanKerusakanManager = () => {
+  const canProcess = usePermission(["process_kerusakan_alat", "manage_kerusakan_alat"]);
   const [laporanList, setLaporanList] = useState<LaporanKerusakanType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -222,6 +224,7 @@ const LaporanKerusakanManager = () => {
     exportToExcel(filteredList, EXPORT_COLUMNS, getFilteredExportFileName("Laporan_Kerusakan_Alat", namaFilter));
 
   const columns = getLaporanKerusakanColumns({
+  canProcess,
   onDetail: openDetailModal,
   onRepair: handleRepair,
   onTandaiPermanen: handleTandaiPermanen,   // ← tambahkan

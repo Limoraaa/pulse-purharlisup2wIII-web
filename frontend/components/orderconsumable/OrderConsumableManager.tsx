@@ -10,6 +10,7 @@ import { Modal } from "react-bootstrap";
 import OrderConsumableFormModal from './OrderConsumableFormModal';
 import OrderConsumableEditModal from './OrderConsumableEditModal';
 import { getOrderConsumables, updateOrderConsumableStatus, deleteOrderConsumable } from '/services/orderConsumableService';
+import { usePermission } from "hooks/usePermissions";
 
 import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
 
@@ -54,6 +55,8 @@ const EXPORT_COLUMNS_ORDER: ExportColumn[] = [
 ];
 
 export default function OrderConsumableManager() {
+  const canCreate = usePermission("create_order");
+  const canProcess = usePermission(["process_order", "manage_order"]);
   const [orders, setOrders] = useState<OrderData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -184,7 +187,8 @@ export default function OrderConsumableManager() {
     );
   };
 
-  const columns = useMemo(() => [
+  const columns = useMemo(() => {
+    const baseColumns = [
     {
       header: "No",
       id: "no",
@@ -219,6 +223,17 @@ export default function OrderConsumableManager() {
       cell: ({ row }: any) => {
         const status = row.original.status_pembelian;
         const variantClass = STATUS_VARIANTS[status] || 'bg-secondary';
+
+        if (!canProcess) {
+          const labelMap: Record<string, string> = {
+            'belum dibeli': 'Belum Dibeli',
+            'on progres': 'On Progres',
+            'sudah dibeli': 'Sudah Dibeli',
+            'ditolak': 'Ditolak',
+          };
+          return <span className="badge bg-secondary-subtle text-secondary-emphasis">{labelMap[status] || status}</span>;
+        }
+
         return (
           <Form.Select
             size="sm"
@@ -266,7 +281,10 @@ export default function OrderConsumableManager() {
         </div>
       ),
     },
-  ], []);
+    ];
+
+    return canProcess ? baseColumns : baseColumns.filter((col) => col.id !== "aksi");
+  }, [canProcess]);
 
   return (
     <div className="order-consumable-page">
@@ -294,14 +312,16 @@ export default function OrderConsumableManager() {
             </div>
 
             <div className="mt-3 mt-md-0">
-              <Button
-                variant="primary"
-                className="d-inline-flex align-items-center gap-2"
-                onClick={() => setIsModalOpen(true)}
-              >
-                <IconShoppingCart size={18} />
-                Buat Order
-              </Button>
+              {canCreate && (
+                <Button
+                  variant="primary"
+                  className="d-inline-flex align-items-center gap-2"
+                  onClick={() => setIsModalOpen(true)}
+                >
+                  <IconShoppingCart size={18} />
+                  Buat Order
+                </Button>
+              )}
             </div>
           </Flex>
         </Col>
