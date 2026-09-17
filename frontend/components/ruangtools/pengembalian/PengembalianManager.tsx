@@ -11,6 +11,7 @@ import { PeminjamanAktifItemType } from "types/DataToolsTypes";
 // import services
 import { getPeminjamanAktif, tandaiDikembalikan } from "services/peminjamanService";
 import { getPemintaAktif } from "services/pemintaService";
+import { usePermission } from "hooks/usePermissions";
 
 // import custom components
 import Flex from "components/common/Flex";
@@ -22,6 +23,7 @@ import PengembalianChecklist, {
 } from "components/ruangtools/pengembalian/PengembalianChecklist";
 
 const PengembalianManager = () => {
+  const canProcess = usePermission(["process_transaksi", "manage_transaksi"]);
   const [items, setItems] = useState<PeminjamanAktifItemType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -238,7 +240,11 @@ const PengembalianManager = () => {
 
       {error && <Alert variant="danger">{error}</Alert>}
 
-      {loading ? (
+      {!canProcess ? (
+        <Alert variant="warning">
+          Anda tidak memiliki akses untuk memproses pengembalian alat. Hubungi Admin jika perlu.
+        </Alert>
+      ) : loading ? (
         <div className="text-center py-6">
           <Spinner animation="border" size="sm" className="me-2" />
           Memuat data...

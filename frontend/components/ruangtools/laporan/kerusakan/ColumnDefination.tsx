@@ -11,13 +11,14 @@ import { LaporanKerusakanType } from "types/LaporanKerusakanTypes";
 import ActionMenu from "components/common/ActionMenu";
 
 interface ColumnHandlers {
+  canProcess?: boolean;
   onDetail: (item: LaporanKerusakanType) => void;
   onRepair: (item: LaporanKerusakanType) => void;
   onTandaiPermanen: (item: LaporanKerusakanType) => void; 
 }
 
-
 export const getLaporanKerusakanColumns = ({
+  canProcess = false,
   onDetail,
   onRepair,
   onTandaiPermanen,
@@ -115,7 +116,7 @@ export const getLaporanKerusakanColumns = ({
       const item = row.original;
       const bisaDiperbaiki = item.status === "bisa_diperbaiki";
 
-      return (
+       return (
         <ActionMenu
           toggleButton={<IconDotsVertical size={20} />}
           className="btn btn-ghost btn-icon btn-sm rounded-circle"
@@ -125,7 +126,7 @@ export const getLaporanKerusakanColumns = ({
            <Dropdown.Item onClick={() => onDetail(item)}>
             Detail Laporan
           </Dropdown.Item>
-          {bisaDiperbaiki && (
+          {canProcess && bisaDiperbaiki && (
             <>
               <Dropdown.Item className="text-success" onClick={() => onRepair(item)}>
                 Repair Alat

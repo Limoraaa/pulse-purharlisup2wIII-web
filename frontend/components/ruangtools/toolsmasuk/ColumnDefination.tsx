@@ -11,6 +11,7 @@ import { ToolMasukType } from "types/DataToolsTypes";
 import ActionMenu from "components/common/ActionMenu";
 
 interface ColumnHandlers {
+  canManage?: boolean;
   onEdit: (item: ToolMasukType) => void;
   onDelete: (item: ToolMasukType) => void;
 }
@@ -32,85 +33,90 @@ const formatTanggal = (raw: string): string => {
 };
 
 export const getToolMasukColumns = ({
+  canManage = false,
   onEdit,
   onDelete,
-}: ColumnHandlers): ColumnDef<ToolMasukType>[] => [
-  {
-    accessorKey: "tanggal",
-    header: "Tanggal",
-    cell: ({ row }) => formatTanggal(row.original.tanggal),
-  },
-  {
-    accessorKey: "kode_barang",
-    header: "Kode Barang",
-    cell: ({ row }) => (
-      <span className="fw-semibold">{row.original.kode_barang}</span>
-    ),
-  },
-  {
-    accessorKey: "nama_barang",
-    header: "Nama Barang",
-  },
-  {
-    accessorKey: "merk",
-    header: "Merk",
-  },
-  {
-    accessorKey: "tipe",
-    header: "Tipe",
-  },
-  {
-    accessorKey: "warna",
-    header: "Warna",
-  },
-  {
-    accessorKey: "ukuran",
-    header: "Ukuran",
-  },
-  {
-    accessorKey: "jumlah_masuk",
-    header: "Jumlah Masuk",
-    cell: ({ row }) => (
-      <span className="d-flex justify-content-center">
-        <Badge bg="success-subtle" text="success-emphasis" className="fw-semibold">
-          +{row.original.jumlah_masuk.toLocaleString("id-ID")}
-        </Badge>
-      </span>
-    ),
-  },
-  {
-    id: "penginput",
-    header: "Penginput",
-    cell: ({ row }) => {
-      const penginput = row.original.dicatatOleh;
-      const userName = penginput?.name || "Tidak Diketahui";
-      return <span className="fw-medium text-gray-700">{userName}</span>;
+}: ColumnHandlers): ColumnDef<ToolMasukType>[] => {
+  const baseColumns: ColumnDef<ToolMasukType>[] = [
+    {
+      accessorKey: "tanggal",
+      header: "Tanggal",
+      cell: ({ row }) => formatTanggal(row.original.tanggal),
     },
-  },
-  {
-    accessorKey: "keterangan",
-    header: "Keterangan",
-  },
-  {
-    id: "aksi",
-    header: "Aksi",
-    cell: ({ row }) => (
-      <ActionMenu
-        toggleButton={<IconDotsVertical size={20} />}
-        className="btn btn-ghost btn-icon btn-sm rounded-circle"
-        drop="start"
-        align="start"
-      >
-        <Dropdown.Item onClick={() => onEdit(row.original)}>
-          Edit Data
-        </Dropdown.Item>
-        <Dropdown.Item
-          className="text-danger"
-          onClick={() => onDelete(row.original)}
+    {
+      accessorKey: "kode_barang",
+      header: "Kode Barang",
+      cell: ({ row }) => (
+        <span className="fw-semibold">{row.original.kode_barang}</span>
+      ),
+    },
+    {
+      accessorKey: "nama_barang",
+      header: "Nama Barang",
+    },
+    {
+      accessorKey: "merk",
+      header: "Merk",
+    },
+    {
+      accessorKey: "tipe",
+      header: "Tipe",
+    },
+    {
+      accessorKey: "warna",
+      header: "Warna",
+    },
+    {
+      accessorKey: "ukuran",
+      header: "Ukuran",
+    },
+    {
+      accessorKey: "jumlah_masuk",
+      header: "Jumlah Masuk",
+      cell: ({ row }) => (
+        <span className="d-flex justify-content-center">
+          <Badge bg="success-subtle" text="success-emphasis" className="fw-semibold">
+            +{row.original.jumlah_masuk.toLocaleString("id-ID")}
+          </Badge>
+        </span>
+      ),
+    },
+    {
+      id: "penginput",
+      header: "Penginput",
+      cell: ({ row }) => {
+        const penginput = row.original.dicatatOleh;
+        const userName = penginput?.name || "Tidak Diketahui";
+        return <span className="fw-medium text-gray-700">{userName}</span>;
+      },
+    },
+    {
+      accessorKey: "keterangan",
+      header: "Keterangan",
+    },
+    {
+      id: "aksi",
+      header: "Aksi",
+      cell: ({ row }) => (
+        <ActionMenu
+          toggleButton={<IconDotsVertical size={20} />}
+          className="btn btn-ghost btn-icon btn-sm rounded-circle"
+          drop="start"
+          align="start"
         >
-          Hapus Data
-        </Dropdown.Item>
-      </ActionMenu>
-    ),
-  },
-];
+          <Dropdown.Item onClick={() => onEdit(row.original)}>
+            Edit Data
+          </Dropdown.Item>
+          <Dropdown.Item
+            className="text-danger"
+            onClick={() => onDelete(row.original)}
+          >
+            Hapus Data
+          </Dropdown.Item>
+        </ActionMenu>
+      ),
+    },
+  ];
+
+  return canManage ? baseColumns : baseColumns.filter((col) => col.id !== "aksi");
+};

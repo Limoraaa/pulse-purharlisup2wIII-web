@@ -51,8 +51,10 @@ import {
 
 // IMPORT INI UNTUK VALIDASI ROLE
 import { getPemintaAktif } from "services/pemintaService"; 
+import { usePermission } from "hooks/usePermissions";
 
 const ConsumableMasukManager = () => {
+  const canManage = usePermission("manage_transaksi");
   const [consumables, setConsumables] = useState<ConsumableItemType[]>([]);
   const [loadingConsumables, setLoadingConsumables] = useState(true);
 
@@ -269,10 +271,11 @@ const ConsumableMasukManager = () => {
   const columns = useMemo(
     () =>
       getConsumableMasukColumns({
+        canManage,
         onEdit: openEditModal,
         onDelete: openDeleteModal,
       }),
-    []
+    [canManage]
   );
 
   return (
@@ -311,17 +314,19 @@ const ConsumableMasukManager = () => {
               <DasherBreadcrumb />
             </div>
             <div>
-              <Button
-                variant="primary"
-                className="d-flex align-items-center gap-2"
-                onClick={openAddModal}
-                disabled={loadingConsumables}
-              >
-                <IconPlus size={18} />
-                Tambah
-              </Button>
+              {canManage && (
+                <Button
+                  variant="primary"
+                  className="d-flex align-items-center gap-2"
+                  onClick={openAddModal}
+                  disabled={loadingConsumables}
+                >
+                  <IconPlus size={18} />
+                  Tambah
+                </Button>
+              )}
             </div>
-          </Flex>
+          </Flex> 
         </Col>
       </Row>
 
@@ -385,15 +390,17 @@ const ConsumableMasukManager = () => {
               <p className="text-secondary mb-4">
                 Mulai mencatat penambahan stok consumable dengan menekan tombol Tambah.
               </p>
-              <Button
-                variant="primary"
-                className="d-inline-flex align-items-center gap-2"
-                onClick={openAddModal}
-                disabled={loadingConsumables}
-              >
-                <IconPlus size={18} />
-                Tambah
-              </Button>
+              {canManage && (
+                <Button
+                  variant="primary"
+                  className="d-inline-flex align-items-center gap-2"
+                  onClick={openAddModal}
+                  disabled={loadingConsumables}
+                >
+                  <IconPlus size={18} />
+                  Tambah
+                </Button>
+              )}
             </div>
           ) : filteredMasukList.length === 0 ? (
             /* Empty state: hasil pencarian kosong */

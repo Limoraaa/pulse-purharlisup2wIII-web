@@ -25,6 +25,7 @@ import Flex from "components/common/Flex";
 import DasherBreadcrumb from "components/common/DasherBreadcrumb";
 import StatCard from "components/dashboard/StatCard";
 import api from "/lib/api";
+import { usePermission } from "hooks/usePermissions";
 
 const formatWaktu = (iso: string) => {
   const d = new Date(iso);
@@ -38,6 +39,7 @@ const formatWaktu = (iso: string) => {
 };
 
 const DashboardPemeliharaanManager = () => {
+  const canViewMesin = usePermission("view_pemeliharaan_mesin");
   const [summary, setSummary] = useState<any>(null);
   const [aktivitas, setAktivitas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -90,6 +92,7 @@ const DashboardPemeliharaanManager = () => {
             </p>
             <DasherBreadcrumb />
           </div>
+          {canViewMesin && (
           <div className="mt-3 mt-md-0">
             <Link href="/pemeliharaan/data-mesin">
               <Button variant="primary" className="d-flex align-items-center gap-2">
@@ -97,6 +100,7 @@ const DashboardPemeliharaanManager = () => {
               </Button>
             </Link>
           </div>
+          )}
         </Flex>
       </Col>
     </Row>
@@ -130,34 +134,67 @@ const DashboardPemeliharaanManager = () => {
       {/* Baris 1: Ringkasan Utama Pemeliharaan */}
       <Row className="g-3 mb-4">
         <Col xs={12} md={4} xl={4}>
-          <Link href="/pemeliharaan/data-mesin" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
-            <StatCard
-              icon={<IconServer size={26} />}
-              title="Total Mesin Terdaftar"
-              value={summary?.total_mesin ?? 0}
-              variant="primary"
-            />
-          </Link>
+          {canViewMesin ? (
+            <Link href="/pemeliharaan/data-mesin" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
+              <StatCard
+                icon={<IconServer size={26} />}
+                title="Total Mesin Terdaftar"
+                value={summary?.total_mesin ?? 0}
+                variant="primary"
+              />
+            </Link>
+          ) : (
+            <div style={{ display: "block" }}>
+              <StatCard
+                icon={<IconServer size={26} />}
+                title="Total Mesin Terdaftar"
+                value={summary?.total_mesin ?? 0}
+                variant="primary"
+              />
+            </div>
+          )}
         </Col>
         <Col xs={12} md={4} xl={4}>
-          <Link href="/pemeliharaan/data-mesin" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
-            <StatCard
-              icon={<IconAlertTriangle size={26} />}
-              title="Mesin Dalam Perbaikan"
-              value={summary?.mesin_perbaikan ?? 0}
-              variant="danger"
-            />
-          </Link>
+          {canViewMesin ? (
+            <Link href="/pemeliharaan/data-mesin" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
+              <StatCard
+                icon={<IconAlertTriangle size={26} />}
+                title="Mesin Dalam Perbaikan"
+                value={summary?.mesin_perbaikan ?? 0}
+                variant="danger"
+              />
+            </Link>
+          ) : (
+            <div style={{ display: "block" }}>
+              <StatCard
+                icon={<IconAlertTriangle size={26} />}
+                title="Mesin Dalam Perbaikan"
+                value={summary?.mesin_perbaikan ?? 0}
+                variant="danger"
+              />
+            </div>
+          )}
         </Col>
         <Col xs={12} md={4} xl={4}>
-          <Link href="/pemeliharaan/data-mesin" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
-            <StatCard
-              icon={<IconChecklist size={26} />}
-              title="Total Pemeliharaan Rutin"
-              value={summary?.pemeliharaan_rutin ?? 0}
-              variant="success"
-            />
-          </Link>
+          {canViewMesin ? (
+            <Link href="/pemeliharaan/data-mesin" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
+              <StatCard
+                icon={<IconChecklist size={26} />}
+                title="Total Pemeliharaan Rutin"
+                value={summary?.pemeliharaan_rutin ?? 0}
+                variant="success"
+              />
+            </Link>
+          ) : (
+            <div style={{ display: "block" }}>
+              <StatCard
+                icon={<IconChecklist size={26} />}
+                title="Total Pemeliharaan Rutin"
+                value={summary?.pemeliharaan_rutin ?? 0}
+                variant="success"
+              />
+            </div>
+          )}
         </Col>
       </Row>
 
@@ -196,37 +233,65 @@ const DashboardPemeliharaanManager = () => {
             <CardBody className="d-flex flex-column justify-content-between">
               <h5 className="mb-3">Akses Modul Cepat</h5>
               <div className="space-y-3">
-                <Link 
-                  href="/pemeliharaan/data-mesin" 
-                  style={{ textDecoration: "none" }} 
-                  className="d-block mb-3"
-                >
-                  <div className="p-3 border rounded-3 bg-light hover-bg-white transition d-flex align-items-center gap-3">
-                    <div className="p-2 bg-primary text-white rounded-2">
-                      <IconTool size={20} />
+                {canViewMesin ? (
+                  <Link 
+                    href="/pemeliharaan/data-mesin" 
+                    style={{ textDecoration: "none" }} 
+                    className="d-block mb-3"
+                  >
+                    <div className="p-3 border rounded-3 bg-light hover-bg-white transition d-flex align-items-center gap-3">
+                      <div className="p-2 bg-primary text-white rounded-2">
+                        <IconTool size={20} />
+                      </div>
+                      <div>
+                        <h6 className="mb-0 text-dark fw-semibold">Kelola Data Mesin</h6>
+                        <small className="text-secondary">Tambah & lihat spesifikasi unit</small>
+                      </div>
                     </div>
-                    <div>
-                      <h6 className="mb-0 text-dark fw-semibold">Kelola Data Mesin</h6>
-                      <small className="text-secondary">Tambah & lihat spesifikasi unit</small>
+                  </Link>
+                ) : (
+                  <div className="d-block mb-3">
+                    <div className="p-3 border rounded-3 bg-light d-flex align-items-center gap-3" style={{ opacity: 0.6 }}>
+                      <div className="p-2 bg-secondary text-white rounded-2">
+                        <IconTool size={20} />
+                      </div>
+                      <div>
+                        <h6 className="mb-0 text-dark fw-semibold">Kelola Data Mesin</h6>
+                        <small className="text-secondary">Tidak ada akses</small>
+                      </div>
                     </div>
                   </div>
-                </Link>
+                )}
 
-                <Link 
-                  href="/pemeliharaan/motor-konversi" 
-                  style={{ textDecoration: "none" }} 
-                  className="d-block"
-                >
-                  <div className="p-3 border rounded-3 bg-light hover-bg-white transition d-flex align-items-center gap-3">
-                    <div className="p-2 bg-success text-white rounded-2">
-                      <IconActivity size={20} />
+                {canViewMesin ? (
+                  <Link 
+                    href="/pemeliharaan/motor-konversi" 
+                    style={{ textDecoration: "none" }} 
+                    className="d-block"
+                  >
+                    <div className="p-3 border rounded-3 bg-light hover-bg-white transition d-flex align-items-center gap-3">
+                      <div className="p-2 bg-success text-white rounded-2">
+                        <IconActivity size={20} />
+                      </div>
+                      <div>
+                        <h6 className="mb-0 text-dark fw-semibold">Pemeliharaan Motor Konversi</h6>
+                        <small className="text-secondary">Monitoring unit konversi khusus</small>
+                      </div>
                     </div>
-                    <div>
-                      <h6 className="mb-0 text-dark fw-semibold">Pemeliharaan Motor Konversi</h6>
-                      <small className="text-secondary">Monitoring unit konversi khusus</small>
+                  </Link>
+                ) : (
+                  <div className="d-block">
+                    <div className="p-3 border rounded-3 bg-light d-flex align-items-center gap-3" style={{ opacity: 0.6 }}>
+                      <div className="p-2 bg-secondary text-white rounded-2">
+                        <IconActivity size={20} />
+                      </div>
+                      <div>
+                        <h6 className="mb-0 text-dark fw-semibold">Pemeliharaan Motor Konversi</h6>
+                        <small className="text-secondary">Tidak ada akses</small>
+                      </div>
                     </div>
                   </div>
-                </Link>
+                )}
               </div>
             </CardBody>
           </Card>

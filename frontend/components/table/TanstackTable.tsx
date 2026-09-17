@@ -109,6 +109,7 @@ function TanstackTable<TData>({
                   {headerGroup.headers.map((header) => (
                     <th
                       key={header.id}
+                      data-column-id={header.column.id}
                       onClick={header.column.getToggleSortingHandler()}
                       colSpan={header.colSpan}
                     >
@@ -147,7 +148,7 @@ function TanstackTable<TData>({
                 style={onRowClick ? { cursor: "pointer" } : undefined}
               >
                 {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} className={tdClass}>
+                  <td key={cell.id} data-column-id={cell.column.id} className={tdClass}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
                 ))}

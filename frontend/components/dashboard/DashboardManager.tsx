@@ -44,6 +44,7 @@ import {
   getTrenPeminjaman,
   getTrenConsumable, 
 } from "services/dashboardService";
+import { usePermission } from "hooks/usePermissions";
 
 // import custom components
 import Flex from "components/common/Flex";
@@ -69,6 +70,9 @@ const jenisLabel: Record<AktivitasItem["jenis"], { label: string; color: string 
 };
 
 const DashboardManager = () => {
+  const canViewInventaris = usePermission("view_inventaris");
+  const canViewTransaksi = usePermission(["view_transaksi", "view_riwayat"]);
+  const canViewOrder = usePermission("view_order");
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [stokMenipis, setStokMenipis] = useState<StokMenipisItem[]>([]);
   const [telatKembali, setTelatKembali] = useState<TelatKembaliItem[]>([]);
@@ -182,44 +186,88 @@ const DashboardManager = () => {
       {/* Baris 1: Ringkasan Utama */}
       <Row className="g-3 mb-4">
         <Col xs={6} md={6} xl={3}>
-          <Link href="/inventaris/data-tools" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
-            <StatCard
-              icon={<IconTool size={26} />}
-              title="Total Tools"
-              value={summary?.total_tools ?? 0}
-              variant="primary"
-            />
-          </Link>
+          {canViewInventaris ? (
+            <Link href="/inventaris/data-tools" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
+              <StatCard
+                icon={<IconTool size={26} />}
+                title="Total Tools"
+                value={summary?.total_tools ?? 0}
+                variant="primary"
+              />
+            </Link>
+          ) : (
+            <div style={{ display: "block" }}>
+              <StatCard
+                icon={<IconTool size={26} />}
+                title="Total Tools"
+                value={summary?.total_tools ?? 0}
+                variant="primary"
+              />
+            </div>
+          )}
         </Col>
         <Col xs={6} md={6} xl={3}>
-          <Link href="/inventaris/data-consumable" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
-            <StatCard
-              icon={<IconPackage size={26} />}
-              title="Total Consumable"
-              value={summary?.total_consumables ?? 0}
-              variant="info"
-            />
-          </Link>
+          {canViewInventaris ? (
+            <Link href="/inventaris/data-consumable" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
+              <StatCard
+                icon={<IconPackage size={26} />}
+                title="Total Consumable"
+                value={summary?.total_consumables ?? 0}
+                variant="info"
+              />
+            </Link>
+          ) : (
+            <div style={{ display: "block" }}>
+              <StatCard
+                icon={<IconPackage size={26} />}
+                title="Total Consumable"
+                value={summary?.total_consumables ?? 0}
+                variant="info"
+              />
+            </div>
+          )}
         </Col>
         <Col xs={6} md={6} xl={3}>
-          <Link href="/inventaris/data-peminjam" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
-            <StatCard
-              icon={<IconUsers size={26} />}
-              title="Total Peminta"
-              value={summary?.total_peminta ?? 0}
-              variant="success"
-            />
-          </Link>
+          {canViewInventaris ? (
+            <Link href="/inventaris/data-peminjam" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
+              <StatCard
+                icon={<IconUsers size={26} />}
+                title="Total Peminta"
+                value={summary?.total_peminta ?? 0}
+                variant="success"
+              />
+            </Link>
+          ) : (
+            <div style={{ display: "block" }}>
+              <StatCard
+                icon={<IconUsers size={26} />}
+                title="Total Peminta"
+                value={summary?.total_peminta ?? 0}
+                variant="success"
+              />
+            </div>
+          )}
         </Col>
         <Col xs={6} md={6} xl={3}>
-          <Link href="/transaksi/peminjaman-aktif" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
-            <StatCard
-              icon={<IconClockHour4 size={26} />}
-              title="Sedang Dipinjam"
-              value={summary?.sedang_dipinjam ?? 0}
-              variant="warning"
-            />
-          </Link>
+          {canViewTransaksi ? (
+            <Link href="/transaksi/peminjaman-aktif" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
+              <StatCard
+                icon={<IconClockHour4 size={26} />}
+                title="Sedang Dipinjam"
+                value={summary?.sedang_dipinjam ?? 0}
+                variant="warning"
+              />
+            </Link>
+          ) : (
+            <div style={{ display: "block" }}>
+              <StatCard
+                icon={<IconClockHour4 size={26} />}
+                title="Sedang Dipinjam"
+                value={summary?.sedang_dipinjam ?? 0}
+                variant="warning"
+              />
+            </div>
+          )}
         </Col>
       </Row>
 
@@ -497,6 +545,7 @@ const DashboardManager = () => {
       {/* Baris 6: Rincian Order */}
       <Row className="g-3">
         <Col md={6}>
+          {canViewOrder ? (
           <Link 
             href="/order/order-tools" 
             style={{ textDecoration: "none", color: "inherit" }} 
@@ -527,12 +576,43 @@ const DashboardManager = () => {
                     <div className="h4 mb-0 text-danger">{orderToolsStatus.ditolak ?? 0}</div>
                   </Col>
                 </Row>
-              </CardBody>
+               </CardBody>
             </Card>
           </Link>
+          ) : (
+            <div className="d-block h-100">
+              <Card className="card-lg h-100 border-primary border-opacity-25 shadow-sm">
+                <CardBody>
+                  <h6 className="mb-4 d-flex align-items-center gap-2">
+                    <IconShoppingCart size={20} className="text-primary"/> 
+                    Rincian Status Order Tools
+                  </h6>
+                  <Row className="text-center">
+                    <Col xs={3}>
+                      <div className="text-secondary small mb-1">Belum Dibeli</div>
+                      <div className="h4 mb-0 text-secondary">{orderToolsStatus.belum_dibeli ?? 0}</div>
+                    </Col>
+                    <Col xs={3}>
+                      <div className="text-secondary small mb-1">On Progres</div>
+                      <div className="h4 mb-0 text-primary">{orderToolsStatus.on_progres ?? 0}</div>
+                    </Col>
+                    <Col xs={3}>
+                      <div className="text-secondary small mb-1">Sudah Dibeli</div>
+                      <div className="h4 mb-0 text-success">{orderToolsStatus.sudah_dibeli ?? 0}</div>
+                    </Col>
+                    <Col xs={3}>
+                      <div className="text-secondary small mb-1">Ditolak</div>
+                      <div className="h4 mb-0 text-danger">{orderToolsStatus.ditolak ?? 0}</div>
+                    </Col>
+                  </Row>
+                </CardBody>
+              </Card>
+            </div>
+          )}
         </Col>
         
         <Col md={6}>
+          {canViewOrder ? (
           <Link 
             href="/order/order-consumable" 
             style={{ textDecoration: "none", color: "inherit" }} 
@@ -562,10 +642,40 @@ const DashboardManager = () => {
                     <div className="text-secondary small mb-1">Ditolak</div>
                     <div className="h4 mb-0 text-danger">{orderConsumableStatus.ditolak ?? 0}</div>
                   </Col>
-                </Row>
+                 </Row>
               </CardBody>
             </Card>
           </Link>
+          ) : (
+            <div className="d-block h-100">
+              <Card className="card-lg h-100 border-danger border-opacity-25 shadow-sm">
+                <CardBody>
+                  <h6 className="mb-4 d-flex align-items-center gap-2">
+                    <IconClipboardList size={20} className="text-danger"/> 
+                    Rincian Status Order Consumable
+                  </h6>
+                  <Row className="text-center">
+                    <Col xs={3}>
+                      <div className="text-secondary small mb-1">Belum Dibeli</div>
+                      <div className="h4 mb-0 text-secondary">{orderConsumableStatus.belum_dibeli ?? 0}</div>
+                    </Col>
+                    <Col xs={3}>
+                      <div className="text-secondary small mb-1">On Progres</div>
+                      <div className="h4 mb-0 text-primary">{orderConsumableStatus.on_progres ?? 0}</div>
+                    </Col>
+                    <Col xs={3}>
+                      <div className="text-secondary small mb-1">Sudah Dibeli</div>
+                      <div className="h4 mb-0 text-success">{orderConsumableStatus.sudah_dibeli ?? 0}</div>
+                    </Col>
+                    <Col xs={3}>
+                      <div className="text-secondary small mb-1">Ditolak</div>
+                      <div className="h4 mb-0 text-danger">{orderConsumableStatus.ditolak ?? 0}</div>
+                    </Col>
+                  </Row>
+                </CardBody>
+              </Card>
+            </div>
+          )}
         </Col>
       </Row>
       <div className="mb-5"></div>

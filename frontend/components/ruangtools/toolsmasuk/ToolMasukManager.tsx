@@ -50,8 +50,10 @@ import {
 
 // IMPORT INI UNTUK VALIDASI ROLE
 import { getPemintaAktif } from "services/pemintaService";
+import { usePermission } from "hooks/usePermissions";
 
 const ToolMasukManager = () => {
+  const canManage = usePermission("manage_transaksi");
   const [tools, setTools] = useState<ToolItemType[]>([]);
   const [loadingTools, setLoadingTools] = useState(true);
 
@@ -259,10 +261,11 @@ const ToolMasukManager = () => {
   const columns = useMemo(
     () =>
       getToolMasukColumns({
+        canManage,
         onEdit: openEditModal,
         onDelete: openDeleteModal,
       }),
-    []
+    [canManage]
   );
 
   return (
@@ -300,16 +303,18 @@ const ToolMasukManager = () => {
               </p>
               <DasherBreadcrumb />
             </div>
-            <div>
-              <Button
-                variant="primary"
-                className="d-flex align-items-center gap-2"
-                onClick={openAddModal}
-                disabled={loadingTools}
-              >
-                <IconPlus size={18} />
-                Tambah
-              </Button>
+              <div>
+              {canManage && (
+                <Button
+                  variant="primary"
+                  className="d-flex align-items-center gap-2"
+                  onClick={openAddModal}
+                  disabled={loadingTools}
+                >
+                  <IconPlus size={18} />
+                  Tambah
+                </Button>
+              )}
             </div>
           </Flex>
         </Col>
@@ -375,15 +380,17 @@ const ToolMasukManager = () => {
               <p className="text-secondary mb-4">
                 Mulai mencatat penambahan stok alat dengan menekan tombol Tambah.
               </p>
-              <Button
-                variant="primary"
-                className="d-inline-flex align-items-center gap-2"
-                onClick={openAddModal}
-                disabled={loadingTools}
-              >
-                <IconPlus size={18} />
-                Tambah
-              </Button>
+              {canManage && (
+                <Button
+                  variant="primary"
+                  className="d-inline-flex align-items-center gap-2"
+                  onClick={openAddModal}
+                  disabled={loadingTools}
+                >
+                  <IconPlus size={18} />
+                  Tambah
+                </Button>
+              )}
             </div>
           ) : filteredMasukList.length === 0 ? (
             /* Empty state: hasil pencarian kosong */

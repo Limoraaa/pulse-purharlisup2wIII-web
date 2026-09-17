@@ -18,52 +18,52 @@ interface ColumnProps {
   onDelete: (pekerjaan: Pekerjaan) => void;
 }
 
-export const getColumns = ({ canManage = false, onEdit, onToggleStatus, onDelete }: ColumnProps): ColumnDef<Pekerjaan>[] => [
-  {
-    header: 'NAMA PEKERJAAN',
-    accessorKey: 'nama_pekerjaan',
-    cell: (info) => <span className="fw-medium text-dark">{info.getValue() as string}</span>,
-  },
-  {
-    header: 'STATUS',
-    accessorKey: 'is_active',
-    cell: (info) => {
-      const isActive = info.getValue() as boolean;
-      return (
-        <span 
-          className={`badge ${isActive ? 'bg-success text-success' : 'bg-secondary text-secondary'} bg-opacity-10 px-3 py-2 rounded-1`}
-          style={{ fontWeight: 600 }}
-        >
-          {isActive ? 'Aktif' : 'Nonaktif'}
-        </span>
-      );
+export const getColumns = ({ canManage = false, onEdit, onToggleStatus, onDelete }: ColumnProps): ColumnDef<Pekerjaan>[] => {
+  const baseColumns: ColumnDef<Pekerjaan>[] = [
+    {
+      header: 'NAMA PEKERJAAN',
+      accessorKey: 'nama_pekerjaan',
+      cell: (info) => <span className="fw-medium text-dark">{info.getValue() as string}</span>,
     },
-  },
-  {
-    header: 'AKSI',
-    id: 'actions',
-    cell: (info) => {
-      const pekerjaan = info.row.original;
-
-      if (!canManage) {
-        return <span className="text-muted">—</span>;
-      }
-
-      return (
-        <Dropdown>
-          <Dropdown.Toggle as="div" bsPrefix=" " className="cursor-pointer text-muted" style={{ cursor: 'pointer' }}>
-            <IconDotsVertical size={20} />
-          </Dropdown.Toggle>
-          <Dropdown.Menu align="end">
-            <Dropdown.Item onClick={() => onEdit(pekerjaan)}>Edit Data</Dropdown.Item>
-            <Dropdown.Item onClick={() => onToggleStatus(pekerjaan)}>
-              {pekerjaan.is_active ? 'Nonaktifkan' : 'Aktifkan'}
-            </Dropdown.Item>
-            <Dropdown.Divider />
-            <Dropdown.Item className="text-danger" onClick={() => onDelete(pekerjaan)}>Hapus Data</Dropdown.Item>
-          </Dropdown.Menu>
-        </Dropdown>
-      );
+    {
+      header: 'STATUS',
+      accessorKey: 'is_active',
+      cell: (info) => {
+        const isActive = info.getValue() as boolean;
+        return (
+          <span
+            className={`badge ${isActive ? 'bg-success text-success' : 'bg-secondary text-secondary'} bg-opacity-10 px-3 py-2 rounded-1`}
+            style={{ fontWeight: 600 }}
+          >
+            {isActive ? 'Aktif' : 'Nonaktif'}
+          </span>
+        );
+      },
     },
-  },
-];
+    {
+      header: 'AKSI',
+      id: 'actions',
+      cell: (info) => {
+        const pekerjaan = info.row.original;
+
+        return (
+          <Dropdown>
+            <Dropdown.Toggle as="div" bsPrefix=" " className="cursor-pointer text-muted" style={{ cursor: 'pointer' }}>
+              <IconDotsVertical size={20} />
+            </Dropdown.Toggle>
+            <Dropdown.Menu align="end">
+              <Dropdown.Item onClick={() => onEdit(pekerjaan)}>Edit Data</Dropdown.Item>
+              <Dropdown.Item onClick={() => onToggleStatus(pekerjaan)}>
+                {pekerjaan.is_active ? 'Nonaktifkan' : 'Aktifkan'}
+              </Dropdown.Item>
+              <Dropdown.Divider />
+              <Dropdown.Item className="text-danger" onClick={() => onDelete(pekerjaan)}>Hapus Data</Dropdown.Item>
+            </Dropdown.Menu>
+          </Dropdown>
+        );
+      },
+    },
+  ];
+
+  return canManage ? baseColumns : baseColumns.filter((col) => col.id !== 'actions');
+};

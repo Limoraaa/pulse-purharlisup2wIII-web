@@ -23,7 +23,8 @@ export const getPeminjamColumns = ({
   onAktifkan,
   onGantiRole,
   togglingId,
-}: ColumnHandlers): ColumnDef<PeminjamType>[] => [
+}: ColumnHandlers): ColumnDef<PeminjamType>[] => {
+  const baseColumns: ColumnDef<PeminjamType>[] = [
   {
     accessorKey: "nama",
     header: "Nama Pegawai",
@@ -75,10 +76,6 @@ export const getPeminjamColumns = ({
       const isToggling = togglingId === item.id;
       const isInventoryMan = item.role === "inventory man";
 
-      if (!canManage) {
-        return <span className="text-secondary">—</span>;
-      }
-
       return (
         <ActionMenu
           toggleButton={
@@ -127,4 +124,7 @@ export const getPeminjamColumns = ({
       );
     },
   },
-];
+  ];
+
+  return canManage ? baseColumns : baseColumns.filter((col) => col.id !== "aksi");
+};
