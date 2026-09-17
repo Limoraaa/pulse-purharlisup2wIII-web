@@ -10,6 +10,8 @@ import { ConsumableItemType } from "types/DataConsumableTypes";
 
 // import custom components
 import ActionMenu from "components/common/ActionMenu";
+import { kodeBarangSortingFn } from "components/table/kodeBarangSort";
+import KodeBarangSortHeader from "components/table/KodeBarangSortHeader";
 const formatNumber = (n: number) => n.toLocaleString("en-US");
 
 interface ColumnHandlers {
@@ -32,7 +34,11 @@ export const getConsumableColumns = ({
 }: ColumnHandlers): ColumnDef<ConsumableItemType>[] => [
   {
     accessorKey: "kode_barang",
-    header: "Kode Barang",
+    header: ({ column }) => (
+      <KodeBarangSortHeader label="Kode Barang" sortState={column.getIsSorted()} />
+    ),
+    meta: { hideDefaultSortIcon: true },
+    sortingFn: kodeBarangSortingFn,
     cell: ({ row }) => (
       <span className="fw-semibold">{row.original.kode_barang}</span>
     ),
