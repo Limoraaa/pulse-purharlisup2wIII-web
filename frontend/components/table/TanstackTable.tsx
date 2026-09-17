@@ -124,10 +124,14 @@ function TanstackTable<TData>({
                             header.column.columnDef.header,
                             header.getContext()
                           )}
-                          {{
-                            asc: <ChevronUp size={16} />,
-                            desc: <ChevronDown size={16} />,
-                          }[header.column.getIsSorted() as string] ?? null}
+                          {/* Chevron bawaan disembunyikan bila kolom memakai
+                              ikon sorting custom (meta.hideDefaultSortIcon),
+                              agar tidak double dengan ikon tersebut. */}
+                          {!header.column.columnDef.meta?.hideDefaultSortIcon &&
+                            ({
+                              asc: <ChevronUp size={16} />,
+                              desc: <ChevronDown size={16} />,
+                            }[header.column.getIsSorted() as string] ?? null)}
                         </div>
                       )}
                     </th>

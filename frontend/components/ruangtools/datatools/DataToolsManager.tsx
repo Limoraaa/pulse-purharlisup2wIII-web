@@ -611,7 +611,15 @@ const DataToolsManager = () => {
             jumlah: c.jumlah,
             maxJumlah: c.maxJumlah ?? 99,
           })),
-      }),
+        // Hanya kolom Kode Barang yang boleh di-sort; kolom lain dikunci
+        // agar klik header-nya tidak mengubah urutan data.
+      }).map((col) => ({
+        ...col,
+        enableSorting:
+          "accessorKey" in col && col.accessorKey === "kodeBarang",
+        // Siklus klik: Neutral → Asc → Desc → Asc (tidak kembali neutral)
+        enableSortingRemoval: false,
+      })),
     [cart, handleAddToCart]
   );
 
@@ -712,7 +720,7 @@ const DataToolsManager = () => {
               </Button>
             </div>
           ) : (
-            <TanstackTable data={filteredTools} columns={columns} pagination />
+            <TanstackTable data={filteredTools} columns={columns} pagination isSortable />
           )}
         </CardBody>
       </Card>
