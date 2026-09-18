@@ -12,6 +12,7 @@ import {
   Form,
   Table,
   Modal,
+  Dropdown,
 } from "react-bootstrap";
 import {
   IconPlus,
@@ -24,6 +25,9 @@ import {
   IconClipboardList,
   IconEdit,
   IconTrash,
+  IconDownload,
+  IconFileTypePdf,
+  IconFileTypeXls,
 } from "@tabler/icons-react";
 import Link from "next/link";
 
@@ -343,11 +347,11 @@ const DataMesinManager = () => {
           </Row>
 
           <Card className="card-lg mb-4">
-            <div className="datatools-toolbar border-bottom p-2 p-md-3">
+            <div className="datatools-toolbar border-bottom">
               <Row className="g-2 align-items-center">
                 <Col xs={12} md={4}>
-                  <InputGroup className="datatools-search input-group-sm">
-                    <InputGroup.Text><IconSearch size={16} /></InputGroup.Text>
+                  <InputGroup className="datatools-search">
+                    <InputGroup.Text><IconSearch size={18} /></InputGroup.Text>
                     <Form.Control
                       type="search"
                       placeholder="Cari kode, nama, lokasi..."
@@ -356,31 +360,37 @@ const DataMesinManager = () => {
                     />
                     {searchTerm && (
                       <Button variant="link" className="datatools-search-clear" onClick={() => setSearchTerm("")}>
-                        <IconX size={14} />
+                        <IconX size={16} />
                       </Button>
                     )}
                   </InputGroup>
                 </Col>
                 <Col xs={12} md={8} className="d-flex justify-content-md-end gap-1 flex-wrap align-items-center">
-                  
-                  {/* Ekspor Data Mesin */}
-                  <div className="d-flex align-items-center me-md-2 border-end pe-md-2 mb-2 mb-md-0">
-                    <span className="me-2 small text-secondary" style={{ fontSize: "0.7rem" }}>Data Mesin:</span>
-                    <Button variant="outline-danger" size="sm" className="py-1 px-2 mx-1" style={{ fontSize: "0.75rem" }} onClick={handleExportPDF}>PDF</Button>
-                    <Button variant="outline-success" size="sm" className="py-1 px-2" style={{ fontSize: "0.75rem" }} onClick={handleExportExcel}>Excel</Button>
-                  </div>
 
-                  {/* Ekspor Seluruh Log */}
-                  <div className="d-flex align-items-center mb-2 mb-md-0">
-                    <span className="me-2 small text-secondary" style={{ fontSize: "0.7rem" }}>Seluruh Log Pemeliharaan:</span>
-                    <Button variant="outline-danger" size="sm" className="py-1 px-2 mx-1" style={{ fontSize: "0.75rem" }} onClick={() => handleExportAllLogs('pdf')} disabled={exportingAll}>
-                      {exportingAll ? <Spinner size="sm" /> : 'PDF'}
-                    </Button>
-                    <Button variant="outline-success" size="sm" className="py-1 px-2" style={{ fontSize: "0.75rem" }} onClick={() => handleExportAllLogs('excel')} disabled={exportingAll}>
-                      {exportingAll ? <Spinner size="sm" /> : 'Excel'}
-                    </Button>
-                  </div>
-                  
+                  {/* Ekspor Data: satu dropdown berisi semua opsi export */}
+                  <Dropdown>
+                    <Dropdown.Toggle variant="outline-secondary" size="sm" className="d-flex align-items-center gap-1 py-2 px-3">
+                      <IconDownload size={16} /> Ekspor Data
+                    </Dropdown.Toggle>
+                    <Dropdown.Menu align="end">
+                      <Dropdown.Header>Ekspor Data Mesin</Dropdown.Header>
+                      <Dropdown.Item onClick={handleExportPDF} className="d-flex align-items-center gap-2">
+                        <IconFileTypePdf size={16} /> Export PDF
+                      </Dropdown.Item>
+                      <Dropdown.Item onClick={handleExportExcel} className="d-flex align-items-center gap-2">
+                        <IconFileTypeXls size={16} /> Export Excel
+                      </Dropdown.Item>
+                      <Dropdown.Divider />
+                      <Dropdown.Header>Ekspor Seluruh Log</Dropdown.Header>
+                      <Dropdown.Item onClick={() => handleExportAllLogs('pdf')} disabled={exportingAll} className="d-flex align-items-center gap-2">
+                        {exportingAll ? <Spinner size="sm" /> : <IconFileTypePdf size={16} />} Export PDF
+                      </Dropdown.Item>
+                      <Dropdown.Item onClick={() => handleExportAllLogs('excel')} disabled={exportingAll} className="d-flex align-items-center gap-2">
+                        {exportingAll ? <Spinner size="sm" /> : <IconFileTypeXls size={16} />} Export Excel
+                      </Dropdown.Item>
+                    </Dropdown.Menu>
+                  </Dropdown>
+
                 </Col>
               </Row>
             </div>

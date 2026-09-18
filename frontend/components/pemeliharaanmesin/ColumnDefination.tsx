@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Button } from "react-bootstrap";
 import { IconClipboardList, IconActivity, IconQrcode } from "@tabler/icons-react";
 import Link from "next/link";
+import DasherTippy from "components/common/DasherTippy";
 
 // Tambahkan interface untuk menerima fungsi dari komponen induk (Manager)
 interface UseMesinColumnsProps {
@@ -75,33 +76,45 @@ export const useMesinColumns = ({ onToggleStatus, onOpenDetail }: UseMesinColumn
         cell: (info: any) => {
           const mesin = info.row.original;
           return (
-            <div className="d-flex flex-wrap gap-2 align-items-center">
+            <div className="d-flex gap-1 align-items-center justify-content-center">
               {/* Gunakan fungsi onOpenDetail untuk beralih viewMode */}
-              <Button 
-                variant="outline-primary" 
-                size="sm" 
-                className="d-flex align-items-center gap-1"
-                onClick={() => onOpenDetail(mesin)}
-              >
-                <IconClipboardList size={14} /> Pemeliharaan
-              </Button>
-              
-              <Link href={`/pemeliharaan/aktivitas-mesin?id=${mesin.id}`}>
-                <Button variant="outline-success" size="sm" className="d-flex align-items-center gap-1">
-                  <IconActivity size={14} /> Aktivitas
+              <DasherTippy content="Pemeliharaan">
+                <Button
+                  variant="outline-primary"
+                  size="sm"
+                  className="d-inline-flex align-items-center justify-content-center p-0"
+                  style={{ width: "32px", height: "32px" }}
+                  onClick={() => onOpenDetail(mesin)}
+                >
+                  <IconClipboardList size={16} />
                 </Button>
-              </Link>
+              </DasherTippy>
+
+              <DasherTippy content="Aktivitas">
+                <Link href={`/pemeliharaan/aktivitas-mesin?id=${mesin.id}`}>
+                  <Button
+                    variant="outline-success"
+                    size="sm"
+                    className="d-inline-flex align-items-center justify-content-center p-0"
+                    style={{ width: "32px", height: "32px" }}
+                  >
+                    <IconActivity size={16} />
+                  </Button>
+                </Link>
+              </DasherTippy>
 
               {/* Tombol Download QR Code */}
-              <Button
-                variant="outline-secondary"
-                size="sm"
-                className="d-flex align-items-center gap-1"
-                title="Download QR Code Mesin"
-                onClick={() => handleDownloadQR(mesin)}
-              >
-                <IconQrcode size={14} /> QR
-              </Button>
+              <DasherTippy content="Download QR Code Mesin">
+                <Button
+                  variant="outline-secondary"
+                  size="sm"
+                  className="d-inline-flex align-items-center justify-content-center p-0"
+                  style={{ width: "32px", height: "32px" }}
+                  onClick={() => handleDownloadQR(mesin)}
+                >
+                  <IconQrcode size={16} />
+                </Button>
+              </DasherTippy>
             </div>
           );
         },
