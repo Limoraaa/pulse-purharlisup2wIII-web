@@ -10,18 +10,18 @@ class PemintaSeeder extends Seeder
     public function run(): void
     {
         $data = [
-            ['nama' => 'Dadang M Syam', 'kategori' => 'HL'],
-            ['nama' => 'Jaka Yudha Pamungkas', 'kategori' => 'HL'],
-            ['nama' => 'Diki Ambara', 'kategori' => 'HL'],
-            ['nama' => 'Dian Widiana', 'kategori' => 'HL'],
-            ['nama' => 'Aji Sidik', 'kategori' => 'HL'],
-            ['nama' => 'Riyanto', 'kategori' => 'MGTI'],
-            ['nama' => 'Edy Supardi', 'kategori' => 'HL'],
-            ['nama' => 'Abdul Aziz Muslim', 'kategori' => 'HL'],
+            ['id' => '0004112233', 'nama' => 'Dedi Kurniawan', 'divisi' => 'HL', 'role' => 'inventory man', 'aktif' => true],
+            ['id' => '0004112234', 'nama' => 'Rian Setiawan', 'divisi' => 'MGTI', 'role' => 'inventory man', 'aktif' => true],
+            ['id' => '0004112235', 'nama' => 'Bambang Sutrisno', 'divisi' => 'HL', 'role' => 'user', 'aktif' => true],
+            ['id' => '0004112236', 'nama' => 'Yusuf Hidayat', 'divisi' => 'HL', 'role' => 'user', 'aktif' => true],
+            ['id' => '0004112237', 'nama' => 'Wahyu Prasetyo', 'divisi' => 'MGTI', 'role' => 'user', 'aktif' => true],
+            ['id' => '0004112238', 'nama' => 'Agus Salim', 'divisi' => 'HL', 'role' => 'user', 'aktif' => true],
+            ['id' => '0004112239', 'nama' => 'Fajar Nugroho', 'divisi' => 'HL', 'role' => 'user', 'aktif' => true],
+            ['id' => '0004112240', 'nama' => 'Iwan Setiadi', 'divisi' => 'MGTI', 'role' => 'user', 'aktif' => false],
         ];
 
         foreach ($data as $item) {
-            Peminta::create($item);
+            Peminta::updateOrCreate(['id' => $item['id']], $item);
         }
     }
 }

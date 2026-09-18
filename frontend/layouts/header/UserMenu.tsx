@@ -1,76 +1,67 @@
+"use client";
 //import node modules libraries
-import React from "react";
-import { Dropdown, Image } from "react-bootstrap";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { IconLogin2 } from "@tabler/icons-react";
-
-//import routes files
-import { UserMenuItem } from "routes/HeaderRoute";
 
 //import custom components
 import { Avatar } from "components/common/Avatar";
 import { getAssetPath } from "helper/assetPath";
+import { getProfile } from "services/profileService";
 
-interface UserToggleProps {
-  children?: React.ReactNode;
-  onClick?: () => void;
-}
-const CustomToggle = React.forwardRef<HTMLAnchorElement, UserToggleProps>(
-  ({ children, onClick }, ref) => (
-    <Link ref={ref} href="#" onClick={onClick}>
-      {children}
-    </Link>
-  )
-);
+const DEFAULT_AVATAR = getAssetPath("/images/avatar/avatar-1.jpg");
 
+// Avatar kini menjadi navigasi langsung ke halaman Profil (tanpa dropdown).
 const UserMenu = () => {
+  const [avatarSrc, setAvatarSrc] = useState<string>(() => {
+  if (typeof window !== "undefined") {
+    const cached = localStorage.getItem("userAvatarUrl");
+    if (cached) return cached;
+  }
+  return DEFAULT_AVATAR;
+});
+
+  useEffect(() => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    if (!token) return;
+
+    getProfile()
+      .then((data) => {
+        if (data.avatarPath) {
+          const backendOrigin = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/?$/, "");
+          const url = `${backendOrigin}/storage/${data.avatarPath}`;
+          setAvatarSrc(url);
+          localStorage.setItem("userAvatarUrl", url);
+        }
+      })
+      .catch(() => {});
+
+    // Dengarkan event dari ProfileManager -- update avatar seketika tanpa refresh
+    const handleAvatarUpdated = (e: Event) => {
+      const customEvent = e as CustomEvent<string>;
+      setAvatarSrc(customEvent.detail);
+    };
+    window.addEventListener("avatar-updated", handleAvatarUpdated);
+
+    return () => {
+      window.removeEventListener("avatar-updated", handleAvatarUpdated);
+    };
+  }, []);
+
   return (
-    <Dropdown>
-      <Dropdown.Toggle as={CustomToggle}>
-        <Avatar
-          type="image"
-          src={getAssetPath("/images/avatar/avatar-1.jpg")}
-          size="sm"
-          alt="User Avatar"
-          className="rounded-circle"
-        />
-      </Dropdown.Toggle>
-      <Dropdown.Menu align="end" className="p-0 dropdown-menu-md">
-        <div className="d-flex gap-3 align-items-center border-dashed border-bottom px-4 py-4">
-          <Image
-            src={getAssetPath("/images/avatar/avatar-1.jpg")}
-            alt=""
-            className="avatar avatar-md rounded-circle"
-          />
-          <div>
-            <h4 className="mb-0 fs-5">Jitu Chauhan</h4>
-            <p className="mb-0 text-secondar small">@imjituchauhan</p>
-          </div>
-        </div>
-        <div className="p-3 d-flex flex-column gap-1">
-          {UserMenuItem.map((item) => (
-            <Dropdown.Item
-              key={item.id}
-              className="d-flex align-items-center gap-2"
-            >
-              <span>{item.icon}</span>
-              <span>{item.title}</span>
-            </Dropdown.Item>
-          ))}
-        </div>
-        <div className="border-dashed border-top mb-4 pt-4 px-6">
-          <Link
-            href=""
-            className="text-secondary d-flex align-items-center gap-2"
-          >
-            <span>
-              <IconLogin2 size={20} strokeWidth={1.5} />
-            </span>
-            <span>Logout</span>
-          </Link>
-        </div>
-      </Dropdown.Menu>
-    </Dropdown>
+    <Link
+      href="/profile"
+      className="d-inline-flex align-items-center"
+      aria-label="Buka halaman Profil"
+      title="Profil Saya"
+    >
+      <Avatar
+        type="image"
+        src={avatarSrc}
+        size="sm"
+        alt="User Avatar"
+        className="rounded-circle"
+      />
+    </Link>
   );
 };
 

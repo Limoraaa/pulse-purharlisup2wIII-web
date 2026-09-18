@@ -3,9 +3,9 @@
 // ------------------------------------------------------------------
 export interface RiwayatPeminjamanType {
   id: string;
-  nomor_transaksi: string; // derived: gabungan tanggal + peminta, dipakai buat grouping detail
-  tanggal_pinjam: string; // format "10 Jul 2026, 09:15"
-  tanggal_kembali: string; // format "12 Jul 2026, 11:00"
+  nomor_transaksi: string;
+  tanggal_pinjam: string;
+  tanggal_kembali: string;
   kode_barang: string;
   nama_barang: string;
   merk: string;
@@ -15,17 +15,21 @@ export interface RiwayatPeminjamanType {
   jumlah: number;
   nama_peminjam: string;
   divisi: string;
+  nama_pekerjaan: string;
   area_kerja: string;
   keterangan: string;
 
+  // dipakai export PDF / Excel
   [key: string]: unknown;
 }
 
-
-export type RiwayatPeminjamanFormValues = Omit<
-  RiwayatPeminjamanType,
-  "id" | "nomor_transaksi"
->;
+// Form edit hanya mengubah 3 field
+export interface RiwayatPeminjamanFormValues {
+  jumlah: number;
+  nama_pekerjaan: string;
+  area_kerja: string;
+  keterangan: string;
+}
 
 // ------------------------------------------------------------------
 // Riwayat Consumable Keluar
@@ -43,22 +47,24 @@ export interface RiwayatConsumableKeluarType {
   jumlah: number;
   nama_peminta: string;
   divisi: string;
+  nama_pekerjaan: string;
   area_kerja: string;
   keterangan: string;
 
-  // Tambahan Index Signature untuk mengatasi error TS2345 pada exportToPDF / exportToExcel
   [key: string]: unknown;
 }
 
-export type RiwayatConsumableKeluarFormValues = Pick<
-  RiwayatConsumableKeluarType,
-  "jumlah" | "area_kerja" | "keterangan"
->;
+export interface RiwayatConsumableKeluarFormValues {
+  jumlah: number;
+  nama_pekerjaan: string;
+  area_kerja: string;
+  keterangan: string;
+}
 
 // ------------------------------------------------------------------
-// Filter bersama (dipakai kedua halaman riwayat)
+// Filter bersama
 // ------------------------------------------------------------------
 export interface PeriodeFilterValue {
-  dari: string; // yyyy-mm-dd, kosong = tidak dibatasi
+  dari: string;
   sampai: string;
 }

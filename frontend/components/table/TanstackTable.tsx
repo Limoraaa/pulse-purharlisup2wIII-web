@@ -109,6 +109,7 @@ function TanstackTable<TData>({
                   {headerGroup.headers.map((header) => (
                     <th
                       key={header.id}
+                      data-column-id={header.column.id}
                       onClick={header.column.getToggleSortingHandler()}
                       colSpan={header.colSpan}
                     >
@@ -124,10 +125,14 @@ function TanstackTable<TData>({
                             header.column.columnDef.header,
                             header.getContext()
                           )}
-                          {{
-                            asc: <ChevronUp size={16} />,
-                            desc: <ChevronDown size={16} />,
-                          }[header.column.getIsSorted() as string] ?? null}
+                          {/* Chevron bawaan disembunyikan bila kolom memakai
+                              ikon sorting custom (meta.hideDefaultSortIcon),
+                              agar tidak double dengan ikon tersebut. */}
+                          {!header.column.columnDef.meta?.hideDefaultSortIcon &&
+                            ({
+                              asc: <ChevronUp size={16} />,
+                              desc: <ChevronDown size={16} />,
+                            }[header.column.getIsSorted() as string] ?? null)}
                         </div>
                       )}
                     </th>
@@ -147,7 +152,7 @@ function TanstackTable<TData>({
                 style={onRowClick ? { cursor: "pointer" } : undefined}
               >
                 {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} className={tdClass}>
+                  <td key={cell.id} data-column-id={cell.column.id} className={tdClass}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
                 ))}

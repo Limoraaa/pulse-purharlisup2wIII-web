@@ -10,9 +10,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('peminta', function (Blueprint $table) {
-            $table->uuid('id')->default(DB::raw('gen_random_uuid()'))->primary();
+            $table->string('id')->primary(); // Tipe string agar bebas menerima angka RFID
             $table->string('nama');
-            $table->string('kategori')->nullable();
+            $table->string('divisi')->nullable();
+            
+            // --- TAMBAHKAN KOLOM ROLE DI SINI ---
+            $table->string('role')->default('user'); 
+            
+            $table->boolean('aktif')->default(true);
             $table->timestamps();
         });
     }

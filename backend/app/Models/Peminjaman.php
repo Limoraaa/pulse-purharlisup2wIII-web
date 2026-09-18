@@ -22,6 +22,7 @@ class Peminjaman extends Model
         'peminta_id',
         'jumlah',
         'area_pekerjaan',
+        'nama_pekerjaan',
         'spesifikasi',
         'keterangan',
         'tanggal_kembali',

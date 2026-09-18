@@ -1,7 +1,7 @@
 "use client";
 // import node module libraries
 import { ColumnDef } from "@tanstack/react-table";
-import { Dropdown } from "react-bootstrap";
+import { Dropdown, Badge } from "react-bootstrap";
 import { IconDotsVertical } from "@tabler/icons-react";
 
 // import custom types
@@ -9,8 +9,10 @@ import { ConsumableMasukType } from "types/DataConsumableTypes";
 
 // import custom components
 import ActionMenu from "components/common/ActionMenu";
+const formatNumber = (n: number) => n.toLocaleString("en-US");
 
 interface ColumnHandlers {
+  canManage?: boolean;
   onEdit: (item: ConsumableMasukType) => void;
   onDelete: (item: ConsumableMasukType) => void;
 }
@@ -34,74 +36,95 @@ const formatTanggal = (raw: string): string => {
 };
 
 export const getConsumableMasukColumns = ({
+  canManage = false,
   onEdit,
   onDelete,
-}: ColumnHandlers): ColumnDef<ConsumableMasukType>[] => [
-  {
-    accessorKey: "tanggal",
-    header: "Tanggal",
-    cell: ({ row }) => formatTanggal(row.original.tanggal),
-  },
-  {
-    accessorKey: "kode_barang",
-    header: "Kode Barang",
-    cell: ({ row }) => (
-      <span className="fw-semibold">{row.original.kode_barang}</span>
-    ),
-  },
-  {
-    accessorKey: "nama",
-    header: "Nama Barang",
-  },
-  {
-    accessorKey: "merk",
-    header: "Merk",
-  },
-  {
-    accessorKey: "tipe",
-    header: "Tipe",
-  },
-  {
-    accessorKey: "er_e",
-    header: "ER/E",
-  },
-  {
-    accessorKey: "ukuran",
-    header: "Ukuran",
-  },
-  {
-    accessorKey: "jumlah_masuk",
-    header: "Jumlah Masuk",
-    cell: ({ row }) => (
-      <span className="text-center d-block fw-bold text-success">
-        +{row.original.jumlah_masuk}
-      </span>
-    ),
-  },
-  {
-    accessorKey: "keterangan",
-    header: "Keterangan",
-  },
-  {
-    id: "aksi",
-    header: "Aksi",
-    cell: ({ row }) => (
-      <ActionMenu
-        toggleButton={<IconDotsVertical size={20} />}
-        className="btn btn-ghost btn-icon btn-sm rounded-circle"
-        drop="start"
-        align="start"
-      >
-        <Dropdown.Item onClick={() => onEdit(row.original)}>
-          Edit Data
-        </Dropdown.Item>
-        <Dropdown.Item
-          className="text-danger"
-          onClick={() => onDelete(row.original)}
+}: ColumnHandlers): ColumnDef<ConsumableMasukType>[] => {
+  const baseColumns: ColumnDef<ConsumableMasukType>[] = [
+    {
+      accessorKey: "tanggal",
+      header: "Tanggal",
+      cell: ({ row }) => formatTanggal(row.original.tanggal),
+    },
+    {
+      accessorKey: "kode_barang",
+      header: "Kode Barang",
+      cell: ({ row }) => (
+        <span className="fw-semibold">{row.original.kode_barang}</span>
+      ),
+    },
+    {
+      accessorKey: "nama",
+      header: "Nama Barang",
+    },
+    {
+      accessorKey: "merk",
+      header: "Merk",
+    },
+    {
+      accessorKey: "tipe",
+      header: "Tipe",
+    },
+    {
+      accessorKey: "er_e",
+      header: "ER/E",
+    },
+    {
+      accessorKey: "ukuran",
+      header: "Ukuran",
+    },
+    {
+      accessorKey: "jumlah_masuk",
+      header: "Jumlah Masuk",
+      cell: ({ row }) => {
+        const rawSatuan = (row.original as any).satuan || (row.original as any).consumable?.satuan || "";
+        const satuan = rawSatuan === "-" ? "" : rawSatuan;
+
+        return (
+          <span className="d-flex justify-content-center">
+            <Badge bg="success-subtle" text="success-emphasis" className="fw-semibold">
+              +{formatNumber(row.original.jumlah_masuk)}{satuan ? ` ${satuan}` : ""}
+            </Badge>
+          </span>
+        );
+      },
+    },
+    {
+      id: "penginput",
+      header: "Penginput",
+      cell: ({ row }) => {
+        const penginput = row.original.dicatatOleh;
+        const userName = penginput?.name || penginput?.nama || "Tidak Diketahui";
+        return <span className="fw-medium text-gray-700">{userName}</span>;
+      },
+    },
+    {
+      accessorKey: "keterangan",
+      header: "Keterangan",
+    },
+    {
+      id: "aksi",
+      header: "Aksi",
+      cell: ({ row }) => (
+        <ActionMenu
+          toggleButton={<IconDotsVertical size={20} />}
+          className="btn btn-ghost btn-icon btn-sm rounded-circle"
+          drop="start"
+          align="start"
         >
-          Hapus Data
-        </Dropdown.Item>
-      </ActionMenu>
-    ),
-  },
-];
+          <Dropdown.Item onClick={() => onEdit(row.original)}>
+            Edit Data
+          </Dropdown.Item>
+          <Dropdown.Item
+            className="text-danger"
+            onClick={() => onDelete(row.original)}
+          >
+            Hapus Data
+          </Dropdown.Item>
+        </ActionMenu>
+      ),
+    },
+  ];
+
+  return canManage ? baseColumns : baseColumns.filter((col) => col.id !== "aksi");
+};

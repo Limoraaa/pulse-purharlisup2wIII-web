@@ -1,92 +1,84 @@
 "use client";
 // import node module libraries
-import { Row, Col, Form, Button } from "react-bootstrap";
-import { IconFileTypePdf, IconFileTypeXls } from "@tabler/icons-react";
-
-const NAMA_BULAN = [
-  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-  "Juli", "Agustus", "September", "Oktober", "November", "Desember",
-];
+import { Form, Button, InputGroup } from "react-bootstrap";
+import {
+  IconFileTypePdf,
+  IconFileTypeXls,
+  IconUser,
+} from "@tabler/icons-react";
+import DateRangePicker from "components/ruangtools/common/DateRangePicker";
+import { DateFilterValue } from "components/ruangtools/common/dateUtils";
 
 interface RiwayatFilterBarProps {
-  bulanFilter: number; // 0 = Semua Bulan, 1-12 = bulan tertentu
-  onBulanFilterChange: (v: number) => void;
-  tahunFilter: number; // 0 = Semua Tahun
-  onTahunFilterChange: (v: number) => void;
-  tahunOptions: number[]; // daftar tahun yang ada di data
+  tanggalFilter: DateFilterValue | null;
+  onTanggalFilterChange: (v: DateFilterValue | null) => void;
+
+  namaFilter: string;
+  onNamaFilterChange: (v: string) => void;
+  namaOptions: string[];
+  namaLabel?: string;
 
   onExportPDF: () => void;
   onExportExcel: () => void;
 }
 
 const RiwayatFilterBar = ({
-  bulanFilter,
-  onBulanFilterChange,
-  tahunFilter,
-  onTahunFilterChange,
-  tahunOptions,
+  tanggalFilter,
+  onTanggalFilterChange,
+  namaFilter,
+  onNamaFilterChange,
+  namaOptions = [],
+  namaLabel = "Nama",
   onExportPDF,
   onExportExcel,
 }: RiwayatFilterBarProps) => {
   return (
-    <Row className="align-items-end g-3 mb-4">
-      <Col md={3} sm={6}>
-        <Form.Label className="mb-1 small text-secondary">
-          Bulan
-        </Form.Label>
-        <Form.Select
-          size="sm"
-          value={bulanFilter}
-          onChange={(e) => onBulanFilterChange(Number(e.target.value))}
-        >
-          <option value={0}>Semua Bulan</option>
-          {NAMA_BULAN.map((nama, index) => (
-            <option key={nama} value={index + 1}>
-              {nama}
-            </option>
-          ))}
-        </Form.Select>
-      </Col>
-      <Col md={3} sm={6}>
-        <Form.Label className="mb-1 small text-secondary">
-          Tahun
-        </Form.Label>
-        <Form.Select
-          size="sm"
-          value={tahunFilter}
-          onChange={(e) => onTahunFilterChange(Number(e.target.value))}
-        >
-          <option value={0}>Semua Tahun</option>
-          {tahunOptions.map((tahun) => (
-            <option key={tahun} value={tahun}>
-              {tahun}
-            </option>
-          ))}
-        </Form.Select>
-      </Col>
-      <Col md={6} sm={12} className="d-flex gap-2">
+    <div className="riwayat-filterbar">
+      {/* Filter Tanggal (date range / bulan) + Nama */}
+      <div className="riwayat-filter-controls">
+        <DateRangePicker value={tanggalFilter} onChange={onTanggalFilterChange} />
+
+        <InputGroup className="riwayat-filter-group riwayat-nama-filter">
+          <InputGroup.Text>
+            <IconUser size={16} />
+          </InputGroup.Text>
+          <Form.Select
+            value={namaFilter}
+            onChange={(e) => onNamaFilterChange(e.target.value)}
+            aria-label={`Filter ${namaLabel}`}
+          >
+            <option value="">Semua {namaLabel}</option>
+            {namaOptions.map((nama) => (
+              <option key={nama} value={nama}>
+                {nama}
+              </option>
+            ))}
+          </Form.Select>
+        </InputGroup>
+      </div>
+
+      {/* Tombol Export */}
+      <div className="riwayat-export-controls">
         <Button
           variant="outline-danger"
-          size="sm"
-          className="d-flex align-items-center gap-1 flex-fill"
+          className="d-inline-flex align-items-center justify-content-center gap-2"
           onClick={onExportPDF}
           title="Export PDF"
         >
-          <IconFileTypePdf size={16} />
-          PDF
+          <IconFileTypePdf size={18} />
+          Export PDF
         </Button>
         <Button
           variant="outline-success"
-          size="sm"
-          className="d-flex align-items-center gap-1 flex-fill"
+          className="d-inline-flex align-items-center justify-content-center gap-2"
           onClick={onExportExcel}
           title="Export Excel"
         >
-          <IconFileTypeXls size={16} />
-          Excel
+          <IconFileTypeXls size={18} />
+          Export Excel
         </Button>
-      </Col>
-    </Row>
+      </div>
+    </div>
   );
 };
 

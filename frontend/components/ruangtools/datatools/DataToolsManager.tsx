@@ -1,29 +1,61 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
-import { Row, Col, Card, CardBody, Button, Form, Spinner, Alert } from "react-bootstrap";
-import { IconPlus, IconCircleCheck } from "@tabler/icons-react";
+// import node module libraries
+import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
+import { AntreanItemResponse } from "services/peminjamanService";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import {
+  Row,
+  Col,
+  Card,
+  CardBody,
+  Button,
+  Spinner,
+  Alert,
+  InputGroup,
+  Form,
+} from "react-bootstrap";
+import {
+  IconPlus,
+  IconCircleCheck,
+  IconSearch,
+  IconX,
+  IconTool,
+  IconMoodEmpty,
+} from "@tabler/icons-react";
 import { v4 as uuid } from "uuid";
+import useSWR, { useSWRConfig } from "swr";
 
+// Import service layer
+import {
+  fetchAntrean,
+  scanTool,
+  updateCartItem,
+  removeCartItem,
+  prosesPeminjamanApi,
+} from "services/peminjamanService";
+import { getConsumables } from "services/consumableService"; // Tambahan untuk Universal Scanner
+
+import api from "lib/api";
+import { usePermission } from "hooks/usePermissions";
+
+// import redux store
 import { useAppDispatch, useAppSelector } from "store/store";
 import {
   fetchTools,
   addToolThunk,
   updateToolThunk,
   deleteToolThunk,
-  checkoutPeminjamanThunk,
-  fetchAntreanThunk,
-  scanToolThunk,
-  updateCartItemThunk,
-  removeCartItemThunk,
 } from "store/slices/inventoryToolsSlice";
 
+// import custom types
 import {
   ToolItemType,
   ToolFormValues,
-  ToolCondition,
-  LoanFormValues,
+  CartItemType,
 } from "types/DataToolsTypes";
+import { ConsumableItemType } from "types/DataConsumableTypes"; // Tambahan untuk Universal Scanner
 
+// import custom components
 import TanstackTable from "components/table/TanstackTable";
 import Flex from "components/common/Flex";
 import DasherBreadcrumb from "components/common/DasherBreadcrumb";
@@ -32,76 +64,276 @@ import ToolFormModal from "components/ruangtools/datatools/ToolFormModal";
 import ToolDetailModal from "components/ruangtools/datatools/ToolDetailModal";
 import DeleteConfirmModal from "components/ruangtools/datatools/DeleteConfirmModal";
 import CartFAB from "components/ruangtools/datatools/CartFAB";
-import CartOffcanvas from "components/ruangtools/datatools/CartOffcanvas";
-import LoanFormModal from "components/ruangtools/datatools/LoanFormModal";
+import CartOffcanvas from "components/common/CartOffcanvas";
+import LoanFormModal from "components/common/LoanFormModal";
 import AddToCartFlyEffect, {
   FlyAnimationItem,
 } from "components/ruangtools/datatools/AddToCartFlyEffect";
 
+// Tipe gabungan untuk item keranjang (tools + consumable)
+interface UnifiedCartItem extends Partial<CartItemType> {
+  cartId?: string | number;
+  id?: string | number;
+  consumable_id?: string;
+  jumlah: number;
+  item_type?: "tool" | "consumable";
+}
+
+interface LoanSubmitValues {
+  peminjamId?: string;
+  pemintaId?: string;
+  namaPeminjam?: string;
+  namaPeminta?: string;
+  namaPekerjaan: string;
+  areaKerja: string;
+  spesifikasi?: string;
+  keterangan?: string;
+}
+
+// ---- Helper: generate kode barang berikutnya ----
 const generateNextKodeBarang = (tools: ToolItemType[]): string => {
-  if (tools.length === 0) return "I-001";
+  if (tools.length === 0) return "T-001";
   const maxNumber = tools.reduce((max, tool) => {
-    const match = tool.kodeBarang.match(/^I-(\d+)$/);
+    const match = tool.kodeBarang.match(/^T-(\d+)$/);
     if (!match) return max;
     const num = parseInt(match[1], 10);
     return num > max ? num : max;
   }, 0);
-  return `I-${String(maxNumber + 1).padStart(3, "0")}`;
+  const nextNumber = maxNumber + 1;
+  return `T-${String(nextNumber).padStart(3, "0")}`;
 };
 
-const KONDISI_FILTER_OPTIONS: (ToolCondition | "Semua")[] = ["Semua", "Baik", "Rusak"];
+const EXPORT_COLUMNS: ExportColumn[] = [
+  { header: "Kode Barang", key: "kodeBarang" },
+  { header: "Nama Barang", key: "namaBarang" },
+  { header: "Merk", key: "merk" },
+  { header: "Tipe", key: "tipe" },
+  { header: "Warna", key: "warna" },
+  { header: "Ukuran", key: "ukuran" },
+  { header: "Kondisi", key: "kondisi" },
+  { header: "Stok", key: "stok" },
+  { header: "Dipinjam", key: "dipinjam" },
+  { header: "Tersedia", key: "tersedia" },
+];
 
 const DataToolsManager = () => {
   const dispatch = useAppDispatch();
+  const { mutate } = useSWRConfig();
+  const canManage = usePermission("manage_inventaris");
 
+  // Data tools dari Redux store
   const tools = useAppSelector((state) => state.inventoryTools.tools);
-  const cart = useAppSelector((state) => state.inventoryTools.cart);
   const loadingTools = useAppSelector((state) => state.inventoryTools.loadingTools);
   const toolsError = useAppSelector((state) => state.inventoryTools.toolsError);
-  const cartError = useAppSelector((state) => state.inventoryTools.cartError);
 
-  const [kondisiFilter, setKondisiFilter] = useState<ToolCondition | "Semua">("Semua");
+  // Data consumable untuk Universal Scanner
+  const [consumables, setConsumables] = useState<ConsumableItemType[]>([]);
+
+  // ---- State modal ----
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [activeTool, setActiveTool] = useState<ToolItemType | null>(null);
   const [suggestedKodeBarang, setSuggestedKodeBarang] = useState("");
 
+  // ---- State Keranjang Peminjaman ----
+  const [cart, setCart] = useState<UnifiedCartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [loanFormOpen, setLoanFormOpen] = useState(false);
   const [submittingLoan, setSubmittingLoan] = useState(false);
   const [loanError, setLoanError] = useState<string | null>(null);
 
+  // ---- Timer untuk Debounce API ----
+  const debounceTimers = useRef<Map<string | number, NodeJS.Timeout>>(new Map());
+
+  // ---- Animasi "fly to cart" ----
   const [flyAnimations, setFlyAnimations] = useState<FlyAnimationItem[]>([]);
+
+  // ---- Notifikasi ----
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // ================= LOAD DATA + POLLING ANTREAN =================
-  // ================= LOAD DATA + POLLING ANTREAN =================
+  // ---- Toolbar: pencarian ----
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // ================= FETCH KERANJANG MENGGUNAKAN SWR & SERVICE =================
+  const { data: dbCart } = useSWR("/peminjaman/antrean", fetchAntrean);
+
+  // Sinkronisasi data Tools dari Database + Gabungkan dengan data Consumable dari LocalStorage
   useEffect(() => {
-    // Cek apakah user sudah login (sesuaikan dengan cara kamu menyimpan sesi/token)
-    const token = localStorage.getItem("token"); // atau "userId"
-    
-    if (!token) {
-      return; // Hentikan proses jika tidak ada token/belum login
+    let groupedToolsCart: UnifiedCartItem[] = [];
+
+    if (dbCart && Array.isArray(dbCart)) {
+      groupedToolsCart = dbCart.reduce((acc: UnifiedCartItem[], item: AntreanItemResponse) => {
+        const cartRecordId = item.id;
+        const toolIdVal = item.tools_id;
+
+        const existingItem = acc.find((c) => c.toolId === toolIdVal);
+
+        if (existingItem) {
+          existingItem.jumlah += item.qty ?? 1;
+        } else {
+          acc.push({
+            cartId: cartRecordId,
+            toolId: toolIdVal,
+            namaBarang: item.nama_barang || "Nama Alat Tidak Ditemukan",
+            kodeBarang: item.kode_barang || "-",
+            jumlah: item.qty ?? 1,
+            maxJumlah: item.max_jumlah ?? 99,
+            item_type: "tool",
+          });
+        }
+        return acc;
+      }, []);
     }
+    // Simpan tools ke localStorage agar halaman consumable bisa membacanya
+    localStorage.setItem("global_shared_tools_cart", JSON.stringify(groupedToolsCart));
 
+    // Ambil data consumable dari localStorage
+    const savedConsumableCart = JSON.parse(localStorage.getItem("global_shared_consumable_cart") || "[]");
+
+    // Gabungkan data tools dan consumable ke state cart utama
+    setCart([...groupedToolsCart, ...savedConsumableCart]);
+  }, [dbCart]);
+
+  // Data filter tabel
+  const filteredTools = useMemo(() => {
+    const keyword = searchTerm.trim().toLowerCase();
+    
+    if (!keyword) return tools;
+
+    return tools.filter((tool) => {
+      const kodeBarang = (tool.kodeBarang || "").toLowerCase();
+      const namaBarang = (tool.namaBarang || "").toLowerCase();
+      const merk = (tool.merk || "").toLowerCase();
+      const tipe = (tool.tipe || "").toLowerCase();
+      const warna = (tool.warna || "").toLowerCase();
+      const ukuran = (tool.ukuran || "").toLowerCase();
+      const kondisi = (tool.kondisi || "").toLowerCase();
+
+      const stok = String(tool.stok || 0);
+      const dipinjam = String(tool.dipinjam || 0);
+      const tersedia = String((tool.stok || 0) - (tool.dipinjam || 0));
+
+      return (
+        kodeBarang.includes(keyword) ||
+        namaBarang.includes(keyword) ||
+        merk.includes(keyword) ||
+        tipe.includes(keyword) ||
+        warna.includes(keyword) ||
+        ukuran.includes(keyword) ||
+        kondisi.includes(keyword) ||
+        stok.includes(keyword) ||
+        dipinjam.includes(keyword) ||
+        tersedia.includes(keyword)
+      );
+    });
+  }, [tools, searchTerm]);
+
+  // ================= LOAD DATA DARI DATABASE =================
+  useEffect(() => {
     dispatch(fetchTools());
-    dispatch(fetchAntreanThunk());
-
-    // polling supaya hasil scan dari Flutter app langsung muncul di web
-    const interval = setInterval(() => {
-      dispatch(fetchAntreanThunk());
-    }, 4000);
-
-    return () => clearInterval(interval);
+    getConsumables().then(setConsumables).catch(console.error); // Load consumables untuk Universal Scanner
   }, [dispatch]);
 
-  const filteredTools = useMemo(() => {
-    if (kondisiFilter === "Semua") return tools;
-    return tools.filter((t) => t.kondisi === kondisiFilter);
-  }, [tools, kondisiFilter]);
+  // ================= BARCODE SCANNER UNIVERSAL =================
+  const barcodeBuffer = useRef('');
+  const lastKeyTime = useRef(Date.now());
 
-  // ================= CRUD TOOLS (tidak berubah) =================
+  useEffect(() => {
+    const handleGlobalScan = async (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      const currentTime = Date.now();
+      if (currentTime - lastKeyTime.current > 50) barcodeBuffer.current = '';
+      lastKeyTime.current = currentTime;
+
+      if (e.key === 'Enter') {
+        if (barcodeBuffer.current.length > 3) {
+          const scannedCode = barcodeBuffer.current;
+          barcodeBuffer.current = ''; 
+
+          // 1. Cari di database Tools terlebih dahulu
+          const foundTool = tools.find((t) => 
+            (t.kodeBarang && t.kodeBarang.toLowerCase() === scannedCode.toLowerCase()) || t.id === scannedCode
+          );
+
+          if (foundTool) {
+            const tersedia = foundTool.stok - foundTool.dipinjam;
+            if (tersedia > 0) {
+              try {
+                await scanTool(foundTool.id, 1);
+                mutate("/peminjaman/antrean");
+                setSuccessMessage(`Berhasil: Tool ${foundTool.namaBarang} ditambahkan ke keranjang.`);
+                setTimeout(() => setSuccessMessage(null), 3000);
+              } catch (err) {
+                console.error("Gagal menambah Tool", err);
+              }
+            } else {
+               alert(`Gagal: Stok Tool ${foundTool.namaBarang} kosong/dipinjam semua.`);
+            }
+          } 
+          // 2. Jika tidak ada di Tools, cari di database Consumable
+          else {
+            const foundConsumable = consumables.find((c) => 
+              (c.kode_barang && c.kode_barang.toLowerCase() === scannedCode.toLowerCase()) || c.id === scannedCode
+            );
+
+            if (foundConsumable) {
+              const itemDiKeranjang = cart.find((c) => c.consumable_id === foundConsumable.id && c.item_type === 'consumable');
+              const jumlahDiKeranjang = itemDiKeranjang ? itemDiKeranjang.jumlah : 0;
+              const tersedia = foundConsumable.stok_tersedia - jumlahDiKeranjang;
+
+              if (tersedia > 0) {
+                try {
+                  const token = localStorage.getItem("token");
+                  const userId = localStorage.getItem("userId");
+                  
+                  // Tembak API Consumable
+                  await api("/consumable-keluar/scan", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ consumable_id: foundConsumable.id, jumlah: 1, ...(userId ? { user_id: userId } : {}) }),
+                  });
+
+                  // Sinkronisasi data keranjang consumable dari API ke LocalStorage
+                  const json = await api("/consumable-keluar/antrean", {
+                    method: "GET",
+                    headers: { Authorization: `Bearer ${token}`, ...(userId ? { "x-user-id": userId } : {}) },
+                  });
+                  const rawItems = Array.isArray(json) ? json : (json as any).data || [];
+                  const mappedConsumable = rawItems.map((item: any) => ({
+                    id: item.id, consumable_id: item.consumable_id,
+                    kode_barang: item.kodeBarang || item.kode_barang || "-",
+                    nama: item.namaBarang || item.nama || "Bahan Dihapus",
+                    jumlah: item.qty || item.jumlah || 1,
+                    stok_tersedia: item.stok_tersedia ?? 0, item_type: 'consumable',
+                  }));
+                  localStorage.setItem("global_shared_consumable_cart", JSON.stringify(mappedConsumable));
+                  
+                  mutate("/peminjaman/antrean"); // Trigger update UI
+                  setSuccessMessage(`Berhasil: Consumable ${foundConsumable.nama} ditambahkan ke keranjang.`);
+                  setTimeout(() => setSuccessMessage(null), 3000);
+                } catch (err) {
+                  console.error("Gagal menambah Consumable", err);
+                }
+              } else {
+                 alert(`Gagal: Stok Consumable ${foundConsumable.nama} habis!`);
+              }
+            } else {
+               alert(`Barcode tidak terdaftar di sistem manapun: ${scannedCode}`);
+            }
+          }
+        }
+      } else if (e.key.length === 1) {
+        barcodeBuffer.current += e.key;
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalScan);
+    return () => window.removeEventListener('keydown', handleGlobalScan);
+  }, [tools, consumables, cart, mutate]);
+
+  // ================= CRUD TOOLS =================
   const openAddModal = () => {
     setActiveTool(null);
     setSuggestedKodeBarang(generateNextKodeBarang(tools));
@@ -123,13 +355,30 @@ const DataToolsManager = () => {
       setFormModalOpen(false);
       setActiveTool(null);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Gagal menyimpan data");
+      const message = err instanceof Error ? err.message : "Gagal menyimpan data";
+      alert(message);
     }
-  };
+  }; 
 
   const openDetailModal = (tool: ToolItemType) => {
     setActiveTool(tool);
     setDetailModalOpen(true);
+  };
+
+  const handleExportPDF = () => {
+    const dataWithTersedia = filteredTools.map((t) => ({
+      ...t,
+      tersedia: t.stok - t.dipinjam,
+    }));
+    exportToPDF(dataWithTersedia as unknown as Record<string, unknown>[], EXPORT_COLUMNS, "data-tools", "Data Tools");
+  };
+
+  const handleExportExcel = () => {
+    const dataWithTersedia = filteredTools.map((t) => ({
+      ...t,
+      tersedia: t.stok - t.dipinjam,
+    }));
+    exportToExcel(dataWithTersedia as unknown as Record<string, unknown>[], EXPORT_COLUMNS, "data-tools");
   };
 
   const openDeleteModal = (tool: ToolItemType) => {
@@ -141,11 +390,9 @@ const DataToolsManager = () => {
     if (!activeTool) return;
     try {
       await dispatch(deleteToolThunk(activeTool.id)).unwrap();
-      // kalau tool yang dihapus ada di cart, item di temporary_cart jadi orphan
-      // -> antrean() sudah nge-skip tool yang null, jadi tinggal refetch
-      dispatch(fetchAntreanThunk());
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Gagal menghapus data");
+      const message = err instanceof Error ? err.message : "Gagal menghapus data";
+      alert(message);
     } finally {
       setDeleteModalOpen(false);
       setActiveTool(null);
@@ -153,57 +400,118 @@ const DataToolsManager = () => {
   };
 
   // ================= KERANJANG PEMINJAMAN =================
-  const handleAddToCart = async (
-    tool: ToolItemType,
-    event: React.MouseEvent<HTMLButtonElement>
-  ) => {
-    // 1. Cari apakah alat ini sudah ada di keranjang
-    const itemDiKeranjang = cart.find(c => c.toolId === tool.id);
-    const jumlahDiKeranjang = itemDiKeranjang ? itemDiKeranjang.jumlah : 0;
-
-    // 2. Hitung stok AKTUAL (Stok - Dipinjam - Yang sudah ada di keranjang)
-    const tersedia = (tool.stok - tool.dipinjam) - jumlahDiKeranjang;
-
-    if (tersedia <= 0) {
-      alert(`Stok maksimal! Anda sudah memasukkan semua stok ${tool.namaBarang} yang tersedia ke keranjang.`);
-      return;
-    }
+  const handleAddToCart = useCallback(async (tool: ToolItemType, event: React.MouseEvent<HTMLButtonElement>) => {
+    const tersedia = tool.stok - tool.dipinjam;
+    if (tersedia <= 0) return;
+    
+    const rect = event.currentTarget.getBoundingClientRect();
+    setFlyAnimations((prev) => [
+      ...prev, 
+      { id: uuid(), startX: rect.left + rect.width / 2, startY: rect.top + rect.height / 2 }
+    ]);
 
     try {
-      await dispatch(scanToolThunk({ toolId: tool.id, jumlah: 1 })).unwrap();
-      await dispatch(fetchAntreanThunk()).unwrap();
-
-      if (event.currentTarget) {
-        const rect = event.currentTarget.getBoundingClientRect();
-        setFlyAnimations((prev) => [
-          ...prev,
-          { 
-            id: uuid(), 
-            startX: rect.left + rect.width / 2, 
-            startY: rect.top + rect.height / 2 
-          },
-        ]);
-      }
-    } catch (err: any) {
-      const errorMessage = (typeof err === 'string' ? err : err?.message) || "Gagal menambah ke keranjang";
-      alert(errorMessage);
+      await scanTool(tool.id, 1);
+      mutate("/peminjaman/antrean");
+    } catch (err) { 
+      console.error("Gagal menambah ke keranjang DB", err); 
     }
-  };
-
+  }, [mutate]);
+  
   const handleAnimationEnd = (id: string) => {
     setFlyAnimations((prev) => prev.filter((a) => a.id !== id));
   };
 
-  // Pastikan parameter di sini menerima string cartId
-  const handleUpdateCartQty = (cartId: string, jumlah: number) => {
-    // Pastikan updateCartItemThunk mengirimkan cartId ke backend
-    dispatch(updateCartItemThunk({ cartId, qty: jumlah }));
+  // --- OPTIMISTIC UPDATE + DEBOUNCE: handleUpdateQty ---
+  const handleUpdateQty = (cartId: string | number, newJumlah: number) => {
+    if (newJumlah < 1) return;
+
+    // 1. Update state lokal secara instan (UI merespons tanpa lag)
+    setCart((prevCart) =>
+      prevCart.map((c) =>
+        c.cartId === cartId || c.id === cartId || c.consumable_id === cartId ? { ...c, jumlah: newJumlah } : c
+      )
+    );
+
+    const targetItem = cart.find((c) => c.cartId === cartId || c.id === cartId || c.consumable_id === cartId);
+    if (!targetItem) return;
+
+    // 2. Simpan juga ke Local Storage seketika agar sinkron
+    if (targetItem.item_type === "consumable") {
+      const savedCons = JSON.parse(localStorage.getItem("global_shared_consumable_cart") || "[]");
+      const updated = savedCons.map((c: any) => 
+        c.id === cartId || c.consumable_id === cartId ? { ...c, jumlah: newJumlah } : c
+      );
+      localStorage.setItem("global_shared_consumable_cart", JSON.stringify(updated));
+    } else {
+      const savedTools = JSON.parse(localStorage.getItem("global_shared_tools_cart") || "[]");
+      const updated = savedTools.map((c: any) =>
+        c.cartId === cartId || c.id === cartId ? { ...c, jumlah: newJumlah } : c
+      );
+      localStorage.setItem("global_shared_tools_cart", JSON.stringify(updated));
+    }
+
+    // 3. Batalkan request API sebelumnya jika user masih asyik mengetik/ngeklik
+    if (debounceTimers.current.has(cartId)) {
+      clearTimeout(debounceTimers.current.get(cartId));
+    }
+
+    // 4. Jadwalkan pengiriman API setelah user berhenti 500ms
+    const timer = setTimeout(async () => {
+      try {
+        if (targetItem.item_type === "consumable") {
+          const token = localStorage.getItem("token");
+          await api(`/consumable-keluar/cart/${targetItem.id}`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ qty: newJumlah }),
+          });
+        } else {
+          // Update item jenis Tool ke backend
+          await updateCartItem(cartId, newJumlah);
+        }
+
+        debounceTimers.current.delete(cartId);
+        
+        // Mutate secara silent agar UI tidak jumpy, karena layar sudah benar angkanya
+        mutate("/peminjaman/antrean"); 
+      } catch (err) {
+        console.error("Gagal memperbarui jumlah item:", err);
+        // Jika backend menolak (misal error server/stok limit), paksa ambil nilai asli dari database
+        mutate("/peminjaman/antrean");
+      }
+    }, 500);
+
+    debounceTimers.current.set(cartId, timer);
   };
 
-  const handleRemoveFromCart = async (cartId: string) => {
-    // Pastikan removeCartItemThunk mengirimkan cartId ke backend
-    await dispatch(removeCartItemThunk(cartId)).unwrap();
-    await dispatch(fetchAntreanThunk()).unwrap(); // Refresh agar UI terupdate
+  // --- PERBAIKAN BUG OPTIMISTIC UPDATE: handleRemoveFromCart ---
+  const handleRemoveFromCart = async (cartId: string | number) => {
+    const targetItem = cart.find((c) => c.cartId === cartId || c.id === cartId || c.consumable_id === cartId);
+    if (!targetItem) return;
+
+    // 1. Hapus secara instan dari state lokal
+    setCart((prev) => prev.filter((c) => c.cartId !== cartId && c.id !== cartId && c.consumable_id !== cartId));
+
+    // 2. Jika item tersebut adalah Consumable
+    if (targetItem.item_type === "consumable") {
+      const savedCons = JSON.parse(localStorage.getItem("global_shared_consumable_cart") || "[]");
+      const updated = savedCons.filter((c: any) => c.id !== cartId && c.consumable_id !== cartId);
+      localStorage.setItem("global_shared_consumable_cart", JSON.stringify(updated));
+      return;
+    }
+
+    // 3. Jika item tersebut adalah Tool
+    try {
+      await removeCartItem(cartId);
+      mutate("/peminjaman/antrean"); 
+    } catch (err) {
+      console.error("Gagal menghapus dari keranjang DB", err);
+      mutate("/peminjaman/antrean"); // Revert jika gagal
+    }
   };
 
   const handleProceedToLoanForm = () => {
@@ -211,25 +519,78 @@ const DataToolsManager = () => {
     setLoanFormOpen(true);
   };
 
-  const handleLoanSubmit = async (values: LoanFormValues) => {
+  const handleLoanSubmit = async (values: LoanSubmitValues) => {
     setSubmittingLoan(true);
     setLoanError(null);
 
     try {
-      const dicatatOleh = localStorage.getItem("userId");
-      if (!dicatatOleh) {
+      const dicatatOleh = localStorage.getItem("userId"); 
+      const token = localStorage.getItem("token");
+      if (!dicatatOleh || !token) {
         throw new Error("Sesi login tidak ditemukan. Silakan login ulang.");
       }
 
-      await dispatch(checkoutPeminjamanThunk({ loanForm: values, dicatatOleh })).unwrap();
+      const pemintaIdValue = values.peminjamId || values.pemintaId;
+      if (!pemintaIdValue) {
+        throw new Error("Data peminjam tidak ditemukan. Silakan pilih peminjam terlebih dahulu.");
+      }
 
+      const hasToolItems = cart.some((c) => c.item_type === "tool" || !c.item_type);
+      const hasConsumableItems = cart.some((c) => c.item_type === "consumable");
+
+      const apiRequests = [];
+
+      if (hasToolItems) {
+        apiRequests.push(
+          prosesPeminjamanApi({
+            pemintaId: pemintaIdValue,
+            dicatatOleh: dicatatOleh,
+            namaPekerjaan: values.namaPekerjaan,
+            areaKerja: values.areaKerja,
+            spesifikasi: values.spesifikasi || "",
+            keterangan: values.keterangan,
+          })
+        );
+      }
+
+      if (hasConsumableItems) {
+        apiRequests.push(
+          api("/consumable-keluar/proses", {
+            method: "POST",
+            headers: { 
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}` 
+            },
+            body: JSON.stringify({
+              peminta_id: pemintaIdValue,
+              nama_pekerjaan: values.namaPekerjaan,
+              pekerjaan_area: values.areaKerja,
+              keterangan: values.keterangan || "",
+              dicatat_oleh: dicatatOleh,
+            }),
+          })
+        );
+      }
+
+      if (apiRequests.length > 0) {
+        await Promise.all(apiRequests);
+      }
+
+      localStorage.removeItem("global_shared_consumable_cart");
+      localStorage.removeItem("global_shared_tools_cart");
+
+      setCart([]);
       setLoanFormOpen(false);
+      mutate("/peminjaman/antrean");
+      dispatch(fetchTools());
+
       setSuccessMessage(
-        `Peminjaman untuk ${values.namaPeminjam} berhasil dibuat. Status: Sedang Dipinjam.`
+        `Peminjaman untuk ${values.namaPeminjam || values.namaPeminta} berhasil dibuat. Status: Sedang Dipinjam.`
       );
       setTimeout(() => setSuccessMessage(null), 5000);
     } catch (err) {
-      setLoanError(err instanceof Error ? err.message : "Gagal membuat peminjaman");
+      const message = err instanceof Error ? err.message : "Gagal membuat peminjaman";
+      setLoanError(message);
     } finally {
       setSubmittingLoan(false);
     }
@@ -238,16 +599,35 @@ const DataToolsManager = () => {
   const columns = useMemo(
     () =>
       getDataToolsColumns({
+        canManage,
         onDetail: openDetailModal,
         onEdit: openEditModal,
         onDelete: openDeleteModal,
         onAddToCart: handleAddToCart,
-      }),
-    []
+        cartItems: cart
+          .filter((c) => c.item_type !== "consumable")
+          .map((c) => ({
+            toolId: c.toolId ?? "",
+            cartId: c.cartId,
+            kodeBarang: c.kodeBarang ?? "-",
+            namaBarang: c.namaBarang ?? "-",
+            jumlah: c.jumlah,
+            maxJumlah: c.maxJumlah ?? 99,
+                    })),
+        // Hanya kolom Kode Barang yang boleh di-sort; kolom lain dikunci
+        // agar klik header-nya tidak mengubah urutan data.
+      }).map((col) => ({
+        ...col,
+        enableSorting:
+          "accessorKey" in col && col.accessorKey === "kodeBarang",
+        // Siklus klik: Neutral → Asc → Desc → Asc (tidak kembali neutral)
+        enableSortingRemoval: false,
+      })),
+    [cart, handleAddToCart, canManage]
   );
 
   return (
-    <>
+    <div className="datatools-page">
       {successMessage && (
         <Alert variant="success" className="d-flex align-items-center gap-2" dismissible onClose={() => setSuccessMessage(null)}>
           <IconCircleCheck size={20} />
@@ -261,12 +641,7 @@ const DataToolsManager = () => {
         </Alert>
       )}
 
-      {cartError && (
-        <Alert variant="warning" dismissible onClose={() => {}}>
-          {cartError}
-        </Alert>
-      )}
-
+      {/* ---- Page Header ---- */}
       <Row>
         <Col>
           <Flex justifyContent="between" alignItems="center" className="mb-4 w-100" breakpoint="md">
@@ -278,86 +653,97 @@ const DataToolsManager = () => {
               <DasherBreadcrumb />
             </div>
             <div>
-              <Button variant="primary" className="d-flex align-items-center gap-2" onClick={openAddModal}>
-                <IconPlus size={18} />
-                Tambah Data
-              </Button>
+              {canManage && (
+                <Button variant="primary" className="d-flex align-items-center gap-2" onClick={openAddModal}>
+                  <IconPlus size={18} />
+                  Tambah Data
+                </Button>
+              )}
             </div>
           </Flex>
         </Col>
       </Row>
 
       <Card className="card-lg mb-6">
-        <CardBody>
-          {toolsError && <Alert variant="danger">{toolsError}</Alert>}
-
-          <Row className="align-items-center g-3 mb-2">
-            <Col md={4} sm={6}>
-              <Form.Label className="mb-1 small text-secondary">Filter Kondisi</Form.Label>
-              <Form.Select
-                size="sm"
-                value={kondisiFilter}
-                onChange={(e) => setKondisiFilter(e.target.value as ToolCondition | "Semua")}
-              >
-                {KONDISI_FILTER_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>{opt}</option>
-                ))}
-              </Form.Select>
+        {/* ---- Toolbar: Search ---- */}
+        <div className="datatools-toolbar border-bottom">
+          <Row className="g-2 align-items-center">
+            <Col lg={5} md={6}>
+              <InputGroup className="datatools-search">
+                <InputGroup.Text><IconSearch size={18} /></InputGroup.Text>
+                <Form.Control
+                  type="search"
+                  placeholder="Cari kode, nama, merk, atau informasi lainnya..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                {searchTerm && (
+                  <Button variant="link" className="datatools-search-clear" onClick={() => setSearchTerm("")}>
+                    <IconX size={16} />
+                  </Button>
+                )}
+              </InputGroup>
+            </Col>
+            <Col lg={4} md={3} className="text-md-end">
+              <span className="text-secondary small">
+                Menampilkan <span className="fw-semibold text-body">{filteredTools.length}</span> dari {tools.length} data
+              </span>
+            </Col>
+            <Col lg={3} md={3} className="d-flex justify-content-md-end gap-2">
+              <Button variant="outline-danger" size="sm" onClick={handleExportPDF}>
+                Export PDF
+              </Button>
+              <Button variant="outline-success" size="sm" onClick={handleExportExcel}>
+                Export Excel
+              </Button>
             </Col>
           </Row>
+        </div>
 
+        <CardBody>
+          {toolsError && <Alert variant="danger">{toolsError}</Alert>}
           {loadingTools ? (
             <div className="text-center py-6">
-              <Spinner animation="border" size="sm" className="me-2" />
-              Memuat data...
+              <Spinner animation="border" size="sm" className="me-2" /> Memuat data...
+            </div>
+          ) : tools.length === 0 ? (
+            <div className="datatools-empty text-center py-6">
+              <div className="datatools-empty-icon mb-3"><IconTool size={32} /></div>
+              <h5 className="mb-1">Belum ada data tools</h5>
+              <p className="text-secondary mb-4">Mulai dengan menambahkan peralatan pertama ke Ruang Tools.</p>
+              {canManage && (
+                <Button variant="primary" className="d-inline-flex align-items-center gap-2" onClick={openAddModal}>
+                  <IconPlus size={18} /> Tambah Data
+                </Button>
+              )}
+            </div>
+          ) : filteredTools.length === 0 ? (
+            <div className="datatools-empty text-center py-6">
+              <div className="datatools-empty-icon mb-3"><IconMoodEmpty size={32} /></div>
+              <h5 className="mb-1">Tidak ada hasil</h5>
+              <p className="text-secondary mb-4">Tidak ditemukan data yang cocok dengan pencarian.</p>
+              <Button variant="outline-secondary" className="d-inline-flex align-items-center gap-2" onClick={() => setSearchTerm("")}>
+                <IconX size={18} /> Reset Pencarian
+              </Button>
             </div>
           ) : (
-            <TanstackTable
-              data={filteredTools}
-              columns={columns}
-              filter
-              pagination
-              isSortable
-              filterPlaceholder="Cari kode / nama barang..."
-            />
+            <TanstackTable data={filteredTools} columns={columns} pagination isSortable />
           )}
         </CardBody>
       </Card>
 
-      <ToolFormModal
-        show={formModalOpen}
-        onClose={() => { setFormModalOpen(false); setActiveTool(null); }}
-        onSubmit={handleFormSubmit}
-        initialData={activeTool}
-        suggestedKodeBarang={suggestedKodeBarang}
-      />
+      {/* ---- Modals ---- */}
+      <ToolFormModal show={formModalOpen} onClose={() => { setFormModalOpen(false); setActiveTool(null); }} onSubmit={handleFormSubmit} initialData={activeTool} suggestedKodeBarang={suggestedKodeBarang} />
       <ToolDetailModal show={detailModalOpen} onClose={() => setDetailModalOpen(false)} tool={activeTool} />
-      <DeleteConfirmModal
-        show={deleteModalOpen}
-        onClose={() => setDeleteModalOpen(false)}
-        onConfirm={handleConfirmDelete}
-        tool={activeTool}
-      />
+      <DeleteConfirmModal show={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} onConfirm={handleConfirmDelete} tool={activeTool} />
 
+      {/* ---- Keranjang Peminjaman ---- */}
       <CartFAB itemCount={cart.length} onClick={() => setCartOpen(true)} />
-      <CartOffcanvas
-        show={cartOpen}
-        onClose={() => setCartOpen(false)}
-        items={cart}
-        onUpdateQty={handleUpdateCartQty}
-        onRemove={handleRemoveFromCart}
-        onProceed={handleProceedToLoanForm}
-      />
+      <CartOffcanvas show={cartOpen} onClose={() => setCartOpen(false)} items={cart} onUpdateQty={handleUpdateQty} onRemove={handleRemoveFromCart} onProceed={handleProceedToLoanForm} />
       <AddToCartFlyEffect animations={flyAnimations} onAnimationEnd={handleAnimationEnd} />
 
-      <LoanFormModal
-        show={loanFormOpen}
-        onClose={() => setLoanFormOpen(false)}
-        onSubmit={handleLoanSubmit}
-        cartItems={cart}
-        submitting={submittingLoan}
-      />
-    </>
+      <LoanFormModal show={loanFormOpen} onClose={() => setLoanFormOpen(false)} onSubmit={handleLoanSubmit} cartItems={cart} submitting={submittingLoan} />
+    </div>
   );
 };
 

@@ -20,7 +20,10 @@ class Consumable extends Model
         'type',
         'er_e',
         'ukuran',
-        'stok_awal',
+        'satuan',
+        'stok_tersedia',
+        'stok_awal_asli',
+        'is_active',
     ];
 
     protected static function boot()
@@ -42,5 +45,9 @@ class Consumable extends Model
     public function keluar(): HasMany
     {
         return $this->hasMany(ConsumableKeluar::class);
+    }
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
     }
 }

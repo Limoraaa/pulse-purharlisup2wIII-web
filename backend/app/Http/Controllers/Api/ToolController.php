@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Tool;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class ToolController extends Controller
 {
@@ -14,7 +15,7 @@ class ToolController extends Controller
      */
     public function index()
     {
-        $tools = Tool::orderBy('kode_barang')->get()->map(function ($tool) {
+       $tools = Tool::active()->orderBy('kode_barang')->get()->map(function ($tool) {
             return [
                 'id' => $tool->id,
                 'kode_barang' => $tool->kode_barang,
@@ -25,6 +26,7 @@ class ToolController extends Controller
                 'ukuran' => $tool->ukuran,
                 'stok' => $tool->stok,
                 'keadaan' => $tool->keadaan,
+                'kategori' => $tool->kategori,
                 'sedang_dipinjam' => $tool->sedangDipinjam(),
                 'tersedia' => $tool->tersedia(),
             ];
@@ -37,10 +39,14 @@ class ToolController extends Controller
      * POST /api/tools
      * Tambah data alat baru.
      */
-        public function store(Request $request)
+                public function store(Request $request)
     {
         $validated = $request->validate([
-            'kode_barang' => 'required|string|unique:tools,kode_barang',
+            'kode_barang' => [
+                'required',
+                'string',
+                Rule::unique('tools', 'kode_barang')->where('is_active', true),
+            ],
             'nama_barang' => 'required|string',
             'merk' => 'nullable|string',
             'type' => 'nullable|string',
@@ -48,7 +54,14 @@ class ToolController extends Controller
             'ukuran' => 'nullable|string',
             'stok' => 'required|integer|min:0',
             'keadaan' => 'nullable|in:B,R',
+            'kategori' => 'nullable|in:mesin,alat_biasa,perkakas_mesin',
         ]);
+
+                if (($validated['kategori'] ?? 'alat_biasa') === 'mesin' && ($validated['stok'] ?? 0) > 1) {
+            return response()->json([
+                'message' => 'Alat berkategori Mesin harus dicatat 1 kode = 1 unit fisik (Stok maksimal 1).',
+            ], 422);
+        }
 
         $tool = Tool::create($validated);
 
@@ -62,6 +75,7 @@ class ToolController extends Controller
             'ukuran' => $tool->ukuran,
             'stok' => $tool->stok,
             'keadaan' => $tool->keadaan,
+            'kategori' => $tool->kategori,
             'sedang_dipinjam' => $tool->sedangDipinjam(),
             'tersedia' => $tool->tersedia(),
         ], 201);
@@ -97,7 +111,13 @@ class ToolController extends Controller
     public function update(Request $request, Tool $tool)
         {
             $validated = $request->validate([
-                'kode_barang' => 'sometimes|string|unique:tools,kode_barang,' . $tool->id,
+                'kode_barang' => [
+                    'sometimes',
+                    'string',
+                    Rule::unique('tools', 'kode_barang')
+                        ->where('is_active', true)
+                        ->ignore($tool->id),
+                ],
                 'nama_barang' => 'sometimes|string',
                 'merk' => 'nullable|string',
                 'type' => 'nullable|string',
@@ -105,7 +125,17 @@ class ToolController extends Controller
                 'ukuran' => 'nullable|string',
                 'stok' => 'sometimes|integer|min:0',
                 'keadaan' => 'nullable|in:B,R',
+                'kategori' => 'nullable|in:mesin,alat_biasa,perkakas_mesin',
             ]);
+
+                        $kategoriAkhir = $validated['kategori'] ?? $tool->kategori;
+            $stokAkhir = $validated['stok'] ?? $tool->stok;
+
+            if ($kategoriAkhir === 'mesin' && $stokAkhir > 1) {
+                return response()->json([
+                    'message' => 'Alat berkategori Mesin harus dicatat 1 kode = 1 unit fisik (Stok maksimal 1).',
+                ], 422);
+            }
 
             $tool->update($validated);
 
@@ -119,6 +149,7 @@ class ToolController extends Controller
                 'ukuran' => $tool->ukuran,
                 'stok' => $tool->stok,
                 'keadaan' => $tool->keadaan,
+                'kategori' => $tool->kategori,
                 'sedang_dipinjam' => $tool->sedangDipinjam(),
                 'tersedia' => $tool->tersedia(),
             ]);
@@ -129,7 +160,7 @@ class ToolController extends Controller
      */
     public function destroy(Tool $tool)
     {
-        $tool->delete();
+        $tool->update(['is_active' => false]);
 
         return response()->json(['message' => 'Alat berhasil dihapus']);
     }

@@ -266,7 +266,7 @@ html.collapsed #content {
   margin-left: 3.75rem;
   padding: 80px 40px;
   min-height: 100vh;
-  @media (max-width: 990px) {
+  @media (max-width: 1024px) {
     padding: 80px 20px;
   }
 
@@ -278,7 +278,7 @@ html.collapsed #content {
 html.expanded #content {
   margin-left: 15.875rem;
   padding: 80px 40px;
-  @media (max-width: 990px) {
+  @media (max-width: 1024px) {
     padding: 80px 20px;
   }
 }
@@ -293,7 +293,7 @@ html.collapsed #content .collapse-expanded {
 html.expanded #content .navbar-glass {
   transition: width 0.3s;
   width: calc(100% - 250px);
-  @media (max-width: 990px) {
+  @media (max-width: 1024px) {
     width: 100%;
   }
   .collapse-mini {
@@ -305,7 +305,7 @@ html.expanded #content .navbar-glass {
 }
 
 /* Media query for 390px screen width or less */
-@media (max-width: 990px) {
+@media (max-width: 1024px) {
   html.collapsed #miniSidebar {
     display: none;
   }
