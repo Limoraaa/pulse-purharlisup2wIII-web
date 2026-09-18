@@ -35,10 +35,6 @@ Route::get('/peminjaman/antrean', [PeminjamanController::class, 'antrean']);
 Route::patch('/peminjaman/cart/{id}', [PeminjamanController::class, 'updateCartItem']);
 Route::delete('/peminjaman/cart/{id}', [PeminjamanController::class, 'removeCartItem']);
 
-
-
-
-
 Route::post('/consumable-keluar/scan', [ConsumableKeluarController::class, 'scan']);
 Route::get('/consumable-keluar/antrean', [ConsumableKeluarController::class, 'antrean']);
 Route::patch('/consumable-keluar/cart/{id}', [ConsumableKeluarController::class, 'updateCartItem']);
@@ -181,25 +177,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/order-tools', [OrderToolController::class, 'store']);
     });
 
-     Route::middleware('permission:process_order|manage_order')->group(function () {
+    Route::middleware('permission:process_order|manage_order')->group(function () {
         Route::put('/order-consumable/{id}/status', [OrderConsumableController::class, 'updateStatus']);
         Route::put('/order-consumable/{id}', [OrderConsumableController::class, 'update']);
         Route::delete('/order-consumable/{id}', [OrderConsumableController::class, 'destroy']);
-        Route::put('/order-tools/{id}/status', [OrderToolController::class, 'updateStatus']);
-        Route::put('/order-tools/{id}', [OrderToolController::class, 'update']);
-        Route::delete('/order-tools/{id}', [OrderToolController::class, 'destroy']);
-    });
-
-    Route::middleware('permission:view_order')->group(function () {
-        Route::get('/order-tools', [OrderToolController::class, 'index']);
-    });
-
-    Route::middleware('permission:create_order')->group(function () {
-        Route::post('/order-tools', [OrderToolController::class, 'store']);
-    });
-
-    Route::middleware('permission:process_order|manage_order')->group(function () {
-        Route::put('/order-consumable/{id}/status', [OrderConsumableController::class, 'updateStatus']);
         Route::put('/order-tools/{id}/status', [OrderToolController::class, 'updateStatus']);
         Route::put('/order-tools/{id}', [OrderToolController::class, 'update']);
         Route::delete('/order-tools/{id}', [OrderToolController::class, 'destroy']);
@@ -235,11 +216,12 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::middleware('permission:view_pemeliharaan_mesin')->group(function () {
-        // --- RUTE BARU: GET SEMUA LOG PEMELIHARAAN UNTUK EXPORT ---
         Route::get('/log-pemeliharaan', [LogPemeliharaanMesinController::class, 'index']);
-
+        Route::get('/log-pemeliharaan/{id}', [LogPemeliharaanMesinController::class, 'show']); // Ditambahkan rute detail show
         Route::get('/log-pemeliharaan/mesin/{mesin_id}', [LogPemeliharaanMesinController::class, 'getByMesin']);
+        
         Route::get('/log-aktivitas', [LogAktivitasMesinController::class, 'index']);
+        Route::get('/log-aktivitas/{id}', [LogAktivitasMesinController::class, 'show']); // Ditambahkan rute detail show
         Route::get('/log-aktivitas/mesin/{mesin_id}', [LogAktivitasMesinController::class, 'getByMesin']);
     });
 
@@ -262,14 +244,16 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::middleware('permission:view_pemeliharaan_motor_konversi')->group(function () {
-        Route::get('/log-pemeliharaan-motor-konversi', [LogPemeliharaanMotorKonversiController::class, 'index']);
-        Route::get('/log-pemeliharaan-motor-konversi/motor/{motor_id}', [LogPemeliharaanMotorKonversiController::class, 'getByMotor']);
+        // Disamakan polanya dengan pemeliharaan mesin (/log-pemeliharaan)
+        Route::get('/log-pemeliharaan-motor', [LogPemeliharaanMotorKonversiController::class, 'index']);
+        Route::get('/log-pemeliharaan-motor/{id}', [LogPemeliharaanMotorKonversiController::class, 'show']);
+        Route::get('/log-pemeliharaan-motor/motor/{motor_id}', [LogPemeliharaanMotorKonversiController::class, 'getByMotor']);
     });
 
     Route::middleware('permission:process_pemeliharaan_motor_konversi')->group(function () {
-        Route::post('/log-pemeliharaan-motor-konversi', [LogPemeliharaanMotorKonversiController::class, 'store']);
-        Route::put('/log-pemeliharaan-motor-konversi/{id}', [LogPemeliharaanMotorKonversiController::class, 'update']);
-        Route::delete('/log-pemeliharaan-motor-konversi/{id}', [LogPemeliharaanMotorKonversiController::class, 'destroy']);
+        Route::post('/log-pemeliharaan-motor', [LogPemeliharaanMotorKonversiController::class, 'store']);
+        Route::put('/log-pemeliharaan-motor/{id}', [LogPemeliharaanMotorKonversiController::class, 'update']);
+        Route::delete('/log-pemeliharaan-motor/{id}', [LogPemeliharaanMotorKonversiController::class, 'destroy']);
     });
 
 

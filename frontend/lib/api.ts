@@ -7,23 +7,26 @@ async function apiFetch<T = unknown>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const API_URL = process.env.NEXT_PUBLIC_API_URL;
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
-  const res = await fetch(`${API_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${endpoint}`, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...options.headers,
+      },
+    });
+  } catch (networkError) {
+    throw new Error("Gagal terhubung ke server. Periksa koneksi internet Anda.");
+  }
 
   if (!res.ok) {
-    // Token invalid/dicabut (misal user dinonaktifkan admin) -- paksa logout.
-    // Endpoint /login dikecualikan: 401 di sana berarti kredensial salah,
-    // bukan sesi habis, jadi harus tetap lempar error biasa ke pemanggil.
+    // Tangani token invalid / kedaluwarsa (kecuali pada endpoint /login)
     if (res.status === 401 && endpoint !== "/login" && typeof window !== "undefined") {
       localStorage.removeItem("token");
       localStorage.removeItem("userId");
@@ -33,23 +36,42 @@ async function apiFetch<T = unknown>(
       if (window.location.pathname !== "/signin") {
         window.location.href = "/signin";
       }
-      // hentikan eksekusi lanjutan (redirect sedang berjalan)
       return new Promise<T>(() => {});
     }
 
-    const error: ApiErrorResponse = await res.json().catch(() => ({}));
+    // Ambil error body dengan aman (bisa jadi teks biasa atau JSON kosong)
+    const contentType = res.headers.get("content-type");
+    let errorData: ApiErrorResponse = {};
 
-    // kalau ada detail error validasi per-field, ambil pesan yang paling spesifik
-    if (error.errors) {
-      const firstField = Object.values(error.errors)[0];
+    if (contentType && contentType.includes("application/json")) {
+      errorData = await res.json().catch(() => ({}));
+    } else {
+      const textError = await res.text().catch(() => "");
+      errorData = { message: textError || `Request gagal: ${res.status}` };
+    }
+
+    // Jika ada error validasi per field (Laravel style validation errors)
+    if (errorData.errors) {
+      const firstField = Object.values(errorData.errors)[0];
       if (firstField && firstField.length > 0) {
         throw new Error(firstField[0]);
       }
     }
 
-    throw new Error(error.message || `Request gagal: ${res.status}`);
+    throw new Error(errorData.message || `Request gagal: ${res.status}`);
   }
-  return res.json() as Promise<T>;
+
+  // Tangani response sukses yang tidak memiliki body (misal: 204 No Content)
+  if (res.status === 204) {
+    return {} as T;
+  }
+
+  const contentType = res.headers.get("content-type");
+  if (contentType && contentType.includes("application/json")) {
+    return (await res.json()) as T;
+  }
+
+  return (await res.text()) as unknown as T;
 }
 
 export default apiFetch;
