@@ -36,7 +36,12 @@
 // ============================================================
 // Data Tools - scoped (UI only, tidak berdampak ke halaman lain)
 // ============================================================
-.datatools-page {
+// Aturan toolbar + search dipakai bersama halaman Pemeliharaan Mesin
+// agar search bar tampil identik. Table/pagination/empty tetap
+// khusus Data Tools.
+// ============================================================
+.datatools-page,
+.datamesin-page {
   // ---- Toolbar: search + filter ----
   .datatools-toolbar {
     padding: 1rem 1.25rem;
@@ -96,6 +101,19 @@
     }
   }
 
+  // ---- Responsive toolbar (berlaku untuk kedua halaman) ----
+  @include media-breakpoint-down(md) {
+    .datatools-toolbar {
+      padding: 1rem;
+    }
+  }
+}
+
+// ============================================================
+// Data Tools - table/pagination/empty/responsive tetap khusus
+// halaman ini (tidak ikut ke Pemeliharaan Mesin)
+// ============================================================
+.datatools-page {
   // ---- Table ----
   .table {
     thead th {
@@ -156,13 +174,6 @@
       border-radius: 50%;
       background-color: var(--#{$prefix}primary-subtle);
       color: var(--#{$prefix}primary);
-    }
-  }
-
-  // ---- Responsive ----
-  @include media-breakpoint-down(md) {
-    .datatools-toolbar {
-      padding: 1rem;
     }
   }
 }
