@@ -1,25 +1,25 @@
-import api from "/lib/api";
+import api from "lib/api";
 
-export interface MaintenanceSummary {
-  total_mesin: number;
-  mesin_perbaikan: number;
+export interface MaintenanceMotorSummary {
+  total_motor: number;
+  motor_perbaikan: number;
   pemeliharaan_rutin: number;
 }
 
-export interface AktivitasPemeliharaanItem {
+export interface AktivitasPemeliharaanMotorItem {
   id: number | string;
-  nama_mesin: string;
+  nama_motor: string;
   deskripsi: string;
   waktu: string;
   status: string;
 }
 
-export async function getMaintenanceSummary(): Promise<MaintenanceSummary> {
-  const res = await api<{ success: boolean; data: MaintenanceSummary }>("pemeliharaan/dashboard-stats");
+export async function getMaintenanceMotorSummary(): Promise<MaintenanceMotorSummary> {
+  const res = await api<{ success: boolean; data: MaintenanceMotorSummary }>("pemeliharaan/dashboard-stats");
   return res.data;
 }
 
-export async function getAktivitasPemeliharaanTerbaru(): Promise<AktivitasPemeliharaanItem[]> {
-  const res = await api<{ success: boolean; data: AktivitasPemeliharaanItem[] }>("pemeliharaan/aktivitas-terbaru");
+export async function getAktivitasPemeliharaanMotorTerbaru(): Promise<AktivitasPemeliharaanMotorItem[]> {
+  const res = await api<{ success: boolean; data: AktivitasPemeliharaanMotorItem[] }>("pemeliharaan/aktivitas-terbaru");
   return res.data;
 }
