@@ -1,28 +1,22 @@
 import { useMemo } from "react";
-import { Button } from "react-bootstrap";
-import { IconClipboardList, IconActivity, IconQrcode } from "@tabler/icons-react";
-import Link from "next/link";
+import { Button, Dropdown } from "react-bootstrap";
+import { IconClipboardList, IconActivity, IconQrcode, IconFileDescription } from "@tabler/icons-react";
 
-// Tambahkan interface untuk menerima fungsi dari komponen induk (Manager)
 interface UseMesinColumnsProps {
   onToggleStatus: (id: number | string) => void;
-  onOpenDetail: (mesin: any) => void; // Tambahan untuk membuka panel detail log
+  onOpenDetail: (mesin: any) => void;
 }
 
 export const useMesinColumns = ({ onToggleStatus, onOpenDetail }: UseMesinColumnsProps) => {
   
-  // Fungsi untuk mendownload QR Code berdasarkan kode mesin
   const handleDownloadQR = async (mesin: any) => {
     try {
-      // Teks yang akan disimpan di dalam QR Code
       const qrText = `MESIN-${mesin.kode_mesin}`; 
       const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrText)}`;
 
-      // Ambil gambar QR sebagai blob agar bisa di-download oleh browser
       const response = await fetch(qrApiUrl);
       const blob = await response.blob();
       
-      // Buat link unduhan virtual
       const blobUrl = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = blobUrl;
@@ -30,7 +24,6 @@ export const useMesinColumns = ({ onToggleStatus, onOpenDetail }: UseMesinColumn
       document.body.appendChild(link);
       link.click();
       
-      // Bersihkan DOM
       document.body.removeChild(link);
       window.URL.revokeObjectURL(blobUrl);
     } catch (err) {
@@ -49,9 +42,8 @@ export const useMesinColumns = ({ onToggleStatus, onOpenDetail }: UseMesinColumn
         header: "Status",
         cell: (info: any) => {
           const val = info.getValue();
-          const id = info.row.original.id; // Ambil ID mesin untuk di-toggle
+          const id = info.row.original.id;
           
-          // Logika disesuaikan dengan DB baru: Aktif (Hijau), Tidak Aktif (Merah)
           const badgeClass =
             val === "Aktif"
               ? "bg-success text-white px-3 py-2 rounded small fw-semibold"
@@ -71,12 +63,12 @@ export const useMesinColumns = ({ onToggleStatus, onOpenDetail }: UseMesinColumn
       },
       {
         id: "aksi",
-        header: "Aksi Log",
+        header: "Aksi Log & Dokumen",
         cell: (info: any) => {
           const mesin = info.row.original;
           return (
-            <div className="d-flex flex-wrap gap-2 align-items-center">
-              {/* Gunakan fungsi onOpenDetail untuk beralih viewMode */}
+            <div className="d-flex flex-wrap align-items-center gap-2">
+              {/* Tombol Log Pemeliharaan */}
               <Button 
                 variant="outline-primary" 
                 size="sm" 
@@ -86,27 +78,46 @@ export const useMesinColumns = ({ onToggleStatus, onOpenDetail }: UseMesinColumn
                 <IconClipboardList size={14} /> Pemeliharaan
               </Button>
               
-              <Link href={`/pemeliharaan/aktivitas-mesin?id=${mesin.id}`}>
-                <Button variant="outline-success" size="sm" className="d-flex align-items-center gap-1">
-                  <IconActivity size={14} /> Aktivitas
-                </Button>
-              </Link>
-
-              {/* Tombol Download QR Code */}
-              <Button
-                variant="outline-secondary"
-                size="sm"
+              {/* Tombol Log Aktivitas (Dikembalikan di sini) */}
+              <Button 
+                variant="outline-success" 
+                size="sm" 
                 className="d-flex align-items-center gap-1"
-                title="Download QR Code Mesin"
-                onClick={() => handleDownloadQR(mesin)}
+                href={`/pemeliharaan/aktivitas-mesin?id=${mesin.id}`}
+                as="a"
               >
-                <IconQrcode size={14} /> QR
+                <IconActivity size={14} /> Aktivitas
               </Button>
+
+              {/* Dropdown Menu untuk Instruksi Kerja (IK) & QR Code */}
+              <Dropdown>
+                <Dropdown.Toggle 
+                  variant="outline-secondary" 
+                  size="sm" 
+                  className="d-flex align-items-center gap-1 px-2"
+                >
+                  <IconFileDescription size={14} /> Lainnya
+                </Dropdown.Toggle>
+
+                <Dropdown.Menu className="shadow-sm">
+                  <Dropdown.Header className="small text-muted fw-bold">INSTRUKSI KERJA (IK)</Dropdown.Header>
+                  <Dropdown.Item href={`/pemeliharaan/ik-operasional?id=${mesin.id}`}>
+                    IK Operasional
+                  </Dropdown.Item>
+                  <Dropdown.Item href={`/pemeliharaan/ik-pemeliharaan?id=${mesin.id}`}>
+                    IK Pemeliharaan
+                  </Dropdown.Item>
+                  <Dropdown.Divider />
+                  <Dropdown.Item onClick={() => handleDownloadQR(mesin)} className="d-flex align-items-center gap-2">
+                    <IconQrcode size={14} /> Download QR Code
+                  </Dropdown.Item>
+                </Dropdown.Menu>
+              </Dropdown>
             </div>
           );
         },
       },
     ],
-    [onToggleStatus, onOpenDetail] // Dependency agar React terus memantau fungsi ini
+    [onToggleStatus, onOpenDetail]
   );
 };

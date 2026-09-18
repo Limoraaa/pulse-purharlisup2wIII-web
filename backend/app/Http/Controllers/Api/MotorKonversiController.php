@@ -21,7 +21,7 @@ class MotorKonversiController extends Controller
         $request->validate([
             'nomor_polisi' => 'required|unique:motor_konversi,nomor_polisi',
             'nama_motor' => 'required|string',
-            'merek' => 'required|string',
+            'merek' => 'nullable|string', // Diubah jadi nullable
             'warna' => 'required|string',
             'lokasi_penempatan' => 'required|string',
         ]);
@@ -53,7 +53,7 @@ class MotorKonversiController extends Controller
         $request->validate([
             'nomor_polisi' => 'required|unique:motor_konversi,nomor_polisi,' . $id,
             'nama_motor' => 'required|string',
-            'merek' => 'required|string',
+            'merek' => 'nullable|string', // Diubah jadi nullable
             'warna' => 'required|string',
             'lokasi_penempatan' => 'required|string',
             'status' => 'sometimes|string|in:Aktif,Tidak Aktif'

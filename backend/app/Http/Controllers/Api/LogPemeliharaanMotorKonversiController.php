@@ -16,6 +16,7 @@ class LogPemeliharaanMotorKonversiController extends Controller
             $motor = MotorKonversi::find($item->motor_konversi_id);
             return [
                 'id' => $item->id,
+                'motor_konversi_id' => $item->motor_konversi_id,
                 'nomor_polisi' => $motor ? $motor->nomor_polisi : '-',
                 'nama_motor' => $motor ? $motor->nama_motor : '-',
                 'uraian_pemeliharaan' => $item->uraian_pemeliharaan,
@@ -26,6 +27,36 @@ class LogPemeliharaanMotorKonversiController extends Controller
         });
 
         return response()->json(['data' => $logs], 200);
+    }
+
+    public function show($id)
+    {
+        // Cari log berdasarkan motor_konversi_id atau ambil log terbaru untuk motor tersebut
+        $item = LogPemeliharaanMotorKonversi::where('motor_konversi_id', $id)->latest()->first();
+
+        if (!$item) {
+            return response()->json([
+                'message' => 'Data log pemeliharaan motor konversi tidak ditemukan'
+            ], 404);
+        }
+
+        $motor = MotorKonversi::find($item->motor_konversi_id);
+
+        $logFormatted = [
+            'id' => $item->id,
+            'motor_konversi_id' => $item->motor_konversi_id,
+            'nomor_polisi' => $motor ? $motor->nomor_polisi : '-',
+            'nama_motor' => $motor ? $motor->nama_motor : '-',
+            'uraian_pemeliharaan' => $item->uraian_pemeliharaan,
+            'waktu_pelaksana' => $item->waktu_pelaksana,
+            'keterangan' => $item->keterangan,
+            'paraf' => $item->paraf,
+        ];
+
+        return response()->json([
+            'success' => true,
+            'data' => $logFormatted
+        ], 200);
     }
 
     // Method untuk statistik dashboard pemeliharaan terpisah
@@ -40,7 +71,6 @@ class LogPemeliharaanMotorKonversiController extends Controller
                 ->take(5)
                 ->get()
                 ->map(function ($item) {
-                    // Cari data motor konversi secara manual berdasarkan foreign key untuk mencegah error relasi
                     $motor = MotorKonversi::find($item->motor_konversi_id);
 
                     return [
@@ -87,7 +117,7 @@ class LogPemeliharaanMotorKonversiController extends Controller
             'uraian_pemeliharaan' => 'required|string',
             'waktu_pelaksana' => 'required|date',
             'keterangan' => 'nullable|string',
-            'paraf' => 'required|string', // Diisi nama user login/teknisi
+            'paraf' => 'required|string',
         ]);
 
         $log = LogPemeliharaanMotorKonversi::create([
