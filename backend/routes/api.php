@@ -22,6 +22,8 @@ use App\Http\Controllers\Api\RolePermissionController;
 use App\Http\Controllers\Api\MesinProduksiController;
 use App\Http\Controllers\Api\LogPemeliharaanMesinController;
 use App\Http\Controllers\Api\LogAktivitasMesinController;
+use App\Http\Controllers\Api\MotorKonversiController;
+use App\Http\Controllers\Api\LogPemeliharaanMotorKonversiController;
 
 // ==========================================
 // 1. ROUTE PUBLIK (Tanpa Auth)
@@ -110,6 +112,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('mesin-produksi', MesinProduksiController::class)->only(['index', 'show']);
     });
 
+    Route::middleware('permission:view_inventaris|view_pemeliharaan_motor_konversi')->group(function () {
+        Route::apiResource('motor-konversi', MotorKonversiController::class)->only(['index', 'show']);
+    });
+
     Route::middleware('permission:manage_inventaris')->group(function () {
         Route::apiResource('tools', ToolController::class)->except(['index', 'show']);
         Route::patch('/tools/{tool}/kurangi-stok', [ToolController::class, 'kurangiStok']);
@@ -124,6 +130,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:manage_inventaris|manage_pemeliharaan_mesin')->group(function () {
         Route::patch('/mesin-produksi/{id}/toggle-status', [MesinProduksiController::class, 'toggleStatus']);
         Route::apiResource('mesin-produksi', MesinProduksiController::class)->except(['index', 'show']);
+    });
+
+    Route::middleware('permission:manage_inventaris|manage_pemeliharaan_motor_konversi')->group(function () {
+        Route::patch('/motor-konversi/{id}/toggle-status', [MotorKonversiController::class, 'toggleStatus']);
+        Route::apiResource('motor-konversi', MotorKonversiController::class)->except(['index', 'show']);
     });
 
     Route::middleware('permission:manage_master_data')->group(function () {
@@ -240,6 +251,25 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/log-aktivitas', [LogAktivitasMesinController::class, 'store']);
         Route::put('/log-aktivitas/{id}', [LogAktivitasMesinController::class, 'update']);
         Route::delete('/log-aktivitas/{id}', [LogAktivitasMesinController::class, 'destroy']);
+    });
+
+
+    // ==========================================
+    // DOMAIN: PEMELIHARAAN MOTOR KONVERSI
+    // ==========================================
+    Route::middleware('permission:view_dashboard_pemeliharaan_motor_konversi')->group(function () {
+        Route::get('/pemeliharaan-motor-konversi/dashboard-stats', [LogPemeliharaanMotorKonversiController::class, 'getDashboardStats']);
+    });
+
+    Route::middleware('permission:view_pemeliharaan_motor_konversi')->group(function () {
+        Route::get('/log-pemeliharaan-motor-konversi', [LogPemeliharaanMotorKonversiController::class, 'index']);
+        Route::get('/log-pemeliharaan-motor-konversi/motor/{motor_id}', [LogPemeliharaanMotorKonversiController::class, 'getByMotor']);
+    });
+
+    Route::middleware('permission:process_pemeliharaan_motor_konversi')->group(function () {
+        Route::post('/log-pemeliharaan-motor-konversi', [LogPemeliharaanMotorKonversiController::class, 'store']);
+        Route::put('/log-pemeliharaan-motor-konversi/{id}', [LogPemeliharaanMotorKonversiController::class, 'update']);
+        Route::delete('/log-pemeliharaan-motor-konversi/{id}', [LogPemeliharaanMotorKonversiController::class, 'destroy']);
     });
 
 
