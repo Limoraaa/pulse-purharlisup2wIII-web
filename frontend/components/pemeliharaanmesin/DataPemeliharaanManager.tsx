@@ -405,8 +405,8 @@ const DataPemeliharaanManager = () => {
               </div>
 
               <div className="table-responsive border rounded">
-                <Table hover className="align-middle mb-0">
-                  <thead className="table-light text-center text-nowrap">
+                <Table className="table-centered text-nowrap mb-0">
+                  <thead className="bg-light text-nowrap">
                     <tr>
                       <th style={{ width: "60px" }}>No</th>
                       <th>Uraian Pemeliharaan</th>
@@ -431,11 +431,11 @@ const DataPemeliharaanManager = () => {
                     ) : (
                       logs.map((log, index) => (
                         <tr key={log.id}>
-                          <td className="text-center fw-semibold border-end">{index + 1}</td>
-                          <td className="border-end">{log.uraian_pemeliharaan}</td>
-                          <td className="text-center text-nowrap border-end">{log.waktu_pelaksana}</td>
-                          <td className="border-end">{log.keterangan || "-"}</td>
-                          <td className="text-center fw-semibold text-nowrap">{log.paraf}</td>
+                          <td className="fw-semibold">{index + 1}</td>
+                          <td>{log.uraian_pemeliharaan}</td>
+                          <td className="text-nowrap">{log.waktu_pelaksana}</td>
+                          <td>{log.keterangan || "-"}</td>
+                          <td className="fw-semibold text-nowrap">{log.paraf}</td>
                         </tr>
                       ))
                     )}
