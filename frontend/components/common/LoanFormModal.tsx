@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Modal, Form, Row, Col, Button, Spinner } from "react-bootstrap";
-import { IconClipboardList, IconCheck } from "@tabler/icons-react";
+import { Modal, Form, Row, Col, Button, Spinner, InputGroup } from "react-bootstrap";
+import { IconClipboardList, IconCheck, IconX } from "@tabler/icons-react";
 
 import { PeminjamType } from "types/DataToolsTypes";
 import { getPemintaAktif } from "services/pemintaService";
@@ -105,6 +105,18 @@ const LoanFormModal = ({
     }));
   };
 
+  const handleClearPeminjam = () => {
+    setSearchText("");
+    setForm((prev) => ({
+      ...prev,
+      peminjamId: "",
+      pemintaId: "",
+      namaPeminjam: "",
+      namaPeminta: "",
+      divisi: "",
+    }));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(form);
@@ -152,45 +164,52 @@ const LoanFormModal = ({
                 <Form.Label>
                   Nama Peminjam / Tap Kartu RFID <span className="text-danger">*</span>
                 </Form.Label>
-                <Form.Control
-                  required
-                  list="peminjam-options"
-                  placeholder={loadingPeminjam ? "Memuat..." : "Ketik nama atau tap kartu RFID di sini..."}
-                  disabled={loadingPeminjam || submitting}
-                  value={form.peminjamId ? `${form.namaPeminjam} (${form.peminjamId})` : searchText}
-                  onFocus={() => {
-                    if (form.peminjamId) {
-                      setSearchText("");
-                      setForm((prev) => ({ ...prev, peminjamId: "", pemintaId: "", namaPeminjam: "", namaPeminta: "", divisi: "" }));
-                    }
-                  }}
-                  onChange={(e) => {
-                    const typed = e.target.value;
-                    setSearchText(typed);
+                <InputGroup>
+                  <Form.Control
+                    required
+                    list="peminjam-options"
+                    placeholder={loadingPeminjam ? "Memuat..." : "Ketik nama atau tap kartu RFID di sini..."}
+                    disabled={loadingPeminjam || submitting}
+                    readOnly={!!form.peminjamId}
+                    value={form.peminjamId ? `${form.namaPeminjam} (${form.peminjamId})` : searchText}
+                    onChange={(e) => {
+                      const typed = e.target.value;
+                      setSearchText(typed);
 
-                    const match = peminjamList.find(
-                      (p) => 
-                        p.nama.toLowerCase() === typed.toLowerCase() || 
-                        p.id.toLowerCase() === typed.toLowerCase()
-                    );
+                      const match = peminjamList.find(
+                        (p) => 
+                          p.nama.toLowerCase() === typed.toLowerCase() || 
+                          p.id.toLowerCase() === typed.toLowerCase()
+                      );
 
-                    if (match) {
-                      handleSelectPeminjam(match.id);
-                      setSearchText("");
-                    } else {
-                      setForm((prev) => ({
-                        ...prev,
-                        peminjamId: "",
-                        pemintaId: "",
-                        namaPeminjam: "",
-                        namaPeminta: "",
-                        divisi: "",
-                      }));
-                    }
-                  }}
-                  onKeyDown={handleKeyDown}
-                  autoComplete="off"
-                />
+                      if (match) {
+                        handleSelectPeminjam(match.id);
+                        setSearchText("");
+                      } else {
+                        setForm((prev) => ({
+                          ...prev,
+                          peminjamId: "",
+                          pemintaId: "",
+                          namaPeminjam: "",
+                          namaPeminta: "",
+                          divisi: "",
+                        }));
+                      }
+                    }}
+                    onKeyDown={handleKeyDown}
+                    autoComplete="off"
+                  />
+                  {form.peminjamId && !submitting && (
+                    <Button
+                      variant="outline-secondary"
+                      onClick={handleClearPeminjam}
+                      aria-label="Ganti Peminjam"
+                      title="Ganti peminjam"
+                    >
+                      <IconX size={16} />
+                    </Button>
+                  )}
+                </InputGroup>
                 <datalist id="peminjam-options">
                   {peminjamList.map((p) => (
                     <option key={p.id} value={p.nama}>
@@ -199,9 +218,12 @@ const LoanFormModal = ({
                   ))}
                 </datalist>
                 <Form.Text className="text-muted small">
-                  Silakan ketik nama manual, pilih dari dropdown, atau langsung tap kartu RFID.
+                  {form.peminjamId
+                    ? "Klik tombol × untuk mengganti peminjam."
+                    : "Silakan ketik nama manual, pilih dari dropdown, atau langsung tap kartu RFID."}
                 </Form.Text>
               </Col>
+
 
               <Col md={6}>
                 <Form.Label>Divisi</Form.Label>

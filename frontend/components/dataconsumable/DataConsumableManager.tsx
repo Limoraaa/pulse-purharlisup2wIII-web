@@ -12,6 +12,8 @@ import {
   Alert,
   InputGroup,
   Form,
+  Toast,
+  ToastContainer,
 } from "react-bootstrap";
 import {
   IconPlus,
@@ -115,8 +117,23 @@ const DataConsumableManager = () => {
   const [isSubmittingCart, setIsSubmittingCart] = useState(false);
   const [outError, setOutError] = useState<string | null>(null);
 
+  // ---- Toast pengganti alert() bawaan browser ----
+  const [toast, setToast] = useState<{ show: boolean; message: string; variant: "success" | "danger" | "warning" }>({
+    show: false,
+    message: "",
+    variant: "danger",
+  });
+  const showToast = (message: string, variant: "success" | "danger" | "warning" = "danger") =>
+    setToast({ show: true, message, variant });
+
   // ---- Timer untuk Debounce API ----
   const debounceTimers = useRef<Map<string | number, NodeJS.Timeout>>(new Map());
+
+  // ---- Lock untuk mencegah klik ganda "Tambah ke Keranjang" sebelum request selesai ----
+  const pendingAddRef = useRef<Set<string>>(new Set());
+
+  // ---- Lock untuk mencegah klik ganda tombol hapus item di keranjang ----
+  const pendingRemoveRef = useRef<Set<string | number>>(new Set());
 
   const [flyAnimations, setFlyAnimations] = useState<FlyAnimationItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -167,6 +184,11 @@ const DataConsumableManager = () => {
       const savedToolCart: ConsumableCartItem[] = JSON.parse(localStorage.getItem("global_shared_tools_cart") || "[]");
 
       const combinedCart = [...mappedConsumableCart, ...savedToolCart];
+      combinedCart.sort((a, b) => {
+        const keyA = String((a as any).toolId ?? a.consumable_id ?? a.id ?? "");
+        const keyB = String((b as any).toolId ?? b.consumable_id ?? b.id ?? "");
+        return keyA.localeCompare(keyB);
+      });
 
       setCart(combinedCart);
     } catch (err) {
@@ -246,7 +268,7 @@ const DataConsumableManager = () => {
                 console.error("Gagal menambah Consumable", err);
               }
             } else {
-               alert(`Gagal: Stok Consumable ${foundItem.nama} sudah habis!`);
+               showToast(`Stok Consumable ${foundItem.nama} sudah habis!`, "danger");
             }
           } 
           // 2. Jika tidak ada di Consumable, cari di database Tools
@@ -286,10 +308,10 @@ const DataConsumableManager = () => {
                   console.error("Gagal menambah Tool", err);
                 }
               } else {
-                 alert(`Gagal: Stok Tool ${foundTool.namaBarang} kosong/dipinjam semua.`);
+                  showToast(`Stok Tool ${foundTool.namaBarang} kosong/dipinjam semua.`, "danger");
               }
             } else {
-               alert(`Barcode tidak terdaftar di sistem manapun: ${scannedCode}`);
+               showToast(`Barcode tidak terdaftar di sistem manapun: ${scannedCode}`, "warning");
             }
           }
         }
@@ -407,7 +429,7 @@ const DataConsumableManager = () => {
       setConsumables((prev) => prev.filter((c) => c.id !== activeItem.id));
       await loadCart();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Gagal menghapus data");
+      showToast(err instanceof Error ? err.message : "Gagal menghapus data", "danger");
     } finally {
       setDeleteModalOpen(false);
       setActiveItem(null);
@@ -418,10 +440,15 @@ const DataConsumableManager = () => {
     item: ConsumableItemType,
     event?: React.MouseEvent<HTMLButtonElement>
   ) => {
+    // Klik kedua saat request pertama masih diproses -> abaikan
+    if (pendingAddRef.current.has(item.id)) return;
+
     if (item.stok_tersedia <= 0) {
-      alert(`Stok untuk ${item.nama} sudah habis!`);
+      showToast(`Stok untuk ${item.nama} sudah habis!`, "danger");
       return;
     }
+
+    pendingAddRef.current.add(item.id);
 
     const rect = event?.currentTarget?.getBoundingClientRect();
 
@@ -455,10 +482,11 @@ const DataConsumableManager = () => {
         ]);
       }
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Gagal menambah ke keranjang.");
+      showToast(err instanceof Error ? err.message : "Gagal menambah ke keranjang.", "danger");
+    } finally {
+      pendingAddRef.current.delete(item.id);
     }
   }, [loadCart]);
-
 
   const handleAnimationEnd = (id: string) => {
     setFlyAnimations((prev) => prev.filter((a) => a.id !== id));
@@ -467,6 +495,7 @@ const DataConsumableManager = () => {
   // --- OPTIMISTIC UPDATE + DEBOUNCE: handleUpdateQty ---
   const handleUpdateQty = (cartId: string | number, qty: number) => {
     if (qty < 1) return;
+    if (pendingRemoveRef.current.has(cartId)) return; // item sedang dihapus, abaikan perubahan qty
 
     const targetItem = cart.find(
       (c) => c.id === cartId || c.consumable_id === cartId || c.cartId === cartId
@@ -476,7 +505,7 @@ const DataConsumableManager = () => {
     if (targetItem.item_type === 'consumable') {
       const itemAsli = consumables.find((c) => c.id === targetItem.consumable_id); 
       if (itemAsli && qty > (itemAsli.stok_tersedia + targetItem.jumlah)) {
-        alert(`Jumlah melebihi stok yang tersedia!`);
+        showToast("Jumlah melebihi stok yang tersedia!", "warning");
         return;
       }
     }
@@ -523,8 +552,8 @@ const DataConsumableManager = () => {
         debounceTimers.current.delete(cartId);
       } catch (err) {
         console.error("Gagal memperbarui jumlah item:", err);
-        alert("Gagal update stok ke database. Mengembalikan data ke kondisi semula.");
-        await loadCart(); 
+        showToast("Gagal update stok ke database. Mengembalikan data ke kondisi semula.", "danger");
+        await loadCart();
       }
     }, 500);
 
@@ -532,10 +561,21 @@ const DataConsumableManager = () => {
   };
 
   const handleRemoveItem = async (cartId: string | number) => {
+    // Klik ganda tombol hapus sebelum request selesai -> abaikan
+    if (pendingRemoveRef.current.has(cartId)) return;
+
     const targetItem = cart.find(
       (c) => c.id === cartId || c.consumable_id === cartId || c.cartId === cartId
     );
     if (!targetItem) return;
+
+    pendingRemoveRef.current.add(cartId);
+
+    // Batalkan update qty (+/-) yang masih tertunda untuk item ini
+    if (debounceTimers.current.has(cartId)) {
+      clearTimeout(debounceTimers.current.get(cartId));
+      debounceTimers.current.delete(cartId);
+    }
 
     setCart((prev) => prev.filter((c) => c.id !== cartId && c.consumable_id !== cartId && c.cartId !== cartId));
 
@@ -548,6 +588,7 @@ const DataConsumableManager = () => {
       } catch (e) {
           console.error(e);
       }
+      pendingRemoveRef.current.delete(cartId);
       return;
     }
 
@@ -555,7 +596,7 @@ const DataConsumableManager = () => {
     const updatedCons = savedCons.filter((c: any) => c.id !== cartId && c.consumable_id !== cartId);
     localStorage.setItem("global_shared_consumable_cart", JSON.stringify(updatedCons));
 
-    try {
+      try {
       const token = localStorage.getItem("token");
       await api(`/consumable-keluar/antrean/${targetItem.consumable_id}`, {
         method: "DELETE",
@@ -563,8 +604,10 @@ const DataConsumableManager = () => {
       });
     } catch (err) {
       console.error(err);
-      alert(err instanceof Error ? err.message : "Gagal menghapus item dari keranjang.");
+      showToast(err instanceof Error ? err.message : "Gagal menghapus item dari keranjang.", "danger");
       await loadCart(); 
+    } finally {
+      pendingRemoveRef.current.delete(cartId);
     }
   };
 
@@ -820,6 +863,20 @@ const columns = useMemo(
         onRemove={handleRemoveItem}
       />
       <AddToCartFlyEffect animations={flyAnimations} onAnimationEnd={handleAnimationEnd} />
+
+      <ToastContainer position="top-end" className="p-3" style={{ zIndex: 9999 }}>
+        <Toast
+          show={toast.show}
+          onClose={() => setToast((t) => ({ ...t, show: false }))}
+          delay={3000}
+          autohide
+          bg={toast.variant}
+        >
+          <Toast.Body className={toast.variant === "warning" ? "" : "text-white"}>
+            {toast.message}
+          </Toast.Body>
+        </Toast>
+      </ToastContainer>
 
       {/* MODAL CHECKOUT KELUAR UNIVERSAL */}
       <LoanFormModal

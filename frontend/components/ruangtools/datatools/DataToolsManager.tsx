@@ -13,6 +13,8 @@ import {
   Alert,
   InputGroup,
   Form,
+  Toast,
+  ToastContainer,
 } from "react-bootstrap";
 import {
   IconPlus,
@@ -143,8 +145,23 @@ const DataToolsManager = () => {
   const [submittingLoan, setSubmittingLoan] = useState(false);
   const [loanError, setLoanError] = useState<string | null>(null);
 
+  // ---- Toast pengganti alert() bawaan browser ----
+  const [toast, setToast] = useState<{ show: boolean; message: string; variant: "success" | "danger" | "warning" }>({
+    show: false,
+    message: "",
+    variant: "danger",
+  });
+  const showToast = (message: string, variant: "success" | "danger" | "warning" = "danger") =>
+    setToast({ show: true, message, variant });
+
   // ---- Timer untuk Debounce API ----
   const debounceTimers = useRef<Map<string | number, NodeJS.Timeout>>(new Map());
+
+  // ---- Lock untuk mencegah klik ganda "Tambah ke Peminjaman" sebelum request selesai ----
+  const pendingAddRef = useRef<Set<string>>(new Set());
+
+  // ---- Lock untuk mencegah klik ganda tombol hapus item di keranjang ----
+  const pendingRemoveRef = useRef<Set<string | number>>(new Set());
 
   // ---- Animasi "fly to cart" ----
   const [flyAnimations, setFlyAnimations] = useState<FlyAnimationItem[]>([]);
@@ -191,8 +208,16 @@ const DataToolsManager = () => {
     // Ambil data consumable dari localStorage
     const savedConsumableCart = JSON.parse(localStorage.getItem("global_shared_consumable_cart") || "[]");
 
+    // Urutkan stabil berdasarkan id supaya posisi kartu tidak lompat-lompat
+    const combined = [...groupedToolsCart, ...savedConsumableCart];
+    combined.sort((a, b) => {
+      const keyA = String(a.toolId ?? a.consumable_id ?? a.id ?? "");
+      const keyB = String(b.toolId ?? b.consumable_id ?? b.id ?? "");
+      return keyA.localeCompare(keyB);
+    });
+
     // Gabungkan data tools dan consumable ke state cart utama
-    setCart([...groupedToolsCart, ...savedConsumableCart]);
+    setCart(combined);
   }, [dbCart]);
 
   // Data filter tabel
@@ -269,7 +294,7 @@ const DataToolsManager = () => {
                 console.error("Gagal menambah Tool", err);
               }
             } else {
-               alert(`Gagal: Stok Tool ${foundTool.namaBarang} kosong/dipinjam semua.`);
+               showToast(`Stok Tool ${foundTool.namaBarang} kosong/dipinjam semua.`, "danger");
             }
           } 
           // 2. Jika tidak ada di Tools, cari di database Consumable
@@ -317,10 +342,10 @@ const DataToolsManager = () => {
                   console.error("Gagal menambah Consumable", err);
                 }
               } else {
-                 alert(`Gagal: Stok Consumable ${foundConsumable.nama} habis!`);
+                 showToast(`Stok Consumable ${foundConsumable.nama} habis!`, "danger");
               }
             } else {
-               alert(`Barcode tidak terdaftar di sistem manapun: ${scannedCode}`);
+               showToast(`Barcode tidak terdaftar di sistem manapun: ${scannedCode}`, "warning");
             }
           }
         }
@@ -356,9 +381,9 @@ const DataToolsManager = () => {
       setActiveTool(null);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Gagal menyimpan data";
-      alert(message);
+      showToast(message, "danger");
     }
-  }; 
+  };
 
   const openDetailModal = (tool: ToolItemType) => {
     setActiveTool(tool);
@@ -392,7 +417,7 @@ const DataToolsManager = () => {
       await dispatch(deleteToolThunk(activeTool.id)).unwrap();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Gagal menghapus data";
-      alert(message);
+      showToast(message, "danger");
     } finally {
       setDeleteModalOpen(false);
       setActiveTool(null);
@@ -401,9 +426,14 @@ const DataToolsManager = () => {
 
   // ================= KERANJANG PEMINJAMAN =================
   const handleAddToCart = useCallback(async (tool: ToolItemType, event: React.MouseEvent<HTMLButtonElement>) => {
+    // Klik kedua saat request pertama masih diproses -> abaikan
+    if (pendingAddRef.current.has(tool.id)) return;
+
     const tersedia = tool.stok - tool.dipinjam;
     if (tersedia <= 0) return;
-    
+
+    pendingAddRef.current.add(tool.id);
+
     const rect = event.currentTarget.getBoundingClientRect();
     setFlyAnimations((prev) => [
       ...prev, 
@@ -412,9 +442,12 @@ const DataToolsManager = () => {
 
     try {
       await scanTool(tool.id, 1);
-      mutate("/peminjaman/antrean");
+      await mutate("/peminjaman/antrean");
     } catch (err) { 
       console.error("Gagal menambah ke keranjang DB", err); 
+      showToast(err instanceof Error ? err.message : "Gagal menambah ke keranjang.", "danger");
+    } finally {
+      pendingAddRef.current.delete(tool.id);
     }
   }, [mutate]);
   
@@ -425,6 +458,7 @@ const DataToolsManager = () => {
   // --- OPTIMISTIC UPDATE + DEBOUNCE: handleUpdateQty ---
   const handleUpdateQty = (cartId: string | number, newJumlah: number) => {
     if (newJumlah < 1) return;
+    if (pendingRemoveRef.current.has(cartId)) return; // item sedang dihapus, abaikan perubahan qty
 
     // 1. Update state lokal secara instan (UI merespons tanpa lag)
     setCart((prevCart) =>
@@ -475,11 +509,10 @@ const DataToolsManager = () => {
         }
 
         debounceTimers.current.delete(cartId);
-        
-        // Mutate secara silent agar UI tidak jumpy, karena layar sudah benar angkanya
-        mutate("/peminjaman/antrean"); 
+        // Sukses: state lokal sudah benar, tidak perlu refetch — biar tetap smooth.
       } catch (err) {
         console.error("Gagal memperbarui jumlah item:", err);
+        showToast(err instanceof Error ? err.message : "Gagal memperbarui jumlah item.", "danger");
         // Jika backend menolak (misal error server/stok limit), paksa ambil nilai asli dari database
         mutate("/peminjaman/antrean");
       }
@@ -490,8 +523,19 @@ const DataToolsManager = () => {
 
   // --- PERBAIKAN BUG OPTIMISTIC UPDATE: handleRemoveFromCart ---
   const handleRemoveFromCart = async (cartId: string | number) => {
+    // Klik ganda tombol hapus sebelum request selesai -> abaikan
+    if (pendingRemoveRef.current.has(cartId)) return;
+
     const targetItem = cart.find((c) => c.cartId === cartId || c.id === cartId || c.consumable_id === cartId);
     if (!targetItem) return;
+
+    pendingRemoveRef.current.add(cartId);
+
+    // Batalkan update qty (+/-) yang masih tertunda untuk item ini
+    if (debounceTimers.current.has(cartId)) {
+      clearTimeout(debounceTimers.current.get(cartId));
+      debounceTimers.current.delete(cartId);
+    }
 
     // 1. Hapus secara instan dari state lokal
     setCart((prev) => prev.filter((c) => c.cartId !== cartId && c.id !== cartId && c.consumable_id !== cartId));
@@ -501,16 +545,20 @@ const DataToolsManager = () => {
       const savedCons = JSON.parse(localStorage.getItem("global_shared_consumable_cart") || "[]");
       const updated = savedCons.filter((c: any) => c.id !== cartId && c.consumable_id !== cartId);
       localStorage.setItem("global_shared_consumable_cart", JSON.stringify(updated));
+      pendingRemoveRef.current.delete(cartId);
       return;
     }
 
     // 3. Jika item tersebut adalah Tool
     try {
       await removeCartItem(cartId);
-      mutate("/peminjaman/antrean"); 
+      // Sukses: item sudah dihapus dari state lokal, tidak perlu refetch.
     } catch (err) {
       console.error("Gagal menghapus dari keranjang DB", err);
-      mutate("/peminjaman/antrean"); // Revert jika gagal
+      showToast(err instanceof Error ? err.message : "Gagal menghapus dari keranjang.", "danger");
+      await mutate("/peminjaman/antrean"); // Revert jika gagal
+    } finally {
+      pendingRemoveRef.current.delete(cartId);
     }
   };
 
@@ -741,6 +789,20 @@ const DataToolsManager = () => {
       <CartFAB itemCount={cart.length} onClick={() => setCartOpen(true)} />
       <CartOffcanvas show={cartOpen} onClose={() => setCartOpen(false)} items={cart} onUpdateQty={handleUpdateQty} onRemove={handleRemoveFromCart} onProceed={handleProceedToLoanForm} />
       <AddToCartFlyEffect animations={flyAnimations} onAnimationEnd={handleAnimationEnd} />
+
+      <ToastContainer position="top-end" className="p-3" style={{ zIndex: 9999 }}>
+        <Toast
+          show={toast.show}
+          onClose={() => setToast((t) => ({ ...t, show: false }))}
+          delay={3000}
+          autohide
+          bg={toast.variant}
+        >
+          <Toast.Body className={toast.variant === "warning" ? "" : "text-white"}>
+            {toast.message}
+          </Toast.Body>
+        </Toast>
+      </ToastContainer>
 
       <LoanFormModal show={loanFormOpen} onClose={() => setLoanFormOpen(false)} onSubmit={handleLoanSubmit} cartItems={cart} submitting={submittingLoan} />
     </div>
