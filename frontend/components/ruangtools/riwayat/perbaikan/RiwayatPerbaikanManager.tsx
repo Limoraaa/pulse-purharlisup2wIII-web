@@ -17,7 +17,7 @@ import { LaporanKerusakanType } from "types/LaporanKerusakanTypes";
 
 import TanstackTable from "components/table/TanstackTable";
 import Flex from "components/common/Flex";
-import DasherBreadcrumb from "components/common/DasherBreadcrumb";
+
 import RiwayatFilterBar from "components/ruangtools/riwayat/common/RiwayatFilterBar";
 import {
   DateFilterValue,
@@ -134,7 +134,6 @@ const RiwayatPerbaikanManager = () => {
               <p className="text-secondary mb-0">
                 Menampilkan seluruh alat yang sudah selesai diperbaiki.
               </p>
-              <DasherBreadcrumb />
             </div>
           </Flex>
         </Col>

@@ -404,22 +404,6 @@ const DataAktivitasManager = () => {
               <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
                 <div>
                   <h2 className="mb-1 fs-5 fw-bold">{selectedMesin?.nama_mesin}</h2>
-                  <nav aria-label="breadcrumb">
-                    <ol className="breadcrumb mb-0 text-secondary" style={{ fontSize: "0.75rem" }}>
-                      <li className="breadcrumb-item">Home</li>
-                      <li className="breadcrumb-item">Pemeliharaan</li>
-                      <li 
-                        className="breadcrumb-item text-primary fw-semibold" 
-                        style={{ cursor: "pointer" }}
-                        onClick={handleBack}
-                      >
-                        Aktivitas
-                      </li>
-                      <li className="breadcrumb-item active text-body fw-semibold">
-                        {selectedMesin?.kode_mesin}
-                      </li>
-                    </ol>
-                  </nav>
                 </div>
                 <div className="d-flex flex-wrap gap-1 mt-1 mt-md-0">
                   <Button variant="outline-danger" size="sm" className="py-1 px-2" style={{ fontSize: "0.75rem" }} onClick={handleExportLogPDF}>PDF</Button>
@@ -467,21 +451,21 @@ const DataAktivitasManager = () => {
               </div>
 
               <div className="table-responsive">
-                <Table bordered hover className="align-middle table-sm text-nowrap" style={{ fontSize: "0.75rem" }}>
-                  <thead className="table-light text-center">
+                <Table className="table-centered text-nowrap">
+                  <thead className="bg-light">
                     <tr>
                       <th rowSpan={2} style={{ width: "40px", verticalAlign: "middle" }}>No</th>
                       <th rowSpan={2} style={{ verticalAlign: "middle" }}>Operator Pelaksana</th>
                       <th rowSpan={2} style={{ verticalAlign: "middle" }}>Uraian Pekerjaan</th>
                       <th rowSpan={2} style={{ verticalAlign: "middle" }}>Tanggal</th>
-                      <th colSpan={2}>Waktu</th>
+                      <th colSpan={2} className="text-center">Waktu</th>
                       <th rowSpan={2} style={{ verticalAlign: "middle" }}>Jumlah</th>
                       <th rowSpan={2} style={{ verticalAlign: "middle" }}>Pemeriksa</th>
                       <th rowSpan={2} style={{ width: "80px", verticalAlign: "middle" }}>Aksi</th>
                     </tr>
                     <tr>
-                      <th>Mulai</th>
-                      <th>Selesai</th>
+                      <th style={{ width: "90px" }}>Mulai</th>
+                      <th style={{ width: "90px" }}>Selesai</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -500,16 +484,16 @@ const DataAktivitasManager = () => {
                     ) : (
                       logsAktivitas.map((log, index) => (
                         <tr key={log.id}>
-                          <td className="text-center fw-semibold">{index + 1}</td>
+                          <td className="fw-semibold">{index + 1}</td>
                           <td>{log.operator_pelaksana}</td>
                           <td>{log.uraian_pekerjaan}</td>
-                          <td className="text-center">{log.tanggal}</td>
-                          <td className="text-center">{log.waktu_mulai?.slice(0, 5) || "-"}</td>
-                          <td className="text-center">{log.waktu_selesai?.slice(0, 5) || "-"}</td>
-                          <td className="text-center fw-semibold">{log.jumlah}</td>
-                          <td className="text-center">{log.pemeriksa}</td>
-                          <td className="text-center">
-                            <div className="d-flex justify-content-center gap-1">
+                          <td>{log.tanggal}</td>
+                          <td>{log.waktu_mulai?.slice(0, 5) || "-"}</td>
+                          <td>{log.waktu_selesai?.slice(0, 5) || "-"}</td>
+                          <td className="fw-semibold">{log.jumlah}</td>
+                          <td>{log.pemeriksa}</td>
+                          <td>
+                            <div className="d-flex gap-1">
                               <Button 
                                 variant="outline-warning" 
                                 size="sm" 

@@ -60,7 +60,7 @@ import { ConsumableItemType } from "types/DataConsumableTypes"; // Tambahan untu
 // import custom components
 import TanstackTable from "components/table/TanstackTable";
 import Flex from "components/common/Flex";
-import DasherBreadcrumb from "components/common/DasherBreadcrumb";
+
 import { getDataToolsColumns } from "components/ruangtools/datatools/ColumnDefination";
 import ToolFormModal from "components/ruangtools/datatools/ToolFormModal";
 import ToolDetailModal from "components/ruangtools/datatools/ToolDetailModal";
@@ -698,7 +698,6 @@ const DataToolsManager = () => {
               <p className="text-secondary mb-0">
                 Mengelola seluruh data peralatan yang terdapat di Ruang Tools.
               </p>
-              <DasherBreadcrumb />
             </div>
             <div>
               {canManage && (
