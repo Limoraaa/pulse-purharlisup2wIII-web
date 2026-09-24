@@ -10,34 +10,38 @@ interface UseMesinColumnsProps {
   onOpenDetail: (mesin: any) => void; // Tambahan untuk membuka panel detail log
 }
 
-export const useMesinColumns = ({ onToggleStatus, onOpenDetail }: UseMesinColumnsProps) => {
-  
-  // Fungsi untuk mendownload QR Code berdasarkan kode mesin
-  const handleDownloadQR = async (mesin: any) => {
-    try {
-      // Teks yang akan disimpan di dalam QR Code
-      const qrText = `MESIN-${mesin.kode_mesin}`; 
-      const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrText)}`;
+// Helper download QR dipakai ulang oleh tampilan tabel (desktop)
+// dan card view (mobile). Logic tidak berubah.
+export const downloadMesinQR = async (mesin: any) => {
+  try {
+    // Teks yang akan disimpan di dalam QR Code
+    const qrText = `MESIN-${mesin.kode_mesin}`;
+    const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrText)}`;
 
-      // Ambil gambar QR sebagai blob agar bisa di-download oleh browser
-      const response = await fetch(qrApiUrl);
-      const blob = await response.blob();
-      
-      // Buat link unduhan virtual
-      const blobUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = blobUrl;
-      link.download = `QR-Code-${mesin.kode_mesin}.png`;
-      document.body.appendChild(link);
-      link.click();
-      
-      // Bersihkan DOM
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(blobUrl);
-    } catch (err) {
-      alert("Gagal mendownload QR Code");
-    }
-  };
+    // Ambil gambar QR sebagai blob agar bisa di-download oleh browser
+    const response = await fetch(qrApiUrl);
+    const blob = await response.blob();
+
+    // Buat link unduhan virtual
+    const blobUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.download = `QR-Code-${mesin.kode_mesin}.png`;
+    document.body.appendChild(link);
+    link.click();
+
+    // Bersihkan DOM
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(blobUrl);
+  } catch (err) {
+    alert("Gagal mendownload QR Code");
+  }
+};
+
+export const useMesinColumns = ({ onToggleStatus, onOpenDetail }: UseMesinColumnsProps) => {
+
+  // Fungsi untuk mendownload QR Code berdasarkan kode mesin
+  const handleDownloadQR = downloadMesinQR;
 
   return useMemo(
     () => [

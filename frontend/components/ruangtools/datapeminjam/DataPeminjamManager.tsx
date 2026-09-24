@@ -24,7 +24,7 @@ import { PeminjamType } from "types/DataToolsTypes";
 
 import TanstackTable from "components/table/TanstackTable";
 import Flex from "components/common/Flex";
-import DasherBreadcrumb from "components/common/DasherBreadcrumb";
+
 import { getPeminjamColumns } from "components/ruangtools/datapeminjam/ColumnDefination";
 import PeminjamFormModal, { PeminjamFormValues } from "components/ruangtools/datapeminjam/PeminjamFormModal";
 import DeleteConfirmModal from "components/ruangtools/datapeminjam/DeleteConfirmModal";
@@ -280,7 +280,6 @@ const PeminjamManager = () => {
               <p className="text-secondary mb-0">
                 Mengelola daftar pegawai yang dapat meminjam alat atau mengambil bahan.
               </p>
-              <DasherBreadcrumb />
             </div>
             <div>
               {canManage && (

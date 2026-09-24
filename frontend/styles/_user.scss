@@ -2903,17 +2903,23 @@ html.collapsed #miniSidebar,
 .datapeminjam-page,
 .consumablemasuk-page,
 .toolsmasuk-page,
+.dataaktivitas-page,
+.datamesin-page,
 .riwayat-page {
   .table-responsive {
-    // Kolom terakhir (Aksi) selalu terlihat saat scroll horizontal
+    // Kolom terakhir (Aksi) selalu terlihat saat scroll horizontal.
+    // Pakai tr:first-child agar thead dua baris (mis. grup "Waktu" di log
+    // aktivitas) tidak ikut menempelkan th terakhir baris keduanya.
+    // Untuk thead satu baris (semua halaman lain) selektor ini identik
+    // dengan th:last-child, jadi tidak ada perubahan perilaku di sana.
     table {
       thead th[data-column-id="aksi"],
       tbody td[data-column-id="aksi"] {
+      thead tr:first-child th:last-child,
+      tbody td:last-child {
         position: sticky;
         right: 0;
         z-index: 2;
-        // shadow tipis sebagai pemisah dari kolom yang tergulir di baliknya
-        box-shadow: -6px 0 8px -6px rgba(0, 0, 0, 0.15);
       }
 
       // Header kolom Aksi mengikuti warna header tabel
@@ -3062,4 +3068,151 @@ th:has(.kode-sort-header) {
 th:has(.kode-sort-header):hover .kode-sort-icon:not(.is-active) {
   color: var(--#{$prefix}gray-700);
   opacity: 1;
+}
+
+// ============================================================
+// Pemeliharaan Mesin - mobile card view (UI only)
+// Desktop/tablet: tabel seperti semula. Hanya di bawah md tabel
+// disembunyikan dan diganti card. Scoped .datamesin-page.
+// ============================================================
+.datamesin-page {
+  // Card view disembunyikan di desktop/tablet
+  .mesin-cards {
+    display: none;
+  }
+
+  @include media-breakpoint-down(md) {
+    // Sembunyikan tabel list (pagination di bawahnya tetap tampil)
+    .mesin-list-card .table-responsive {
+      display: none;
+    }
+
+    // Tampilkan card list
+    .mesin-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .mesin-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      min-width: 0;
+      padding: 0.875rem;
+      background-color: var(--#{$prefix}card-bg, #fff);
+      border: 1px solid var(--#{$prefix}border-color);
+      border-radius: $border-radius;
+    }
+
+    .mesin-card-main {
+      flex: 1 1 auto;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.25rem;
+    }
+
+    .mesin-card-title {
+      font-weight: 700;
+      overflow-wrap: anywhere;
+    }
+
+    .mesin-card-sub {
+      font-size: 0.8rem;
+      color: var(--#{$prefix}gray-600);
+    }
+
+    .mesin-card-meta {
+      display: flex;
+      gap: 0.375rem;
+      font-size: 0.8rem;
+      min-width: 0;
+    }
+
+    .mesin-card-label {
+      color: var(--#{$prefix}gray-600);
+      flex-shrink: 0;
+    }
+
+    .mesin-card-value {
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .mesin-card-status {
+      margin-top: 0.25rem;
+      padding: 0.375rem 0.75rem;
+    }
+
+    // Kebab menu: tombol icon-only + tanpa caret
+    .mesin-card-menu .dropdown-toggle::after {
+      display: none;
+    }
+
+    .mesin-kebab-btn {
+      width: 34px;
+      height: 34px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: $border-radius;
+      flex-shrink: 0;
+    }
+
+    // Tombol Tambah full-width, touch-friendly
+    .datamesin-add-btn {
+      width: 100%;
+      min-height: 44px;
+      justify-content: center;
+    }
+
+    // Pagination compact: hanya Previous, halaman aktif, Next
+    .pagination {
+      flex-wrap: wrap;
+      gap: 0.25rem;
+    }
+
+    .pagination .page-item:not(.active):not(:first-child):not(:last-child) {
+      display: none;
+    }
+
+    // Previous/Next jadi chevron icon-only
+    .pagination .page-item:first-child .page-link,
+    .pagination .page-item:last-child .page-link {
+      font-size: 0;
+      min-width: 38px;
+    }
+
+    .pagination .page-item:first-child .page-link::after {
+      content: "‹";
+      font-size: 1.25rem;
+      line-height: 1;
+    }
+
+    .pagination .page-item:last-child .page-link::after {
+      content: "›";
+      font-size: 1.25rem;
+      line-height: 1;
+    }
+  }
+}
+
+// ============================================================
+// Aktivitas log - perbaiki susunan paint kolom Aksi sticky (UI only)
+// Chrome/Safari salah mengurutkan paint sel sticky terhadap konten
+// yang di-scroll bila tabel memakai border-collapse: collapse
+// (bawaan Bootstrap reboot), sehingga kolom Selesai tampil DI ATAS
+// kolom Aksi saat tabel digeser. Paksa separate + spacing 0 agar
+// kolom Aksi sticky selalu di atas. Tampilan garis tabel tidak
+// berubah. Scoped .dataaktivitas-page.
+// ============================================================
+.dataaktivitas-page {
+  .table-responsive table {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+ }
 }

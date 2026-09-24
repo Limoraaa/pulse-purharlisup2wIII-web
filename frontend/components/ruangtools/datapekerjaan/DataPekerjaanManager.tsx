@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card, Button, Form, Table, Spinner } from 'react-bootstrap';
 import { IconPlus, IconSearch } from '@tabler/icons-react';
-import Link from 'next/link';
 import { getColumns, Pekerjaan } from './ColumnDefination';
 import PekerjaanFormModal from './PekerjaanFormModal';
 import DeleteConfirmModal from './DeleteConfirmModal';
@@ -122,14 +121,7 @@ export default function DataPekerjaanManager() {
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h2 className="mb-1 fw-bold text-dark">Data Pekerjaan</h2>
-          <p className="text-muted mb-2">Mengelola daftar pekerjaan yang dapat dipilih saat peminjaman alat.</p>
-          <div className="d-flex align-items-center text-muted small">
-            <Link href="/" className="text-decoration-none text-muted">Home</Link>
-            <span className="mx-2">•</span>
-            <span className="text-muted">Inventaris</span>
-            <span className="mx-2">•</span>
-            <span className="text-muted">Data Pekerjaan</span>
-          </div>
+          <p className="text-muted mb-0">Mengelola daftar pekerjaan yang dapat dipilih saat peminjaman alat.</p>
         </div>
         {canManage && (
           <Button variant="primary" className="d-flex align-items-center gap-2" onClick={handleAdd}>

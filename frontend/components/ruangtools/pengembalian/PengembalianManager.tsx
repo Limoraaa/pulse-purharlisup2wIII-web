@@ -15,7 +15,7 @@ import { usePermission } from "hooks/usePermissions";
 
 // import custom components
 import Flex from "components/common/Flex";
-import DasherBreadcrumb from "components/common/DasherBreadcrumb";
+
 import PengembalianScanForm from "components/ruangtools/pengembalian/PengembalianScanForm";
 import PengembalianChecklist, {
   PengembalianBatchItem,
@@ -232,7 +232,6 @@ const PengembalianManager = () => {
               <p className="text-secondary mb-0">
                 Scan kartu peminjam, lalu centang alat yang ingin dikembalikan sekaligus.
               </p>
-              <DasherBreadcrumb />
             </div>
           </Flex>
         </Col>
