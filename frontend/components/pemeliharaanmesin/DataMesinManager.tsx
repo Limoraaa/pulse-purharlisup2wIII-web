@@ -34,7 +34,7 @@ import Link from "next/link";
 
 import TanstackTable from "components/table/TanstackTable";
 import Flex from "components/common/Flex";
-import DasherBreadcrumb from "components/common/DasherBreadcrumb";
+
 import api from "lib/api";
 import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
 import MesinFormModal from "./MesinFormModal";
@@ -336,7 +336,6 @@ const DataMesinManager = () => {
                 <div>
                   <h1 className="mb-1 h4 h2-md">Pemeliharaan Mesin Produksi</h1>
                   <p className="text-secondary mb-0 small">Mengelola daftar mesin produksi beserta log pemeliharaan dan aktivitas.</p>
-                  <DasherBreadcrumb />
                 </div>
                 <div>
                   <Button variant="primary" size="sm" className="d-flex align-items-center gap-1 py-2 px-3 datamesin-add-btn" onClick={() => setFormModalOpen(true)}>
@@ -483,22 +482,6 @@ const DataMesinManager = () => {
               <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
                 <div>
                   <h2 className="mb-1 fs-5 fw-bold">{selectedMesin?.nama_mesin}</h2>
-                  <nav aria-label="breadcrumb">
-                    <ol className="breadcrumb mb-0 text-secondary" style={{ fontSize: "0.75rem" }}>
-                      <li className="breadcrumb-item">Home</li>
-                      <li className="breadcrumb-item">Pemeliharaan</li>
-                      <li 
-                        className="breadcrumb-item text-primary fw-semibold" 
-                        style={{ cursor: "pointer" }}
-                        onClick={() => setViewMode("list")}
-                      >
-                        Mesin
-                      </li>
-                      <li className="breadcrumb-item active text-body fw-semibold">
-                        {selectedMesin?.kode_mesin}
-                      </li>
-                    </ol>
-                  </nav>
                 </div>
                 <div className="d-flex flex-wrap gap-1 mt-1 mt-md-0">
                   <Button variant="outline-danger" size="sm" className="py-1 px-2" style={{ fontSize: "0.75rem" }} onClick={handleExportLogPDF}>PDF</Button>

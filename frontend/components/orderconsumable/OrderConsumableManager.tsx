@@ -4,7 +4,7 @@ import { Row, Col, Card, CardBody, Alert, Spinner, InputGroup, Form, Button } fr
 import { IconCircleCheck, IconSearch, IconX, IconClipboardList, IconShoppingCart, IconEdit, IconTrash } from "@tabler/icons-react";
 import TanstackTable from "components/table/TanstackTable";
 import Flex from "components/common/Flex";
-import DasherBreadcrumb from "components/common/DasherBreadcrumb";
+
 
 import { Modal } from "react-bootstrap";
 import OrderConsumableFormModal from './OrderConsumableFormModal';
@@ -287,10 +287,9 @@ export default function OrderConsumableManager() {
           >
             <div>
               <h1 className="mb-2 h2">Order Consumable</h1>
-              <p className="text-secondary mb-3">
+              <p className="text-secondary mb-0">
                 Kelola daftar pengajuan dan pemesanan consumable baru.
               </p>
-              <DasherBreadcrumb />
             </div>
 
             <div className="mt-3 mt-md-0">

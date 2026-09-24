@@ -4,7 +4,6 @@ import { IconPlus } from "@tabler/icons-react";
 
 //import custom components
 import Flex from "components/common/Flex";
-import DasherBreadcrumb from "components/common/DasherBreadcrumb";
 
 const BlogListHeader = () => {
   return (
@@ -18,7 +17,6 @@ const BlogListHeader = () => {
         >
           <div>
             <h1 className="mb-3 h2">List</h1>
-            <DasherBreadcrumb />
           </div>
           <div>
             <Button

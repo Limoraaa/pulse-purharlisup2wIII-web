@@ -17,7 +17,7 @@ import { RiwayatPeminjamanType } from "types/RiwayatTypes";
 
 import TanstackTable from "components/table/TanstackTable";
 import Flex from "components/common/Flex";
-import DasherBreadcrumb from "components/common/DasherBreadcrumb";
+
 import RiwayatFilterBar from "components/ruangtools/riwayat/common/RiwayatFilterBar";
 import {
   DateFilterValue,
@@ -160,7 +160,6 @@ const RiwayatPeminjamanManager = () => {
               <p className="text-secondary mb-0">
                 Menampilkan riwayat seluruh transaksi peminjaman tools yang telah dikembalikan.
               </p>
-              <DasherBreadcrumb />
             </div>
           </Flex>
         </Col>
