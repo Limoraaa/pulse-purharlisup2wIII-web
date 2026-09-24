@@ -116,7 +116,12 @@ export const useMesinColumns = ({ onToggleStatus, onOpenDetail }: UseMesinColumn
                   <IconFileDescription size={16} />
                 </Dropdown.Toggle>
 
-                <Dropdown.Menu className="shadow-sm">
+                <Dropdown.Menu
+                    className="shadow-sm"
+                    align="end"
+                    renderOnMount
+                    popperConfig={{ strategy: "fixed" }}
+                  >
                   <Dropdown.Header className="small text-muted fw-bold">INSTRUKSI KERJA (IK)</Dropdown.Header>
                   <Dropdown.Item href={`/pemeliharaan/ik-operasional?id=${mesin.id}`}>
                     IK Operasional

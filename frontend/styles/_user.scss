@@ -2874,19 +2874,22 @@ html.collapsed #miniSidebar,
 // table-responsive memotong dropdown karena overflow:auto. Lepaskan clipping
 // hanya selama menu terbuka; horizontal scrolling tetap aktif saat tertutup.
 .datatools-page .table-responsive:has(.dropdown-menu.show),
-.dataconsumable-page .table-responsive:has(.dropdown-menu.show) {
+.dataconsumable-page .table-responsive:has(.dropdown-menu.show),
+.datamesin-page .table-responsive:has(.dropdown-menu.show) {
   overflow: visible;
 }
 
 // Naikkan cell sticky pemilik dropdown, bukan hanya wrapper action.
 // Sticky td membentuk stacking context sendiri; z-index pada child saja tidak cukup.
 .datatools-page .table-responsive tbody td:has(.dropdown-menu.show),
-.dataconsumable-page .table-responsive tbody td:has(.dropdown-menu.show) {
+.dataconsumable-page .table-responsive tbody td:has(.dropdown-menu.show),
+.datamesin-page .table-responsive tbody td:has(.dropdown-menu.show) {
   z-index: 1000 !important;
 }
 
 .datatools-page .table-responsive tbody tr:has(.dropdown-menu.show),
-.dataconsumable-page .table-responsive tbody tr:has(.dropdown-menu.show) {
+.dataconsumable-page .table-responsive tbody tr:has(.dropdown-menu.show),
+.datamesin-page .table-responsive tbody tr:has(.dropdown-menu.show) {
   position: relative;
   z-index: 1000;
 }
