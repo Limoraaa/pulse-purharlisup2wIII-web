@@ -2907,16 +2907,13 @@ html.collapsed #miniSidebar,
 .datamesin-page,
 .riwayat-page {
   .table-responsive {
-    // Kolom terakhir (Aksi) selalu terlihat saat scroll horizontal.
-    // Pakai tr:first-child agar thead dua baris (mis. grup "Waktu" di log
-    // aktivitas) tidak ikut menempelkan th terakhir baris keduanya.
-    // Untuk thead satu baris (semua halaman lain) selektor ini identik
-    // dengan th:last-child, jadi tidak ada perubahan perilaku di sana.
+    // Kolom Aksi (ditandai data-column-id="aksi") selalu terlihat saat
+    // scroll horizontal, di manapun posisinya dalam array kolom --
+    // termasuk saat kolom ini disembunyikan untuk role view-only,
+    // tidak ada kolom lain yang ikut salah ke-freeze.
     table {
       thead th[data-column-id="aksi"],
       tbody td[data-column-id="aksi"] {
-      thead tr:first-child th:last-child,
-      tbody td:last-child {
         position: sticky;
         right: 0;
         z-index: 2;
@@ -3214,5 +3211,4 @@ th:has(.kode-sort-header):hover .kode-sort-icon:not(.is-active) {
     border-collapse: separate;
     border-spacing: 0;
   }
- }
 }
