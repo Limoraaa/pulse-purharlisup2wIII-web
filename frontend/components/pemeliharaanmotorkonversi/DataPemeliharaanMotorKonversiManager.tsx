@@ -27,7 +27,6 @@ import {
 import Link from "next/link";
 
 import TanstackTable from "components/table/TanstackTable";
-import DasherBreadcrumb from "components/common/DasherBreadcrumb";
 import api from "lib/api";
 import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
 import { MotorKonversiFormModal } from "./MotorKonversiFormModal";
@@ -279,7 +278,6 @@ const DataPemeliharaanMotorManager = () => {
                 <div>
                   <h1 className="mb-2 h2">Pemeliharaan Motor Konversi</h1>
                   <p className="text-secondary mb-0">Mengelola daftar inventaris motor konversi beserta log pemeliharaan rutin.</p>
-                  <div className="d-none d-md-block mt-2"><DasherBreadcrumb /></div>
                 </div>
                 <div className="w-100 w-md-auto">
                   <Button variant="primary" className="d-flex align-items-center justify-content-center gap-2 w-100" onClick={() => setFormModalOpen(true)}>

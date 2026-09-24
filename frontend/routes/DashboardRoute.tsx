@@ -7,6 +7,7 @@ import {
   IconHistory,
   IconShoppingCart,
   IconTools,
+  IconMotorbike,
   IconReportAnalytics,
   IconUsers,
 } from "@tabler/icons-react";
@@ -137,22 +138,17 @@ export const DashboardMenu: MenuItemType[] = [
   },
   {
     id: uuid(),
-    title: "Pemeliharaan",
+    title: "Pemeliharaan Mesin",
+    link: "/pemeliharaan/data-mesin",
     icon: <IconTools size={20} strokeWidth={1.5} />,
-    children: [
-      {
-        id: uuid(),
-        name: "Pemeliharaan Mesin",
-        link: "/pemeliharaan/data-mesin",
-      },
-      {
-        id: uuid(),
-        name: "Pemeliharaan Motor Konversi",
-        link: "/pemeliharaan/data-motor-konversi",
-      },
-    ],
   },
-    {
+  {
+    id: uuid(),
+    title: "Pemeliharaan Motor Konversi",
+    link: "/pemeliharaan/data-motor-konversi",
+    icon: <IconMotorbike size={20} strokeWidth={1.5} />,
+  },
+  {
     id: uuid(),
     title: "Administrasi",
     grouptitle: true,

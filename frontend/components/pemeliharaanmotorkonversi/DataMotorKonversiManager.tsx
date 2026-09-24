@@ -28,7 +28,6 @@ import {
 
 import TanstackTable from "components/table/TanstackTable";
 import Flex from "components/common/Flex";
-import DasherBreadcrumb from "components/common/DasherBreadcrumb";
 import api from "lib/api";
 import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
 
@@ -338,7 +337,6 @@ const DataMotorKonversiManager = () => {
                 <div>
                   <h1 className="mb-1 h4 h2-md">Data Motor Konversi</h1>
                   <p className="text-secondary mb-0 small">Mengelola daftar motor konversi beserta log pemeliharaan dan aktivitas.</p>
-                  <DasherBreadcrumb />
                 </div>
                 <div>
                   <Button variant="primary" size="sm" className="d-flex align-items-center gap-1 py-2 px-3" onClick={() => setFormModalOpen(true)}>
