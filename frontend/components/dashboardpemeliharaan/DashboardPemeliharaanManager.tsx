@@ -22,7 +22,7 @@ import {
 } from "recharts";
 
 import Flex from "components/common/Flex";
-import DasherBreadcrumb from "components/common/DasherBreadcrumb";
+
 import StatCard from "components/dashboard/StatCard";
 import api from "/lib/api";
 
@@ -88,8 +88,7 @@ const DashboardPemeliharaanManager = () => {
             <p className="text-secondary mb-0">
               Ringkasan aktivitas, kondisi mesin, dan pemeliharaan alat produksi.
             </p>
-            <DasherBreadcrumb />
-          </div>
+            </div>
           <div className="mt-3 mt-md-0">
             <Link href="/pemeliharaan/data-mesin">
               <Button variant="primary" className="d-flex align-items-center gap-2">

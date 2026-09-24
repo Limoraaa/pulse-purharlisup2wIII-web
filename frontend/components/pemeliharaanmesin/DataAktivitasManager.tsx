@@ -404,22 +404,6 @@ const DataAktivitasManager = () => {
               <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
                 <div>
                   <h2 className="mb-1 fs-5 fw-bold">{selectedMesin?.nama_mesin}</h2>
-                  <nav aria-label="breadcrumb">
-                    <ol className="breadcrumb mb-0 text-secondary" style={{ fontSize: "0.75rem" }}>
-                      <li className="breadcrumb-item">Home</li>
-                      <li className="breadcrumb-item">Pemeliharaan</li>
-                      <li 
-                        className="breadcrumb-item text-primary fw-semibold" 
-                        style={{ cursor: "pointer" }}
-                        onClick={handleBack}
-                      >
-                        Aktivitas
-                      </li>
-                      <li className="breadcrumb-item active text-body fw-semibold">
-                        {selectedMesin?.kode_mesin}
-                      </li>
-                    </ol>
-                  </nav>
                 </div>
                 <div className="d-flex flex-wrap gap-1 mt-1 mt-md-0">
                   <Button variant="outline-danger" size="sm" className="py-1 px-2" style={{ fontSize: "0.75rem" }} onClick={handleExportLogPDF}>PDF</Button>

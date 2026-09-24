@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Form, Spinner, Button, Card, Row, Col, Alert, Badge, Breadcrumb, Modal } from 'react-bootstrap';
+import { Form, Spinner, Button, Card, Row, Col, Alert, Badge, Modal } from 'react-bootstrap';
 import { IconDeviceFloppy, IconShieldLock, IconCircleCheck, IconTrash } from '@tabler/icons-react';
 import api from '/lib/api';
 
@@ -287,14 +287,9 @@ export default function PermissionMatrix() {
           <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
             <div>
               <h1 className="mb-2 h2">Manajemen User</h1>
-              <p className="text-secondary mb-2">
+              <p className="text-secondary mb-0">
                 Atur hak akses modul navigasi untuk masing-masing peran (Role) pengguna.
               </p>
-              {/* Breadcrumb — menyamakan posisi & gaya dengan tab Daftar Pengguna */}
-              <Breadcrumb className="mb-0 small">
-                <Breadcrumb.Item href="/">Home</Breadcrumb.Item>
-                <Breadcrumb.Item active>Hak Akses</Breadcrumb.Item>
-              </Breadcrumb>
             </div>
             <div className="d-flex gap-2">
               <Button

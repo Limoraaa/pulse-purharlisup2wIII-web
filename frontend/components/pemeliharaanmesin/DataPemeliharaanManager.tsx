@@ -27,7 +27,7 @@ import {
 import Link from "next/link";
 
 import TanstackTable from "components/table/TanstackTable";
-import DasherBreadcrumb from "components/common/DasherBreadcrumb";
+
 import api from "lib/api";
 import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
 import MesinFormModal from "./MesinFormModal";
@@ -258,7 +258,6 @@ const DataPemeliharaanManager = () => {
                 <div>
                   <h1 className="mb-2 h2">Pemeliharaan Mesin Produksi</h1>
                   <p className="text-secondary mb-0">Mengelola daftar mesin produksi beserta log pemeliharaan dan aktivitas.</p>
-                  <div className="d-none d-md-block mt-2"><DasherBreadcrumb /></div>
                 </div>
                 <div className="w-100 w-md-auto">
                   <Button variant="primary" className="d-flex align-items-center justify-content-center gap-2 w-100" onClick={() => setFormModalOpen(true)}>
@@ -334,22 +333,6 @@ const DataPemeliharaanManager = () => {
               <div className="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-3 w-100">
                 <div>
                   <h1 className="mb-2 h2">{selectedMesin?.nama_mesin}</h1>
-                  <nav aria-label="breadcrumb" className="d-none d-md-block">
-                    <ol className="breadcrumb mb-0 small text-secondary">
-                      <li className="breadcrumb-item">Home</li>
-                      <li className="breadcrumb-item">Pemeliharaan</li>
-                      <li 
-                        className="breadcrumb-item text-primary fw-semibold" 
-                        style={{ cursor: "pointer" }}
-                        onClick={() => setViewMode("list")}
-                      >
-                        Mesin
-                      </li>
-                      <li className="breadcrumb-item active text-dark fw-semibold">
-                        {selectedMesin?.kode_mesin} - {selectedMesin?.nama_mesin}
-                      </li>
-                    </ol>
-                  </nav>
                 </div>
                 
                 <div className="d-flex flex-column flex-sm-row gap-2 w-100 w-lg-auto mt-2 mt-lg-0">

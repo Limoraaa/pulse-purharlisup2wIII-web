@@ -42,7 +42,7 @@ interface ConsumableCartItem extends ConsumableCartItemType {
 
 import TanstackTable from "components/table/TanstackTable";
 import Flex from "components/common/Flex";
-import DasherBreadcrumb from "components/common/DasherBreadcrumb";
+
 import { getConsumableColumns } from "components/dataconsumable/ColumnDefination";
 import ConsumableToolFormModal from "components/dataconsumable/ConsumableFormModal";
 import ConsumableDetailModal from "components/dataconsumable/ConsumableDetailModal";
@@ -691,7 +691,6 @@ const DataConsumableManager = () => {
               <p className="text-secondary mb-0">
                 Mengelola seluruh data bahan yang terdapat di Ruang Tools.
               </p>
-              <DasherBreadcrumb />
             </div>
             <div>
               <Button variant="primary" className="d-flex align-items-center gap-2" onClick={openAddModal}>
