@@ -11,7 +11,6 @@ import {
   InputGroup,
   Form,
   Table,
-  Modal,
 } from "react-bootstrap";
 import {
   IconPlus,
@@ -22,10 +21,9 @@ import {
   IconMoodEmpty,
   IconArrowLeft,
   IconClipboardList,
-  IconEdit,
-  IconTrash,
+  IconMapPin,
+  IconClipboardCheck,
 } from "@tabler/icons-react";
-import Link from "next/link";
 
 import TanstackTable from "components/table/TanstackTable";
 import Flex from "components/common/Flex";
@@ -33,9 +31,11 @@ import DasherBreadcrumb from "components/common/DasherBreadcrumb";
 import api from "lib/api";
 import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
 import MesinFormModal from "./MesinFormModal";
+import PartMappingEditor from "./PartMappingEditor";
+import PartMappingChecklistModal from "./PartMappingCheckListModal";
 
 // Import definisi kolom dari file terpisah
-import { useMesinColumns } from "./ColumnDefination"; 
+import { useMesinColumns } from "./ColumnDefination";
 
 interface MesinItemType {
   id: number | string;
@@ -89,19 +89,14 @@ const DataMesinManager = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // State Log Pemeliharaan
+  // State Log Pemeliharaan (READ ONLY - dibuat lewat Checklist Visual, tidak ada input manual lagi)
   const [logs, setLogs] = useState<LogItemType[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
-  const [submitLoading, setSubmitLoading] = useState(false);
   const [exportingAll, setExportingAll] = useState(false); // State loading untuk export seluruh log
-  
-  // State Khusus Form Modal (Tambah & Edit Log)
-  const [showLogModal, setShowLogModal] = useState(false); 
-  const [editingLogId, setEditingLogId] = useState<number | null>(null);
-  const [waktu, setWaktu] = useState(new Date().toISOString().split("T")[0]);
-  const [uraian, setUraian] = useState("");
-  const [keteranganLog, setKeteranganLog] = useState("");
-  const [temuan, setTemuan] = useState("");
+
+  // State modal Peta Part & Checklist Visual (satu-satunya cara membuat log baru)
+  const [showMappingEditor, setShowMappingEditor] = useState(false);
+  const [showChecklistModal, setShowChecklistModal] = useState(false);
 
   const loadMesin = useCallback(async () => {
     setLoading(true);
@@ -151,7 +146,7 @@ const DataMesinManager = () => {
 
       if (res && res.success) {
         setSuccessMessage(res.message);
-        loadMesin(); 
+        loadMesin();
         setTimeout(() => setSuccessMessage(null), 3000);
       }
     } catch (err) {
@@ -199,7 +194,7 @@ const DataMesinManager = () => {
       const res = await api<{ data: any[] }>("/log-pemeliharaan", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      
+
       const allLogs = res.data || [];
       if (allLogs.length === 0) {
         alert("Belum ada data log pemeliharaan yang tercatat di sistem.");
@@ -216,99 +211,6 @@ const DataMesinManager = () => {
       alert("Gagal mengambil seluruh data log pemeliharaan");
     } finally {
       setExportingAll(false);
-    }
-  };
-
-  const handleOpenAddModal = () => {
-    setEditingLogId(null);
-    setWaktu(new Date().toISOString().split("T")[0]);
-    setUraian("");
-    setKeteranganLog("");
-    setTemuan("");
-    setShowLogModal(true);
-  };
-
-  const handleOpenEditModal = (log: LogItemType) => {
-    setEditingLogId(log.id);
-    setWaktu(log.waktu_pelaksana);
-    setUraian(log.uraian_pemeliharaan);
-    
-    if (log.keterangan && log.keterangan.includes(" | Temuan: ")) {
-      const parts = log.keterangan.split(" | Temuan: ");
-      setKeteranganLog(parts[0]);
-      setTemuan(parts[1] || "");
-    } else {
-      setKeteranganLog(log.keterangan || "");
-      setTemuan("");
-    }
-
-    setShowLogModal(true);
-  };
-
-  const handleAddOrUpdateLog = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedMesin) return;
-    setSubmitLoading(true);
-
-    const finalKeterangan = [
-      keteranganLog,
-      temuan ? `Temuan: ${temuan}` : ""
-    ].filter(Boolean).join(" | ");
-
-    try {
-      const token = localStorage.getItem("token");
-      const userName = localStorage.getItem("userName") || "Teknisi PUSHARLIS";
-
-      const url = editingLogId ? `/log-pemeliharaan/${editingLogId}` : "/log-pemeliharaan";
-      const method = editingLogId ? "PUT" : "POST";
-
-      await api(url, {
-        method: method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          mesin_produksi_id: selectedMesin.id,
-          uraian_pemeliharaan: uraian,
-          waktu_pelaksana: waktu,
-          keterangan: finalKeterangan,
-          paraf: userName,
-        }),
-      });
-
-      setShowLogModal(false);
-      setEditingLogId(null);
-      setWaktu(new Date().toISOString().split("T")[0]);
-      setUraian("");
-      setKeteranganLog("");
-      setTemuan("");
-      
-      setSuccessMessage(editingLogId ? "Log pemeliharaan berhasil diperbarui!" : "Log pemeliharaan berhasil ditambahkan!");
-      handleOpenDetail(selectedMesin);
-      setTimeout(() => setSuccessMessage(null), 4000);
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Gagal menyimpan log");
-    } finally {
-      setSubmitLoading(false);
-    }
-  };
-
-  const handleDeleteLog = async (id: number) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus catatan log pemeliharaan ini?")) return;
-
-    try {
-      const token = localStorage.getItem("token");
-      await api(`/log-pemeliharaan/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      setSuccessMessage("Log pemeliharaan berhasil dihapus!");
-      if (selectedMesin) handleOpenDetail(selectedMesin);
-      setTimeout(() => setSuccessMessage(null), 4000);
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Gagal menghapus log");
     }
   };
 
@@ -362,7 +264,7 @@ const DataMesinManager = () => {
                   </InputGroup>
                 </Col>
                 <Col xs={12} md={8} className="d-flex justify-content-md-end gap-1 flex-wrap align-items-center">
-                  
+
                   {/* Ekspor Data Mesin */}
                   <div className="d-flex align-items-center me-md-2 border-end pe-md-2 mb-2 mb-md-0">
                     <span className="me-2 small text-secondary" style={{ fontSize: "0.7rem" }}>Data Mesin:</span>
@@ -380,7 +282,7 @@ const DataMesinManager = () => {
                       {exportingAll ? <Spinner size="sm" /> : 'Excel'}
                     </Button>
                   </div>
-                  
+
                 </Col>
               </Row>
             </div>
@@ -426,8 +328,8 @@ const DataMesinManager = () => {
                     <ol className="breadcrumb mb-0 text-secondary" style={{ fontSize: "0.75rem" }}>
                       <li className="breadcrumb-item">Home</li>
                       <li className="breadcrumb-item">Pemeliharaan</li>
-                      <li 
-                        className="breadcrumb-item text-primary fw-semibold" 
+                      <li
+                        className="breadcrumb-item text-primary fw-semibold"
                         style={{ cursor: "pointer" }}
                         onClick={() => setViewMode("list")}
                       >
@@ -442,6 +344,24 @@ const DataMesinManager = () => {
                 <div className="d-flex flex-wrap gap-1 mt-1 mt-md-0">
                   <Button variant="outline-danger" size="sm" className="py-1 px-2" style={{ fontSize: "0.75rem" }} onClick={handleExportLogPDF}>PDF</Button>
                   <Button variant="outline-success" size="sm" className="py-1 px-2" style={{ fontSize: "0.75rem" }} onClick={handleExportLogExcel}>Excel</Button>
+                  <Button
+                    variant="outline-primary"
+                    size="sm"
+                    className="py-1 px-2 d-flex align-items-center gap-1"
+                    style={{ fontSize: "0.75rem" }}
+                    onClick={() => setShowMappingEditor(true)}
+                  >
+                    <IconMapPin size={14} /> Peta Part
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    className="py-1 px-2 d-flex align-items-center gap-1"
+                    style={{ fontSize: "0.75rem" }}
+                    onClick={() => setShowChecklistModal(true)}
+                  >
+                    <IconClipboardCheck size={14} /> Checklist Visual
+                  </Button>
                   <Button variant="outline-secondary" size="sm" className="py-1 px-2 d-flex align-items-center gap-1" style={{ fontSize: "0.75rem" }} onClick={() => setViewMode("list")}>
                     <IconArrowLeft size={14} /> Kembali
                   </Button>
@@ -472,16 +392,16 @@ const DataMesinManager = () => {
             </CardBody>
           </Card>
 
-          {/* TABEL DATA PEMELIHARAAN COMPACT */}
+          {/* TABEL RIWAYAT LOG PEMELIHARAAN - READ ONLY */}
           <Card className="shadow-none">
             <CardBody className="p-2 p-md-3">
               <div className="d-flex justify-content-between align-items-center mb-3">
                 <h6 className="mb-0 d-flex align-items-center gap-1 fw-bold fs-6">
                   <IconClipboardList size={18} /> Riwayat Log Pemeliharaan
                 </h6>
-                <Button variant="primary" size="sm" className="d-flex align-items-center gap-1 py-1 px-2" style={{ fontSize: "0.75rem" }} onClick={handleOpenAddModal}>
-                  <IconPlus size={14} /> Tambah Catatan
-                </Button>
+                <span className="text-muted" style={{ fontSize: "0.7rem" }}>
+                  Log baru dibuat lewat "Checklist Visual" — riwayat di bawah ini hanya untuk dilihat.
+                </span>
               </div>
 
               <div className="table-responsive">
@@ -493,19 +413,18 @@ const DataMesinManager = () => {
                       <th style={{ width: "130px" }}>Waktu Pelaksana</th>
                       <th>Keterangan</th>
                       <th style={{ width: "110px" }}>Paraf (Teknisi)</th>
-                      <th style={{ width: "70px" }}>Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
                     {loadingLogs ? (
                       <tr>
-                        <td colSpan={6} className="text-center py-3 text-muted">
+                        <td colSpan={5} className="text-center py-3 text-muted">
                           <Spinner animation="border" size="sm" /> Memuat riwayat log...
                         </td>
                       </tr>
                     ) : logs.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="text-center py-3 text-secondary">
+                        <td colSpan={5} className="text-center py-3 text-secondary">
                           Belum ada catatan log pemeliharaan untuk mesin ini.
                         </td>
                       </tr>
@@ -517,28 +436,6 @@ const DataMesinManager = () => {
                           <td className="text-center">{log.waktu_pelaksana}</td>
                           <td>{log.keterangan || "-"}</td>
                           <td className="text-center fw-semibold">{log.paraf}</td>
-                          <td className="text-center">
-                            <div className="d-flex justify-content-center gap-1">
-                              <Button 
-                                variant="outline-warning" 
-                                size="sm" 
-                                className="p-1"
-                                title="Edit"
-                                onClick={() => handleOpenEditModal(log)}
-                              >
-                                <IconEdit size={12} />
-                              </Button>
-                              <Button 
-                                variant="outline-danger" 
-                                size="sm" 
-                                className="p-1"
-                                title="Hapus"
-                                onClick={() => handleDeleteLog(log.id)}
-                              >
-                                <IconTrash size={12} />
-                              </Button>
-                            </div>
-                          </td>
                         </tr>
                       ))
                     )}
@@ -550,75 +447,6 @@ const DataMesinManager = () => {
         </div>
       )}
 
-      {/* MODAL POP-UP FORM PEMELIHARAAN (COMPACT) */}
-      <Modal show={showLogModal} onHide={() => setShowLogModal(false)} centered backdrop="static">
-        <Modal.Header closeButton className="py-2 px-3">
-          <Modal.Title className="fs-6 fw-bold text-dark">
-            {editingLogId ? "Edit Catatan Pemeliharaan" : "Tambah Catatan Pemeliharaan"}
-          </Modal.Title>
-        </Modal.Header>
-        <Form onSubmit={handleAddOrUpdateLog}>
-          <Modal.Body className="p-3">
-            
-            <Form.Group className="mb-2">
-              <Form.Label className="small fw-semibold text-secondary mb-1" style={{ fontSize: "0.75rem" }}>Waktu Pelaksana</Form.Label>
-              <Form.Control
-                size="sm"
-                type="date"
-                required
-                value={waktu}
-                onChange={(e) => setWaktu(e.target.value)}
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-2">
-              <Form.Label className="small fw-semibold text-secondary mb-1" style={{ fontSize: "0.75rem" }}>Uraian Pemeliharaan</Form.Label>
-              <Form.Control
-                size="sm"
-                type="text"
-                required
-                placeholder="Contoh: Ganti oli, pembersihan filter..."
-                value={uraian}
-                onChange={(e) => setUraian(e.target.value)}
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-2">
-              <Form.Label className="small fw-semibold text-secondary mb-1" style={{ fontSize: "0.75rem" }}>Keterangan</Form.Label>
-              <Form.Control
-                size="sm"
-                type="text"
-                placeholder="Detail pemeliharaan / parts yang diganti"
-                value={keteranganLog}
-                onChange={(e) => setKeteranganLog(e.target.value)}
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-1">
-              <Form.Label className="small fw-semibold text-secondary mb-1" style={{ fontSize: "0.75rem" }}>Temuan saat pemeliharaan (Opsional)</Form.Label>
-              <Form.Control
-                size="sm"
-                as="textarea"
-                rows={2}
-                placeholder="Contoh: baut penutup filter kendor"
-                value={temuan}
-                onChange={(e) => setTemuan(e.target.value)}
-              />
-            </Form.Group>
-
-          </Modal.Body>
-          <Modal.Footer className="bg-light py-2 px-3">
-            <Button variant="outline-secondary" size="sm" onClick={() => setShowLogModal(false)}>
-              Batal
-            </Button>
-            <Button variant="primary" size="sm" type="submit" disabled={submitLoading} className="fw-semibold px-3">
-              {submitLoading ? <Spinner size="sm" className="me-1" /> : null}
-              {editingLogId ? "Perbarui" : "Simpan"}
-            </Button>
-          </Modal.Footer>
-        </Form>
-      </Modal>
-
       <MesinFormModal
         show={formModalOpen}
         onHide={() => setFormModalOpen(false)}
@@ -628,6 +456,34 @@ const DataMesinManager = () => {
           setTimeout(() => setSuccessMessage(null), 4000);
         }}
       />
+
+      {/* Satu-satunya cara membuat log pemeliharaan baru: Peta Part (admin) & Checklist Visual (teknisi) */}
+      {selectedMesin && (
+        <>
+          <PartMappingEditor
+            show={showMappingEditor}
+            onHide={() => setShowMappingEditor(false)}
+            mesinId={selectedMesin.id}
+            mesinNama={selectedMesin.nama_mesin}
+            onSaved={() => {
+              setSuccessMessage("Mapping part berhasil disimpan!");
+              setTimeout(() => setSuccessMessage(null), 4000);
+            }}
+          />
+          <PartMappingChecklistModal
+            show={showChecklistModal}
+            onHide={() => setShowChecklistModal(false)}
+            mesinId={selectedMesin.id}
+            mesinNama={selectedMesin.nama_mesin}
+            onSubmitted={() => {
+              setShowChecklistModal(false);
+              setSuccessMessage("Laporan checklist visual berhasil disimpan!");
+              handleOpenDetail(selectedMesin); // refresh riwayat log biar laporan baru langsung tampil
+              setTimeout(() => setSuccessMessage(null), 4000);
+            }}
+          />
+        </>
+      )}
     </div>
   );
 };

@@ -285,4 +285,18 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/roles/{id}/permissions', [RolePermissionController::class, 'updateRolePermissions']);
     });
 
+    Route::middleware('permission:manage_inventaris|manage_pemeliharaan_mesin')->group(function () {
+       Route::patch('/mesin-produksi/{id}/toggle-status', [MesinProduksiController::class, 'toggleStatus']);
+       Route::apiResource('mesin-produksi', MesinProduksiController::class)->except(['index', 'show']);
+   });
+
+   Route::middleware('permission:view_inventaris|view_pemeliharaan_mesin')->group(function () {
+    Route::get('/mesin-produksi/{id}/part-mapping', [MesinProduksiController::class, 'getPartMapping']);
+    });
+
+    Route::middleware('permission:manage_inventaris|manage_pemeliharaan_mesin')->group(function () {
+    Route::put('/mesin-produksi/{id}/part-mapping', [MesinProduksiController::class, 'savePartMapping']);
+    Route::post('/mesin-produksi/{id}/upload-gambar', [MesinProduksiController::class, 'uploadGambar']);
+    });
+
 });

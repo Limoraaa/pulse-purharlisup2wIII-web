@@ -1,0 +1,23 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('mesin_produksi', function (Blueprint $table) {
+            $table->string('gambar_url')->nullable()->after('status');
+            $table->json('part_mapping')->nullable()->after('gambar_url');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('mesin_produksi', function (Blueprint $table) {
+            $table->dropColumn(['gambar_url', 'part_mapping']);
+        });
+    }
+};
