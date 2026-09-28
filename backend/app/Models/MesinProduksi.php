@@ -12,10 +12,16 @@ class MesinProduksi extends Model
     protected $table = 'mesin_produksi';
 
     protected $fillable = [
-        'kode_mesin', 
-        'nama_mesin', 
-        'lokasi_ruang', 
-        'status'
+        'kode_mesin',
+        'nama_mesin',
+        'lokasi_ruang',
+        'status',
+        'gambar_url',
+        'part_mapping',
+    ];
+
+    protected $casts = [
+        'part_mapping' => 'array',
     ];
 
     // Relasi: 1 Mesin memiliki banyak Log Pemeliharaan

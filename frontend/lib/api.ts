@@ -10,12 +10,16 @@ async function apiFetch<T = unknown>(
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
-  let res: Response;
+    let res: Response;
   try {
+    // FormData harus dikirim tanpa Content-Type manual, supaya browser
+    // mengisi multipart/form-data beserta boundary-nya sendiri.
+    const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
+
     res = await fetch(`${API_URL}${endpoint}`, {
       ...options,
       headers: {
-        "Content-Type": "application/json",
+        ...(isFormData ? {} : { "Content-Type": "application/json" }),
         Accept: "application/json",
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...options.headers,

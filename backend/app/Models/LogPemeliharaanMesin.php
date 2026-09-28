@@ -16,7 +16,15 @@ class LogPemeliharaanMesin extends Model
         'uraian_pemeliharaan',
         'waktu_pelaksana',
         'keterangan',
-        'paraf'
+        'paraf',
+        'hasil_checklist',
+        'status',
+        'jumlah_part_diperiksa',
+        'jumlah_part_total',
+    ];
+
+    protected $casts = [
+        'hasil_checklist' => 'array',
     ];
 
     public function mesinProduksi()
