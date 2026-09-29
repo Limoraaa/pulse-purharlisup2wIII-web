@@ -19,20 +19,29 @@ class MesinProduksiController extends Controller
     }
 
     // Tambah data mesin baru
+    // Tambah data mesin baru
     public function store(Request $request)
     {
         $validated = $request->validate([
             'kode_mesin' => 'required|unique:mesin_produksi,kode_mesin',
             'nama_mesin' => 'required|string',
             'lokasi_ruang' => 'required|string',
-            'status' => 'sometimes|string|in:Aktif,Tidak Aktif',
+            'status' => 'sometimes|string|in:Aktif,Tidak Aktif,Maintenance,Rusak',
+            'foto_katalog' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048', // Validasi foto
         ]);
+
+        $fotoKatalogUrl = null;
+        if ($request->hasFile('foto_katalog')) {
+            $path = $request->file('foto_katalog')->store('katalog-mesin', 'public');
+            $fotoKatalogUrl = asset('storage/' . $path);
+        }
 
         $mesin = MesinProduksi::create([
             'kode_mesin' => $validated['kode_mesin'],
             'nama_mesin' => $validated['nama_mesin'],
             'lokasi_ruang' => $validated['lokasi_ruang'],
             'status' => $validated['status'] ?? 'Aktif',
+            'foto_katalog' => $fotoKatalogUrl, // Simpan ke database
         ]);
 
         return response()->json(['message' => 'Mesin berhasil ditambahkan', 'data' => $mesin], 201);

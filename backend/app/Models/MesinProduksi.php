@@ -16,8 +16,9 @@ class MesinProduksi extends Model
         'nama_mesin',
         'lokasi_ruang',
         'status',
-        'gambar_url',
+        'gambar_url', 
         'part_mapping',
+        'foto_katalog', // <--- Tambahkan ini
     ];
 
     protected $casts = [
