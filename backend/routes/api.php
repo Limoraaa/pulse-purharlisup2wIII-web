@@ -217,12 +217,18 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::middleware('permission:view_pemeliharaan_mesin')->group(function () {
         Route::get('/log-pemeliharaan', [LogPemeliharaanMesinController::class, 'index']);
-        Route::get('/log-pemeliharaan/{id}', [LogPemeliharaanMesinController::class, 'show']); // Ditambahkan rute detail show
+        
+        // Pindahkan rute spesifik "mesin/{mesin_id}" ke atas SEBELUM rute dinamis "{id}"
         Route::get('/log-pemeliharaan/mesin/{mesin_id}', [LogPemeliharaanMesinController::class, 'getByMesin']);
         
+        Route::get('/log-pemeliharaan/{id}', [LogPemeliharaanMesinController::class, 'show']);
+        
         Route::get('/log-aktivitas', [LogAktivitasMesinController::class, 'index']);
-        Route::get('/log-aktivitas/{id}', [LogAktivitasMesinController::class, 'show']); // Ditambahkan rute detail show
+        
+        // Lakukan hal yang sama untuk log aktivitas jika polanya mirip
         Route::get('/log-aktivitas/mesin/{mesin_id}', [LogAktivitasMesinController::class, 'getByMesin']);
+        
+        Route::get('/log-aktivitas/{id}', [LogAktivitasMesinController::class, 'show']);
     });
 
     Route::middleware('permission:process_pemeliharaan_mesin')->group(function () {

@@ -7,16 +7,23 @@ async function apiFetch<T = unknown>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+  const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+  
+  // Membersihkan trailing slash dari URL environment agar tidak pernah terjadi double slash
+  const baseUrl = rawApiUrl.replace(/\/+$/, "");
+  
+  // Memastikan endpoint selalu diawali dengan tepat satu garis miring
+  const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+  
+  const fullUrl = `${baseUrl}${cleanEndpoint}`;
+  
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
-    let res: Response;
+  let res: Response;
   try {
-    // FormData harus dikirim tanpa Content-Type manual, supaya browser
-    // mengisi multipart/form-data beserta boundary-nya sendiri.
     const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
 
-    res = await fetch(`${API_URL}${endpoint}`, {
+    res = await fetch(fullUrl, {
       ...options,
       headers: {
         ...(isFormData ? {} : { "Content-Type": "application/json" }),
@@ -30,7 +37,6 @@ async function apiFetch<T = unknown>(
   }
 
   if (!res.ok) {
-    // Tangani token invalid / kedaluwarsa (kecuali pada endpoint /login)
     if (res.status === 401 && endpoint !== "/login" && typeof window !== "undefined") {
       localStorage.removeItem("token");
       localStorage.removeItem("userId");
@@ -43,7 +49,6 @@ async function apiFetch<T = unknown>(
       return new Promise<T>(() => {});
     }
 
-    // Ambil error body dengan aman (bisa jadi teks biasa atau JSON kosong)
     const contentType = res.headers.get("content-type");
     let errorData: ApiErrorResponse = {};
 
@@ -54,7 +59,6 @@ async function apiFetch<T = unknown>(
       errorData = { message: textError || `Request gagal: ${res.status}` };
     }
 
-    // Jika ada error validasi per field (Laravel style validation errors)
     if (errorData.errors) {
       const firstField = Object.values(errorData.errors)[0];
       if (firstField && firstField.length > 0) {
@@ -65,7 +69,6 @@ async function apiFetch<T = unknown>(
     throw new Error(errorData.message || `Request gagal: ${res.status}`);
   }
 
-  // Tangani response sukses yang tidak memiliki body (misal: 204 No Content)
   if (res.status === 204) {
     return {} as T;
   }
