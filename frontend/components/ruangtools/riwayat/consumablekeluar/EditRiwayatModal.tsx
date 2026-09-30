@@ -1,7 +1,7 @@
 "use client";
 // import node module libraries
 import { useEffect, useState } from "react";
-import { Modal, Form, Row, Col, Button } from "react-bootstrap";
+import { Modal, Form, Row, Col, Button, InputGroup } from "react-bootstrap";
 
 // import custom types
 import {
@@ -22,18 +22,22 @@ const EditRiwayatModal = ({
   onSubmit,
   item,
 }: EditRiwayatModalProps) => {
+  // 1. TAMBAHKAN nama_pekerjaan DI INITIAL STATE
   const [form, setForm] = useState<RiwayatConsumableKeluarFormValues>({
     jumlah: 0,
+    nama_pekerjaan: "", 
     area_kerja: "",
     keterangan: "",
   });
 
   useEffect(() => {
     if (show && item) {
+      // 2. TAMBAHKAN nama_pekerjaan SAAT SET DATA
       setForm({
         jumlah: item.jumlah,
-        area_kerja: item.area_kerja,
-        keterangan: item.keterangan,
+        nama_pekerjaan: item.nama_pekerjaan || "",
+        area_kerja: item.area_kerja || "",
+        keterangan: item.keterangan || "",
       });
     }
   }, [show, item]);
@@ -44,6 +48,9 @@ const EditRiwayatModal = ({
     e.preventDefault();
     onSubmit(form);
   };
+
+  // Mengambil satuan, fallback ke relasi consumable jika data lama
+  const satuan = (item as any).satuan || (item as any).consumable?.satuan || "";
 
   return (
     <Modal show={show} onHide={onClose} centered>
@@ -61,19 +68,35 @@ const EditRiwayatModal = ({
           <Row className="g-3">
             <Col md={12}>
               <Form.Label>Jumlah</Form.Label>
+              <InputGroup>
+                <Form.Control
+                  type="number"
+                  min={1}
+                  required
+                  value={form.jumlah}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      jumlah: Number(e.target.value),
+                    }))
+                  }
+                />
+                {satuan && <InputGroup.Text>{satuan}</InputGroup.Text>}
+              </InputGroup>
+            </Col>
+            
+            {/* 3. TAMBAHKAN INPUT NAMA PEKERJAAN */}
+            <Col md={12}>
+              <Form.Label>Nama Pekerjaan</Form.Label>
               <Form.Control
-                type="number"
-                min={1}
                 required
-                value={form.jumlah}
+                value={form.nama_pekerjaan}
                 onChange={(e) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    jumlah: Number(e.target.value),
-                  }))
+                  setForm((prev) => ({ ...prev, nama_pekerjaan: e.target.value }))
                 }
               />
             </Col>
+
             <Col md={12}>
               <Form.Label>Area Kerja</Form.Label>
               <Form.Control

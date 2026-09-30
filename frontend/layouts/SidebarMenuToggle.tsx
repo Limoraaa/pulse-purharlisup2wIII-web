@@ -12,6 +12,7 @@ interface CustomToggleProps {
   ariaControls?: string;
   icon?: ReactNode;
   callback?: (eventKey: string) => void;
+  isActive?: boolean;
 }
 
 export default function CustomToggle({
@@ -19,6 +20,7 @@ export default function CustomToggle({
   eventKey,
   icon,
   callback,
+  isActive = false,
 }: CustomToggleProps) {
   const { activeEventKey } = useContext(AccordionContext);
   const decoratedOnClick = useAccordionButton(
@@ -34,7 +36,7 @@ export default function CustomToggle({
         onClick={decoratedOnClick}
         data-bs-toggle="dropdown"
         aria-expanded={isCurrentEventKey ? true : false}
-        className="dropdown-toggle"
+        className={`dropdown-toggle${isActive ? " active" : ""}`}
       >
         <span className="nav-icon">{icon}</span>
         <span className="text">{children}</span>

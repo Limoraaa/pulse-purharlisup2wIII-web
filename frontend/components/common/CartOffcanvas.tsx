@@ -1,0 +1,212 @@
+"use client";
+// import node module libraries
+import { Offcanvas, Button, Form } from "react-bootstrap";
+import {
+  IconTrash,
+  IconMinus,
+  IconPlus,
+  IconShoppingCart,
+  IconArrowRight,
+} from "@tabler/icons-react";
+
+// Definisikan tipe fleksibel agar support Tools & Consumable sekaligus
+export interface UnifiedCartItem {
+  cartId?: string | number;
+  id?: string | number;
+  toolId?: string | number;
+  consumable_id?: string | number;
+  namaBarang?: string;
+  nama?: string;
+  kodeBarang?: string;
+  kode_barang?: string;
+  jumlah: number;
+  maxJumlah?: number;
+  stok_tersedia?: number;
+  item_type?: 'tool' | 'consumable';
+}
+
+interface CartOffcanvasProps {
+  show: boolean;
+  onClose: () => void;
+  items: UnifiedCartItem[];
+  onUpdateQty: (cartId: string | number, jumlah: number) => void;
+  onRemove: (cartId: string | number) => void;
+  onProceed: () => void;
+}
+
+const CartOffcanvas = ({
+  show,
+  onClose,
+  items,
+  onUpdateQty,
+  onRemove,
+  onProceed,
+}: CartOffcanvasProps) => {
+
+  const handleDecrease = (item: UnifiedCartItem) => {
+    if (item.jumlah <= 1) return;
+    const targetId = item.cartId ?? item.id ?? "";
+    onUpdateQty(targetId, item.jumlah - 1); 
+  };
+
+  const handleIncrease = (item: UnifiedCartItem) => {
+    const maxLimit = item.maxJumlah ?? item.stok_tersedia ?? 99;
+    if (item.jumlah >= maxLimit) return;
+    const targetId = item.cartId ?? item.id ?? "";
+    onUpdateQty(targetId, item.jumlah + 1); 
+  };
+
+  // Fungsi baru untuk menangani input angka manual
+  const handleInputChange = (item: UnifiedCartItem, value: string) => {
+    // Hanya izinkan angka
+    const digitsOnly = value.replace(/[^0-9]/g, "");
+    
+    // Jika input dikosongkan sementara oleh user (saat menghapus angka), 
+    // kita biarkan saja / kirim 1 agar tidak error, tapi jangan langsung panggil update jika empty string
+    if (digitsOnly === "") {
+        // Bisa dibiarkan saja karena akan dikoreksi saat onBlur, 
+        // atau kita tembak angka 1 sementara.
+        return; 
+    }
+
+    let num = Number(digitsOnly);
+    const maxLimit = item.maxJumlah ?? item.stok_tersedia ?? 99;
+
+    // Batasi nilai agar tidak lebih dari stok dan tidak kurang dari 1
+    if (num > maxLimit) num = maxLimit;
+    if (num < 1) num = 1;
+
+    const targetId = item.cartId ?? item.id ?? "";
+    onUpdateQty(targetId, num);
+  };
+
+  const totalUnit = items.reduce((sum, item) => sum + item.jumlah, 0);
+
+  return (
+    <Offcanvas show={show} onHide={onClose} placement="end" className="cart-offcanvas">
+      <Offcanvas.Header closeButton>
+        <Offcanvas.Title as="h5" className="d-flex align-items-center gap-2">
+          <span className="cart-title-icon">
+            <IconShoppingCart size={20} />
+          </span>
+          Keranjang Peminjaman
+        </Offcanvas.Title>
+      </Offcanvas.Header>
+      <Offcanvas.Body className="d-flex flex-column">
+        {items.length === 0 ? (
+          <div className="cart-empty text-center my-auto">
+            <div className="cart-empty-icon mb-3">
+              <IconShoppingCart size={32} />
+            </div>
+            <h6 className="mb-1">Keranjang masih kosong</h6>
+            <p className="text-secondary small mb-0">
+              Tambahkan alat atau bahan untuk memulai peminjaman.
+            </p>
+          </div>
+        ) : (
+          <div className="d-flex flex-column gap-3 flex-grow-1">
+            {items.map((item, index) => {
+              // Menyesuaikan penamaan properti yang berbeda antara Tools & Consumable
+              const displayName = item.namaBarang || item.nama || "Nama Tidak Diketahui";
+              const displayCode = item.kodeBarang || item.kode_barang || "-";
+              const uniqueKey = item.cartId || item.id || item.toolId || item.consumable_id || index;
+              const maxLimit = item.maxJumlah ?? item.stok_tersedia ?? 99;
+
+              return (
+                <div key={uniqueKey} className="cart-item">
+                  <div className="d-flex justify-content-between align-items-start gap-2">
+                    <div className="flex-grow-1">
+                      <div className="fw-semibold">{displayName}</div>
+                      <div className="text-secondary small d-flex align-items-center gap-2">
+                        <span>{displayCode}</span>
+                        {item.item_type && (
+                          <span className={`badge bg-${item.item_type === 'tool' ? 'info' : 'warning'} text-dark`} style={{ fontSize: '10px' }}>
+                            {item.item_type.toUpperCase()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <Button
+                      variant="link"
+                      className="cart-item-remove text-danger p-0"
+                      onClick={() => onRemove(item.cartId ?? item.id ?? "")}
+                      aria-label="Hapus Barang"
+                    >
+                      <IconTrash size={18} />
+                    </Button>
+                  </div>
+
+                  <div className="d-flex justify-content-between align-items-center mt-3">
+                    <div className="cart-stepper d-flex align-items-center">
+                      <Button
+                        variant="outline-secondary"
+                        className="cart-stepper-btn d-flex align-items-center justify-content-center p-0"
+                        disabled={item.jumlah <= 1}
+                        onClick={() => handleDecrease(item)}
+                        aria-label="Kurangi Jumlah"
+                      >
+                        <IconMinus size={14} />
+                      </Button>
+                      
+                      {/* INPUT MANUAL QUANTITY */}
+                      <Form.Control
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        className="cart-stepper-input text-center fw-semibold mx-1 p-0 border-0"
+                        style={{ width: "40px", boxShadow: "none", backgroundColor: "transparent" }}
+                        value={item.jumlah}
+                        onChange={(e) => handleInputChange(item, e.target.value)}
+                        // Tambahkan onBlur untuk memastikan jika input kosong saat ditinggalkan, di-reset ke 1
+                        onBlur={(e) => {
+                            if(e.target.value === "" || Number(e.target.value) < 1) {
+                                handleInputChange(item, "1");
+                            }
+                        }}
+                      />
+
+                      <Button
+                        variant="outline-secondary"
+                        className="cart-stepper-btn d-flex align-items-center justify-content-center p-0"
+                        disabled={item.jumlah >= maxLimit}
+                        onClick={() => handleIncrease(item)}
+                        aria-label="Tambah Jumlah"
+                      >
+                        <IconPlus size={14} />
+                      </Button>
+                    </div>
+                    <span className="text-secondary small">
+                      Maks. {maxLimit} unit
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {items.length > 0 && (
+          <div className="cart-footer mt-3 pt-3 border-top">
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <span className="text-secondary">Total item</span>
+              <span className="fw-semibold">
+                {items.length} jenis &middot; {totalUnit} unit
+              </span>
+            </div>
+            <Button
+              variant="primary"
+              className="w-100 d-flex align-items-center justify-content-center gap-2"
+              disabled={items.length === 0}
+              onClick={onProceed}
+            >
+              Lanjutkan Peminjaman
+              <IconArrowRight size={18} />
+            </Button>
+          </div>
+        )}
+      </Offcanvas.Body>
+    </Offcanvas>
+  );
+};
+
+export default CartOffcanvas;

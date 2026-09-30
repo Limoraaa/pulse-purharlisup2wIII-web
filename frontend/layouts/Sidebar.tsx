@@ -9,7 +9,6 @@ import {
   Image,
   ListGroup,
   Nav,
-  NavItem,
 } from "react-bootstrap";
 import { IconLogout } from "@tabler/icons-react";
 
@@ -17,26 +16,81 @@ import { IconLogout } from "@tabler/icons-react";
 import { MenuItemType } from "types/menuTypes";
 
 //import custom components
-import { Avatar } from "components/common/Avatar";
 import CustomToggle, { CustomToggleLevel2 } from "./SidebarMenuToggle";
+
+//import custom hooks
+import useMenu from "hooks/useMenu";
+
+//import redux store
+import { useAppSelector } from "store/store";
 
 // import required routes
 import { getAssetPath } from "helper/assetPath";
 import { DashboardMenu } from "routes/DashboardRoute";
 
+// Import helper API Anda (Sesuaikan path-nya jika berbeda)
+import api from "lib/api"; 
+
 interface SidebarProps {
   hideLogo: boolean;
   containerId?: string;
 }
+
 const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
   const location = usePathname();
   const router = useRouter();
-  const [userName, setUserName] = useState("Staff");
+  const { handleCollapsed } = useMenu();
+  const collapsed = useAppSelector((state) => state.app.collapsed);
 
+  // Saat sidebar dalam keadaan menutup (collapsed), cukup arahkan kursor
+  // ke area sidebar maka otomatis terbuka. Menutup kembali hanya lewat
+  // tombol toggle (tidak otomatis saat kursor pergi).
+  const handleSidebarMouseEnter = () => {
+    if (collapsed === "collapsed") {
+      handleCollapsed("expanded");
+    }
+  };
+
+  // --- STATE UNTUK RBAC ---
+  const [userRole, setUserRole] = useState<string>("");
+  const [userPermissions, setUserPermissions] = useState<string[]>([]);
+
+  // Mengambil data hak akses user yang sedang login
   useEffect(() => {
-    const storedName = localStorage.getItem("userName");
-    if (storedName) setUserName(storedName);
+    const fetchUserAccess = async () => {
+      try {
+        const res: any = await api("/user");
+        const data = res?.data || res;
+        
+        if (data) {
+          // Ambil nama role pertama (misal: "Super Admin", "Staff")
+          const roles = data.roles?.map((r: any) => r.name) || [];
+          setUserRole(roles[0] || "");
+          
+          // Ambil seluruh array permissions (misal: ["view_dashboard", "view_users"])
+          setUserPermissions(data.all_permissions || []);
+        }
+      } catch (error) {
+        console.error("Gagal memuat hak akses profil", error);
+      }
+    };
+    
+    fetchUserAccess();
   }, []);
+
+  // --- KAMUS MAPPING MENU KE PERMISSION ---
+  // Mencocokkan nama judul di sidebar (kiri) dengan nama permission di database (kanan)
+    const permissionMap: Record<string, string> = {
+    "Dashboard": "view_dashboard",
+    "Inventaris": "view_inventaris",
+    "Transaksi": "view_transaksi",
+    "Riwayat": "view_riwayat",
+    "Pengajuan Order": "view_order",
+    "Laporan Kerusakan Alat": "view_kerusakan_alat",
+    "Dashboard Pemeliharaan": "view_dashboard_pemeliharaan",
+    "Pemeliharaan": "view_pemeliharaan_mesin",
+    "Manajemen User": "view_users",
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -46,12 +100,19 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
     router.push("/signin");
   };
 
-  //Generate Link
+  const isMenuActive = (menu: MenuItemType): boolean => {
+    if (menu.link && location === menu.link) return true;
+    if (menu.children) {
+      return menu.children.some((child) => isMenuActive(child as MenuItemType));
+    }
+    return false;
+  };
+
   const generateLink = (item: MenuItemType) => {
     return (
       <Link
         href={`${item.link}`}
-        className={`nav-link ${location === `/${item.link}` ? "active" : ""}`}>
+        className={`nav-link ${location === item.link ? "active" : ""}`}>
         <span className='text'>{item.name}</span>
         {item.badge && (
           <Badge
@@ -65,31 +126,60 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
   };
 
   return (
-    <div id={containerId}>
+    <div id={containerId} onMouseEnter={handleSidebarMouseEnter}>
       <div>
         {hideLogo || (
           <div className='brand-logo'>
             <Link
               href='/'
-              className='d-none d-md-flex align-items-center gap-2'>
+              className='d-none d-md-flex align-items-center pln-brand'>
               <Image
-                src={getAssetPath("/images/brand/logo/logo-icon.svg")}
-                alt=''
+                src={getAssetPath("/images/png/PLN-logo.png")}
+                alt='PT PLN (Persero)'
+                className='pln-logo'
               />
-              <span className='fw-bold fs-4 site-logo-text'>Dasher</span>
             </Link>
           </div>
         )}
 
-        {/* Sidebar Dashboard Menu */}
         <Accordion
           defaultActiveKey='0'
           as='ul'
           bsPrefix='navbar-nav flex-column'>
+          
+          {/* MAPPING MENU UTAMA */}
           {DashboardMenu.map(function (menu, index) {
-            if (menu.grouptitle) {
+            
+            // --- LOGIKA CEK HAK AKSES MENU ---
+            const menuTitle = menu.title || menu.name || "";
+            const requiredPerm = permissionMap[menuTitle];
+
+            // Jika menu ini terdaftar di kamus mapping, DAN user bukan Super Admin,
+            // DAN user tidak punya permission tersebut di databasenya, 
+            // maka menu ini DISEMBUNYIKAN (return null).
+            if (requiredPerm && userRole !== "Super Admin" && !userPermissions.includes(requiredPerm)) {
+              return null; 
+            }
+            // ----------------------------------
+
+                        if (menu.grouptitle) {
+              // Cek apakah ada minimal satu menu di bawah section ini yang
+              // masih terlihat untuk role user sekarang. Kalau semua anaknya
+              // disembunyikan (misal Staff tidak punya akses sama sekali ke
+              // domain ini), judul section-nya ikut disembunyikan juga.
+              const nextGroupOffset = DashboardMenu.slice(index + 1).findIndex((m) => m.grouptitle);
+              const sectionEnd = nextGroupOffset === -1 ? DashboardMenu.length : index + 1 + nextGroupOffset;
+              const sectionChildren = DashboardMenu.slice(index + 1, sectionEnd);
+
+              const hasVisibleChild = sectionChildren.some((childMenu) => {
+                const childTitle = childMenu.title || childMenu.name || "";
+                const childPerm = permissionMap[childTitle];
+                return !(childPerm && userRole !== "Super Admin" && !userPermissions.includes(childPerm));
+              });
+
+              if (!hasVisibleChild) return null;
+
               return (
-                // Group Title
                 <Nav.Item key={index} as='li'>
                   <div className='nav-heading'>{menu.title}</div>
                   <hr className='mx-5 nav-line mb-1' />
@@ -99,8 +189,10 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
               if (menu.children) {
                 return (
                   <Fragment key={index}>
-                    {/* Dropdown Parent Menu */}
-                    <CustomToggle eventKey={index.toString()} icon={menu.icon}>
+                    <CustomToggle
+                      eventKey={index.toString()}
+                      icon={menu.icon}
+                      isActive={isMenuActive(menu)}>
                       {menu.title}
                     </CustomToggle>
                     <Accordion.Collapse eventKey={index.toString()}>
@@ -115,7 +207,6 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
                                 as='li'
                                 bsPrefix='nav-item'
                                 key={menuLevel1Index}>
-                                {/* first level menu started  */}
                                 <Accordion
                                   defaultActiveKey='0'
                                   bsPrefix='navbar-nav flex-column'>
@@ -129,7 +220,6 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
                                       as='ul'
                                       bsPrefix=''
                                       className='nav flex-column'>
-                                      {/* second level menu started  */}
                                       {menuLevel1Item.children.map(function (
                                         menuLevel2Item,
                                         menuLevel2Index
@@ -140,7 +230,6 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
                                               as='li'
                                               bsPrefix='nav-item'
                                               key={menuLevel2Index}>
-                                              {/* second level accordion menu started  */}
                                               <Accordion
                                                 defaultActiveKey='0'
                                                 className='navbar-nav flex-column'>
@@ -155,7 +244,6 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
                                                     as='ul'
                                                     bsPrefix=''
                                                     className='nav flex-column'>
-                                                    {/* third level menu started  */}
                                                     {menuLevel2Item.children.map(
                                                       function (
                                                         menuLevel3Item,
@@ -163,35 +251,23 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
                                                       ) {
                                                         return (
                                                           <ListGroup.Item
-                                                            key={
-                                                              menuLevel3Index
-                                                            }
+                                                            key={menuLevel3Index}
                                                             as='li'
                                                             bsPrefix='nav-item'>
                                                             <Link
-                                                              href={
-                                                                menuLevel3Item.link?.toString() ||
-                                                                `/${menuLevel3Item.link}`
-                                                              }
+                                                              href={`${menuLevel3Item.link}`}
                                                               className={`nav-link ${
-                                                                location ===
-                                                                `/${menuLevel3Item.link}`
-                                                                  ? "active"
-                                                                  : ""
+                                                                location === menuLevel3Item.link ? "active" : ""
                                                               }`}>
-                                                              {
-                                                                menuLevel3Item.name
-                                                              }
+                                                              {menuLevel3Item.name}
                                                             </Link>
                                                           </ListGroup.Item>
                                                         );
                                                       }
                                                     )}
-                                                    {/* end of third level menu  */}
                                                   </ListGroup>
                                                 </Accordion.Collapse>
                                               </Accordion>
-                                              {/* end of second level accordion */}
                                             </ListGroup.Item>
                                           );
                                         } else {
@@ -205,11 +281,9 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
                                           );
                                         }
                                       })}
-                                      {/* end of second level menu  */}
                                     </ListGroup>
                                   </Accordion.Collapse>
                                 </Accordion>
-                                {/* end of first level menu */}
                               </ListGroup.Item>
                             );
                           } else {
@@ -218,24 +292,19 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
                                 as='li'
                                 bsPrefix='nav-item'
                                 key={menuLevel1Index}>
-                                {/* first level menu items */}
                                 <Link
-                                  href={`/${menuLevel1Item?.link}`}
+                                  href={`${menuLevel1Item?.link}`}
                                   className={`nav-link ${
-                                    location === `/${menuLevel1Item.link}`
-                                      ? "active"
-                                      : ""
+                                    location === menuLevel1Item.link ? "active" : ""
                                   }`}>
                                   {menuLevel1Item.name}
                                 </Link>
-                                {/* end of first level menu items */}
                               </ListGroup.Item>
                             );
                           }
                         })}
                       </ListGroup>
                     </Accordion.Collapse>
-                    {/* end of main menu / menu level 1 / root items */}
                   </Fragment>
                 );
               } else {
@@ -255,7 +324,7 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
             }
           })}
 
-          {/* Tombol Logout — di bawah menu Pengaturan */}
+          {/* Tombol Logout */}
           <Nav.Item as='li'>
             <button
               type='button'
@@ -268,22 +337,6 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
             </button>
           </Nav.Item>
 
-          <NavItem as='li' bsPrefix=''>
-            <div className='text-center py-5 upgrade-ui'>
-              <div>
-                <Avatar
-                  type='image'
-                  src={getAssetPath("/images/avatar/avatar-1.jpg")}
-                  size='md'
-                  className='rounded-circle'
-                />
-                <div className='my-3'>
-                  <h5 className='mb-1 fs-6'>{userName}</h5>
-                  <span className='text-secondary'>Staff Ruang Tools</span>
-                </div>
-              </div>
-            </div>
-          </NavItem>
         </Accordion>
       </div>
     </div>

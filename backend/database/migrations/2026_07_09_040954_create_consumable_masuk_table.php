@@ -11,11 +11,12 @@ return new class extends Migration
     {
         Schema::create('consumable_masuk', function (Blueprint $table) {
             $table->uuid('id')->default(DB::raw('gen_random_uuid()'))->primary();
-            $table->timestamp('tanggal'); // <- diubah dari date() jadi timestamp(), supaya jam ikut tersimpan
+            $table->timestamp('tanggal');
             $table->foreignUuid('consumable_id')->constrained('consumables');
             $table->integer('jumlah_masuk');
+            $table->string('satuan')->nullable(); // Kolom satuan ditambahkan di sini
             $table->text('keterangan')->nullable();
-            $table->foreignUuid('dicatat_oleh')->constrained('users');
+            $table->string('dicatat_oleh');
             $table->timestamps();
         });
     }

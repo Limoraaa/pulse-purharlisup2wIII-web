@@ -14,7 +14,7 @@ class Tool extends Model
     public $incrementing = false;
     protected $keyType = 'string';
 
-    protected $fillable = [
+        protected $fillable = [
         'kode_barang',
         'nama_barang',
         'merk',
@@ -23,6 +23,8 @@ class Tool extends Model
         'ukuran',
         'stok',
         'keadaan',
+        'kategori',
+        'is_active',
     ];
 
     protected static function boot()
@@ -45,7 +47,10 @@ class Tool extends Model
     {
         return $this->hasMany(LaporanKerusakanTools::class, 'tool_id');
     }
-
+    public function masuk(): HasMany
+    {
+        return $this->hasMany(ToolMasuk::class);
+    }
     /**
      * Hitung berapa unit alat ini sedang dipinjam (belum kembali).
      * Pemakaian: $tool->sedangDipinjam()
@@ -62,5 +67,9 @@ class Tool extends Model
     public function tersedia(): int
     {
         return $this->stok - $this->sedangDipinjam();
+    }
+     public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
     }
 }

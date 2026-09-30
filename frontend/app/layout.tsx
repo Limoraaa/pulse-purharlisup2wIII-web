@@ -12,7 +12,7 @@ import "swiper/css/pagination";
 import "swiper/css/scrollbar";
 
 // import main theme scss
-import "styles/theme.scss";
+import '../styles/theme.scss';
 
 const publicSans = Public_Sans({
   variable: "--font-public-sans",
@@ -32,7 +32,10 @@ export default function RootLayout({
   return (
     <ClientWrapper>
       <html lang="en" className="expanded">
-        <body className={`${publicSans.variable}`}>{children}</body>
+        <body className={`${publicSans.variable}`}>
+          {/* UnreturnedAlertModal DIHAPUS DARI SINI */}
+          {children}
+        </body>
       </html>
     </ClientWrapper>
   );

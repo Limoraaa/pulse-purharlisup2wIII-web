@@ -11,9 +11,16 @@ use Illuminate\Support\Facades\Validator;
 class PemintaController extends Controller
 {
     // GET /api/peminta
-    public function index()
+    // GET /api/peminta?aktif=1  -> cuma yang aktif (dipakai buat dropdown pilih peminjam)
+    public function index(Request $request)
     {
-        return response()->json(Peminta::orderBy('nama')->get());
+        $query = Peminta::orderBy('nama');
+
+        if ($request->has('aktif')) {
+            $query->where('aktif', $request->boolean('aktif'));
+        }
+
+        return response()->json($query->get());
     }
 
     // GET /api/peminta/{id}
@@ -32,18 +39,25 @@ class PemintaController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'nama' => 'required|string|max:255',
-            'kategori' => 'required|string|max:255',
+            'id'     => 'nullable|string|unique:peminta,id',
+            'nama'   => 'required|string|max:255',
+            'divisi' => 'required|string|max:255',
+            // --- VALIDASI ROLE BARU (INVENTORY MAN) ---
+            'role'   => 'nullable|string|in:user,inventory man', 
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $peminta = Peminta::create([
-            'id' => (string) Str::uuid(),
-            ...$validator->validated(),
-        ]);
+        $data = $validator->validated();
+        
+        // Default role jika tidak diisi dari frontend adalah 'user'
+        if (empty($data['role'])) {
+            $data['role'] = 'user';
+        }
+
+        $peminta = Peminta::create($data);
 
         return response()->json($peminta, 201);
     }
@@ -58,8 +72,11 @@ class PemintaController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'nama' => 'sometimes|required|string|max:255',
-            'kategori' => 'sometimes|required|string|max:255',
+            'id'     => 'nullable|string|unique:peminta,id,' . $id,
+            'nama'   => 'sometimes|required|string|max:255',
+            'divisi' => 'sometimes|required|string|max:255',
+            // --- VALIDASI ROLE BARU (INVENTORY MAN) ---
+            'role'   => 'sometimes|required|string|in:user,inventory man',
         ]);
 
         if ($validator->fails()) {
@@ -80,8 +97,28 @@ class PemintaController extends Controller
             return response()->json(['message' => 'Peminta tidak ditemukan'], 404);
         }
 
-        $peminta->delete();
+        $peminta->update(['aktif' => false]);
 
-        return response()->json(['message' => 'Peminta berhasil dihapus']);
+        return response()->json([
+            'message' => 'Peminta berhasil dinonaktifkan. Riwayat transaksi lama tetap aman.',
+            'data' => $peminta,
+        ]);
+    }
+
+    // PATCH /api/peminta/{id}/aktifkan
+    public function aktifkan(string $id)
+    {
+        $peminta = Peminta::find($id);
+
+        if (! $peminta) {
+            return response()->json(['message' => 'Peminta tidak ditemukan'], 404);
+        }
+
+        $peminta->update(['aktif' => true]);
+
+        return response()->json([
+            'message' => 'Peminta berhasil diaktifkan kembali.',
+            'data' => $peminta,
+        ]);
     }
 }

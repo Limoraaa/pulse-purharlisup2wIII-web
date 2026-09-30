@@ -10,22 +10,42 @@ class Peminta extends Model
 {
     use HasFactory;
 
-    protected $table = 'peminta'; // ← tambahkan baris ini
+    protected $table = 'peminta';
 
     public $incrementing = false;
     protected $keyType = 'string';
 
     protected $fillable = [
+        'id', // <-- Kita masukkan 'id' ke sini agar bisa diisi nomor RFID dari Frontend
         'nama',
-        'kategori',
+        'divisi',
+        'aktif',
+        'role', // <--- Tambahkan kolom role agar bisa disimpan ke database
     ];
+
+    protected $casts = [
+        'aktif' => 'boolean',
+    ];
+
     protected static function boot()
     {
         parent::boot();
 
         static::creating(function ($model) {
+            // Jika id kosong (pekerja tidak didaftarkan pakai kartu RFID),
+            // maka Laravel otomatis membuatkan UUID acak.
             if (empty($model->id)) {
                 $model->id = (string) \Illuminate\Support\Str::uuid();
+            }
+            
+            // default aktif kalau tidak dikirim
+            if (! isset($model->aktif)) {
+                $model->aktif = true;
+            }
+
+            // default role menjadi 'user' jika saat dibuat datanya kosong
+            if (! isset($model->role)) {
+                $model->role = 'user';
             }
         });
     }
@@ -38,5 +58,10 @@ class Peminta extends Model
     public function consumableKeluar(): HasMany
     {
         return $this->hasMany(ConsumableKeluar::class);
+    }
+    
+    public function consumableMasuk(): HasMany
+    {
+        return $this->hasMany(ConsumableMasuk::class, 'dicatat_oleh', 'id');
     }
 }
