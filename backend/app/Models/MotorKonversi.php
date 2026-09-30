@@ -12,12 +12,16 @@ class MotorKonversi extends Model
     protected $table = 'motor_konversi';
 
     protected $fillable = [
+        'kode_motor',
         'nomor_polisi',
         'nama_motor',
         'merek',
         'warna',
         'lokasi_penempatan',
         'status',
+        'foto_katalog',
+        'gambar_url',   // <-- Tambahkan ini
+        'part_mapping', // <-- Tambahkan ini
     ];
 
     public function logPemeliharaan()

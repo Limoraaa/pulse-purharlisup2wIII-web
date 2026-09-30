@@ -33,6 +33,9 @@ async function apiFetch<T = unknown>(
       },
     });
   } catch (networkError) {
+    // Tambahkan baris ini agar penyebab asli (CORS, Typo URL, dll) terlihat di Console Browser
+    console.error("API Fetch Error Detail:", networkError, "URL yang dituju:", fullUrl);
+    
     throw new Error("Gagal terhubung ke server. Periksa koneksi internet Anda.");
   }
 
