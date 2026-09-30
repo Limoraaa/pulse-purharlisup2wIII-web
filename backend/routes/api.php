@@ -250,10 +250,13 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::middleware('permission:view_pemeliharaan_motor_konversi')->group(function () {
-        // Disamakan polanya dengan pemeliharaan mesin (/log-pemeliharaan)
         Route::get('/log-pemeliharaan-motor', [LogPemeliharaanMotorKonversiController::class, 'index']);
+        
+        // PINDAHKAN INI KE ATAS (Sebelum {id})
+        // Pastikan posisinya tetap di ATAS rute /{id}
+        Route::get('/log-pemeliharaan-motor/by-motor/{motor_id}', [LogPemeliharaanMotorKonversiController::class, 'getByMotor']);
+        
         Route::get('/log-pemeliharaan-motor/{id}', [LogPemeliharaanMotorKonversiController::class, 'show']);
-        Route::get('/log-pemeliharaan-motor/motor/{motor_id}', [LogPemeliharaanMotorKonversiController::class, 'getByMotor']);
     });
 
     Route::middleware('permission:process_pemeliharaan_motor_konversi')->group(function () {
@@ -303,6 +306,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:manage_inventaris|manage_pemeliharaan_mesin')->group(function () {
     Route::put('/mesin-produksi/{id}/part-mapping', [MesinProduksiController::class, 'savePartMapping']);
     Route::post('/mesin-produksi/{id}/upload-gambar', [MesinProduksiController::class, 'uploadGambar']);
+    });
+
+    // ==========================================
+    // ROUTE PART MAPPING MOTOR KONVERSI
+    // ==========================================
+    Route::middleware('permission:view_inventaris|view_pemeliharaan_motor_konversi')->group(function () {
+        Route::get('/motor-konversi/{id}/part-mapping', [MotorKonversiController::class, 'getPartMapping']);
+    });
+
+    Route::middleware('permission:manage_inventaris|manage_pemeliharaan_motor_konversi')->group(function () {
+        Route::put('/motor-konversi/{id}/part-mapping', [MotorKonversiController::class, 'savePartMapping']);
+        Route::post('/motor-konversi/{id}/upload-gambar', [MotorKonversiController::class, 'uploadGambar']);
     });
 
 });
