@@ -2107,6 +2107,10 @@ html.collapsed #miniSidebar,
   background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
 }
 
+[data-bs-theme="dark"] .auth-wrapper {
+  background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+}
+
 // Animasi fade-in ringan untuk kedua panel
 @keyframes loginFadeLeft {
   from {
@@ -2412,6 +2416,50 @@ html.collapsed #miniSidebar,
       flex-basis: 100%;
       max-width: 100%;
       padding: 2.5rem 1.75rem;
+    }
+  }
+
+  // ---- Dark mode: samakan dengan tema gelap website ----
+  // Judul/label/ikon otomatis terang via gray vars tema; di sini hanya
+  // warna hex hardcoded yang perlu versi gelapnya.
+  [data-bs-theme="dark"] & {
+    .login-card {
+      background-color: #1e293b; // slate-800
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+    }
+
+    // Logo berlatar putih: beri wadah putih agar terlihat disengaja
+    .login-logo {
+      background-color: #fff;
+      padding: 0.5rem 1rem;
+      border-radius: 12px;
+    }
+
+    .login-subtitle {
+      color: #94a3b8; // slate-400
+    }
+
+    .login-input {
+      border-color: #334155; // slate-700
+      background-color: #0f172a; // slate-900
+
+      &:hover {
+        border-color: #475569; // slate-600
+      }
+    }
+
+    .form-check {
+      .form-check-input {
+        border-color: #475569;
+      }
+    }
+
+    .login-forgot {
+      color: #94a3b8;
+
+      &:hover {
+        color: var(--#{$prefix}primary);
+      }
     }
   }
 }
