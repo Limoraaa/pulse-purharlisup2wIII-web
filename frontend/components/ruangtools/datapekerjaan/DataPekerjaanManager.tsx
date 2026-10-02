@@ -7,10 +7,12 @@ import { getColumns, Pekerjaan } from './ColumnDefination';
 import PekerjaanFormModal from './PekerjaanFormModal';
 import DeleteConfirmModal from './DeleteConfirmModal';
 import apiFetch from "lib/api";
+import { usePermission } from "hooks/usePermissions";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
 export default function DataPekerjaanManager() {
+  const canManage = usePermission("manage_master_data");
   const [data, setData] = useState<Pekerjaan[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -107,11 +109,12 @@ export default function DataPekerjaanManager() {
     }
   };
 
-  const columns = useMemo(() => getColumns({
+ const columns = useMemo(() => getColumns({
+    canManage,
     onEdit: handleEdit,
     onToggleStatus: handleToggleStatus,
     onDelete: handleDeleteClick
-  }), [data]);
+  }), [data, canManage]);
 
   return (
     <div className="container-fluid p-4">
@@ -120,9 +123,11 @@ export default function DataPekerjaanManager() {
           <h2 className="mb-1 fw-bold text-dark">Data Pekerjaan</h2>
           <p className="text-muted mb-0">Mengelola daftar pekerjaan yang dapat dipilih saat peminjaman alat.</p>
         </div>
-        <Button variant="primary" className="d-flex align-items-center gap-2" onClick={handleAdd}>
-          <IconPlus size={18} /> Tambah Data
-        </Button>
+        {canManage && (
+          <Button variant="primary" className="d-flex align-items-center gap-2" onClick={handleAdd}>
+            <IconPlus size={18} /> Tambah Data
+          </Button>
+        )}
       </div>
 
       <Card className="border-0 shadow-sm">
@@ -154,7 +159,7 @@ export default function DataPekerjaanManager() {
                   <tr>
                     <th className="fw-semibold py-3 border-0">NAMA PEKERJAAN</th>
                     <th className="fw-semibold py-3 border-0">STATUS</th>
-                    <th className="fw-semibold py-3 border-0">AKSI</th>
+                    {canManage && <th className="fw-semibold py-3 border-0">AKSI</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -176,7 +181,7 @@ export default function DataPekerjaanManager() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={3} className="text-center py-4 text-muted">Belum ada data pekerjaan.</td>
+                      <td colSpan={canManage ? 3 : 2} className="text-center py-4 text-muted">Belum ada data pekerjaan.</td>
                     </tr>
                   )}
                 </tbody>

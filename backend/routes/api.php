@@ -22,6 +22,8 @@ use App\Http\Controllers\Api\RolePermissionController;
 use App\Http\Controllers\Api\MesinProduksiController;
 use App\Http\Controllers\Api\LogPemeliharaanMesinController;
 use App\Http\Controllers\Api\LogAktivitasMesinController;
+use App\Http\Controllers\Api\MotorKonversiController;
+use App\Http\Controllers\Api\LogPemeliharaanMotorKonversiController;
 
 // ==========================================
 // 1. ROUTE PUBLIK (Tanpa Auth)
@@ -32,19 +34,6 @@ Route::post('/peminjaman/scan', [PeminjamanController::class, 'scan']);
 Route::get('/peminjaman/antrean', [PeminjamanController::class, 'antrean']);
 Route::patch('/peminjaman/cart/{id}', [PeminjamanController::class, 'updateCartItem']);
 Route::delete('/peminjaman/cart/{id}', [PeminjamanController::class, 'removeCartItem']);
-
-Route::get('/order-consumable', [OrderConsumableController::class, 'index']);
-Route::post('/order-consumable', [OrderConsumableController::class, 'store']);
-Route::put('/order-consumable/{id}', [OrderConsumableController::class, 'update']);
-Route::put('/order-consumable/{id}/status', [OrderConsumableController::class, 'updateStatus']);
-Route::delete('/order-consumable/{id}', [OrderConsumableController::class, 'destroy']);
-
-// --- ORDER TOOLS ---
-Route::get('/order-tools', [OrderToolController::class, 'index']);
-Route::post('/order-tools', [OrderToolController::class, 'store']);
-Route::put('/order-tools/{id}/status', [OrderToolController::class, 'updateStatus']);
-Route::delete('/order-tools/{id}', [OrderToolController::class, 'destroy']);
-Route::put('/order-tools/{id}', [OrderToolController::class, 'update']);
 
 Route::post('/consumable-keluar/scan', [ConsumableKeluarController::class, 'scan']);
 Route::get('/consumable-keluar/antrean', [ConsumableKeluarController::class, 'antrean']);
@@ -119,13 +108,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('mesin-produksi', MesinProduksiController::class)->only(['index', 'show']);
     });
 
+    Route::middleware('permission:view_inventaris|view_pemeliharaan_motor_konversi')->group(function () {
+        Route::apiResource('motor-konversi', MotorKonversiController::class)->only(['index', 'show']);
+    });
+
     Route::middleware('permission:manage_inventaris')->group(function () {
         Route::apiResource('tools', ToolController::class)->except(['index', 'show']);
         Route::patch('/tools/{tool}/kurangi-stok', [ToolController::class, 'kurangiStok']);
         Route::apiResource('consumable', ConsumableController::class)->except(['index', 'show']);
     });
 
-    Route::middleware('permission:manage_inventaris|manage_transaksi')->group(function () {
+    Route::middleware('permission:manage_transaksi')->group(function () {
         Route::apiResource('tools-masuk', ToolMasukController::class)->except(['index', 'show']);
         Route::apiResource('consumable-masuk', ConsumableMasukController::class)->except(['index', 'show']);
     });
@@ -133,6 +126,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:manage_inventaris|manage_pemeliharaan_mesin')->group(function () {
         Route::patch('/mesin-produksi/{id}/toggle-status', [MesinProduksiController::class, 'toggleStatus']);
         Route::apiResource('mesin-produksi', MesinProduksiController::class)->except(['index', 'show']);
+    });
+
+    Route::middleware('permission:manage_inventaris|manage_pemeliharaan_motor_konversi')->group(function () {
+        Route::patch('/motor-konversi/{id}/toggle-status', [MotorKonversiController::class, 'toggleStatus']);
+        Route::apiResource('motor-konversi', MotorKonversiController::class)->except(['index', 'show']);
     });
 
     Route::middleware('permission:manage_master_data')->group(function () {
@@ -181,8 +179,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::middleware('permission:process_order|manage_order')->group(function () {
         Route::put('/order-consumable/{id}/status', [OrderConsumableController::class, 'updateStatus']);
+        Route::put('/order-consumable/{id}', [OrderConsumableController::class, 'update']);
+        Route::delete('/order-consumable/{id}', [OrderConsumableController::class, 'destroy']);
         Route::put('/order-tools/{id}/status', [OrderToolController::class, 'updateStatus']);
         Route::put('/order-tools/{id}', [OrderToolController::class, 'update']);
+        Route::delete('/order-tools/{id}', [OrderToolController::class, 'destroy']);
     });
 
 
@@ -215,11 +216,12 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::middleware('permission:view_pemeliharaan_mesin')->group(function () {
-        // --- RUTE BARU: GET SEMUA LOG PEMELIHARAAN UNTUK EXPORT ---
         Route::get('/log-pemeliharaan', [LogPemeliharaanMesinController::class, 'index']);
-        
+        Route::get('/log-pemeliharaan/{id}', [LogPemeliharaanMesinController::class, 'show']); // Ditambahkan rute detail show
         Route::get('/log-pemeliharaan/mesin/{mesin_id}', [LogPemeliharaanMesinController::class, 'getByMesin']);
+        
         Route::get('/log-aktivitas', [LogAktivitasMesinController::class, 'index']);
+        Route::get('/log-aktivitas/{id}', [LogAktivitasMesinController::class, 'show']); // Ditambahkan rute detail show
         Route::get('/log-aktivitas/mesin/{mesin_id}', [LogAktivitasMesinController::class, 'getByMesin']);
     });
 
@@ -227,7 +229,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/log-pemeliharaan', [LogPemeliharaanMesinController::class, 'store']);
         Route::put('/log-pemeliharaan/{id}', [LogPemeliharaanMesinController::class, 'update']);
         Route::delete('/log-pemeliharaan/{id}', [LogPemeliharaanMesinController::class, 'destroy']);
-        
+
         Route::post('/log-aktivitas', [LogAktivitasMesinController::class, 'store']);
         Route::put('/log-aktivitas/{id}', [LogAktivitasMesinController::class, 'update']);
         Route::delete('/log-aktivitas/{id}', [LogAktivitasMesinController::class, 'destroy']);
@@ -235,8 +237,33 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
     // ==========================================
+    // DOMAIN: PEMELIHARAAN MOTOR KONVERSI
+    // ==========================================
+    Route::middleware('permission:view_dashboard_pemeliharaan_motor_konversi')->group(function () {
+        Route::get('/pemeliharaan-motor-konversi/dashboard-stats', [LogPemeliharaanMotorKonversiController::class, 'getDashboardStats']);
+    });
+
+    Route::middleware('permission:view_pemeliharaan_motor_konversi')->group(function () {
+        // Disamakan polanya dengan pemeliharaan mesin (/log-pemeliharaan)
+        Route::get('/log-pemeliharaan-motor', [LogPemeliharaanMotorKonversiController::class, 'index']);
+        Route::get('/log-pemeliharaan-motor/{id}', [LogPemeliharaanMotorKonversiController::class, 'show']);
+        Route::get('/log-pemeliharaan-motor/motor/{motor_id}', [LogPemeliharaanMotorKonversiController::class, 'getByMotor']);
+    });
+
+    Route::middleware('permission:process_pemeliharaan_motor_konversi')->group(function () {
+        Route::post('/log-pemeliharaan-motor', [LogPemeliharaanMotorKonversiController::class, 'store']);
+        Route::put('/log-pemeliharaan-motor/{id}', [LogPemeliharaanMotorKonversiController::class, 'update']);
+        Route::delete('/log-pemeliharaan-motor/{id}', [LogPemeliharaanMotorKonversiController::class, 'destroy']);
+    });
+
+
+    // ==========================================
     // DOMAIN: ADMINISTRASI
     // ==========================================
+    Route::middleware('permission:view_users|manage_users')->group(function () {
+        Route::get('/roles', [RolePermissionController::class, 'index']);
+    });
+
     Route::middleware('permission:view_users')->group(function () {
         Route::apiResource('users', UserController::class)->only(['index', 'show']);
     });
@@ -245,7 +272,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('users', UserController::class)->except(['index', 'show']);
         Route::patch('/users/{id}/reset-password', [UserController::class, 'resetPassword']);
         Route::patch('/users/{id}/aktifkan', [UserController::class, 'activate']);
-        Route::get('/roles', [RolePermissionController::class, 'index']);
     });
 
     Route::middleware('role:Super Admin')->group(function () {
@@ -253,6 +279,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/permissions/matrix', [RolePermissionController::class, 'updateMatrix']);
         Route::post('/roles', [RolePermissionController::class, 'store']);
         Route::patch('/roles/{id}/color', [RolePermissionController::class, 'updateColor']);
+        Route::patch('/roles/{id}/name', [RolePermissionController::class, 'updateName']);
         Route::delete('/roles/{id}', [RolePermissionController::class, 'destroy']);
         Route::get('/roles/{id}/permissions', [RolePermissionController::class, 'getRolePermissions']);
         Route::put('/roles/{id}/permissions', [RolePermissionController::class, 'updateRolePermissions']);

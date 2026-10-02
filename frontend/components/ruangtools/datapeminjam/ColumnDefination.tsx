@@ -7,6 +7,7 @@ import { PeminjamType } from "types/DataToolsTypes";
 import ActionMenu from "components/common/ActionMenu";
 
 interface ColumnHandlers {
+  canManage?: boolean;
   onEdit: (item: PeminjamType) => void;
   onDelete: (item: PeminjamType) => void; // nonaktifkan
   onAktifkan: (item: PeminjamType) => void;
@@ -16,12 +17,14 @@ interface ColumnHandlers {
 }
 
 export const getPeminjamColumns = ({
+  canManage = false,
   onEdit,
   onDelete,
   onAktifkan,
   onGantiRole,
   togglingId,
-}: ColumnHandlers): ColumnDef<PeminjamType>[] => [
+}: ColumnHandlers): ColumnDef<PeminjamType>[] => {
+  const baseColumns: ColumnDef<PeminjamType>[] = [
   {
     accessorKey: "nama",
     header: "Nama Pegawai",
@@ -121,4 +124,7 @@ export const getPeminjamColumns = ({
       );
     },
   },
-];
+  ];
+
+  return canManage ? baseColumns : baseColumns.filter((col) => col.id !== "aksi");
+};
