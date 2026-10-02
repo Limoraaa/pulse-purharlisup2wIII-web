@@ -111,8 +111,12 @@ const DataUserManager = () => {
 
   useEffect(() => {
     loadRoleColors();
-    window.addEventListener("roles-updated", loadRoleColors);
-    return () => window.removeEventListener("roles-updated", loadRoleColors);
+    const handleRolesUpdated = () => {
+      loadRoleColors();
+      loadUsers();
+    };
+    window.addEventListener("roles-updated", handleRolesUpdated);
+    return () => window.removeEventListener("roles-updated", handleRolesUpdated);
   }, []);
 
   const showSuccess = (msg: string) => {

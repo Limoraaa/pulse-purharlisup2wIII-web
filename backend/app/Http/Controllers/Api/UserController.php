@@ -17,27 +17,36 @@ class UserController extends Controller
 
     public function index()
     {
-        return response()->json(
-            User::select(self::SAFE_COLUMNS)
-                ->orderBy('full_name')
-                ->get()
-        );
+        $users = User::select(self::SAFE_COLUMNS)
+            ->with('roles:id,name,color')
+            ->orderBy('full_name')
+            ->get();
+
+        $users->each(function ($user) {
+            $user->role = $user->roles->first()->name ?? $user->role;
+        });
+
+        return response()->json($users);
     }
 
     public function show(string $id)
     {
-        $user = User::select(self::SAFE_COLUMNS)->find($id);
+        $user = User::select(self::SAFE_COLUMNS)->with('roles:id,name,color')->find($id);
 
         if (! $user) {
             return response()->json(['message' => 'User tidak ditemukan'], 404);
         }
+
+        $user->role = $user->roles->first()->name ?? $user->role;
 
         return response()->json($user);
     }
 
     public function profile(Request $request)
     {
-        $user = $request->user();
+        $user = $request->user()->load('roles:id,name,color');
+        $user->role = $user->roles->first()->name ?? $user->role;
+
         return response()->json(collect($user)->only(self::SAFE_COLUMNS));
     }
 
