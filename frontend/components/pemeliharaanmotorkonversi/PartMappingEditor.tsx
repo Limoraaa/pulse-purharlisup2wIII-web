@@ -4,12 +4,11 @@ import { Button, Form, Table, Alert, Badge, Spinner, Modal } from "react-bootstr
 import { IconMapPin, IconTrash } from "@tabler/icons-react";
 import api from "lib/api";
 import type { MachinePart, PartMappingPayload } from "./PartMappingType";
-import { IK_MESIN_BUBUT_TEMPLATES } from "./ikchecklisttemplates"; // Tetap menggunakan template yang ada atau sesuaikan dengan template motor jika sudah dibuat
 
 interface Props {
   show: boolean;
   onHide: () => void;
-  mesinId: number | string; // Tetap menggunakan prop mesinId agar sesuai dengan komponen parent
+  mesinId: number | string;
   mesinNama: string;
   onSaved?: () => void;
 }
@@ -32,7 +31,6 @@ export default function PartMappingEditorMotor({ show, onHide, mesinId, mesinNam
   const [newItemText, setNewItemText] = useState("");
   const [formError, setFormError] = useState("");
 
-  // Muat mapping yang sudah ada untuk motor ini
   useEffect(() => {
     if (!show) return;
     let cancelled = false;
@@ -42,7 +40,6 @@ export default function PartMappingEditorMotor({ show, onHide, mesinId, mesinNam
       setError(null);
       try {
         const token = localStorage.getItem("token");
-        // PERBAIKAN: Ubah endpoint dari /mesin-produksi menjadi /motor-konversi
         const res = await api<PartMappingPayload>(`/motor-konversi/${mesinId}/part-mapping`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -74,14 +71,13 @@ export default function PartMappingEditorMotor({ show, onHide, mesinId, mesinNam
       const token = localStorage.getItem("token");
       const formData = new FormData();
       formData.append("gambar", file);
-      // PERBAIKAN: Ubah endpoint upload ke /motor-konversi
       const res = await api<{ url: string }>(`/motor-konversi/${mesinId}/upload-gambar`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
       setGambarUrl(res.url);
-      setParts([]); // koordinat lama tidak relevan untuk gambar baru
+      setParts([]); 
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal mengunggah gambar motor");
     } finally {
@@ -95,14 +91,6 @@ export default function PartMappingEditorMotor({ show, onHide, mesinId, mesinNam
     const yPercent = ((e.clientY - rect.top) / rect.height) * 100;
     setPendingPoint({ x: xPercent, y: yPercent });
     setFormError("");
-  };
-
-  const handleTemplateSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const idx = Number(e.target.value);
-    if (Number.isNaN(idx) || idx < 0) return;
-    const template = IK_MESIN_BUBUT_TEMPLATES[idx];
-    setPartName(template.partName);
-    setChecklistItems([...template.checklistItems]);
   };
 
   const handleAddChecklistItem = () => {
@@ -155,7 +143,6 @@ export default function PartMappingEditorMotor({ show, onHide, mesinId, mesinNam
     setError(null);
     try {
       const token = localStorage.getItem("token");
-      // PERBAIKAN: Ubah endpoint PUT ke /motor-konversi
       await api(`/motor-konversi/${mesinId}/part-mapping`, {
         method: "PUT",
         headers: {
@@ -264,18 +251,6 @@ export default function PartMappingEditorMotor({ show, onHide, mesinId, mesinNam
                   <div className="border rounded p-3 mt-3">
                     <h6 className="fs-6">Detail part baru</h6>
                     {formError && <Alert variant="danger" className="py-2 small">{formError}</Alert>}
-
-                    <Form.Group className="mb-2">
-                      <Form.Label className="small">Pilih dari checklist IK (opsional)</Form.Label>
-                      <Form.Select size="sm" defaultValue={-1} onChange={handleTemplateSelect}>
-                        <option value={-1}>-- pilih template --</option>
-                        {IK_MESIN_BUBUT_TEMPLATES.map((t, idx) => (
-                          <option key={t.partName} value={idx}>
-                            {t.partName}
-                          </option>
-                        ))}
-                      </Form.Select>
-                    </Form.Group>
 
                     <Form.Group className="mb-2">
                       <Form.Label className="small">Nomor part</Form.Label>
