@@ -4,7 +4,6 @@ import { Button, Form, Table, Alert, Badge, Spinner, Modal } from "react-bootstr
 import { IconMapPin, IconTrash } from "@tabler/icons-react";
 import api from "lib/api";
 import type { MachinePart, PartMappingPayload } from "./PartMappingType";
-import { IK_MESIN_BUBUT_TEMPLATES } from "./ikchecklisttemplates";
 
 interface Props {
   show: boolean;
@@ -96,14 +95,6 @@ export default function PartMappingEditor({ show, onHide, mesinId, mesinNama, on
     const yPercent = ((e.clientY - rect.top) / rect.height) * 100;
     setPendingPoint({ x: xPercent, y: yPercent });
     setFormError("");
-  };
-
-  const handleTemplateSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const idx = Number(e.target.value);
-    if (Number.isNaN(idx) || idx < 0) return;
-    const template = IK_MESIN_BUBUT_TEMPLATES[idx];
-    setPartName(template.partName);
-    setChecklistItems([...template.checklistItems]);
   };
 
   const handleAddChecklistItem = () => {
@@ -265,18 +256,6 @@ export default function PartMappingEditor({ show, onHide, mesinId, mesinNama, on
                   <div className="border rounded p-3 mt-3">
                     <h6 className="fs-6">Detail part baru</h6>
                     {formError && <Alert variant="danger" className="py-2 small">{formError}</Alert>}
-
-                    <Form.Group className="mb-2">
-                      <Form.Label className="small">Pilih dari checklist IK (opsional)</Form.Label>
-                      <Form.Select size="sm" defaultValue={-1} onChange={handleTemplateSelect}>
-                        <option value={-1}>-- pilih template --</option>
-                        {IK_MESIN_BUBUT_TEMPLATES.map((t, idx) => (
-                          <option key={t.partName} value={idx}>
-                            {t.partName}
-                          </option>
-                        ))}
-                      </Form.Select>
-                    </Form.Group>
 
                     <Form.Group className="mb-2">
                       <Form.Label className="small">Nomor part</Form.Label>
