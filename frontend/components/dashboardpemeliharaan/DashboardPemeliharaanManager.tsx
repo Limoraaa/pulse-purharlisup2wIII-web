@@ -7,7 +7,6 @@ import {
   IconServer,
   IconAlertTriangle,
   IconChecklist,
-  IconActivity,
   IconPlus,
   IconTrendingUp,
 } from "@tabler/icons-react";
@@ -229,14 +228,14 @@ const DashboardPemeliharaanManager = () => {
         {/* Kolom Kanan: Shortcut Akses Cepat Modul */}
         <Col lg={5}>
           <Card className="card-lg h-100 shadow-sm border-0">
-            <CardBody className="d-flex flex-column justify-content-between">
+            <CardBody>
               <h5 className="mb-3">Akses Modul Cepat</h5>
               <div className="space-y-3">
                 {canViewMesin ? (
                   <Link 
                     href="/pemeliharaan/data-mesin" 
                     style={{ textDecoration: "none" }} 
-                    className="d-block mb-3"
+                    className="d-block"
                   >
                     <div className="p-3 border rounded-3 bg-light hover-bg-white transition d-flex align-items-center gap-3">
                       <div className="p-2 bg-primary text-white rounded-2">
@@ -249,7 +248,7 @@ const DashboardPemeliharaanManager = () => {
                     </div>
                   </Link>
                 ) : (
-                  <div className="d-block mb-3">
+                   <div className="d-block">
                     <div className="p-3 border rounded-3 bg-light d-flex align-items-center gap-3" style={{ opacity: 0.6 }}>
                       <div className="p-2 bg-secondary text-white rounded-2">
                         <IconTool size={20} />
@@ -262,35 +261,6 @@ const DashboardPemeliharaanManager = () => {
                   </div>
                 )}
 
-                {canViewMesin ? (
-                  <Link 
-                    href="/pemeliharaan/motor-konversi" 
-                    style={{ textDecoration: "none" }} 
-                    className="d-block"
-                  >
-                    <div className="p-3 border rounded-3 bg-light hover-bg-white transition d-flex align-items-center gap-3">
-                      <div className="p-2 bg-success text-white rounded-2">
-                        <IconActivity size={20} />
-                      </div>
-                      <div>
-                        <h6 className="mb-0 text-dark fw-semibold">Pemeliharaan Motor Konversi</h6>
-                        <small className="text-secondary">Monitoring unit konversi khusus</small>
-                      </div>
-                    </div>
-                  </Link>
-                ) : (
-                  <div className="d-block">
-                    <div className="p-3 border rounded-3 bg-light d-flex align-items-center gap-3" style={{ opacity: 0.6 }}>
-                      <div className="p-2 bg-secondary text-white rounded-2">
-                        <IconActivity size={20} />
-                      </div>
-                      <div>
-                        <h6 className="mb-0 text-dark fw-semibold">Pemeliharaan Motor Konversi</h6>
-                        <small className="text-secondary">Tidak ada akses</small>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             </CardBody>
           </Card>

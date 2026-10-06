@@ -86,7 +86,7 @@ class LogPemeliharaanMotorKonversiController extends Controller
                         'nama_motor' => $motor ? $motor->nama_motor : 'Motor #' . $item->motor_konversi_id,
                         'deskripsi' => $item->uraian_pemeliharaan,
                         'tanggal' => $item->waktu_pelaksana,
-                        'status' => 'Selesai / Tercatat',
+                        'status' => $item->status,
                     ];
                 });
 
@@ -178,7 +178,7 @@ class LogPemeliharaanMotorKonversiController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Log pemeliharaan berhasil dicatat', 
+                'message' => 'Log pemeliharaan berhasil dicatat',
                 'data' => $log
             ], 201);
         } catch (\Exception $e) {
@@ -223,7 +223,7 @@ class LogPemeliharaanMotorKonversiController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Log pemeliharaan berhasil diperbarui', 
+                'message' => 'Log pemeliharaan berhasil diperbarui',
                 'data' => $log
             ], 200);
         } catch (\Exception $e) {

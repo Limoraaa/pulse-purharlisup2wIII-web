@@ -10,9 +10,8 @@ import {
   IconAlertTriangle, 
   IconMapPin,
   IconCalendarEvent,
-  IconCash,
   IconClipboardList,
-  IconMapPin as IconMap,
+  IconMapPin as IconMap,  
   IconClipboardCheck,
   IconCircleCheck,
   IconDownload,
@@ -340,15 +339,7 @@ export default function DetailMesinManager({ mesin, canManage = false, onBack }:
               </p>
 
               <Row className="g-3 pt-3 border-top">
-                <Col xs={12} sm={6}>
-                  <div className="p-3 bg-body-tertiary rounded border h-100 text-center text-md-start">
-                    <div className="d-flex align-items-center justify-content-center justify-content-md-start text-muted small mb-1" style={{ fontSize: '0.75rem' }}>
-                      <IconCash size={16} className="me-2 text-primary" /> Total Biaya Pemeliharaan
-                    </div>
-                    <h6 className="fw-bold text-body mb-0 fs-5 mt-1">Rp 2.450.000</h6>
-                  </div>
-                </Col>
-                <Col xs={12} sm={6}>
+                <Col xs={12}>
                   <div className="p-3 bg-body-tertiary rounded border h-100 text-center text-md-start">
                     <div className="d-flex align-items-center justify-content-center justify-content-md-start text-muted small mb-1" style={{ fontSize: '0.75rem' }}>
                       <IconCalendarEvent size={16} className="me-2 text-success" /> Servis / Pemeliharaan Berikutnya

@@ -9,7 +9,6 @@ import {
   IconAlertTriangle, 
   IconMapPin,
   IconCalendarEvent,
-  IconCash,
   IconClipboardList,
   IconMapPin as IconMap,
   IconClipboardCheck,
@@ -186,15 +185,7 @@ export default function DetailMotorKonversiManager({ motor, canManage = false, o
               </p>
 
               <Row className="g-3 pt-3 border-top">
-                <Col xs={12} sm={6}>
-                  <div className="p-3 bg-body-tertiary rounded border h-100 text-center text-md-start">
-                    <div className="d-flex align-items-center justify-content-center justify-content-md-start text-muted small mb-1" style={{ fontSize: '0.75rem' }}>
-                      <IconCash size={16} className="me-2 text-primary" /> Total Biaya Pemeliharaan
-                    </div>
-                    <h6 className="fw-bold text-body mb-0 fs-5 mt-1">Rp 0</h6>
-                  </div>
-                </Col>
-                <Col xs={12} sm={6}>
+                <Col xs={12}>
                   <div className="p-3 bg-body-tertiary rounded border h-100 text-center text-md-start">
                     <div className="d-flex align-items-center justify-content-center justify-content-md-start text-muted small mb-1" style={{ fontSize: '0.75rem' }}>
                       <IconCalendarEvent size={16} className="me-2 text-success" /> Servis / Pemeliharaan Berikutnya
@@ -283,20 +274,19 @@ export default function DetailMotorKonversiManager({ motor, canManage = false, o
                       <th style={{ width: "12%" }}>Teknisi</th>
                       <th style={{ width: "12%" }}>Part Diperiksa</th>
                       <th style={{ width: "10%" }}>Status</th>
-                      <th className="text-start" style={{ width: "15%" }}>Keterangan</th>
-                      {canManage && <th style={{ width: "9%" }}>Aksi</th>}
+                      <th className="text-start" style={{ width: "24%" }}>Keterangan</th>
                     </tr>
                   </thead>
                   <tbody>
                     {loadingLogs ? (
                       <tr>
-                        <td colSpan={canManage ? 8 : 7} className="text-center py-4 text-muted">
+                        <td colSpan={7} className="text-center py-4 text-muted">
                           <Spinner animation="border" size="sm" className="me-2" /> Memuat riwayat log pemeliharaan...
                         </td>
                       </tr>
                     ) : logs.length === 0 ? (
                       <tr>
-                        <td colSpan={canManage ? 8 : 7} className="text-center py-5 text-secondary">
+                        <td colSpan={7} className="text-center py-5 text-secondary">
                           <IconHistory size={32} className="mb-2 opacity-50" /><br/>
                           Belum ada catatan log pemeliharaan untuk motor ini.
                         </td>
@@ -331,23 +321,6 @@ export default function DetailMotorKonversiManager({ motor, canManage = false, o
                                 {log.keterangan || "-"}
                               </div>
                             </td>
-                            {/* --- TAMBAHAN TOMBOL AKSI --- */}
-                            {canManage && (
-                              <td className="text-center text-nowrap">
-                                <Button 
-                                  variant="outline-primary" 
-                                  size="sm" 
-                                  className="px-2 py-1"
-                                  style={{ fontSize: '0.75rem' }}
-                                  onClick={() => {
-                                    // Nanti Anda bisa memanggil fungsi modal detail di sini
-                                    console.log("Lihat Detail Log", log.id);
-                                  }}
-                                >
-                                  Detail
-                                </Button>
-                              </td>
-                            )}
                           </tr>
                         );
                       })
