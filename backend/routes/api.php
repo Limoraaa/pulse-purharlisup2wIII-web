@@ -217,12 +217,18 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::middleware('permission:view_pemeliharaan_mesin')->group(function () {
         Route::get('/log-pemeliharaan', [LogPemeliharaanMesinController::class, 'index']);
-        Route::get('/log-pemeliharaan/{id}', [LogPemeliharaanMesinController::class, 'show']); // Ditambahkan rute detail show
+        
+        // Pindahkan rute spesifik "mesin/{mesin_id}" ke atas SEBELUM rute dinamis "{id}"
         Route::get('/log-pemeliharaan/mesin/{mesin_id}', [LogPemeliharaanMesinController::class, 'getByMesin']);
         
+        Route::get('/log-pemeliharaan/{id}', [LogPemeliharaanMesinController::class, 'show']);
+        
         Route::get('/log-aktivitas', [LogAktivitasMesinController::class, 'index']);
-        Route::get('/log-aktivitas/{id}', [LogAktivitasMesinController::class, 'show']); // Ditambahkan rute detail show
+        
+        // Lakukan hal yang sama untuk log aktivitas jika polanya mirip
         Route::get('/log-aktivitas/mesin/{mesin_id}', [LogAktivitasMesinController::class, 'getByMesin']);
+        
+        Route::get('/log-aktivitas/{id}', [LogAktivitasMesinController::class, 'show']);
     });
 
     Route::middleware('permission:process_pemeliharaan_mesin')->group(function () {
@@ -244,10 +250,13 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::middleware('permission:view_pemeliharaan_motor_konversi')->group(function () {
-        // Disamakan polanya dengan pemeliharaan mesin (/log-pemeliharaan)
         Route::get('/log-pemeliharaan-motor', [LogPemeliharaanMotorKonversiController::class, 'index']);
+        
+        // PINDAHKAN INI KE ATAS (Sebelum {id})
+        // Pastikan posisinya tetap di ATAS rute /{id}
+        Route::get('/log-pemeliharaan-motor/by-motor/{motor_id}', [LogPemeliharaanMotorKonversiController::class, 'getByMotor']);
+        
         Route::get('/log-pemeliharaan-motor/{id}', [LogPemeliharaanMotorKonversiController::class, 'show']);
-        Route::get('/log-pemeliharaan-motor/motor/{motor_id}', [LogPemeliharaanMotorKonversiController::class, 'getByMotor']);
     });
 
     Route::middleware('permission:process_pemeliharaan_motor_konversi')->group(function () {
@@ -283,6 +292,32 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/roles/{id}', [RolePermissionController::class, 'destroy']);
         Route::get('/roles/{id}/permissions', [RolePermissionController::class, 'getRolePermissions']);
         Route::put('/roles/{id}/permissions', [RolePermissionController::class, 'updateRolePermissions']);
+    });
+
+    Route::middleware('permission:manage_inventaris|manage_pemeliharaan_mesin')->group(function () {
+       Route::patch('/mesin-produksi/{id}/toggle-status', [MesinProduksiController::class, 'toggleStatus']);
+       Route::apiResource('mesin-produksi', MesinProduksiController::class)->except(['index', 'show']);
+   });
+
+   Route::middleware('permission:view_inventaris|view_pemeliharaan_mesin')->group(function () {
+    Route::get('/mesin-produksi/{id}/part-mapping', [MesinProduksiController::class, 'getPartMapping']);
+    });
+
+    Route::middleware('permission:manage_inventaris|manage_pemeliharaan_mesin')->group(function () {
+    Route::put('/mesin-produksi/{id}/part-mapping', [MesinProduksiController::class, 'savePartMapping']);
+    Route::post('/mesin-produksi/{id}/upload-gambar', [MesinProduksiController::class, 'uploadGambar']);
+    });
+
+    // ==========================================
+    // ROUTE PART MAPPING MOTOR KONVERSI
+    // ==========================================
+    Route::middleware('permission:view_inventaris|view_pemeliharaan_motor_konversi')->group(function () {
+        Route::get('/motor-konversi/{id}/part-mapping', [MotorKonversiController::class, 'getPartMapping']);
+    });
+
+    Route::middleware('permission:manage_inventaris|manage_pemeliharaan_motor_konversi')->group(function () {
+        Route::put('/motor-konversi/{id}/part-mapping', [MotorKonversiController::class, 'savePartMapping']);
+        Route::post('/motor-konversi/{id}/upload-gambar', [MotorKonversiController::class, 'uploadGambar']);
     });
 
 });
