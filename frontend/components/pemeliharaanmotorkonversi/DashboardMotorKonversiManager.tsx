@@ -30,8 +30,7 @@ const formatWaktu = (iso: string) => {
     timeZone: "Asia/Jakarta",
     day: "2-digit",
     month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
+    year: "numeric",
   });
 };
 
@@ -244,8 +243,13 @@ const DashboardMotorKonversiManager = () => {
                               {item.tanggal ? formatWaktu(item.tanggal) : "-"}
                             </div>
                           </div>
-                          <Badge bg="success" className="flex-shrink-0 px-2 py-1 text-uppercase" style={{ fontSize: "0.7rem" }}>
-                            {item.status || "Selesai / Tercatat"}
+                          <Badge
+                            bg={item.status === "rusak" ? "danger" : item.status === "perlu_perhatian" ? "warning" : "success"}
+                            text={item.status === "perlu_perhatian" ? "dark" : undefined}
+                            className="flex-shrink-0 px-2 py-1 text-uppercase"
+                            style={{ fontSize: "0.7rem" }}
+                          >
+                            {item.status === "rusak" ? "Rusak" : item.status === "perlu_perhatian" ? "Perlu perhatian" : item.status === "baik" ? "Baik" : "Selesai / Tercatat"}
                           </Badge>
                         </div>
                       </li>
