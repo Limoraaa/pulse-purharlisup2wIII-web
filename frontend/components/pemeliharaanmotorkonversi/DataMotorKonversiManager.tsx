@@ -61,7 +61,7 @@ const EXPORT_COLUMNS_ALL_LOGS: ExportColumn[] = [
 ];
 
 const DataMotorKonversiManager = () => {
-  const canManageMotor = usePermission(["manage_inventaris", "manage_pemeliharaan_motor_konversi"]);
+  const canManageMotor = usePermission("manage_pemeliharaan_motor_konversi");
   const [selectedMotor, setSelectedMotor] = useState<MotorKonversiItemType | null>(null);
   const [motorList, setMotorList] = useState<MotorKonversiItemType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -341,7 +341,7 @@ const DataMotorKonversiManager = () => {
       </Card>
 
       {/* Modal Tambah Motor */}
-      {formModalOpen && (
+      {canManageMotor && formModalOpen && (
         <MotorKonversiFormModal
           show={formModalOpen}
           onHide={() => setFormModalOpen(false)}
