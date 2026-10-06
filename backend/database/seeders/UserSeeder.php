@@ -10,6 +10,15 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
+        // Hapus user seeder lama dulu supaya tidak kena duplicate username
+        User::whereIn('username', [
+            'staff',
+            'superadmin',
+            'admin',
+            'lapangan',
+            'maintenance',
+        ])->delete();
+
         // 1. Buat user Staff Tools
         $staff = User::create([
             'full_name' => 'Staff Tools',
