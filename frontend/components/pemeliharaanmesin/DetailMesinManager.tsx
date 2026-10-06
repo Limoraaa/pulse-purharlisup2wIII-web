@@ -21,7 +21,6 @@ import {
   IconTrash
 } from '@tabler/icons-react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
 import api from 'lib/api';
 import { exportToExcel, exportToPDF, ExportColumn } from 'components/ruangtools/riwayat/common/exportUtils';
 
@@ -92,7 +91,6 @@ const STATUS_BADGE = {
 } as const;
 
 export default function DetailMesinManager({ mesin, onBack }: MesinProps) {
-  const router = useRouter();
 
   const mesinId = mesin?.id;
   const mesinNama = mesin?.nama_mesin || mesin?.nama || 'Tanpa Nama';
