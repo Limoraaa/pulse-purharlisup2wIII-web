@@ -36,6 +36,7 @@ interface MotorProps {
     lokasi_ruang?: string;
     foto_katalog?: string | null;
   };
+  canManage?: boolean;
   onBack: () => void;
 }
 
@@ -64,7 +65,7 @@ const STATUS_BADGE = {
   rusak: { label: "Rusak", bg: "danger" },
 } as const;
 
-export default function DetailMotorKonversiManager({ motor, onBack }: MotorProps) {
+export default function DetailMotorKonversiManager({ motor, canManage = false, onBack }: MotorProps) {
   const motorId = motor?.id;
   const motorNama = motor?.nama_motor || motor?.nama || 'Tanpa Nama';
   const motorKode = motor?.kode_motor || motor?.kode || '-';
@@ -259,12 +260,16 @@ export default function DetailMotorKonversiManager({ motor, onBack }: MotorProps
                     </Dropdown.Menu>
                   </Dropdown>
                   
-                  <Button variant="outline-primary" size="sm" onClick={() => setShowMappingEditor(true)} className="d-flex align-items-center gap-1 shadow-sm" style={{ fontSize: '0.75rem' }}>
-                    <IconMap size={14} /> Peta Komponen
-                  </Button>
-                  <Button variant="primary" size="sm" onClick={() => setShowChecklistModal(true)} className="d-flex align-items-center gap-1 shadow-sm" style={{ fontSize: '0.75rem' }}>
-                    <IconClipboardCheck size={14} /> Checklist Visual
-                  </Button>
+                  {canManage && (
+                    <Button variant="outline-primary" size="sm" onClick={() => setShowMappingEditor(true)} className="d-flex align-items-center gap-1 shadow-sm" style={{ fontSize: '0.75rem' }}>
+                      <IconMap size={14} /> Peta Komponen
+                    </Button>
+                  )}
+                  {canManage && (
+                    <Button variant="primary" size="sm" onClick={() => setShowChecklistModal(true)} className="d-flex align-items-center gap-1 shadow-sm" style={{ fontSize: '0.75rem' }}>
+                      <IconClipboardCheck size={14} /> Checklist Visual
+                    </Button>
+                  )}
                 </div>
               </div>
 
@@ -279,19 +284,19 @@ export default function DetailMotorKonversiManager({ motor, onBack }: MotorProps
                       <th style={{ width: "12%" }}>Part Diperiksa</th>
                       <th style={{ width: "10%" }}>Status</th>
                       <th className="text-start" style={{ width: "15%" }}>Keterangan</th>
-                      <th style={{ width: "9%" }}>Aksi</th>
+                      {canManage && <th style={{ width: "9%" }}>Aksi</th>}
                     </tr>
                   </thead>
                   <tbody>
                     {loadingLogs ? (
                       <tr>
-                        <td colSpan={8} className="text-center py-4 text-muted">
+                        <td colSpan={canManage ? 8 : 7} className="text-center py-4 text-muted">
                           <Spinner animation="border" size="sm" className="me-2" /> Memuat riwayat log pemeliharaan...
                         </td>
                       </tr>
                     ) : logs.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="text-center py-5 text-secondary">
+                        <td colSpan={canManage ? 8 : 7} className="text-center py-5 text-secondary">
                           <IconHistory size={32} className="mb-2 opacity-50" /><br/>
                           Belum ada catatan log pemeliharaan untuk motor ini.
                         </td>
@@ -327,20 +332,22 @@ export default function DetailMotorKonversiManager({ motor, onBack }: MotorProps
                               </div>
                             </td>
                             {/* --- TAMBAHAN TOMBOL AKSI --- */}
-                            <td className="text-center text-nowrap">
-                              <Button 
-                                variant="outline-primary" 
-                                size="sm" 
-                                className="px-2 py-1"
-                                style={{ fontSize: '0.75rem' }}
-                                onClick={() => {
-                                  // Nanti Anda bisa memanggil fungsi modal detail di sini
-                                  console.log("Lihat Detail Log", log.id);
-                                }}
-                              >
-                                Detail
-                              </Button>
-                            </td>
+                            {canManage && (
+                              <td className="text-center text-nowrap">
+                                <Button 
+                                  variant="outline-primary" 
+                                  size="sm" 
+                                  className="px-2 py-1"
+                                  style={{ fontSize: '0.75rem' }}
+                                  onClick={() => {
+                                    // Nanti Anda bisa memanggil fungsi modal detail di sini
+                                    console.log("Lihat Detail Log", log.id);
+                                  }}
+                                >
+                                  Detail
+                                </Button>
+                              </td>
+                            )}
                           </tr>
                         );
                       })
