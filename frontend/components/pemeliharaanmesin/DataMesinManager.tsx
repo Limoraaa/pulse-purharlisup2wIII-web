@@ -39,7 +39,7 @@ interface MesinItemType {
 }
 
 const DataMesinManager = () => {
-  const canManageMesin = usePermission(["manage_inventaris", "manage_pemeliharaan_mesin"]);
+  const canManageMesin = usePermission("manage_pemeliharaan_mesin");
   // State untuk menyimpan objek mesin yang sedang dipilih untuk dibuka detailnya
   const [selectedMesin, setSelectedMesin] = useState<MesinItemType | null>(null);
   const [mesinList, setMesinList] = useState<MesinItemType[]>([]);
@@ -273,7 +273,7 @@ const DataMesinManager = () => {
       </Card>
 
       {/* Modal Tambah Mesin */}
-      {formModalOpen && (
+      {canManageMesin && formModalOpen && (
         <MesinFormModal
           show={formModalOpen}
           onHide={() => setFormModalOpen(false)}
