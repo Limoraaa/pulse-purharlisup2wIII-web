@@ -11,12 +11,17 @@ class LogPemeliharaanMotorKonversi extends Model
 
     protected $table = 'log_pemeliharaan_motor_konversi';
 
+    // Kolom-kolom yang diizinkan untuk diisi secara massal
     protected $fillable = [
         'motor_konversi_id',
         'uraian_pemeliharaan',
         'waktu_pelaksana',
         'keterangan',
-        'paraf'
+        'paraf',
+        // Tambahkan 3 field di bawah ini untuk mengizinkan data Checklist Visual masuk:
+        'status',
+        'jumlah_part_diperiksa',
+        'jumlah_part_total'
     ];
 
     public function motorKonversi()
