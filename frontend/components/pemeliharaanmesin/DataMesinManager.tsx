@@ -27,6 +27,7 @@ import DasherBreadcrumb from "components/common/DasherBreadcrumb";
 import DetailMesinManager from "./DetailMesinManager";
 import MesinFormModal from "./MesinFormModal";
 import api from "lib/api";
+import { usePermission } from "hooks/usePermissions";
 
 interface MesinItemType {
   id: number | string;
@@ -38,6 +39,7 @@ interface MesinItemType {
 }
 
 const DataMesinManager = () => {
+  const canManageMesin = usePermission(["manage_inventaris", "manage_pemeliharaan_mesin"]);
   // State untuk menyimpan objek mesin yang sedang dipilih untuk dibuka detailnya
   const [selectedMesin, setSelectedMesin] = useState<MesinItemType | null>(null);
   const [mesinList, setMesinList] = useState<MesinItemType[]>([]);
@@ -97,6 +99,7 @@ const DataMesinManager = () => {
           status: selectedMesin.status,
           foto_katalog: selectedMesin.foto_katalog
         }} 
+        canManage={canManageMesin}
         onBack={() => setSelectedMesin(null)} 
       />
     );
@@ -122,9 +125,11 @@ const DataMesinManager = () => {
               <DasherBreadcrumb />
             </div>
             <div>
-              <Button variant="primary" size="sm" className="d-flex align-items-center gap-1 py-2 px-3" onClick={() => setFormModalOpen(true)}>
-                <IconPlus size={16} /> Tambah Mesin Baru
-              </Button>
+              {canManageMesin && (
+                <Button variant="primary" size="sm" className="d-flex align-items-center gap-1 py-2 px-3" onClick={() => setFormModalOpen(true)}>
+                  <IconPlus size={16} /> Tambah Mesin Baru
+                </Button>
+              )}
             </div>
           </Flex>
         </Col>
@@ -162,9 +167,11 @@ const DataMesinManager = () => {
               <div className="datatools-empty-icon mb-2 text-muted"><IconBox size={40} /></div>
               <h6 className="mb-1">Belum ada data mesin produksi</h6>
               <p className="text-secondary small mb-3">Mulai dengan menambahkan data mesin pertama.</p>
-              <Button variant="primary" size="sm" className="d-inline-flex align-items-center gap-1" onClick={() => setFormModalOpen(true)}>
-                <IconPlus size={16} /> Tambah Mesin Baru
-              </Button>
+              {canManageMesin && (
+                <Button variant="primary" size="sm" className="d-inline-flex align-items-center gap-1" onClick={() => setFormModalOpen(true)}>
+                  <IconPlus size={16} /> Tambah Mesin Baru
+                </Button>
+              )}
             </div>
           ) : filteredMesin.length === 0 ? (
             <div className="datatools-empty text-center py-5 bg-white rounded border">

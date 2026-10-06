@@ -40,6 +40,7 @@ interface MesinProps {
     lokasi_ruang?: string;
     foto_katalog?: string | null;
   };
+  canManage?: boolean;
   onBack: () => void;
 }
 
@@ -90,7 +91,7 @@ const STATUS_BADGE = {
   rusak: { label: "Rusak", bg: "danger" },
 } as const;
 
-export default function DetailMesinManager({ mesin, onBack }: MesinProps) {
+export default function DetailMesinManager({ mesin, canManage = false, onBack }: MesinProps) {
 
   const mesinId = mesin?.id;
   const mesinNama = mesin?.nama_mesin || mesin?.nama || 'Tanpa Nama';
@@ -415,12 +416,16 @@ export default function DetailMesinManager({ mesin, onBack }: MesinProps) {
                     </Dropdown.Menu>
                   </Dropdown>
                   
-                  <Button variant="outline-primary" size="sm" onClick={() => setShowMappingEditor(true)} className="d-flex align-items-center gap-1 shadow-sm" style={{ fontSize: '0.75rem' }}>
-                    <IconMap size={14} /> Peta Part
-                  </Button>
-                  <Button variant="primary" size="sm" onClick={() => setShowChecklistModal(true)} className="d-flex align-items-center gap-1 shadow-sm" style={{ fontSize: '0.75rem' }}>
-                    <IconClipboardCheck size={14} /> Checklist Visual
-                  </Button>
+                  {canManage && (
+                    <Button variant="outline-primary" size="sm" onClick={() => setShowMappingEditor(true)} className="d-flex align-items-center gap-1 shadow-sm" style={{ fontSize: '0.75rem' }}>
+                      <IconMap size={14} /> Peta Part
+                    </Button>
+                  )}
+                  {canManage && (
+                    <Button variant="primary" size="sm" onClick={() => setShowChecklistModal(true)} className="d-flex align-items-center gap-1 shadow-sm" style={{ fontSize: '0.75rem' }}>
+                      <IconClipboardCheck size={14} /> Checklist Visual
+                    </Button>
+                  )}
                 </div>
               </div>
 
@@ -509,15 +514,17 @@ export default function DetailMesinManager({ mesin, onBack }: MesinProps) {
                     </Dropdown.Menu>
                   </Dropdown>
 
-                  <Button 
-                    variant="primary" 
-                    size="sm" 
-                    className="d-flex align-items-center gap-1 shadow-sm" 
-                    style={{ fontSize: '0.75rem' }} 
-                    onClick={handleOpenAddAktivitas}
-                  >
-                    <IconPlus size={14} /> Tambah Aktivitas
-                  </Button>
+                  {canManage && (
+                    <Button 
+                      variant="primary" 
+                      size="sm" 
+                      className="d-flex align-items-center gap-1 shadow-sm" 
+                      style={{ fontSize: '0.75rem' }} 
+                      onClick={handleOpenAddAktivitas}
+                    >
+                      <IconPlus size={14} /> Tambah Aktivitas
+                    </Button>
+                  )}
                 </div>
               </div>
               
@@ -532,7 +539,7 @@ export default function DetailMesinManager({ mesin, onBack }: MesinProps) {
                       <th colSpan={2}>Waktu</th>
                       <th rowSpan={2} style={{ verticalAlign: "middle" }}>Jumlah</th>
                       <th rowSpan={2} style={{ verticalAlign: "middle" }}>Pemeriksa</th>
-                      <th rowSpan={2} style={{ width: "80px", verticalAlign: "middle" }}>Aksi</th>
+                      {canManage && <th rowSpan={2} style={{ width: "80px", verticalAlign: "middle" }}>Aksi</th>}
                     </tr>
                     <tr>
                       <th>Mulai</th>
@@ -542,13 +549,13 @@ export default function DetailMesinManager({ mesin, onBack }: MesinProps) {
                   <tbody>
                     {loadingAktivitas ? (
                       <tr>
-                        <td colSpan={9} className="text-center py-4 text-muted">
+                        <td colSpan={canManage ? 9 : 8} className="text-center py-4 text-muted">
                           <Spinner animation="border" size="sm" className="me-2" /> Memuat log aktivitas...
                         </td>
                       </tr>
                     ) : logAktivitas.length === 0 ? (
                       <tr>
-                        <td colSpan={9} className="text-center py-5 text-secondary">
+                        <td colSpan={canManage ? 9 : 8} className="text-center py-5 text-secondary">
                           <IconActivity size={32} className="mb-2 opacity-50" /><br/>
                           Belum ada catatan log aktivitas harian untuk mesin ini.
                         </td>
@@ -568,28 +575,30 @@ export default function DetailMesinManager({ mesin, onBack }: MesinProps) {
                           <td className="text-center">{item.waktu_selesai?.slice(0, 5) || "-"}</td>
                           <td className="text-center fw-bold">{item.jumlah}</td>
                           <td className="text-center">{item.pemeriksa}</td>
-                          <td className="text-center">
-                            <div className="d-flex justify-content-center gap-1">
-                              <Button 
-                                variant="outline-warning" 
-                                size="sm" 
-                                className="p-1"
-                                title="Edit"
-                                onClick={() => handleOpenEditAktivitas(item)}
-                              >
-                                <IconEdit size={12} />
-                              </Button>
-                              <Button 
-                                variant="outline-danger" 
-                                size="sm" 
-                                className="p-1"
-                                title="Hapus"
-                                onClick={() => handleDeleteAktivitas(item.id)}
-                              >
-                                <IconTrash size={12} />
-                              </Button>
-                            </div>
-                          </td>
+                          {canManage && (
+                            <td className="text-center">
+                              <div className="d-flex justify-content-center gap-1">
+                                <Button 
+                                  variant="outline-warning" 
+                                  size="sm" 
+                                  className="p-1"
+                                  title="Edit"
+                                  onClick={() => handleOpenEditAktivitas(item)}
+                                >
+                                  <IconEdit size={12} />
+                                </Button>
+                                <Button 
+                                  variant="outline-danger" 
+                                  size="sm" 
+                                  className="p-1"
+                                  title="Hapus"
+                                  onClick={() => handleDeleteAktivitas(item.id)}
+                                >
+                                  <IconTrash size={12} />
+                                </Button>
+                              </div>
+                            </td>
+                          )}
                         </tr>
                       ))
                     )}

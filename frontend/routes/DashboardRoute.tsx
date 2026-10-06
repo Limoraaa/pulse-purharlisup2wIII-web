@@ -123,7 +123,7 @@ export const DashboardMenu: MenuItemType[] = [
     icon: <IconReportAnalytics size={20} strokeWidth={1.5} />,
   },
   // ==========================================
-  // MENU PEMELIHARAAN (Hanya Mesin & Motor Konversi)
+  // MENU PEMELIHARAAN MESIN
   // ==========================================
   {
     id: uuid(),
@@ -141,6 +141,20 @@ export const DashboardMenu: MenuItemType[] = [
     title: "Pemeliharaan Mesin",
     link: "/pemeliharaan/data-mesin",
     icon: <IconTools size={20} strokeWidth={1.5} />,
+  },
+  // ==========================================
+  // MENU PEMELIHARAAN MOTOR KONVERSI
+  // ==========================================
+  {
+    id: uuid(),
+    title: "Pemeliharaan Motor Konversi",
+    grouptitle: true,
+  },
+  {
+    id: uuid(),
+    title: "Dashboard Pemeliharaan",
+    link: "/pemeliharaan/dashboard-motor-konversi",
+    icon: <IconLayoutDashboard size={20} strokeWidth={1.5} />,
   },
   {
     id: uuid(),

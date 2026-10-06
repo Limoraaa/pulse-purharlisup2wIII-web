@@ -28,6 +28,7 @@ import DetailMotorKonversiManager from "./DetailMotorKonversiManager";
 import { MotorKonversiFormModal } from "./MotorKonversiFormModal";
 import api from "lib/api";
 import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
+import { usePermission } from "hooks/usePermissions";
 
 interface MotorKonversiItemType {
   id: number | string;
@@ -60,6 +61,7 @@ const EXPORT_COLUMNS_ALL_LOGS: ExportColumn[] = [
 ];
 
 const DataMotorKonversiManager = () => {
+  const canManageMotor = usePermission(["manage_inventaris", "manage_pemeliharaan_motor_konversi"]);
   const [selectedMotor, setSelectedMotor] = useState<MotorKonversiItemType | null>(null);
   const [motorList, setMotorList] = useState<MotorKonversiItemType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -151,6 +153,7 @@ const DataMotorKonversiManager = () => {
           status: selectedMotor.status,
           foto_katalog: selectedMotor.foto_katalog || null,
         }} 
+        canManage={canManageMotor}
         onBack={() => setSelectedMotor(null)} 
       />
     );
@@ -176,9 +179,11 @@ const DataMotorKonversiManager = () => {
               <DasherBreadcrumb />
             </div>
             <div>
-              <Button variant="primary" size="sm" className="d-flex align-items-center gap-1 py-2 px-3" onClick={() => setFormModalOpen(true)}>
-                <IconPlus size={16} /> Tambah Motor Baru
-              </Button>
+              {canManageMotor && (
+                <Button variant="primary" size="sm" className="d-flex align-items-center gap-1 py-2 px-3" onClick={() => setFormModalOpen(true)}>
+                  <IconPlus size={16} /> Tambah Motor Baru
+                </Button>
+              )}
             </div>
           </Flex>
         </Col>
@@ -236,9 +241,11 @@ const DataMotorKonversiManager = () => {
               <div className="datatools-empty-icon mb-2 text-muted"><IconBox size={40} /></div>
               <h6 className="mb-1">Belum ada data motor konversi</h6>
               <p className="text-secondary small mb-3">Mulai dengan menambahkan data motor konversi pertama.</p>
-              <Button variant="primary" size="sm" className="d-inline-flex align-items-center gap-1" onClick={() => setFormModalOpen(true)}>
-                <IconPlus size={16} /> Tambah Motor Baru
-              </Button>
+              {canManageMotor && (
+                <Button variant="primary" size="sm" className="d-inline-flex align-items-center gap-1" onClick={() => setFormModalOpen(true)}>
+                  <IconPlus size={16} /> Tambah Motor Baru
+                </Button>
+              )}
             </div>
           ) : filteredMotor.length === 0 ? (
             <div className="datatools-empty text-center py-5 bg-body rounded border">
