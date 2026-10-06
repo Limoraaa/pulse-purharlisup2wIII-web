@@ -24,6 +24,7 @@ use App\Http\Controllers\Api\LogPemeliharaanMesinController;
 use App\Http\Controllers\Api\LogAktivitasMesinController;
 use App\Http\Controllers\Api\MotorKonversiController;
 use App\Http\Controllers\Api\LogPemeliharaanMotorKonversiController;
+use App\Http\Controllers\Api\RencanaPemeliharaanMesinController;
 
 // ==========================================
 // 1. ROUTE PUBLIK (Tanpa Auth)
@@ -239,6 +240,19 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/log-aktivitas', [LogAktivitasMesinController::class, 'store']);
         Route::put('/log-aktivitas/{id}', [LogAktivitasMesinController::class, 'update']);
         Route::delete('/log-aktivitas/{id}', [LogAktivitasMesinController::class, 'destroy']);
+    });
+
+    // ------------------------------------------
+    // RENCANA PEMELIHARAAN MESIN (jadwal mingguan per tahun)
+    // ------------------------------------------
+    Route::middleware('permission:view_pemeliharaan_mesin')->group(function () {
+        Route::get('/rencana-pemeliharaan', [RencanaPemeliharaanMesinController::class, 'index']);
+    });
+ 
+    Route::middleware('permission:manage_pemeliharaan_mesin')->group(function () {
+        Route::post('/rencana-pemeliharaan', [RencanaPemeliharaanMesinController::class, 'store']);
+        Route::put('/rencana-pemeliharaan/{id}', [RencanaPemeliharaanMesinController::class, 'update']);
+        Route::delete('/rencana-pemeliharaan/{id}', [RencanaPemeliharaanMesinController::class, 'destroy']);
     });
 
 

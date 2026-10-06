@@ -9,6 +9,7 @@ import {
   IconTools,
   IconReportAnalytics,
   IconUsers,
+  IconCalendarEvent,
 } from "@tabler/icons-react";
 
 //import custom type
@@ -137,22 +138,28 @@ export const DashboardMenu: MenuItemType[] = [
   },
   {
     id: uuid(),
-    title: "Pemeliharaan",
+    title: "Rencana Pemeliharaan",
+    link: "/pemeliharaan/rencana",
+    icon: <IconCalendarEvent size={20} strokeWidth={1.5} />,
+  },
+  {
+    id: uuid(),
+    title: "Data Pemeliharaan",
     icon: <IconTools size={20} strokeWidth={1.5} />,
     children: [
       {
         id: uuid(),
-        name: "Pemeliharaan Mesin",
+        name: "Mesin Produksi",
         link: "/pemeliharaan/data-mesin",
       },
       {
         id: uuid(),
-        name: "Pemeliharaan Motor Konversi",
+        name: "Motor Konversi",
         link: "/pemeliharaan/data-motor-konversi",
       },
     ],
   },
-    {
+  {
     id: uuid(),
     title: "Administrasi",
     grouptitle: true,
