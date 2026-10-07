@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
-import { Row, Col, Card, CardBody, Button, Badge, Table, Spinner, Alert, Dropdown } from 'react-bootstrap';
+import { Row, Col, Card, CardBody, Button, Badge, Table, Spinner, Alert } from 'react-bootstrap';
 import { 
   IconArrowLeft, 
   IconBox, 
@@ -12,12 +12,10 @@ import {
   IconClipboardList,
   IconMapPin as IconMap,
   IconClipboardCheck,
-  IconCircleCheck,
-  IconDownload
+  IconCircleCheck
 } from '@tabler/icons-react';
 import Image from 'next/image';
 import api from 'lib/api';
-import { exportToExcel, exportToPDF, ExportColumn } from 'components/ruangtools/riwayat/common/exportUtils';
 
 // Import Modal pendukung (Pastikan Anda mengadaptasi file ini juga nantinya untuk Motor)
 import PartMappingEditorMotor from './PartMappingEditor'; // Sesuaikan path jika namanya diubah
@@ -49,14 +47,6 @@ interface LogItemType {
   jumlah_part_diperiksa?: number | null;
   jumlah_part_total?: number | null;
 }
-
-const EXPORT_COLUMNS_LOG: ExportColumn[] = [
-  { header: "No", key: "no" },
-  { header: "Uraian Pemeliharaan", key: "uraian_pemeliharaan" },
-  { header: "Waktu Pelaksana", key: "waktu_pelaksana" },
-  { header: "Keterangan", key: "keterangan" },
-  { header: "Teknisi", key: "paraf" },
-];
 
 const STATUS_BADGE = {
   baik: { label: "Baik", bg: "success" },
@@ -106,16 +96,6 @@ export default function DetailMotorKonversiManager({ motor, canManage = false, o
       loadLogs();
     }
   }, [activeTab, loadLogs]);
-
-  const handleExportLogPDF = () => {
-    const dataWithIndex = logs.map((log, index) => ({ no: index + 1, ...log }));
-    exportToPDF(dataWithIndex as unknown as Record<string, unknown>[], EXPORT_COLUMNS_LOG, `kartu-gantung-${motorKode}`, `Kartu Gantung - ${motorNama}`);
-  };
-
-  const handleExportLogExcel = () => {
-    const dataWithIndex = logs.map((log, index) => ({ no: index + 1, ...log }));
-    exportToExcel(dataWithIndex as unknown as Record<string, unknown>[], EXPORT_COLUMNS_LOG, `kartu-gantung-${motorKode}`);
-  };
 
   return (
     <div className="detail-motor-page">
@@ -169,7 +149,7 @@ export default function DetailMotorKonversiManager({ motor, canManage = false, o
               <div className="mb-2 text-center text-md-start">
                 <span className="text-muted small fw-bold tracking-wider" style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>KODE: {motorKode}</span>
                 <div className="d-flex align-items-center justify-content-center justify-content-md-start gap-3 mt-1 flex-wrap">
-                  <h2 className="h4 fw-bold text-body mb-0">{motorNama}</h2>
+                  <h2 className="h2 fw-bold text-body mb-0">{motorNama}</h2>
                   <Badge 
                     bg={motorStatus === 'Aktif' ? 'success' : motorStatus === 'Maintenance' ? 'warning' : 'danger'}
                     className="px-3 py-1 shadow-sm"
@@ -241,16 +221,6 @@ export default function DetailMotorKonversiManager({ motor, canManage = false, o
                   <IconClipboardList size={18} /> Riwayat Log Pemeliharaan
                 </h5>
                 <div className="d-flex gap-2 flex-wrap w-100 w-md-auto justify-content-center">
-                  <Dropdown>
-                    <Dropdown.Toggle variant="outline-secondary" size="sm" className="d-flex align-items-center gap-1 shadow-sm" style={{ fontSize: '0.75rem' }}>
-                      <IconDownload size={14} /> Export
-                    </Dropdown.Toggle>
-                    <Dropdown.Menu className="shadow border-0" style={{ fontSize: '0.8rem' }}>
-                      <Dropdown.Item onClick={handleExportLogPDF}>Export sebagai PDF</Dropdown.Item>
-                      <Dropdown.Item onClick={handleExportLogExcel}>Export sebagai Excel</Dropdown.Item>
-                    </Dropdown.Menu>
-                  </Dropdown>
-                  
                   {canManage && (
                     <Button variant="outline-primary" size="sm" onClick={() => setShowMappingEditor(true)} className="d-flex align-items-center gap-1 shadow-sm" style={{ fontSize: '0.75rem' }}>
                       <IconMap size={14} /> Peta Komponen

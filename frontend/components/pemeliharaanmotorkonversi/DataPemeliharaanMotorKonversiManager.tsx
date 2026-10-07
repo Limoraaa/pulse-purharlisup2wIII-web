@@ -54,13 +54,6 @@ const EXPORT_COLUMNS_MOTOR: ExportColumn[] = [
   { header: "Status", key: "status" },
 ];
 
-const EXPORT_COLUMNS_LOG: ExportColumn[] = [
-  { header: "Uraian Pemeliharaan", key: "uraian_pemeliharaan" },
-  { header: "Waktu Pelaksana", key: "waktu_pelaksana" },
-  { header: "Keterangan", key: "keterangan" },
-  { header: "Paraf", key: "paraf" },
-];
-
 // Helper untuk mendapatkan tanggal lokal (WIB) berformat YYYY-MM-DD
 const getLocalDateString = () => {
   const date = new Date();
@@ -150,17 +143,6 @@ const DataPemeliharaanMotorManager = () => {
     exportToPDF(filteredMotor as unknown as Record<string, unknown>[], EXPORT_COLUMNS_MOTOR, "data-motor-konversi", "Data Motor Konversi");
   const handleExportExcel = () =>
     exportToExcel(filteredMotor as unknown as Record<string, unknown>[], EXPORT_COLUMNS_MOTOR, "data-motor-konversi");
-
-  const handleExportLogPDF = () => {
-    const title = selectedMotor ? `Kartu Gantung - ${selectedMotor.nama_motor}` : "Kartu Gantung Motor";
-    const filename = selectedMotor ? `kartu-gantung-${selectedMotor.kode_motor}` : "kartu-gantung";
-    exportToPDF(logs as unknown as Record<string, unknown>[], EXPORT_COLUMNS_LOG, filename, title);
-  };
-  
-  const handleExportLogExcel = () => {
-    const filename = selectedMotor ? `kartu-gantung-${selectedMotor.kode_motor}` : "kartu-gantung";
-    exportToExcel(logs as unknown as Record<string, unknown>[], EXPORT_COLUMNS_LOG, filename);
-  };
 
   const handleAddLog = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -354,31 +336,13 @@ const DataPemeliharaanMotorManager = () => {
             <Col xs={12}>
               <div className="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-3 w-100">
                 <div>
-                  <h1 className="mb-2 h2">{selectedMotor?.nama_motor}</h1>
-                  <nav aria-label="breadcrumb" className="d-none d-md-block">
-                    <ol className="breadcrumb mb-0 small text-secondary">
-                      <li className="breadcrumb-item">Home</li>
-                      <li className="breadcrumb-item">Pemeliharaan</li>
-                      <li 
-                        className="breadcrumb-item text-primary fw-semibold" 
-                        style={{ cursor: "pointer" }}
-                        onClick={() => setViewMode("list")}
-                      >
-                        Motor Konversi
-                      </li>
-                      <li className="breadcrumb-item active text-dark fw-semibold">
-                        {selectedMotor?.kode_motor} - {selectedMotor?.nomor_polisi}
-                      </li>
-                    </ol>
-                  </nav>
+                  <h1 className="mb-0 h2">{selectedMotor?.nama_motor}</h1>
                 </div>
                 
                 <div className="d-flex flex-column flex-sm-row gap-2 w-100 w-lg-auto mt-2 mt-lg-0">
-                  <Button variant="outline-secondary" size="sm" onClick={() => setViewMode("list")} className="d-flex align-items-center justify-content-center gap-1 w-100 w-sm-auto order-3 order-sm-1">
+                  <Button variant="outline-secondary" size="sm" onClick={() => setViewMode("list")} className="d-flex align-items-center justify-content-center gap-1 w-100 w-sm-auto">
                     <IconArrowLeft size={16} /> Kembali
                   </Button>
-                  <Button variant="outline-danger" size="sm" onClick={handleExportLogPDF} className="w-100 w-sm-auto order-1 order-sm-2">Export PDF</Button>
-                  <Button variant="outline-success" size="sm" onClick={handleExportLogExcel} className="w-100 w-sm-auto order-2 order-sm-3">Export Excel</Button>
                 </div>
               </div>
             </Col>

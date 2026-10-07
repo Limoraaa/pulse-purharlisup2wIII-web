@@ -286,23 +286,7 @@ const DataPemeliharaanManager = () => {
             <Col xs={12}>
               <div className="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-3 w-100">
                 <div>
-                  <h1 className="mb-2 h2">{selectedMesin?.nama_mesin}</h1>
-                  <nav aria-label="breadcrumb" className="d-none d-md-block">
-                    <ol className="breadcrumb mb-0 small text-secondary">
-                      <li className="breadcrumb-item">Home</li>
-                      <li className="breadcrumb-item">Pemeliharaan</li>
-                      <li
-                        className="breadcrumb-item text-primary fw-semibold"
-                        style={{ cursor: "pointer" }}
-                        onClick={() => setViewMode("list")}
-                      >
-                        Mesin
-                      </li>
-                      <li className="breadcrumb-item active text-dark fw-semibold">
-                        {selectedMesin?.kode_mesin} - {selectedMesin?.nama_mesin}
-                      </li>
-                    </ol>
-                  </nav>
+                  <h1 className="mb-0 h2">{selectedMesin?.nama_mesin}</h1>
                 </div>
 
                 <div className="d-flex flex-column flex-sm-row gap-2 w-100 w-lg-auto mt-2 mt-lg-0">
