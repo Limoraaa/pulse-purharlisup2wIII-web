@@ -14,6 +14,8 @@ export default function MesinFormModal({ show, onHide, onSuccess }: MesinFormMod
   const [namaMesin, setNamaMesin] = useState("");
   const [lokasiRuang, setLokasiRuang] = useState("");
   const [statusMesin, setStatusMesin] = useState("Aktif");
+  const [fotoKatalog, setFotoKatalog] = useState<File | null>(null);
+
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -22,26 +24,34 @@ export default function MesinFormModal({ show, onHide, onSuccess }: MesinFormMod
     setIsSubmitting(true);
     setFormError(null);
 
+    // Gunakan FormData agar file gambar bisa terkirim ke backend Laravel
+    const formData = new FormData();
+    formData.append("kode_mesin", kodeMesin);
+    formData.append("nama_mesin", namaMesin);
+    formData.append("lokasi_ruang", lokasiRuang);
+    formData.append("status", statusMesin);
+    if (fotoKatalog) {
+      formData.append("foto_katalog", fotoKatalog);
+    }
+
     try {
       const token = localStorage.getItem("token");
       await api("/mesin-produksi", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          // Jangan set Content-Type manual agar browser otomatis mengatur multipart/form-data boundary
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          kode_mesin: kodeMesin,
-          nama_mesin: namaMesin,
-          lokasi_ruang: lokasiRuang,
-          status: statusMesin,
-        }),
+        body: formData,
       });
 
+      // Reset form
       setKodeMesin("");
       setNamaMesin("");
       setLokasiRuang("");
       setStatusMesin("Aktif");
+      setFotoKatalog(null);
+
       onSuccess();
       onHide();
     } catch (err) {
@@ -64,7 +74,7 @@ export default function MesinFormModal({ show, onHide, onSuccess }: MesinFormMod
               <Form.Label>Kode Mesin <span className="text-danger">*</span></Form.Label>
               <Form.Control
                 required
-                placeholder="Contoh: 3MFC1"
+                placeholder="Contoh: IK.061.UP3"
                 value={kodeMesin}
                 onChange={(e) => setKodeMesin(e.target.value)}
               />
@@ -73,7 +83,7 @@ export default function MesinFormModal({ show, onHide, onSuccess }: MesinFormMod
               <Form.Label>Nama Mesin <span className="text-danger">*</span></Form.Label>
               <Form.Control
                 required
-                placeholder="Contoh: Mesin CNC Milling 5 Axis"
+                placeholder="Contoh: Mesin Kompresor (Atlas Copco)"
                 value={namaMesin}
                 onChange={(e) => setNamaMesin(e.target.value)}
               />
@@ -82,7 +92,7 @@ export default function MesinFormModal({ show, onHide, onSuccess }: MesinFormMod
               <Form.Label>Lokasi / Ruang <span className="text-danger">*</span></Form.Label>
               <Form.Control
                 required
-                placeholder="Contoh: WORKSHOP 2"
+                placeholder="Contoh: Workshop UP3"
                 value={lokasiRuang}
                 onChange={(e) => setLokasiRuang(e.target.value)}
               />
@@ -94,6 +104,23 @@ export default function MesinFormModal({ show, onHide, onSuccess }: MesinFormMod
                 <option value="Maintenance">Maintenance</option>
                 <option value="Rusak">Rusak</option>
               </Form.Select>
+            </Col>
+
+            {/* Input Foto Katalog */}
+            <Col md={12}>
+              <Form.Label>Foto Katalog Mesin <span className="text-muted small">(Opsional)</span></Form.Label>
+              <Form.Control
+                type="file"
+                accept="image/jpeg, image/png, image/webp"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  if (e.target.files && e.target.files[0]) {
+                    setFotoKatalog(e.target.files[0]);
+                  }
+                }}
+              />
+              <Form.Text className="text-muted">
+                Format: JPG, PNG, WEBP. Maksimal 2MB.
+              </Form.Text>
             </Col>
           </Row>
         </Modal.Body>

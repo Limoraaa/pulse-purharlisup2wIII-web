@@ -1,18 +1,6 @@
 "use client";
-import { useEffect, useMemo, useState, useCallback } from "react";
-import {
-  Row,
-  Col,
-  Card,
-  CardBody,
-  Button,
-  Spinner,
-  Alert,
-  InputGroup,
-  Form,
-  Table,
-  Modal,
-} from "react-bootstrap";
+import { useEffect, useMemo, useState } from "react";
+import { Row, Col, Card, CardBody, Button, Spinner, Alert, InputGroup, Form, Table, Badge } from "react-bootstrap";
 import {
   IconPlus,
   IconCircleCheck,
@@ -23,6 +11,8 @@ import {
   IconClipboardList,
   IconArrowLeft,
   IconActivity,
+  IconMapPin,
+  IconClipboardCheck,
 } from "@tabler/icons-react";
 import Link from "next/link";
 
@@ -31,6 +21,8 @@ import TanstackTable from "components/table/TanstackTable";
 import api from "lib/api";
 import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
 import MesinFormModal from "./MesinFormModal";
+import PartMappingEditor from "./PartMappingEditor";
+import PartMappingChecklistModal from "./PartMappingCheckListModal";
 
 interface MesinItemType {
   id: number | string;
@@ -46,6 +38,9 @@ interface LogItemType {
   waktu_pelaksana: string;
   keterangan: string;
   paraf: string;
+  status?: "baik" | "perlu_perhatian" | "rusak" | null;
+  jumlah_part_diperiksa?: number | null;
+  jumlah_part_total?: number | null;
 }
 
 const EXPORT_COLUMNS_MESIN: ExportColumn[] = [
@@ -62,6 +57,12 @@ const EXPORT_COLUMNS_LOG: ExportColumn[] = [
   { header: "Paraf", key: "paraf" },
 ];
 
+const STATUS_BADGE = {
+  baik: { label: "Baik", bg: "success" },
+  perlu_perhatian: { label: "Perlu perhatian", bg: "warning" },
+  rusak: { label: "Rusak", bg: "danger" },
+} as const;
+
 const DataPemeliharaanManager = () => {
   const [viewMode, setViewMode] = useState<"list" | "detail">("list");
   const [selectedMesin, setSelectedMesin] = useState<MesinItemType | null>(null);
@@ -74,18 +75,15 @@ const DataPemeliharaanManager = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // State Log Pemeliharaan
+  // State Log Pemeliharaan (READ ONLY - dibuat lewat Checklist Visual, tidak ada input manual lagi)
   const [logs, setLogs] = useState<LogItemType[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
-  
-  // State untuk Modal Tambah Catatan (Input Teks Murni)
-  const [showLogModal, setShowLogModal] = useState(false);
-  const [waktu, setWaktu] = useState(new Date().toISOString().split("T")[0]);
-  const [uraian, setUraian] = useState("");
-  const [keteranganLog, setKeteranganLog] = useState("");
-  const [temuan, setTemuan] = useState("");
 
-  const loadMesin = useCallback(async () => {
+  // State modal Peta Part & Checklist Visual (satu-satunya cara membuat log baru)
+  const [showMappingEditor, setShowMappingEditor] = useState(false);
+  const [showChecklistModal, setShowChecklistModal] = useState(false);
+
+  const loadMesin = async () => {
     setLoading(true);
     setError(null);
     try {
@@ -100,11 +98,11 @@ const DataPemeliharaanManager = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   useEffect(() => {
     loadMesin();
-  }, [loadMesin]);
+  }, []);
 
   const handleOpenDetail = async (mesin: MesinItemType) => {
     setSelectedMesin(mesin);
@@ -146,50 +144,6 @@ const DataPemeliharaanManager = () => {
     exportToPDF(logs as unknown as Record<string, unknown>[], EXPORT_COLUMNS_LOG, `kartu-gantung-${selectedMesin?.kode_mesin}`, `Kartu Gantung - ${selectedMesin?.nama_mesin}`);
   const handleExportLogExcel = () =>
     exportToExcel(logs as unknown as Record<string, unknown>[], EXPORT_COLUMNS_LOG, `kartu-gantung-${selectedMesin?.kode_mesin}`);
-
-  const handleAddLog = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedMesin) return;
-
-    // Gabungkan Keterangan dan Temuan (jika diisi)
-    const finalKeterangan = [
-      keteranganLog,
-      temuan ? `Temuan: ${temuan}` : ""
-    ].filter(Boolean).join(" | ");
-
-    try {
-      const token = localStorage.getItem("token");
-      const userName = localStorage.getItem("userName") || "Teknisi PUSHARLIS";
-
-      await api("/log-pemeliharaan", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          mesin_produksi_id: selectedMesin.id,
-          uraian_pemeliharaan: uraian,
-          waktu_pelaksana: waktu,
-          keterangan: finalKeterangan,
-          paraf: userName,
-        }),
-      });
-
-      // Reset Modal Form State setelah berhasil disimpan
-      setWaktu(new Date().toISOString().split("T")[0]);
-      setUraian("");
-      setKeteranganLog("");
-      setTemuan("");
-      setShowLogModal(false);
-
-      setSuccessMessage("Catatan pemeliharaan berhasil ditambahkan!");
-      handleOpenDetail(selectedMesin);
-      setTimeout(() => setSuccessMessage(null), 4000);
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Gagal menyimpan log");
-    }
-  };
 
   const columns = useMemo(
     () => [
@@ -333,14 +287,46 @@ const DataPemeliharaanManager = () => {
               <div className="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-3 w-100">
                 <div>
                   <h1 className="mb-2 h2">{selectedMesin?.nama_mesin}</h1>
+                  <nav aria-label="breadcrumb" className="d-none d-md-block">
+                    <ol className="breadcrumb mb-0 small text-secondary">
+                      <li className="breadcrumb-item">Home</li>
+                      <li className="breadcrumb-item">Pemeliharaan</li>
+                      <li
+                        className="breadcrumb-item text-primary fw-semibold"
+                        style={{ cursor: "pointer" }}
+                        onClick={() => setViewMode("list")}
+                      >
+                        Mesin
+                      </li>
+                      <li className="breadcrumb-item active text-dark fw-semibold">
+                        {selectedMesin?.kode_mesin} - {selectedMesin?.nama_mesin}
+                      </li>
+                    </ol>
+                  </nav>
                 </div>
-                
+
                 <div className="d-flex flex-column flex-sm-row gap-2 w-100 w-lg-auto mt-2 mt-lg-0">
-                  <Button variant="outline-secondary" size="sm" onClick={() => setViewMode("list")} className="d-flex align-items-center justify-content-center gap-1 w-100 w-sm-auto order-3 order-sm-1">
+                  <Button variant="outline-secondary" size="sm" onClick={() => setViewMode("list")} className="d-flex align-items-center justify-content-center gap-1 w-100 w-sm-auto order-5 order-sm-1">
                     <IconArrowLeft size={16} /> Kembali
                   </Button>
                   <Button variant="outline-danger" size="sm" onClick={handleExportLogPDF} className="w-100 w-sm-auto order-1 order-sm-2">Export PDF</Button>
                   <Button variant="outline-success" size="sm" onClick={handleExportLogExcel} className="w-100 w-sm-auto order-2 order-sm-3">Export Excel</Button>
+                  <Button
+                    variant="outline-primary"
+                    size="sm"
+                    onClick={() => setShowMappingEditor(true)}
+                    className="d-flex align-items-center justify-content-center gap-1 w-100 w-sm-auto order-3 order-sm-4"
+                  >
+                    <IconMapPin size={16} /> Peta Part
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => setShowChecklistModal(true)}
+                    className="d-flex align-items-center justify-content-center gap-1 w-100 w-sm-auto order-4 order-sm-5"
+                  >
+                    <IconClipboardCheck size={16} /> Checklist Visual
+                  </Button>
                 </div>
               </div>
             </Col>
@@ -377,50 +363,64 @@ const DataPemeliharaanManager = () => {
                 <h5 className="mb-0 d-flex align-items-center gap-2">
                   <IconClipboardList size={20} /> Riwayat Log Pemeliharaan
                 </h5>
-                <Button 
-                  variant="primary" 
-                  size="sm" 
-                  className="d-flex align-items-center gap-2"
-                  onClick={() => setShowLogModal(true)}
-                >
-                  <IconPlus size={16} /> Tambah Catatan
-                </Button>
+                <span className="text-muted small">
+                  Log baru dibuat lewat Checklist Visual — riwayat di bawah ini hanya untuk dilihat.
+                </span>
               </div>
 
               <div className="table-responsive border rounded">
-                <Table className="table-centered text-nowrap mb-0">
-                  <thead className="bg-light text-nowrap">
+                <Table hover className="align-middle mb-0">
+                  <thead className="table-light text-center">
                     <tr>
-                      <th style={{ width: "60px" }}>No</th>
+                      <th style={{ width: "40px" }}>No</th>
                       <th>Uraian Pemeliharaan</th>
-                      <th style={{ width: "160px" }}>Waktu Pelaksana</th>
+                      <th style={{ width: "120px" }}>Waktu Pelaksana</th>
+                      <th style={{ width: "130px" }}>Teknisi</th>
+                      <th style={{ width: "90px" }}>Part Diperiksa</th>
+                      <th style={{ width: "120px" }}>Status</th>
                       <th>Keterangan</th>
-                      <th style={{ width: "140px" }}>Paraf (Teknisi)</th>
                     </tr>
                   </thead>
                   <tbody>
                     {loadingLogs ? (
                       <tr>
-                        <td colSpan={5} className="text-center py-4">
+                        <td colSpan={7} className="text-center py-3 text-muted">
                           <Spinner animation="border" size="sm" /> Memuat riwayat log...
                         </td>
                       </tr>
                     ) : logs.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="text-center py-4 text-secondary">
+                        <td colSpan={7} className="text-center py-3 text-secondary">
                           Belum ada catatan log pemeliharaan untuk mesin ini.
                         </td>
                       </tr>
                     ) : (
-                      logs.map((log, index) => (
-                        <tr key={log.id}>
-                          <td className="fw-semibold">{index + 1}</td>
-                          <td>{log.uraian_pemeliharaan}</td>
-                          <td className="text-nowrap">{log.waktu_pelaksana}</td>
-                          <td>{log.keterangan || "-"}</td>
-                          <td className="fw-semibold text-nowrap">{log.paraf}</td>
-                        </tr>
-                      ))
+                      logs.map((log, index) => {
+                        const badge = log.status ? STATUS_BADGE[log.status] : null;
+                        return (
+                          <tr key={log.id}>
+                            <td className="text-center fw-semibold">{index + 1}</td>
+                            <td>{log.uraian_pemeliharaan}</td>
+                            <td className="text-center text-nowrap">{log.waktu_pelaksana}</td>
+                            <td className="text-center fw-semibold">{log.paraf}</td>
+                            <td className="text-center text-nowrap">
+                              {log.jumlah_part_diperiksa != null
+                                ? `${log.jumlah_part_diperiksa} / ${log.jumlah_part_total ?? log.jumlah_part_diperiksa}`
+                                : "-"}
+                            </td>
+                            <td className="text-center">
+                              {badge ? (
+                                <Badge bg={badge.bg} text={log.status === "perlu_perhatian" ? "dark" : undefined}>
+                                  {badge.label}
+                                </Badge>
+                              ) : (
+                                "-"
+                              )}
+                            </td>
+                            <td>{log.keterangan || "-"}</td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </Table>
@@ -441,68 +441,33 @@ const DataPemeliharaanManager = () => {
         }}
       />
 
-      {/* Modal Tambah Catatan Pemeliharaan (Input Teks Murni Sesuai Tabel) */}
-      <Modal show={showLogModal} onHide={() => setShowLogModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title className="h5 fw-bold mb-0">Tambah Catatan Pemeliharaan</Modal.Title>
-        </Modal.Header>
-        <Form onSubmit={handleAddLog}>
-          <Modal.Body className="p-4">
-            
-            <Form.Group className="mb-4">
-              <Form.Label className="small fw-bold text-dark mb-2">Waktu Pelaksana</Form.Label>
-              <Form.Control 
-                type="date" 
-                required 
-                value={waktu} 
-                onChange={(e) => setWaktu(e.target.value)} 
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-4">
-              <Form.Label className="small fw-bold text-dark mb-2">Uraian Pemeliharaan</Form.Label>
-              <Form.Control 
-                type="text" 
-                required 
-                placeholder="Contoh: Ganti oli, pembersihan filter..."
-                value={uraian} 
-                onChange={(e) => setUraian(e.target.value)} 
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-4">
-              <Form.Label className="small fw-bold text-dark mb-2">Keterangan</Form.Label>
-              <Form.Control 
-                type="text" 
-                placeholder="Detail pemeliharaan / parts yang diganti"
-                value={keteranganLog} 
-                onChange={(e) => setKeteranganLog(e.target.value)} 
-              />
-            </Form.Group>
-
-            <Form.Group>
-              <Form.Label className="small fw-bold text-dark mb-2">Temuan saat pemeliharaan (Opsional)</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={3}
-                placeholder="Contoh: baut penutup filter kendor"
-                value={temuan}
-                onChange={(e) => setTemuan(e.target.value)}
-              />
-            </Form.Group>
-
-          </Modal.Body>
-          <Modal.Footer className="bg-light">
-            <Button variant="outline-secondary" onClick={() => setShowLogModal(false)}>
-              Batal
-            </Button>
-            <Button variant="primary" type="submit">
-              Simpan Pemeliharaan
-            </Button>
-          </Modal.Footer>
-        </Form>
-      </Modal>
-
+      {/* Satu-satunya cara membuat log pemeliharaan baru: Peta Part (admin) & Checklist Visual (teknisi) */}
+      {selectedMesin && (
+        <>
+          <PartMappingEditor
+            show={showMappingEditor}
+            onHide={() => setShowMappingEditor(false)}
+            mesinId={selectedMesin.id}
+            mesinNama={selectedMesin.nama_mesin}
+            onSaved={() => {
+              setSuccessMessage("Mapping part berhasil disimpan!");
+              setTimeout(() => setSuccessMessage(null), 4000);
+            }}
+          />
+          <PartMappingChecklistModal
+            show={showChecklistModal}
+            onHide={() => setShowChecklistModal(false)}
+            mesinId={selectedMesin.id}
+            mesinNama={selectedMesin.nama_mesin}
+            onSubmitted={() => {
+              setShowChecklistModal(false);
+              setSuccessMessage("Laporan checklist visual berhasil disimpan!");
+              handleOpenDetail(selectedMesin); // refresh riwayat log biar laporan baru langsung tampil
+              setTimeout(() => setSuccessMessage(null), 4000);
+            }}
+          />
+        </>
+      )}
     </div>
   );
 };

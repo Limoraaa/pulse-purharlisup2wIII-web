@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\LogPemeliharaanMesin;
 use App\Models\MesinProduksi;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class LogPemeliharaanMesinController extends Controller
 {
@@ -22,18 +23,22 @@ class LogPemeliharaanMesinController extends Controller
                 'waktu_pelaksana' => $item->waktu_pelaksana,
                 'keterangan' => $item->keterangan,
                 'paraf' => $item->paraf,
+                'status' => $item->status,
+                'jumlah_part_diperiksa' => $item->jumlah_part_diperiksa,
+                'jumlah_part_total' => $item->jumlah_part_total,
             ];
         });
 
         return response()->json(['data' => $logs], 200);
     }
+
     // Method untuk statistik dashboard pemeliharaan terpisah
     public function getDashboardStats()
     {
         try {
             $totalMesin = MesinProduksi::count();
             $totalLogPemeliharaan = LogPemeliharaanMesin::count();
-            
+
             // Mengambil 5 aktivitas pemeliharaan terbaru berdasarkan waktu pelaksana
             $aktivitasTerbaru = LogPemeliharaanMesin::orderBy('waktu_pelaksana', 'desc')
                 ->take(5)
@@ -61,46 +66,86 @@ class LogPemeliharaanMesinController extends Controller
                 ]
             ]);
         } catch (\Exception $e) {
+            // Detail error dicatat di log server, tidak dikirim ke client.
+            Log::error('Gagal memuat statistik dashboard pemeliharaan', ['error' => $e->getMessage()]);
+
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => 'Gagal memuat statistik pemeliharaan'
             ], 500);
         }
     }
 
-    // Mengambil log berdasarkan ID Mesin (Untuk Tab Log Pemeliharaan di Frontend)
+    // Mengambil log berdasarkan ID Mesin (Untuk tabel riwayat di Frontend)
     public function getByMesin($mesin_id)
     {
         $logs = LogPemeliharaanMesin::where('mesin_produksi_id', $mesin_id)
                 ->orderBy('waktu_pelaksana', 'desc')
+                ->orderBy('id', 'desc')
                 ->get();
-                
+
         return response()->json(['message' => 'Sukses', 'data' => $logs], 200);
     }
 
-    // Tambah log pemeliharaan baru dari kartu gantung digital
+    // Tambah SATU KEGIATAN pemeliharaan.
+    // Mode baru  : kirim hasil_checklist (banyak part) -> uraian, keterangan, status
+    //              dihitung server, jadi tidak bisa dimanipulasi dari client.
+    // Mode lama  : kirim uraian_pemeliharaan (+ keterangan) seperti sebelumnya.
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'mesin_produksi_id' => 'required|exists:mesin_produksi,id',
-            'uraian_pemeliharaan' => 'required|string',
             'waktu_pelaksana' => 'required|date',
-            'keterangan' => 'nullable|string',
             'paraf' => 'required|string', // Diisi nama user login/teknisi
+
+            'uraian_pemeliharaan' => 'required_without:hasil_checklist|nullable|string',
+            'keterangan' => 'nullable|string',
+
+            'hasil_checklist' => 'required_without:uraian_pemeliharaan|nullable|array|min:1',
+            'hasil_checklist.*.partId' => 'required|string',
+            'hasil_checklist.*.partName' => 'required|string',
+            'hasil_checklist.*.items' => 'required|array|min:1',
+            'hasil_checklist.*.items.*.item' => 'required|string',
+            'hasil_checklist.*.items.*.status' => 'required|in:baik,perlu_perhatian,rusak',
+            'hasil_checklist.*.catatan' => 'nullable|string',
+            'jumlah_part_total' => 'nullable|integer|min:0',
         ]);
 
-        $log = LogPemeliharaanMesin::create([
-            'mesin_produksi_id' => $request->mesin_produksi_id,
-            'uraian_pemeliharaan' => $request->uraian_pemeliharaan,
-            'waktu_pelaksana' => $request->waktu_pelaksana,
-            'keterangan' => $request->keterangan ?? '',
-            'paraf' => $request->paraf,
-        ]);
+        $data = [
+            'mesin_produksi_id' => $validated['mesin_produksi_id'],
+            'waktu_pelaksana' => $validated['waktu_pelaksana'],
+            'paraf' => $validated['paraf'],
+        ];
 
-        return response()->json(['message' => 'Log pemeliharaan berhasil dicatat', 'data' => $log], 201);
+        if (!empty($validated['hasil_checklist'])) {
+            $hasil = $validated['hasil_checklist'];
+            [$status] = $this->ringkasHasil($hasil);
+
+            $diperiksa = count($hasil);
+            $total = max($validated['jumlah_part_total'] ?? $diperiksa, $diperiksa);
+
+            $data += [
+                'uraian_pemeliharaan' => "Pemeliharaan preventif ({$diperiksa} dari {$total} part): "
+                    . implode(', ', array_column($hasil, 'partName')),
+                'keterangan' => $this->susunKeterangan($hasil),
+                'hasil_checklist' => $hasil,
+                'status' => $status,
+                'jumlah_part_diperiksa' => $diperiksa,
+                'jumlah_part_total' => $total,
+            ];
+        } else {
+            $data += [
+                'uraian_pemeliharaan' => $validated['uraian_pemeliharaan'],
+                'keterangan' => $validated['keterangan'] ?? '',
+            ];
+        }
+
+        $log = LogPemeliharaanMesin::create($data);
+
+        return response()->json(['message' => 'Kegiatan pemeliharaan berhasil dicatat', 'data' => $log], 201);
     }
 
-    // Memperbarui log pemeliharaan berdasarkan ID (Untuk Fitur Edit)
+    // Memperbarui log pemeliharaan berdasarkan ID
     public function update(Request $request, $id)
     {
         $log = LogPemeliharaanMesin::find($id);
@@ -126,7 +171,7 @@ class LogPemeliharaanMesinController extends Controller
         return response()->json(['message' => 'Log pemeliharaan berhasil diperbarui', 'data' => $log], 200);
     }
 
-    // Menghapus log pemeliharaan berdasarkan ID (Untuk Fitur Hapus)
+    // Menghapus log pemeliharaan berdasarkan ID
     public function destroy($id)
     {
         $log = LogPemeliharaanMesin::find($id);
@@ -138,5 +183,53 @@ class LogPemeliharaanMesinController extends Controller
         $log->delete();
 
         return response()->json(['message' => 'Log pemeliharaan berhasil dihapus'], 200);
+    }
+
+    // Keterangan lengkap untuk Kartu Gantung dalam SATU baris teks: tiap part berisi semua
+    // item beserta statusnya, antar part dipisah " | ", catatan temuan menyusul setelah part-nya.
+    private function susunKeterangan(array $hasil): string
+    {
+        $label = ['baik' => 'Baik', 'perlu_perhatian' => 'Perlu perhatian', 'rusak' => 'Rusak'];
+        $baris = [];
+
+        foreach ($hasil as $part) {
+            $items = array_map(
+                fn ($it) => "{$it['item']} ({$label[$it['status']]})",
+                $part['items']
+            );
+            $baris[] = "{$part['partName']}: " . implode('; ', $items);
+
+            if (!empty($part['catatan'])) {
+                $baris[] = "Catatan {$part['partName']}: {$part['catatan']}";
+            }
+        }
+
+        return implode(' | ', $baris);
+    }
+
+    // Status terburuk dari semua item + daftar temuan (item yang bukan "baik" & catatan).
+    private function ringkasHasil(array $hasil): array
+    {
+        $urutan = ['baik' => 0, 'perlu_perhatian' => 1, 'rusak' => 2];
+        $label = ['perlu_perhatian' => 'Perlu perhatian', 'rusak' => 'Rusak'];
+
+        $terburuk = 'baik';
+        $temuan = [];
+
+        foreach ($hasil as $part) {
+            foreach ($part['items'] as $it) {
+                if ($urutan[$it['status']] > $urutan[$terburuk]) {
+                    $terburuk = $it['status'];
+                }
+                if ($it['status'] !== 'baik') {
+                    $temuan[] = "{$part['partName']} - {$it['item']}: {$label[$it['status']]}";
+                }
+            }
+            if (!empty($part['catatan'])) {
+                $temuan[] = "Catatan {$part['partName']}: {$part['catatan']}";
+            }
+        }
+
+        return [$terburuk, $temuan];
     }
 }

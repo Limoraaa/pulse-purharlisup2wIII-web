@@ -15,7 +15,18 @@ return new class extends Migration
             $table->date('waktu_pelaksana');
             $table->text('keterangan')->nullable();
             $table->string('paraf');
+            
+            // Kolom tambahan untuk fitur Checklist Visual
+            $table->string('status')->nullable();
+            $table->integer('jumlah_part_diperiksa')->nullable();
+            $table->integer('jumlah_part_total')->nullable();
+
             $table->timestamps();
+
+            // Relasi foreign key (sangat disarankan agar data log terhapus jika motor dihapus)
+            $table->foreign('motor_konversi_id')
+                  ->references('id')->on('motor_konversi')
+                  ->onDelete('cascade');
         });
     }
 

@@ -92,6 +92,19 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
     "Manajemen User": "view_users",
   };
 
+  // Pemetaan berdasarkan link (lebih akurat, karena judul menu ada yang kembar)
+  const linkPermissionMap: Record<string, string> = {
+    "/pemeliharaan/dashboard": "view_dashboard_pemeliharaan",
+    "/pemeliharaan/data-mesin": "view_pemeliharaan_mesin",
+    "/pemeliharaan/dashboard-motor-konversi": "view_dashboard_pemeliharaan_motor_konversi",
+    "/pemeliharaan/data-motor-konversi": "view_pemeliharaan_motor_konversi",
+  };
+
+  const getRequiredPerm = (menu: MenuItemType): string | undefined => {
+    if (menu.link && linkPermissionMap[menu.link]) return linkPermissionMap[menu.link];
+    return permissionMap[menu.title || menu.name || ""];
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
@@ -151,9 +164,7 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
           {DashboardMenu.map(function (menu, index) {
             
             // --- LOGIKA CEK HAK AKSES MENU ---
-            const menuTitle = menu.title || menu.name || "";
-            const requiredPerm = permissionMap[menuTitle];
-
+            const requiredPerm = getRequiredPerm(menu);
             // Jika menu ini terdaftar di kamus mapping, DAN user bukan Super Admin,
             // DAN user tidak punya permission tersebut di databasenya, 
             // maka menu ini DISEMBUNYIKAN (return null).
@@ -172,8 +183,7 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
               const sectionChildren = DashboardMenu.slice(index + 1, sectionEnd);
 
               const hasVisibleChild = sectionChildren.some((childMenu) => {
-                const childTitle = childMenu.title || childMenu.name || "";
-                const childPerm = permissionMap[childTitle];
+                const childPerm = getRequiredPerm(childMenu);
                 return !(childPerm && userRole !== "Super Admin" && !userPermissions.includes(childPerm));
               });
 

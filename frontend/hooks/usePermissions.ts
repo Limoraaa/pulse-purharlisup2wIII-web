@@ -10,6 +10,12 @@ interface PermissionState {
 let cachedState: PermissionState | null = null;
 let listeners: Array<(state: PermissionState) => void> = [];
 
+/** Panggil saat login/logout supaya permission diambil ulang */
+export const resetPermissions = () => {
+  cachedState = null;
+  fetchPermissions();
+};
+
 const fetchPermissions = async () => {
   try {
     const res: any = await api("/user");

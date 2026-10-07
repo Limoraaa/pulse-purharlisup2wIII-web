@@ -62,7 +62,7 @@ export default function PermissionMatrix() {
     { key: 'view_order', label: 'Pengajuan Order', type: 'dropdown', managePerms: ['create_order', 'process_order', 'manage_order'] },
     { key: 'view_kerusakan_alat', label: 'Laporan Kerusakan Alat', type: 'dropdown', managePerms: ['create_kerusakan_alat', 'process_kerusakan_alat', 'manage_kerusakan_alat'] },
   ];
-  const pemeliharaanNavbars: ModuleConfig[] = [
+ const pemeliharaanMesinNavbars: ModuleConfig[] = [
     {
       key: 'view_dashboard_pemeliharaan',
       label: 'Dashboard Pemeliharaan',
@@ -73,6 +73,19 @@ export default function PermissionMatrix() {
       label: 'Pemeliharaan Mesin',
       type: 'dropdown',
       managePerms: ['process_pemeliharaan_mesin', 'manage_pemeliharaan_mesin'],
+    },
+  ];
+  const pemeliharaanMotorKonversiNavbars: ModuleConfig[] = [
+    {
+      key: 'view_dashboard_pemeliharaan_motor_konversi',
+      label: 'Dashboard Pemeliharaan',
+      type: 'switch',
+    },
+    {
+      key: 'view_pemeliharaan_motor_konversi',
+      label: 'Pemeliharaan Motor Konversi',
+      type: 'dropdown',
+      managePerms: ['process_pemeliharaan_motor_konversi', 'manage_pemeliharaan_motor_konversi'],
     },
   ];
   const administrasiNavbars: ModuleConfig[] = [
@@ -428,7 +441,7 @@ const startEditName = (role: RoleMatrix) => {
                 <th className="py-3 px-4 fw-semibold" style={{ width: '220px' }}>
                   Role Pengguna
                 </th>
-                {pemeliharaanNavbars.map((nav) => (
+                {pemeliharaanMesinNavbars.map((nav) => (
                   <th key={nav.key} className="py-3 px-3 text-center fw-semibold">
                     {nav.label}
                   </th>
@@ -447,7 +460,7 @@ const startEditName = (role: RoleMatrix) => {
                         {roleDisplayLabel[role.name] ?? role.name}
                       </Badge>
                     </td>
-                    {pemeliharaanNavbars.map((nav) => (
+                    {pemeliharaanMesinNavbars.map((nav) => (
                       <td key={nav.key} className="py-3 px-3 text-center">
                         {renderModuleCell(role, nav, isSuperAdmin)}
                       </td>
@@ -455,7 +468,51 @@ const startEditName = (role: RoleMatrix) => {
                   </tr>
                 );
               })}
-                        </tbody>
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      {/* Section terpisah: domain Pemeliharaan Motor Konversi */}
+      <div className="text-uppercase text-secondary fs-7 fw-semibold mb-2 mt-1">
+        Pemeliharaan Motor Konversi
+      </div>
+      <Card className="card-lg mb-6 border shadow-sm">
+        <div className="table-responsive">
+          <table className="table table-hover align-middle mb-0 text-nowrap">
+            <thead className="table-light text-uppercase fs-7 text-secondary border-bottom">
+              <tr>
+                <th className="py-3 px-4 fw-semibold" style={{ width: '220px' }}>
+                  Role Pengguna
+                </th>
+                {pemeliharaanMotorKonversiNavbars.map((nav) => (
+                  <th key={nav.key} className="py-3 px-3 text-center fw-semibold">
+                    {nav.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {roles.map((role) => {
+                const isSuperAdmin = role.name === 'Super Admin';
+                const badgeVariant = role.color ?? 'secondary';
+
+                return (
+                  <tr key={role.id}>
+                    <td className="py-3 px-4">
+                      <Badge bg={`${badgeVariant}-subtle`} text={`${badgeVariant}-emphasis` as any}>
+                        {roleDisplayLabel[role.name] ?? role.name}
+                      </Badge>
+                    </td>
+                    {pemeliharaanMotorKonversiNavbars.map((nav) => (
+                      <td key={nav.key} className="py-3 px-3 text-center">
+                        {renderModuleCell(role, nav, isSuperAdmin)}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })}
+            </tbody>
           </table>
         </div>
       </Card>
