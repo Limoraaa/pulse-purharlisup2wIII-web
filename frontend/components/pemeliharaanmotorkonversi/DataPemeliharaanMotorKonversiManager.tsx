@@ -119,7 +119,8 @@ const DataPemeliharaanMotorManager = () => {
     setError(null);
     try {
       const token = localStorage.getItem("token");
-      const res = await api<{ data: LogItemType[] } | LogItemType[]>(`/log-pemeliharaan/motor/${motor.id}`, {
+      // PERBAIKAN: Menggunakan endpoint motor konversi yang sudah diperbaiki di api.php
+      const res = await api<{ data: LogItemType[] } | LogItemType[]>(`/log-pemeliharaan-motor/by-motor/${motor.id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setLogs(Array.isArray(res) ? res : res.data || []);
@@ -174,14 +175,15 @@ const DataPemeliharaanMotorManager = () => {
       const token = localStorage.getItem("token");
       const userName = localStorage.getItem("userName") || "Teknisi PUSHARLIS";
 
-      await api("/log-pemeliharaan", {
+      // PERBAIKAN: Menggunakan endpoint motor konversi untuk POST data
+      await api("/log-pemeliharaan-motor", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          motor_konversi_id: selectedMotor.id,
+          motor_konversi_id: selectedMotor.id, // Sesuaikan dengan controller motor
           uraian_pemeliharaan: uraian,
           waktu_pelaksana: waktu,
           keterangan: finalKeterangan,

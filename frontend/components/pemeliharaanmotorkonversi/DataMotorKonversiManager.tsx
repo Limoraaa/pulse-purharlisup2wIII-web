@@ -6,12 +6,10 @@ import {
   Card,
   CardBody,
   Button,
-  Spinner,
   Alert,
   InputGroup,
   Form,
-  Table,
-  Modal,
+  Spinner,
 } from "react-bootstrap";
 import {
   IconPlus,
@@ -20,21 +18,18 @@ import {
   IconX,
   IconBox,
   IconMoodEmpty,
-  IconArrowLeft,
-  IconClipboardList,
-  IconEdit,
-  IconTrash,
+  IconMapPin,
 } from "@tabler/icons-react";
+import Image from "next/image";
 
-import TanstackTable from "components/table/TanstackTable";
 import Flex from "components/common/Flex";
+import DasherBreadcrumb from "components/common/DasherBreadcrumb";
+import DetailMotorKonversiManager from "./DetailMotorKonversiManager";
+import { MotorKonversiFormModal } from "./MotorKonversiFormModal";
 import api from "lib/api";
 import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
+import { usePermission } from "hooks/usePermissions";
 
-// Import disesuaikan untuk Motor Konversi
-import {MotorKonversiFormModal} from "./MotorKonversiFormModal";
-import {useMotorKonversiColumns} from "./ColumnDefination";
-// Sesuaikan Interface dengan Model MotorKonversi
 interface MotorKonversiItemType {
   id: number | string;
   nomor_polisi: string;
@@ -42,16 +37,8 @@ interface MotorKonversiItemType {
   merek: string;
   warna: string;
   lokasi_penempatan: string;
-  status: 'Aktif' | 'Tidak Aktif' | string;
-}
-
-// Interface Log Pemeliharaan (tambahkan null/undefined handling)
-interface LogItemType {
-  id: number;
-  uraian_pemeliharaan: string;
-  waktu_pelaksana: string;
-  keterangan?: string | null;
-  paraf: string;
+  status: 'Aktif' | 'Maintenance' | 'Rusak' | string;
+  foto_katalog?: string | null;
 }
 
 // Definisi Kolom Export Data Motor
@@ -64,13 +51,6 @@ const EXPORT_COLUMNS_MOTOR: ExportColumn[] = [
   { header: "Status", key: "status" },
 ];
 
-const EXPORT_COLUMNS_LOG: ExportColumn[] = [
-  { header: "Uraian Pemeliharaan", key: "uraian_pemeliharaan" },
-  { header: "Waktu Pelaksana", key: "waktu_pelaksana" },
-  { header: "Keterangan", key: "keterangan" },
-  { header: "Paraf", key: "paraf" },
-];
-
 const EXPORT_COLUMNS_ALL_LOGS: ExportColumn[] = [
   { header: "Nomor Polisi", key: "nomor_polisi" },
   { header: "Nama Motor", key: "nama_motor" },
@@ -81,30 +61,16 @@ const EXPORT_COLUMNS_ALL_LOGS: ExportColumn[] = [
 ];
 
 const DataMotorKonversiManager = () => {
-  const [viewMode, setViewMode] = useState<"list" | "detail">("list");
+  const canManageMotor = usePermission("manage_pemeliharaan_motor_konversi");
   const [selectedMotor, setSelectedMotor] = useState<MotorKonversiItemType | null>(null);
-
   const [motorList, setMotorList] = useState<MotorKonversiItemType[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-
-  // State Log Pemeliharaan
-  const [logs, setLogs] = useState<LogItemType[]>([]);
-  const [loadingLogs, setLoadingLogs] = useState(false);
-  const [submitLoading, setSubmitLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [exportingAll, setExportingAll] = useState(false);
-
-  // State Form Modal Log
-  const [showLogModal, setShowLogModal] = useState(false);
-  const [editingLogId, setEditingLogId] = useState<number | null>(null);
-  const [waktu, setWaktu] = useState(new Date().toISOString().split("T")[0]);
-  const [uraian, setUraian] = useState("");
-  const [keteranganLog, setKeteranganLog] = useState("");
-  const [temuan, setTemuan] = useState("");
 
   const loadMotor = useCallback(async () => {
     setLoading(true);
@@ -114,7 +80,6 @@ const DataMotorKonversiManager = () => {
       const res = await api<{ data: MotorKonversiItemType[] } | MotorKonversiItemType[]>("/motor-konversi", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      // Memperbaiki TS Type Guard
       const data = Array.isArray(res) ? res : ('data' in res ? res.data : []);
       setMotorList(data || []);
     } catch (err) {
@@ -128,62 +93,14 @@ const DataMotorKonversiManager = () => {
     loadMotor();
   }, [loadMotor]);
 
-  const handleOpenDetail = useCallback(async (motor: MotorKonversiItemType) => {
-    setSelectedMotor(motor);
-    setViewMode("detail");
-    setLoadingLogs(true);
-    try {
-      const token = localStorage.getItem("token");
-      
-      // Sesuaikan endpoint sesuai dengan route backend (/motor/{motor_id})
-      const res = await api<{ data: LogItemType[] } | LogItemType[]>(`/log-pemeliharaan-motor/motor/${motor.id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      // PASTIKAN INI AMAN DARI OBJECT/ARRAY WRAPPER
-      const data = Array.isArray(res) ? res : ('data' in res ? res.data : []);
-      setLogs(Array.isArray(data) ? data : []);
-      
-    } catch (err) {
-      console.error("Gagal memuat log", err);
-      setLogs([]); // Reset ke array kosong jika gagal
-    } finally {
-      setLoadingLogs(false);
-    }
-  }, []);
-
-  const handleToggleStatus = useCallback(async (id: number | string) => {
-    try {
-      const token = localStorage.getItem("token");
-      const res = await api<{ success: boolean; message: string }>(`/motor-konversi/${id}/toggle-status`, {
-        method: "PATCH",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (res && res.success) {
-        setSuccessMessage(res.message);
-        loadMotor();
-        setTimeout(() => setSuccessMessage(null), 3000);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Gagal mengubah status motor");
-      setTimeout(() => setError(null), 3000);
-    }
-  }, [loadMotor]);
-
-  const columns = useMotorKonversiColumns({
-    onToggleStatus: handleToggleStatus,
-    onOpenDetail: handleOpenDetail,
-  });
-
   const filteredMotor = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
     if (!keyword) return motorList;
 
     return motorList.filter((item) => {
       return (
-        (item.nomor_polisi || "").toLowerCase().includes(keyword) ||
         (item.nama_motor || "").toLowerCase().includes(keyword) ||
+        (item.nomor_polisi || "").toLowerCase().includes(keyword) ||
         (item.merek || "").toLowerCase().includes(keyword) ||
         (item.lokasi_penempatan || "").toLowerCase().includes(keyword) ||
         (item.status || "").toLowerCase().includes(keyword)
@@ -191,16 +108,11 @@ const DataMotorKonversiManager = () => {
     });
   }, [motorList, searchTerm]);
 
-  // Export Data
+  // Handler Export
   const handleExportPDF = () =>
     exportToPDF(filteredMotor as unknown as Record<string, unknown>[], EXPORT_COLUMNS_MOTOR, "data-motor-konversi", "Data Motor Konversi");
   const handleExportExcel = () =>
     exportToExcel(filteredMotor as unknown as Record<string, unknown>[], EXPORT_COLUMNS_MOTOR, "data-motor-konversi");
-
-  const handleExportLogPDF = () =>
-    exportToPDF(logs as unknown as Record<string, unknown>[], EXPORT_COLUMNS_LOG, `log-pemeliharaan-${selectedMotor?.nomor_polisi}`, `Log Pemeliharaan - ${selectedMotor?.nama_motor}`);
-  const handleExportLogExcel = () =>
-    exportToExcel(logs as unknown as Record<string, unknown>[], EXPORT_COLUMNS_LOG, `log-pemeliharaan-${selectedMotor?.nomor_polisi}`);
 
   const handleExportAllLogs = async (type: 'pdf' | 'excel') => {
     setExportingAll(true);
@@ -229,94 +141,23 @@ const DataMotorKonversiManager = () => {
     }
   };
 
-  const handleOpenAddModal = () => {
-    setEditingLogId(null);
-    setWaktu(new Date().toISOString().split("T")[0]);
-    setUraian("");
-    setKeteranganLog("");
-    setTemuan("");
-    setShowLogModal(true);
-  };
-
-  const handleOpenEditModal = (log: LogItemType) => {
-    setEditingLogId(log.id);
-    setWaktu(log.waktu_pelaksana);
-    setUraian(log.uraian_pemeliharaan);
-    
-    // Perbaikan keamanan parsing nilai keterangan (menghindari error null)
-    const rawKeterangan = log.keterangan || "";
-    if (rawKeterangan.includes(" | Temuan: ")) {
-      const parts = rawKeterangan.split(" | Temuan: ");
-      setKeteranganLog(parts[0]);
-      setTemuan(parts[1] || "");
-    } else {
-      setKeteranganLog(rawKeterangan);
-      setTemuan("");
-    }
-
-    setShowLogModal(true);
-  };
-
-  const handleAddOrUpdateLog = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedMotor) return;
-    setSubmitLoading(true);
-
-    const finalKeterangan = [
-      keteranganLog,
-      temuan ? `Temuan: ${temuan}` : ""
-    ].filter(Boolean).join(" | ");
-
-    try {
-      const token = localStorage.getItem("token");
-      const userName = localStorage.getItem("userName") || "Teknisi PUSHARLIS";
-
-      const url = editingLogId ? `/log-pemeliharaan-motor/${editingLogId}` : "/log-pemeliharaan-motor";
-      const method = editingLogId ? "PUT" : "POST";
-
-      await api(url, {
-        method: method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          motor_konversi_id: selectedMotor.id,
-          uraian_pemeliharaan: uraian,
-          waktu_pelaksana: waktu,
-          keterangan: finalKeterangan,
-          paraf: userName,
-        }),
-      });
-
-      setShowLogModal(false);
-      setSuccessMessage(editingLogId ? "Log pemeliharaan berhasil diperbarui!" : "Log pemeliharaan berhasil ditambahkan!");
-      handleOpenDetail(selectedMotor);
-      setTimeout(() => setSuccessMessage(null), 4000);
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Gagal menyimpan log");
-    } finally {
-      setSubmitLoading(false);
-    }
-  };
-
-  const handleDeleteLog = async (id: number) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus catatan log pemeliharaan ini?")) return;
-
-    try {
-      const token = localStorage.getItem("token");
-      await api(`/log-pemeliharaan-motor/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      setSuccessMessage("Log pemeliharaan berhasil dihapus!");
-      if (selectedMotor) handleOpenDetail(selectedMotor);
-      setTimeout(() => setSuccessMessage(null), 4000);
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Gagal menghapus log");
-    }
-  };
+  // Render komponen detail jika ada motor yang dipilih
+  if (selectedMotor) {
+    return (
+      <DetailMotorKonversiManager 
+        motor={{
+          id: selectedMotor.id,
+          nama_motor: selectedMotor.nama_motor,
+          kode_motor: selectedMotor.nomor_polisi,
+          lokasi_ruang: selectedMotor.lokasi_penempatan,
+          status: selectedMotor.status,
+          foto_katalog: selectedMotor.foto_katalog || null,
+        }} 
+        canManage={canManageMotor}
+        onBack={() => setSelectedMotor(null)} 
+      />
+    );
+  }
 
   return (
     <div className="datamotor-page">
@@ -329,320 +170,189 @@ const DataMotorKonversiManager = () => {
 
       {error && <Alert variant="danger" className="py-2 small" dismissible onClose={() => setError(null)}>{error}</Alert>}
 
-      {viewMode === "list" ? (
-        <>
-          <Row>
-            <Col>
-              <Flex justifyContent="between" alignItems="center" className="mb-3 w-100" breakpoint="md">
-                <div>
-                  <h1 className="mb-1 h4 h2-md">Data Motor Konversi</h1>
-                  <p className="text-secondary mb-0 small">Mengelola daftar motor konversi beserta log pemeliharaan dan aktivitas.</p>
-                </div>
-                <div>
-                  <Button variant="primary" size="sm" className="d-flex align-items-center gap-1 py-2 px-3" onClick={() => setFormModalOpen(true)}>
-                    <IconPlus size={16} /> Tambah Motor Baru
-                  </Button>
-                </div>
-              </Flex>
-            </Col>
-          </Row>
-
-          <Card className="card-lg mb-4">
-            <div className="datatools-toolbar border-bottom p-2 p-md-3">
-              <Row className="g-2 align-items-center">
-                <Col xs={12} md={4}>
-                  <InputGroup className="datatools-search input-group-sm">
-                    <InputGroup.Text><IconSearch size={16} /></InputGroup.Text>
-                    <Form.Control
-                      type="search"
-                      placeholder="Cari nopol, nama, merek..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                    {searchTerm && (
-                      <Button variant="link" className="datatools-search-clear" onClick={() => setSearchTerm("")}>
-                        <IconX size={14} />
-                      </Button>
-                    )}
-                  </InputGroup>
-                </Col>
-                <Col xs={12} md={8} className="d-flex justify-content-md-end gap-1 flex-wrap align-items-center">
-                  
-                  {/* Ekspor Data Motor */}
-                  <div className="d-flex align-items-center me-md-2 border-end pe-md-2 mb-2 mb-md-0">
-                    <span className="me-2 small text-secondary" style={{ fontSize: "0.7rem" }}>Data Motor:</span>
-                    <Button variant="outline-danger" size="sm" className="py-1 px-2 mx-1" style={{ fontSize: "0.75rem" }} onClick={handleExportPDF}>PDF</Button>
-                    <Button variant="outline-success" size="sm" className="py-1 px-2" style={{ fontSize: "0.75rem" }} onClick={handleExportExcel}>Excel</Button>
-                  </div>
-
-                  {/* Ekspor Seluruh Log */}
-                  <div className="d-flex align-items-center mb-2 mb-md-0">
-                    <span className="me-2 small text-secondary" style={{ fontSize: "0.7rem" }}>Seluruh Log:</span>
-                    <Button variant="outline-danger" size="sm" className="py-1 px-2 mx-1" style={{ fontSize: "0.75rem" }} onClick={() => handleExportAllLogs('pdf')} disabled={exportingAll}>
-                      {exportingAll ? <Spinner size="sm" /> : 'PDF'}
-                    </Button>
-                    <Button variant="outline-success" size="sm" className="py-1 px-2" style={{ fontSize: "0.75rem" }} onClick={() => handleExportAllLogs('excel')} disabled={exportingAll}>
-                      {exportingAll ? <Spinner size="sm" /> : 'Excel'}
-                    </Button>
-                  </div>
-                  
-                </Col>
-              </Row>
+      <Row>
+        <Col>
+          <Flex justifyContent="between" alignItems="center" className="mb-3 w-100" breakpoint="md">
+            <div>
+              <h1 className="mb-1 h4 h2-md">Katalog Motor Konversi</h1>
+              <p className="text-secondary mb-0 small">Daftar motor konversi beserta dokumen IK dan log pemeliharaan.</p>
+              <DasherBreadcrumb />
             </div>
-
-            <CardBody className="p-2 p-md-3">
-              {loading ? (
-                <div className="text-center py-4 small">
-                  <Spinner animation="border" size="sm" className="me-2" /> Memuat data motor konversi...
-                </div>
-              ) : motorList.length === 0 ? (
-                <div className="datatools-empty text-center py-4">
-                  <div className="datatools-empty-icon mb-2"><IconBox size={28} /></div>
-                  <h6 className="mb-1">Belum ada data motor konversi</h6>
-                  <p className="text-secondary small mb-3">Mulai dengan menambahkan data motor konversi pertama.</p>
-                  <Button variant="primary" size="sm" className="d-inline-flex align-items-center gap-1" onClick={() => setFormModalOpen(true)}>
-                    <IconPlus size={16} /> Tambah Motor Baru
-                  </Button>
-                </div>
-              ) : filteredMotor.length === 0 ? (
-                <div className="datatools-empty text-center py-4">
-                  <div className="datatools-empty-icon mb-2"><IconMoodEmpty size={28} /></div>
-                  <h6 className="mb-1">Tidak ada hasil</h6>
-                  <p className="text-secondary small mb-3">Tidak ditemukan data yang cocok.</p>
-                  <Button variant="outline-secondary" size="sm" onClick={() => setSearchTerm("")}>
-                    Reset Pencarian
-                  </Button>
-                </div>
-              ) : (
-                <TanstackTable data={filteredMotor} columns={columns} pagination isSortable />
+            <div>
+              {canManageMotor && (
+                <Button variant="primary" size="sm" className="d-flex align-items-center gap-1 py-2 px-3" onClick={() => setFormModalOpen(true)}>
+                  <IconPlus size={16} /> Tambah Motor Baru
+                </Button>
               )}
-            </CardBody>
-          </Card>
-        </>
-      ) : (
-        <div>
-          {/* Header Detail Motor Konversi */}
-          <Row className="mb-3">
-            <Col>
-              <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
-                <div>
-                  <h2 className="mb-1 fs-5 fw-bold">{selectedMotor?.nama_motor}</h2>
-                  <nav aria-label="breadcrumb">
-                    <ol className="breadcrumb mb-0 text-secondary" style={{ fontSize: "0.75rem" }}>
-                      <li className="breadcrumb-item">Home</li>
-                      <li className="breadcrumb-item">Pemeliharaan</li>
-                      <li 
-                        className="breadcrumb-item text-primary fw-semibold" 
-                        style={{ cursor: "pointer" }}
-                        onClick={() => setViewMode("list")}
-                      >
-                        Motor Konversi
-                      </li>
-                      <li className="breadcrumb-item active text-body fw-semibold">
-                        {selectedMotor?.nomor_polisi}
-                      </li>
-                    </ol>
-                  </nav>
-                </div>
-                <div className="d-flex flex-wrap gap-1 mt-1 mt-md-0">
-                  <Button variant="outline-danger" size="sm" className="py-1 px-2" style={{ fontSize: "0.75rem" }} onClick={handleExportLogPDF}>PDF</Button>
-                  <Button variant="outline-success" size="sm" className="py-1 px-2" style={{ fontSize: "0.75rem" }} onClick={handleExportLogExcel}>Excel</Button>
-                  <Button variant="outline-secondary" size="sm" className="py-1 px-2 d-flex align-items-center gap-1" style={{ fontSize: "0.75rem" }} onClick={() => setViewMode("list")}>
-                    <IconArrowLeft size={14} /> Kembali
+            </div>
+          </Flex>
+        </Col>
+      </Row>
+
+      <Card className="card-lg mb-4 shadow-sm border-0">
+        <div className="datatools-toolbar border-bottom p-2 p-md-3">
+          <Row className="g-2 align-items-center">
+            <Col xs={12} md={5} lg={4}>
+              <InputGroup className="datatools-search input-group-sm">
+                <InputGroup.Text className="bg-body-secondary border-end-0"><IconSearch size={16} /></InputGroup.Text>
+                <Form.Control
+                  type="search"
+                  placeholder="Cari nopol, nama, merek..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="bg-body border-start-0"
+                />
+                {searchTerm && (
+                  <Button variant="outline-secondary" className="datatools-search-clear border" onClick={() => setSearchTerm("")}>
+                    <IconX size={14} />
                   </Button>
-                </div>
-              </div>
+                )}
+              </InputGroup>
             </Col>
-          </Row>
-
-          {/* Info Singkat Motor */}
-          <Card className="mb-3 border-primary shadow-none">
-            <CardBody className="p-2 p-md-3">
-              <div className="d-flex justify-content-between align-items-start mb-1">
-                <span className="text-muted small fw-bold tracking-wider" style={{ fontSize: "0.7rem" }}>KARTU LOG PEMELIHARAAN</span>
-                <span className="badge bg-success" style={{ fontSize: "0.65rem" }}>{selectedMotor?.status}</span>
+            <Col xs={12} md={7} lg={8} className="d-flex justify-content-md-end gap-2 flex-wrap align-items-center mt-2 mt-md-0">
+              {/* Grup Export Data Motor */}
+              <div className="d-flex align-items-center me-md-2 border-end pe-md-2">
+                <span className="me-2 small text-secondary d-none d-lg-inline" style={{ fontSize: "0.7rem" }}>Katalog:</span>
+                <Button variant="outline-danger" size="sm" className="py-1 px-2 mx-1" style={{ fontSize: "0.75rem" }} onClick={handleExportPDF}>PDF</Button>
+                <Button variant="outline-success" size="sm" className="py-1 px-2" style={{ fontSize: "0.75rem" }} onClick={handleExportExcel}>Excel</Button>
               </div>
-              <Row>
-                <Col md={6}>
-                  <table className="w-100" style={{ fontSize: "0.8rem" }}>
-                    <tbody>
-                      <tr>
-                        {/* Perbaikan class padding dari py-0.5 menjadi py-1 */}
-                        <td className="fw-semibold text-secondary py-1" style={{ width: "120px" }}>Nomor Polisi</td>
-                        <td className="py-1">: {selectedMotor?.nomor_polisi}</td>
-                      </tr>
-                      <tr>
-                        <td className="fw-semibold text-secondary py-1">Merek & Warna</td>
-                        <td className="py-1">: {selectedMotor?.merek} / {selectedMotor?.warna}</td>
-                      </tr>
-                      <tr>
-                        <td className="fw-semibold text-secondary py-1">Lokasi Penempatan</td>
-                        <td className="py-1">: {selectedMotor?.lokasi_penempatan}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </Col>
-              </Row>
-            </CardBody>
-          </Card>
 
-          {/* Tabel Log Pemeliharaan Motor */}
-          <Card className="shadow-none">
-            <CardBody className="p-2 p-md-3">
-              <div className="d-flex justify-content-between align-items-center mb-3">
-                <h6 className="mb-0 d-flex align-items-center gap-1 fw-bold fs-6">
-                  <IconClipboardList size={18} /> Riwayat Log Pemeliharaan
-                </h6>
-                <Button variant="primary" size="sm" className="d-flex align-items-center gap-1 py-1 px-2" style={{ fontSize: "0.75rem" }} onClick={handleOpenAddModal}>
-                  <IconPlus size={14} /> Tambah Catatan
+              {/* Grup Export Log */}
+              <div className="d-flex align-items-center">
+                <span className="me-2 small text-secondary d-none d-lg-inline" style={{ fontSize: "0.7rem" }}>Riwayat Log:</span>
+                <Button variant="outline-danger" size="sm" className="py-1 px-2 mx-1" style={{ fontSize: "0.75rem" }} onClick={() => handleExportAllLogs('pdf')} disabled={exportingAll}>
+                  {exportingAll ? <Spinner size="sm" /> : 'PDF'}
+                </Button>
+                <Button variant="outline-success" size="sm" className="py-1 px-2" style={{ fontSize: "0.75rem" }} onClick={() => handleExportAllLogs('excel')} disabled={exportingAll}>
+                  {exportingAll ? <Spinner size="sm" /> : 'Excel'}
                 </Button>
               </div>
-
-              <div className="table-responsive">
-                <Table bordered hover className="align-middle table-sm text-nowrap" style={{ fontSize: "0.75rem" }}>
-                  <thead className="table-light text-center">
-                    <tr>
-                      <th style={{ width: "40px" }}>No</th>
-                      <th>Uraian Pemeliharaan</th>
-                      <th style={{ width: "130px" }}>Waktu Pelaksana</th>
-                      <th>Keterangan</th>
-                      <th style={{ width: "110px" }}>Paraf (Teknisi)</th>
-                      <th style={{ width: "70px" }}>Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {loadingLogs ? (
-                      <tr>
-                        <td colSpan={6} className="text-center py-3 text-muted">
-                          <Spinner animation="border" size="sm" /> Memuat riwayat log...
-                        </td>
-                      </tr>
-                    ) : logs.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="text-center py-3 text-secondary">
-                          Belum ada catatan log pemeliharaan untuk motor ini.
-                        </td>
-                      </tr>
-                    ) : (
-                      logs.map((log, index) => (
-                        <tr key={log.id}>
-                          <td className="text-center fw-semibold">{index + 1}</td>
-                          <td>{log.uraian_pemeliharaan}</td>
-                          <td className="text-center">{log.waktu_pelaksana}</td>
-                          <td>{log.keterangan || "-"}</td>
-                          <td className="text-center fw-semibold">{log.paraf}</td>
-                          <td className="text-center">
-                            <div className="d-flex justify-content-center gap-1">
-                              <Button 
-                                variant="outline-warning" 
-                                size="sm" 
-                                className="p-1"
-                                title="Edit"
-                                onClick={() => handleOpenEditModal(log)}
-                              >
-                                <IconEdit size={12} />
-                              </Button>
-                              <Button 
-                                variant="outline-danger" 
-                                size="sm" 
-                                className="p-1"
-                                title="Hapus"
-                                onClick={() => handleDeleteLog(log.id)}
-                              >
-                                <IconTrash size={12} />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </Table>
-              </div>
-            </CardBody>
-          </Card>
+            </Col>
+          </Row>
         </div>
+
+        <CardBody className="p-3 p-md-4 bg-body-tertiary">
+          {loading ? (
+            <div className="text-center py-5">
+              <Spinner animation="border" size="sm" className="me-2" /> Memuat katalog motor konversi...
+            </div>
+          ) : motorList.length === 0 ? (
+            <div className="datatools-empty text-center py-5 bg-body rounded border">
+              <div className="datatools-empty-icon mb-2 text-muted"><IconBox size={40} /></div>
+              <h6 className="mb-1">Belum ada data motor konversi</h6>
+              <p className="text-secondary small mb-3">Mulai dengan menambahkan data motor konversi pertama.</p>
+              {canManageMotor && (
+                <Button variant="primary" size="sm" className="d-inline-flex align-items-center gap-1" onClick={() => setFormModalOpen(true)}>
+                  <IconPlus size={16} /> Tambah Motor Baru
+                </Button>
+              )}
+            </div>
+          ) : filteredMotor.length === 0 ? (
+            <div className="datatools-empty text-center py-5 bg-body rounded border">
+              <div className="datatools-empty-icon mb-2 text-muted"><IconMoodEmpty size={40} /></div>
+              <h6 className="mb-1">Tidak ada hasil</h6>
+              <p className="text-secondary small mb-3">Tidak ditemukan data motor yang cocok dengan pencarian Anda.</p>
+              <Button variant="outline-secondary" size="sm" onClick={() => setSearchTerm("")}>
+                Reset Pencarian
+              </Button>
+            </div>
+          ) : (
+            <Row className="g-3">
+              {filteredMotor.map((motor) => (
+                <Col xs={6} sm={4} md={3} lg={2} xl={2} key={motor.id}>
+                  <Card 
+                    className="h-100 shadow-sm border overflow-hidden bg-body" 
+                    style={{ cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s' }}
+                    onClick={() => setSelectedMotor(motor)}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-3px)';
+                      e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
+                      e.currentTarget.style.borderColor = '#0d6efd';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = '0 0.125rem 0.25rem rgba(0, 0, 0, 0.075)';
+                      e.currentTarget.style.borderColor = 'var(--bs-border-color)';
+                    }}
+                  >
+                    {/* Image Area */}
+                    <div style={{ paddingTop: '100%', position: 'relative', backgroundColor: 'var(--bs-tertiary-bg)', borderBottom: '1px solid var(--bs-border-color)' }}>
+                      {motor.foto_katalog ? (
+                        <Image 
+                          src={motor.foto_katalog} 
+                          alt={motor.nama_motor}
+                          fill
+                          sizes="(max-width: 768px) 50vw, 20vw"
+                          style={{ objectFit: 'cover' }}
+                        />
+                      ) : (
+                        <div className="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center text-secondary opacity-50">
+                          <IconBox size={48} stroke={1.5} />
+                        </div>
+                      )}
+                      
+                      {/* Badge Status */}
+                      <div className="position-absolute top-0 end-0 mt-2 z-3">
+                        <span 
+                          className={`badge rounded-start-2 rounded-end-0 shadow-sm ${
+                            motor.status === 'Aktif' ? 'bg-success' : 
+                            motor.status === 'Maintenance' ? 'bg-warning text-dark' : 'bg-danger'
+                          }`}
+                          style={{ fontSize: '0.65rem' }}
+                        >
+                          {motor.status}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Info Area */}
+                    <CardBody className="p-2 d-flex flex-column">
+                      <div className="flex-grow-1">
+                        <h6 
+                          className="mb-1 text-body fw-bold" 
+                          style={{ 
+                            fontSize: '0.8rem', 
+                            lineHeight: '1.3',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden'
+                          }}
+                          title={motor.nama_motor}
+                        >
+                          {motor.nama_motor}
+                        </h6>
+                        <small className="text-muted d-block mb-2" style={{ fontSize: '0.65rem' }}>
+                          {motor.nomor_polisi} {motor.merek ? `• ${motor.merek}` : ''}
+                        </small>
+                      </div>
+                      
+                      <div className="mt-auto pt-2 border-top d-flex align-items-center text-secondary" style={{ fontSize: '0.65rem' }}>
+                        <IconMapPin size={12} className="me-1 flex-shrink-0" />
+                        <span className="text-truncate" title={motor.lokasi_penempatan}>{motor.lokasi_penempatan}</span>
+                      </div>
+                    </CardBody>
+                  </Card>
+                </Col>
+              ))}
+            </Row>
+          )}
+        </CardBody>
+      </Card>
+
+      {/* Modal Tambah Motor */}
+      {canManageMotor && formModalOpen && (
+        <MotorKonversiFormModal
+          show={formModalOpen}
+          onHide={() => setFormModalOpen(false)}
+          onSuccess={() => {
+            setSuccessMessage("Data motor konversi berhasil ditambahkan!");
+            loadMotor();
+            setFormModalOpen(false);
+            setTimeout(() => setSuccessMessage(null), 3000);
+          }}
+        />
       )}
-
-      {/* Modal Input/Edit Pemeliharaan */}
-      <Modal show={showLogModal} onHide={() => setShowLogModal(false)} centered backdrop="static">
-        <Modal.Header closeButton className="py-2 px-3">
-          <Modal.Title className="fs-6 fw-bold text-dark">
-            {editingLogId ? "Edit Catatan Pemeliharaan" : "Tambah Catatan Pemeliharaan"}
-          </Modal.Title>
-        </Modal.Header>
-        <Form onSubmit={handleAddOrUpdateLog}>
-          <Modal.Body className="p-3">
-            
-            <Form.Group className="mb-2">
-              <Form.Label className="small fw-semibold text-secondary mb-1" style={{ fontSize: "0.75rem" }}>Waktu Pelaksana</Form.Label>
-              <Form.Control
-                size="sm"
-                type="date"
-                required
-                value={waktu}
-                onChange={(e) => setWaktu(e.target.value)}
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-2">
-              <Form.Label className="small fw-semibold text-secondary mb-1" style={{ fontSize: "0.75rem" }}>Uraian Pemeliharaan</Form.Label>
-              <Form.Control
-                size="sm"
-                type="text"
-                required
-                placeholder="Contoh: Pengecekan baterai, ganti komponen..."
-                value={uraian}
-                onChange={(e) => setUraian(e.target.value)}
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-2">
-              <Form.Label className="small fw-semibold text-secondary mb-1" style={{ fontSize: "0.75rem" }}>Keterangan</Form.Label>
-              <Form.Control
-                size="sm"
-                type="text"
-                placeholder="Detail pemeliharaan / parts yang diganti"
-                value={keteranganLog}
-                onChange={(e) => setKeteranganLog(e.target.value)}
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-1">
-              <Form.Label className="small fw-semibold text-secondary mb-1" style={{ fontSize: "0.75rem" }}>Temuan saat pemeliharaan (Opsional)</Form.Label>
-              <Form.Control
-                size="sm"
-                as="textarea"
-                rows={2}
-                placeholder="Contoh: Kabel kontroler agak kendor"
-                value={temuan}
-                onChange={(e) => setTemuan(e.target.value)}
-              />
-            </Form.Group>
-
-          </Modal.Body>
-          <Modal.Footer className="bg-light py-2 px-3">
-            <Button variant="outline-secondary" size="sm" onClick={() => setShowLogModal(false)}>
-              Batal
-            </Button>
-            <Button variant="primary" size="sm" type="submit" disabled={submitLoading} className="fw-semibold px-3">
-              {submitLoading ? <Spinner size="sm" className="me-1" /> : null}
-              {editingLogId ? "Perbarui" : "Simpan"}
-            </Button>
-          </Modal.Footer>
-        </Form>
-      </Modal>
-
-      <MotorKonversiFormModal
-        show={formModalOpen}
-        onHide={() => setFormModalOpen(false)}
-        onSuccess={() => {
-          setSuccessMessage("Data motor konversi berhasil ditambahkan!");
-          loadMotor();
-          setFormModalOpen(false); // Pastikan modal tertutup
-          setTimeout(() => setSuccessMessage(null), 4000);
-        }}
-      />
     </div>
   );
 };

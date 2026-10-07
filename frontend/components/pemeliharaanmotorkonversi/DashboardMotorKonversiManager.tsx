@@ -1,10 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link"; 
 import { Row, Col, Card, CardBody, Spinner, Alert, Badge, Button } from "react-bootstrap";
 import {
-  IconTool,
-  IconServer,
+  IconMotorbike,
   IconAlertTriangle,
   IconChecklist,
   IconPlus,
@@ -21,7 +20,6 @@ import {
 } from "recharts";
 
 import Flex from "components/common/Flex";
-
 import StatCard from "components/dashboard/StatCard";
 import api from "/lib/api";
 import { usePermission } from "hooks/usePermissions";
@@ -32,40 +30,43 @@ const formatWaktu = (iso: string) => {
     timeZone: "Asia/Jakarta",
     day: "2-digit",
     month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
+    year: "numeric",
   });
 };
 
-const DashboardPemeliharaanManager = () => {
-  const canViewMesin = usePermission("view_pemeliharaan_mesin");
+const DashboardMotorKonversiManager = () => {
+  const canViewMotor = usePermission("view_pemeliharaan_motor_konversi");
   const [summary, setSummary] = useState<any>(null);
   const [aktivitas, setAktivitas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Data dummy untuk grafik tren agar tidak kosong (bisa diganti data API nantinya)
-  const dummyChartData = [
-    { tanggal: "01 Sep", total: 2 },
-    { tanggal: "03 Sep", total: 5 },
-    { tanggal: "05 Sep", total: 3 },
-    { tanggal: "07 Sep", total: 8 },
-    { tanggal: "09 Sep", total: 4 },
-  ];
+  const [hari, setHari] = useState(30);
+  const [tren, setTren] = useState<{ tanggal: string; total: number }[]>([]);
+
+  const chartData = useMemo(
+    () =>
+      tren.map((t) => ({
+        tanggal: new Date(t.tanggal).toLocaleDateString("id-ID", { day: "2-digit", month: "short" }),
+        total: t.total,
+      })),
+    [tren]
+  );
 
   useEffect(() => {
     const loadAll = async () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await api<any>("/pemeliharaan/dashboard-stats", { method: "GET" });
-        
+        const response = await api<any>(`/pemeliharaan-motor-konversi/dashboard-stats?hari=${hari}`, { method: "GET" });
+
         if (response && response.success) {
           setSummary(response.data);
           setAktivitas(response.data.aktivitas_terbaru || []);
+          setTren(response.data.tren || []);
         }
       } catch (err) {
-        const message = err instanceof Error ? err.message : "Gagal memuat data dashboard pemeliharaan";
+        const message = err instanceof Error ? err.message : "Gagal memuat data dashboard pemeliharaan motor konversi";
         setError(message);
       } finally {
         setLoading(false);
@@ -73,7 +74,7 @@ const DashboardPemeliharaanManager = () => {
     };
 
     loadAll();
-  }, []);
+  }, [hari]);
 
   const PageHeader = (
     <Row>
@@ -85,14 +86,14 @@ const DashboardPemeliharaanManager = () => {
           breakpoint="md"
         >
           <div>
-            <h1 className="mb-2 h2">Dashboard Pemeliharaan</h1>
+            <h1 className="mb-2 h2">Dashboard Pemeliharaan Motor Konversi</h1>
             <p className="text-secondary mb-0">
-              Ringkasan aktivitas, kondisi mesin, dan pemeliharaan alat produksi.
+              Ringkasan aktivitas, kondisi motor, dan pemeliharaan motor konversi.
             </p>
-         </div>
-          {canViewMesin && (
+          </div>
+          {canViewMotor && (
           <div className="mt-3 mt-md-0">
-            <Link href="/pemeliharaan/data-mesin">
+            <Link href="/pemeliharaan/data-motor-konversi">
               <Button variant="primary" className="d-flex align-items-center gap-2">
                 <IconPlus size={18} /> Catat Log Pemeliharaan
               </Button>
@@ -110,7 +111,7 @@ const DashboardPemeliharaanManager = () => {
         {PageHeader}
         <div className="text-center py-5">
           <Spinner animation="border" size="sm" className="me-2" />
-          Memuat dashboard pemeliharaan...
+          Memuat dashboard pemeliharaan motor konversi...
         </div>
       </>
     );
@@ -129,36 +130,36 @@ const DashboardPemeliharaanManager = () => {
     <>
       {PageHeader}
 
-      {/* Baris 1: Ringkasan Utama Pemeliharaan */}
+      {/* Baris 1: Ringkasan Utama Pemeliharaan Motor Konversi */}
       <Row className="g-3 mb-4">
         <Col xs={12} md={4} xl={4}>
-          {canViewMesin ? (
-            <Link href="/pemeliharaan/data-mesin" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
+          {canViewMotor ? (
+            <Link href="/pemeliharaan/data-motor-konversi" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
               <StatCard
-                icon={<IconServer size={26} />}
-                title="Total Mesin Terdaftar"
-                value={summary?.total_mesin ?? 0}
+                icon={<IconMotorbike size={26} />}
+                title="Total Motor Terdaftar"
+                value={summary?.total_motor ?? 0}
                 variant="primary"
               />
             </Link>
           ) : (
             <div style={{ display: "block" }}>
               <StatCard
-                icon={<IconServer size={26} />}
-                title="Total Mesin Terdaftar"
-                value={summary?.total_mesin ?? 0}
+                icon={<IconMotorbike size={26} />}
+                title="Total Motor Terdaftar"
+                value={summary?.total_motor ?? 0}
                 variant="primary"
               />
             </div>
           )}
         </Col>
         <Col xs={12} md={4} xl={4}>
-          {canViewMesin ? (
-            <Link href="/pemeliharaan/data-mesin" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
+          {canViewMotor ? (
+            <Link href="/pemeliharaan/data-motor-konversi" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
               <StatCard
                 icon={<IconAlertTriangle size={26} />}
-                title="Mesin Dalam Perbaikan"
-                value={summary?.mesin_perbaikan ?? 0}
+                title="Motor Dalam Perbaikan"
+                value={summary?.motor_perbaikan ?? 0}
                 variant="danger"
               />
             </Link>
@@ -166,16 +167,16 @@ const DashboardPemeliharaanManager = () => {
             <div style={{ display: "block" }}>
               <StatCard
                 icon={<IconAlertTriangle size={26} />}
-                title="Mesin Dalam Perbaikan"
-                value={summary?.mesin_perbaikan ?? 0}
+                title="Motor Dalam Perbaikan"
+                value={summary?.motor_perbaikan ?? 0}
                 variant="danger"
               />
             </div>
           )}
         </Col>
         <Col xs={12} md={4} xl={4}>
-          {canViewMesin ? (
-            <Link href="/pemeliharaan/data-mesin" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
+          {canViewMotor ? (
+            <Link href="/pemeliharaan/data-motor-konversi" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
               <StatCard
                 icon={<IconChecklist size={26} />}
                 title="Total Pemeliharaan Rutin"
@@ -196,72 +197,46 @@ const DashboardPemeliharaanManager = () => {
         </Col>
       </Row>
 
-      {/* Baris 2: Grafik Tren & Shortcut Modul (Membuat layout lebih padat dan berisi) */}
+      {/* Baris 2: Grafik Tren */}
       <Row className="g-3 mb-4">
-        {/* Kolom Kiri: Grafik Tren Aktivitas */}
-        <Col lg={7}>
+        <Col lg={12}>
           <Card className="card-lg h-100 shadow-sm border-0">
             <CardBody>
-              <div className="d-flex align-items-center gap-2 mb-3">
-                <IconTrendingUp className="text-primary" size={20} />
-                <h5 className="mb-0">Tren Aktivitas Pemeliharaan</h5>
+              <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                <div className="d-flex align-items-center gap-2">
+                  <IconTrendingUp className="text-primary" size={20} />
+                  <h5 className="mb-0">Tren Aktivitas Pemeliharaan Motor Konversi</h5>
+                </div>
+                <div className="d-flex gap-1">
+                  {[7, 30, 90].map((h) => (
+                    <Button
+                      key={h}
+                      size="sm"
+                      variant={hari === h ? "primary" : "outline-secondary"}
+                      className="py-1 px-2"
+                      style={{ fontSize: "0.75rem" }}
+                      onClick={() => setHari(h)}
+                    >
+                      {h} hari
+                    </Button>
+                  ))}
+                </div>
               </div>
               <ResponsiveContainer width="100%" height={220}>
-                <AreaChart data={dummyChartData}>
+                <AreaChart data={chartData}>
                   <defs>
-                    <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient id="colorTotalMotor" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#006492" stopOpacity={0.4}/>
                       <stop offset="95%" stopColor="#006492" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
-                  <XAxis dataKey="tanggal" fontSize={12} stroke="#a0a0a0" />
+                  <XAxis dataKey="tanggal" fontSize={12} stroke="#a0a0a0" minTickGap={24} />
                   <YAxis allowDecimals={false} fontSize={12} stroke="#a0a0a0" />
                   <Tooltip />
-                  <Area type="monotone" dataKey="total" stroke="#006492" strokeWidth={2} fillOpacity={1} fill="url(#colorTotal)" />
+                  <Area type="monotone" dataKey="total" name="Jumlah log" stroke="#006492" strokeWidth={2} fillOpacity={1} fill="url(#colorTotalMotor)" />
                 </AreaChart>
               </ResponsiveContainer>
-            </CardBody>
-          </Card>
-        </Col>
-
-        {/* Kolom Kanan: Shortcut Akses Cepat Modul */}
-        <Col lg={5}>
-          <Card className="card-lg h-100 shadow-sm border-0">
-            <CardBody>
-              <h5 className="mb-3">Akses Modul Cepat</h5>
-              <div className="space-y-3">
-                {canViewMesin ? (
-                  <Link 
-                    href="/pemeliharaan/data-mesin" 
-                    style={{ textDecoration: "none" }} 
-                    className="d-block"
-                  >
-                    <div className="p-3 border rounded-3 bg-light hover-bg-white transition d-flex align-items-center gap-3">
-                      <div className="p-2 bg-primary text-white rounded-2">
-                        <IconTool size={20} />
-                      </div>
-                      <div>
-                        <h6 className="mb-0 text-dark fw-semibold">Kelola Data Mesin</h6>
-                        <small className="text-secondary">Tambah & lihat spesifikasi unit</small>
-                      </div>
-                    </div>
-                  </Link>
-                ) : (
-                   <div className="d-block">
-                    <div className="p-3 border rounded-3 bg-light d-flex align-items-center gap-3" style={{ opacity: 0.6 }}>
-                      <div className="p-2 bg-secondary text-white rounded-2">
-                        <IconTool size={20} />
-                      </div>
-                      <div>
-                        <h6 className="mb-0 text-dark fw-semibold">Kelola Data Mesin</h6>
-                        <small className="text-secondary">Tidak ada akses</small>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-              </div>
             </CardBody>
           </Card>
         </Col>
@@ -282,14 +257,19 @@ const DashboardPemeliharaanManager = () => {
                       <li key={idx} className="px-3 py-3 rounded border-bottom bg-white hover-bg-light transition">
                         <div className="d-flex justify-content-between align-items-center gap-2">
                           <div>
-                            <div className="fw-semibold text-dark fs-6">{item.nama_mesin}</div>
+                            <div className="fw-semibold text-dark fs-6">{item.nama_motor}</div>
                             <div className="small text-secondary mt-1">{item.deskripsi}</div>
                             <div className="text-muted mt-1" style={{ fontSize: "0.75rem" }}>
                               {item.tanggal ? formatWaktu(item.tanggal) : "-"}
                             </div>
                           </div>
-                          <Badge bg="success" className="flex-shrink-0 px-2 py-1 text-uppercase" style={{ fontSize: "0.7rem" }}>
-                            {item.status || "Selesai / Tercatat"}
+                          <Badge
+                            bg={item.status === "rusak" ? "danger" : item.status === "perlu_perhatian" ? "warning" : "success"}
+                            text={item.status === "perlu_perhatian" ? "dark" : undefined}
+                            className="flex-shrink-0 px-2 py-1 text-uppercase"
+                            style={{ fontSize: "0.7rem" }}
+                          >
+                            {item.status === "rusak" ? "Rusak" : item.status === "perlu_perhatian" ? "Perlu perhatian" : item.status === "baik" ? "Baik" : "Selesai / Tercatat"}
                           </Badge>
                         </div>
                       </li>
@@ -306,4 +286,4 @@ const DashboardPemeliharaanManager = () => {
   );
 };
 
-export default DashboardPemeliharaanManager;
+export default DashboardMotorKonversiManager;

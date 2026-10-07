@@ -25,7 +25,6 @@ import {
   IconEdit,
   IconTrash,
 } from "@tabler/icons-react";
-import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 
 import TanstackTable from "components/table/TanstackTable";
