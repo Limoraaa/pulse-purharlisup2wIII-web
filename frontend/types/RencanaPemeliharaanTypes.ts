@@ -21,6 +21,9 @@ export interface RencanaItem {
   status: StatusRencana;
   rab: number;
   keterangan: string;
+  // Terisi otomatis saat rencana dikerjakan lewat Checklist Visual.
+  logId: string | null;
+  tanggalSelesai: string | null;
 }
 
 export interface RencanaFormValues {
@@ -29,7 +32,6 @@ export interface RencanaFormValues {
   bulan: number;
   minggu: number;
   aksi: AksiRencana;
-  status: StatusRencana;
   rab: number;
   keterangan: string;
 }

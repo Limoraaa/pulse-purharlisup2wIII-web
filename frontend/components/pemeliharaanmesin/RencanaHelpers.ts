@@ -58,3 +58,10 @@ export const STATUS_VARIANT: Record<StatusTampil, string> = {
   Selesai: "success",
   Terlewat: "danger",
 };
+
+// Route halaman yang memuat DataPemeliharaanManager (daftar mesin + Checklist Visual).
+// Diambil dari link yang sudah dipakai dashboard pemeliharaan; SESUAIKAN jika berbeda.
+export const PEMELIHARAAN_MESIN_PATH = "/pemeliharaan/data-mesin";
+
+// Route halaman Rencana Pemeliharaan (RencanaPemeliharaanManager). SESUAIKAN.
+export const RENCANA_PATH = "/pemeliharaan/rencana";

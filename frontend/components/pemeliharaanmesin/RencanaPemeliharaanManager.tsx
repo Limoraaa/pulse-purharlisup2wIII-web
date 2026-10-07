@@ -117,6 +117,7 @@ const StatCard = ({ label, value, tone, icon }: StatCardProps) => (
 
 const RencanaPemeliharaanManager = () => {
   const canManage = usePermission("manage_pemeliharaan_mesin");
+  const canProcess = usePermission("process_pemeliharaan_mesin");
 
   const today = useMemo(() => new Date(), []);
   const currentYear = today.getFullYear();
@@ -730,6 +731,7 @@ const RencanaPemeliharaanManager = () => {
         submitting={submitting}
         error={modalError}
         canManage={canManage}
+        canProcess={canProcess}
       />
     </div>
   );
