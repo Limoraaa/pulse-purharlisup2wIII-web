@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
-import { Row, Col, Card, CardBody, Button, Badge, Table, Spinner, Alert } from 'react-bootstrap';
+import { Row, Col, Card, CardBody, Button, Badge, Table, Spinner, Alert, Dropdown } from 'react-bootstrap';
 import { 
   IconArrowLeft, 
   IconBox, 
@@ -12,10 +12,12 @@ import {
   IconClipboardList,
   IconMapPin as IconMap,
   IconClipboardCheck,
-  IconCircleCheck
+  IconCircleCheck,
+  IconDownload
 } from '@tabler/icons-react';
 import Image from 'next/image';
 import api from 'lib/api';
+import { exportToExcel, exportToPDF, ExportColumn } from 'components/ruangtools/riwayat/common/exportUtils';
 
 // Import Modal pendukung (Pastikan Anda mengadaptasi file ini juga nantinya untuk Motor)
 import PartMappingEditorMotor from './PartMappingEditor'; // Sesuaikan path jika namanya diubah
@@ -48,6 +50,14 @@ interface LogItemType {
   jumlah_part_total?: number | null;
 }
 
+const EXPORT_COLUMNS_LOG: ExportColumn[] = [
+  { header: "No", key: "no" },
+  { header: "Uraian Pemeliharaan", key: "uraian_pemeliharaan" },
+  { header: "Waktu Pelaksana", key: "waktu_pelaksana" },
+  { header: "Keterangan", key: "keterangan" },
+  { header: "Teknisi", key: "paraf" },
+];
+
 const STATUS_BADGE = {
   baik: { label: "Baik", bg: "success" },
   perlu_perhatian: { label: "Perlu perhatian", bg: "warning" },
@@ -67,6 +77,16 @@ export default function DetailMotorKonversiManager({ motor, canManage = false, o
 
   const [logs, setLogs] = useState<LogItemType[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
+  const [expandedLogs, setExpandedLogs] = useState<Set<number>>(new Set());
+
+  const toggleLog = (id: number) => {
+    setExpandedLogs((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const [showMappingEditor, setShowMappingEditor] = useState(false);
   const [showChecklistModal, setShowChecklistModal] = useState(false);
@@ -96,6 +116,18 @@ export default function DetailMotorKonversiManager({ motor, canManage = false, o
       loadLogs();
     }
   }, [activeTab, loadLogs]);
+
+  const exportFileName = `kartu-gantung-${motorKode.replace(/\s+/g, "-")}`;
+
+  const handleExportLogPDF = () => {
+    const dataWithIndex = logs.map((log, index) => ({ no: index + 1, ...log }));
+    exportToPDF(dataWithIndex as unknown as Record<string, unknown>[], EXPORT_COLUMNS_LOG, exportFileName, `Kartu Gantung - ${motorNama}`);
+  };
+
+  const handleExportLogExcel = () => {
+    const dataWithIndex = logs.map((log, index) => ({ no: index + 1, ...log }));
+    exportToExcel(dataWithIndex as unknown as Record<string, unknown>[], EXPORT_COLUMNS_LOG, exportFileName);
+  };
 
   return (
     <div className="detail-motor-page">
@@ -221,6 +253,15 @@ export default function DetailMotorKonversiManager({ motor, canManage = false, o
                   <IconClipboardList size={18} /> Riwayat Log Pemeliharaan
                 </h5>
                 <div className="d-flex gap-2 flex-wrap w-100 w-md-auto justify-content-center">
+                  <Dropdown>
+                    <Dropdown.Toggle variant="outline-secondary" size="sm" className="d-flex align-items-center gap-1 shadow-sm" style={{ fontSize: '0.75rem' }}>
+                      <IconDownload size={14} /> Export
+                    </Dropdown.Toggle>
+                    <Dropdown.Menu className="shadow border-0" style={{ fontSize: '0.8rem' }}>
+                      <Dropdown.Item onClick={handleExportLogPDF}>Export sebagai PDF</Dropdown.Item>
+                      <Dropdown.Item onClick={handleExportLogExcel}>Export sebagai Excel</Dropdown.Item>
+                    </Dropdown.Menu>
+                  </Dropdown>
                   {canManage && (
                     <Button variant="outline-primary" size="sm" onClick={() => setShowMappingEditor(true)} className="d-flex align-items-center gap-1 shadow-sm" style={{ fontSize: '0.75rem' }}>
                       <IconMap size={14} /> Peta Komponen
@@ -287,9 +328,35 @@ export default function DetailMotorKonversiManager({ motor, canManage = false, o
                               ) : "-"}
                             </td>
                             <td>
-                              <div style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={log.keterangan || ""}>
-                                {log.keterangan || "-"}
-                              </div>
+                              {(() => {
+                                const ket = log.keterangan || "-";
+                                const expanded = expandedLogs.has(log.id);
+                                const panjang = ket.length > 80;
+                                return (
+                                  <>
+                                    {expanded ? (
+                                      ket.split(" | ").map((bagian, i) => (
+                                        <div key={i} className="mb-1">{bagian}</div>
+                                      ))
+                                    ) : (
+                                      <div style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                        {ket}
+                                      </div>
+                                    )}
+                                    {panjang && (
+                                      <Button
+                                        variant="link"
+                                        size="sm"
+                                        className="p-0"
+                                        style={{ fontSize: '0.75rem' }}
+                                        onClick={() => toggleLog(log.id)}
+                                      >
+                                        {expanded ? "Sembunyikan" : "Selengkapnya"}
+                                      </Button>
+                                    )}
+                                  </>
+                                );
+                              })()}
                             </td>
                           </tr>
                         );

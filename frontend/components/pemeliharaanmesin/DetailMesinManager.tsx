@@ -104,6 +104,16 @@ export default function DetailMesinManager({ mesin, canManage = false, onBack }:
 
   const [logs, setLogs] = useState<LogItemType[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
+  const [expandedLogs, setExpandedLogs] = useState<Set<number>>(new Set());
+
+  const toggleLog = (id: number) => {
+    setExpandedLogs((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
   
   const [logAktivitas, setLogAktivitas] = useState<LogAktivitasType[]>([]);
   const [loadingAktivitas, setLoadingAktivitas] = useState(false);
@@ -425,12 +435,12 @@ export default function DetailMesinManager({ mesin, canManage = false, onBack }:
                   <thead className="table-light text-center">
                     <tr>
                       <th style={{ width: "5%" }}>No</th>
-                      <th className="text-start" style={{ width: "30%" }}>Uraian Pemeliharaan</th>
+                      <th className="text-start" style={{ width: "25%" }}>Uraian Pemeliharaan</th>
                       <th style={{ width: "12%" }}>Waktu Pelaksana</th>
                       <th style={{ width: "13%" }}>Teknisi</th>
                       <th style={{ width: "10%" }}>Part Diperiksa</th>
                       <th style={{ width: "10%" }}>Status</th>
-                      <th className="text-start" style={{ width: "20%" }}>Keterangan</th>
+                      <th className="text-start" style={{ width: "25%" }}>Keterangan</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -473,9 +483,35 @@ export default function DetailMesinManager({ mesin, canManage = false, onBack }:
                               ) : "-"}
                             </td>
                             <td>
-                              <div style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={log.keterangan || ""}>
-                                {log.keterangan || "-"}
-                              </div>
+                              {(() => {
+                                const ket = log.keterangan || "-";
+                                const expanded = expandedLogs.has(log.id);
+                                const panjang = ket.length > 80;
+                                return (
+                                  <>
+                                    {expanded ? (
+                                      ket.split(" | ").map((bagian, i) => (
+                                        <div key={i} className="mb-1">{bagian}</div>
+                                      ))
+                                    ) : (
+                                      <div style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                        {ket}
+                                      </div>
+                                    )}
+                                    {panjang && (
+                                      <Button
+                                        variant="link"
+                                        size="sm"
+                                        className="p-0"
+                                        style={{ fontSize: '0.75rem' }}
+                                        onClick={() => toggleLog(log.id)}
+                                      >
+                                        {expanded ? "Sembunyikan" : "Selengkapnya"}
+                                      </Button>
+                                    )}
+                                  </>
+                                );
+                              })()}
                             </td>
                           </tr>
                         );
