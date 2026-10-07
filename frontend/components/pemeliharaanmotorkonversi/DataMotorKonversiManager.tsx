@@ -23,7 +23,6 @@ import {
 import Image from "next/image";
 
 import Flex from "components/common/Flex";
-import DasherBreadcrumb from "components/common/DasherBreadcrumb";
 import DetailMotorKonversiManager from "./DetailMotorKonversiManager";
 import { MotorKonversiFormModal } from "./MotorKonversiFormModal";
 import api from "lib/api";
@@ -51,15 +50,6 @@ const EXPORT_COLUMNS_MOTOR: ExportColumn[] = [
   { header: "Status", key: "status" },
 ];
 
-const EXPORT_COLUMNS_ALL_LOGS: ExportColumn[] = [
-  { header: "Nomor Polisi", key: "nomor_polisi" },
-  { header: "Nama Motor", key: "nama_motor" },
-  { header: "Uraian Pemeliharaan", key: "uraian_pemeliharaan" },
-  { header: "Tanggal", key: "waktu_pelaksana" },
-  { header: "Keterangan", key: "keterangan" },
-  { header: "Teknisi", key: "paraf" },
-];
-
 const DataMotorKonversiManager = () => {
   const canManageMotor = usePermission("manage_pemeliharaan_motor_konversi");
   const [selectedMotor, setSelectedMotor] = useState<MotorKonversiItemType | null>(null);
@@ -70,7 +60,6 @@ const DataMotorKonversiManager = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [exportingAll, setExportingAll] = useState(false);
 
   const loadMotor = useCallback(async () => {
     setLoading(true);
@@ -108,38 +97,11 @@ const DataMotorKonversiManager = () => {
     });
   }, [motorList, searchTerm]);
 
-  // Handler Export
+  // Handler Export Katalog
   const handleExportPDF = () =>
     exportToPDF(filteredMotor as unknown as Record<string, unknown>[], EXPORT_COLUMNS_MOTOR, "data-motor-konversi", "Data Motor Konversi");
   const handleExportExcel = () =>
     exportToExcel(filteredMotor as unknown as Record<string, unknown>[], EXPORT_COLUMNS_MOTOR, "data-motor-konversi");
-
-  const handleExportAllLogs = async (type: 'pdf' | 'excel') => {
-    setExportingAll(true);
-    try {
-      const token = localStorage.getItem("token");
-      const res = await api<{ data: any[] } | any[]>("/log-pemeliharaan-motor", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      
-      const allLogs = Array.isArray(res) ? res : ('data' in res ? res.data : []);
-      if (allLogs.length === 0) {
-        alert("Belum ada data log pemeliharaan yang tercatat di sistem.");
-        return;
-      }
-
-      if (type === 'pdf') {
-        exportToPDF(allLogs, EXPORT_COLUMNS_ALL_LOGS, "semua-log-pemeliharaan-motor", "Seluruh Riwayat Pemeliharaan Motor Konversi");
-      } else {
-        exportToExcel(allLogs, EXPORT_COLUMNS_ALL_LOGS, "semua-log-pemeliharaan-motor");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Gagal mengambil seluruh data log pemeliharaan");
-    } finally {
-      setExportingAll(false);
-    }
-  };
 
   // Render komponen detail jika ada motor yang dipilih
   if (selectedMotor) {
@@ -174,9 +136,8 @@ const DataMotorKonversiManager = () => {
         <Col>
           <Flex justifyContent="between" alignItems="center" className="mb-3 w-100" breakpoint="md">
             <div>
-              <h1 className="mb-1 h4 h2-md">Katalog Motor Konversi</h1>
-              <p className="text-secondary mb-0 small">Daftar motor konversi beserta dokumen IK dan log pemeliharaan.</p>
-              <DasherBreadcrumb />
+              <h1 className="mb-2 h2">Katalog Motor Konversi</h1>
+              <p className="text-secondary mb-0">Daftar motor konversi beserta dokumen IK dan log pemeliharaan.</p>
             </div>
             <div>
               {canManageMotor && (
@@ -210,22 +171,11 @@ const DataMotorKonversiManager = () => {
               </InputGroup>
             </Col>
             <Col xs={12} md={7} lg={8} className="d-flex justify-content-md-end gap-2 flex-wrap align-items-center mt-2 mt-md-0">
-              {/* Grup Export Data Motor */}
-              <div className="d-flex align-items-center me-md-2 border-end pe-md-2">
+              {/* Grup Export Data Motor (Katalog) */}
+              <div className="d-flex align-items-center">
                 <span className="me-2 small text-secondary d-none d-lg-inline" style={{ fontSize: "0.7rem" }}>Katalog:</span>
                 <Button variant="outline-danger" size="sm" className="py-1 px-2 mx-1" style={{ fontSize: "0.75rem" }} onClick={handleExportPDF}>PDF</Button>
                 <Button variant="outline-success" size="sm" className="py-1 px-2" style={{ fontSize: "0.75rem" }} onClick={handleExportExcel}>Excel</Button>
-              </div>
-
-              {/* Grup Export Log */}
-              <div className="d-flex align-items-center">
-                <span className="me-2 small text-secondary d-none d-lg-inline" style={{ fontSize: "0.7rem" }}>Riwayat Log:</span>
-                <Button variant="outline-danger" size="sm" className="py-1 px-2 mx-1" style={{ fontSize: "0.75rem" }} onClick={() => handleExportAllLogs('pdf')} disabled={exportingAll}>
-                  {exportingAll ? <Spinner size="sm" /> : 'PDF'}
-                </Button>
-                <Button variant="outline-success" size="sm" className="py-1 px-2" style={{ fontSize: "0.75rem" }} onClick={() => handleExportAllLogs('excel')} disabled={exportingAll}>
-                  {exportingAll ? <Spinner size="sm" /> : 'Excel'}
-                </Button>
               </div>
             </Col>
           </Row>
