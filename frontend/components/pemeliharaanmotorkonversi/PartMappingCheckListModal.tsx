@@ -146,12 +146,7 @@ export default function PartMappingChecklistModalMotor({ show, onHide, mesinId, 
       setSubmitError("Periksa minimal satu part sebelum menyimpan kegiatan.");
       return;
     }
-    if (
-      checkedCount < parts.length &&
-      !window.confirm(`${parts.length - checkedCount} part belum diperiksa. Tetap simpan kegiatan ini?`)
-    ) {
-      return;
-    }
+
 
     setSubmitting(true);
     setSubmitError("");
@@ -282,6 +277,7 @@ export default function PartMappingChecklistModalMotor({ show, onHide, mesinId, 
           <Modal.Footer className="d-flex justify-content-between">
             <span className="small text-muted">
               Diperiksa: <strong>{checkedCount}</strong> dari {parts.length} part
+              {checkedCount === 0 && " · periksa minimal 1 part"}
             </span>
             <div className="d-flex gap-2">
               <Button variant="outline-secondary" onClick={handleCloseMain} disabled={submitting}>
