@@ -1,15 +1,20 @@
 "use client";
 // components/pemeliharaan/rencana/RencanaFormModal.tsx
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Modal, Form, Button, Alert, Row, Col, Spinner } from "react-bootstrap";
 import {
   AksiRencana,
   MesinOption,
   RencanaFormValues,
   RencanaItem,
-  StatusRencana,
 } from "types/RencanaPemeliharaanTypes";
-import { ACTION_KEYS, ACTION_META, MONTHS_LONG } from "./RencanaHelpers";
+import {
+  ACTION_KEYS,
+  ACTION_META,
+  MONTHS_LONG,
+  PEMELIHARAAN_MESIN_PATH,
+} from "./RencanaHelpers";
 
 export interface RencanaFormDefaults {
   mesinId?: string;
@@ -29,6 +34,7 @@ interface Props {
   submitting: boolean;
   error: string | null;
   canManage: boolean;
+  canProcess: boolean;
 }
 
 // Semua tahun yang diterima backend (2000-2100)
@@ -43,7 +49,6 @@ const buildEmptyForm = (
   bulan: defaults?.bulan ?? new Date().getMonth() + 1,
   minggu: defaults?.minggu ?? 1,
   aksi: "C",
-  status: "Rencana",
   rab: 0,
   keterangan: "",
 });
@@ -60,13 +65,16 @@ const RencanaFormModal = ({
   submitting,
   error,
   canManage,
+  canProcess,
 }: Props) => {
   const [form, setForm] = useState<RencanaFormValues>(buildEmptyForm(tahun, defaults));
   const [localError, setLocalError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const isEdit = !!initialData;
-  const readOnly = !canManage;
+  // Rencana yang sudah dikerjakan dikunci: statusnya mengikuti log pemeliharaan.
+  const completed = initialData?.status === "Selesai";
+  const readOnly = !canManage || completed;
 
   useEffect(() => {
     if (!show) return;
@@ -79,7 +87,6 @@ const RencanaFormModal = ({
         bulan: initialData.bulan,
         minggu: initialData.minggu,
         aksi: initialData.aksi,
-        status: initialData.status,
         rab: initialData.rab,
         keterangan: initialData.keterangan,
       });
@@ -110,6 +117,14 @@ const RencanaFormModal = ({
         </Modal.Header>
 
         <Modal.Body>
+          {completed && initialData && (
+            <Alert variant="success" className="py-2 small">
+              Sudah dikerjakan
+              {initialData.tanggalSelesai ? ` pada ${initialData.tanggalSelesai}` : ""}. Hasilnya
+              tercatat di log pemeliharaan mesin ini, sehingga rencana tidak bisa diubah.
+            </Alert>
+          )}
+
           {(localError || error) && (
             <Alert variant="danger" className="py-2">
               {localError || error}
@@ -172,7 +187,7 @@ const RencanaFormModal = ({
           </Row>
 
           <Row className="g-3 mb-3">
-            <Col xs={isEdit ? 6 : 12}>
+            <Col xs={12}>
               <Form.Label>Tindakan</Form.Label>
               <Form.Select
                 value={form.aksi}
@@ -184,19 +199,6 @@ const RencanaFormModal = ({
                 ))}
               </Form.Select>
             </Col>
-            {isEdit && (
-              <Col xs={6}>
-                <Form.Label>Status</Form.Label>
-                <Form.Select
-                  value={form.status}
-                  onChange={(e) => set("status", e.target.value as StatusRencana)}
-                  disabled={readOnly}
-                >
-                  <option value="Rencana">Rencana</option>
-                  <option value="Selesai">Selesai</option>
-                </Form.Select>
-              </Col>
-            )}
           </Row>
 
           <Form.Group className="mb-3">
@@ -225,7 +227,7 @@ const RencanaFormModal = ({
 
         <Modal.Footer className="justify-content-between">
           <div className="d-flex align-items-center gap-2">
-            {canManage && isEdit && initialData && (
+            {canManage && isEdit && initialData && !completed && (
               confirmDelete ? (
                 <>
                   <span className="text-danger small">Hapus rencana ini?</span>
@@ -242,12 +244,20 @@ const RencanaFormModal = ({
                 </Button>
               )
             )}
+            {canProcess && initialData && !completed && (
+              <Link
+                href={`${PEMELIHARAAN_MESIN_PATH}?mesin=${initialData.mesinId}&rencana=${initialData.id}`}
+                className="btn btn-success btn-sm"
+              >
+                Kerjakan sekarang
+              </Link>
+            )}
           </div>
           <div className="d-flex gap-2">
             <Button variant="outline-secondary" onClick={onClose} disabled={submitting}>
               {readOnly ? "Tutup" : "Batal"}
             </Button>
-            {canManage && (
+            {canManage && !completed && (
               <Button type="submit" variant="primary" disabled={submitting}>
                 {submitting && <Spinner animation="border" size="sm" className="me-2" />}
                 Simpan

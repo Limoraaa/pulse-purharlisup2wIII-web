@@ -12,12 +12,29 @@ use Illuminate\Validation\ValidationException;
 class RencanaPemeliharaanMesinController extends Controller
 {
     // GET /rencana-pemeliharaan?tahun=2026
+    //     /rencana-pemeliharaan?mesin_id=1&status=belum   (rencana yang belum dikerjakan)
     public function index(Request $request): JsonResponse
     {
-        $tahun = (int) $request->query('tahun', now()->year);
+        $query = RencanaPemeliharaanMesin::with([
+            'mesin:id,kode_mesin,nama_mesin',
+            'log:id,rencana_id,waktu_pelaksana',
+        ]);
 
-        $rows = RencanaPemeliharaanMesin::with('mesin:id,kode_mesin,nama_mesin')
-            ->where('tahun', $tahun)
+        if ($request->filled('tahun')) {
+            $query->where('tahun', (int) $request->query('tahun'));
+        } elseif (!$request->filled('mesin_id')) {
+            $query->where('tahun', now()->year);
+        }
+
+        if ($request->filled('mesin_id')) {
+            $query->where('mesin_id', $request->query('mesin_id'));
+        }
+
+        if ($request->query('status') === 'belum') {
+            $query->where('status', '!=', 'Selesai');
+        }
+
+        $rows = $query->orderBy('tahun')
             ->orderBy('bulan')
             ->orderBy('minggu')
             ->get()
@@ -36,7 +53,7 @@ class RencanaPemeliharaanMesinController extends Controller
 
         return response()->json([
             'message' => 'Rencana pemeliharaan berhasil ditambahkan.',
-            'data'    => $this->transform($rencana->load('mesin:id,kode_mesin,nama_mesin')),
+            'data'    => $this->transform($rencana->load(['mesin:id,kode_mesin,nama_mesin', 'log:id,rencana_id,waktu_pelaksana'])),
         ], 201);
     }
 
@@ -44,6 +61,7 @@ class RencanaPemeliharaanMesinController extends Controller
     public function update(Request $request, $id): JsonResponse
     {
         $rencana = RencanaPemeliharaanMesin::findOrFail($id);
+        $this->assertBelumSelesai($rencana, 'diubah');
 
         // Mesin tidak boleh diganti saat edit (select dikunci di frontend).
         $request->merge(['mesin_id' => $rencana->mesin_id]);
@@ -55,14 +73,17 @@ class RencanaPemeliharaanMesinController extends Controller
 
         return response()->json([
             'message' => 'Rencana pemeliharaan berhasil diperbarui.',
-            'data'    => $this->transform($rencana->load('mesin:id,kode_mesin,nama_mesin')),
+            'data'    => $this->transform($rencana->load(['mesin:id,kode_mesin,nama_mesin', 'log:id,rencana_id,waktu_pelaksana'])),
         ]);
     }
 
     // DELETE /rencana-pemeliharaan/{id}
     public function destroy($id): JsonResponse
     {
-        RencanaPemeliharaanMesin::findOrFail($id)->delete();
+        $rencana = RencanaPemeliharaanMesin::findOrFail($id);
+        $this->assertBelumSelesai($rencana, 'dihapus');
+
+        $rencana->delete();
 
         return response()->json(['message' => 'Rencana pemeliharaan berhasil dihapus.']);
     }
@@ -75,11 +96,21 @@ class RencanaPemeliharaanMesinController extends Controller
             'bulan'      => ['required', 'integer', 'between:1,12'],
             'minggu'     => ['required', 'integer', 'between:1,4'],
             'aksi'       => ['required', Rule::in(['C', 'L', 'P', 'M', 'K'])],
-            'status'     => ['sometimes', Rule::in(['Rencana', 'Selesai'])],
             'rab'        => ['sometimes', 'integer', 'min:0'],
             'keterangan' => ['nullable', 'string', 'max:1000'],
 
         ];
+    }
+
+    // Status "Selesai" diatur otomatis oleh LogPemeliharaanMesinController,
+    // jadi rencana yang sudah selesai tidak boleh diubah/dihapus dari sini.
+    private function assertBelumSelesai(RencanaPemeliharaanMesin $rencana, string $aksi): void
+    {
+        if ($rencana->status === 'Selesai') {
+            throw ValidationException::withMessages([
+                'status' => "Rencana yang sudah selesai tidak dapat {$aksi}. Hapus log pemeliharaannya terlebih dahulu jika ingin membuka kembali.",
+            ]);
+        }
     }
 
     // Satu mesin tidak boleh punya tindakan yang sama di minggu yang sama.
@@ -124,6 +155,8 @@ class RencanaPemeliharaanMesinController extends Controller
             'status'      => $r->status,
             'rab'         => $r->rab,
             'keterangan'  => $r->keterangan,
+            'log_id'      => $r->log->id ?? null,
+            'tanggal_selesai' => $r->log->waktu_pelaksana ?? null,
         ];
     }
 }

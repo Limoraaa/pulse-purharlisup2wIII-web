@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class RencanaPemeliharaanMesin extends Model
 {
@@ -30,5 +31,11 @@ class RencanaPemeliharaanMesin extends Model
     public function mesin(): BelongsTo
     {
         return $this->belongsTo(MesinProduksi::class, 'mesin_id');
+    }
+
+    // Log pemeliharaan (Checklist Visual) yang menyelesaikan rencana ini.
+    public function log(): HasOne
+    {
+        return $this->hasOne(LogPemeliharaanMesin::class, 'rencana_id');
     }
 }

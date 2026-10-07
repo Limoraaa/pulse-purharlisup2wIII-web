@@ -32,6 +32,8 @@ const mapRencana = (r: any): RencanaItem => ({
   status: String(r.status ?? "").toLowerCase() === "selesai" ? "Selesai" : "Rencana",
   rab: Number(r.rab ?? 0),
   keterangan: r.keterangan ?? "",
+  logId: r.log_id != null ? String(r.log_id) : null,
+  tanggalSelesai: r.tanggal_selesai ?? null,
 });
 
 const toPayload = (v: RencanaFormValues) => ({
@@ -40,7 +42,6 @@ const toPayload = (v: RencanaFormValues) => ({
   bulan: v.bulan,
   minggu: v.minggu,
   aksi: v.aksi,
-  status: v.status,
   rab: v.rab,
   keterangan: v.keterangan,
 });
@@ -48,6 +49,16 @@ const toPayload = (v: RencanaFormValues) => ({
 // GET /rencana-pemeliharaan?tahun=2026
 export const fetchRencana = async (tahun: number): Promise<RencanaItem[]> => {
   const json = await api(`/rencana-pemeliharaan?tahun=${tahun}`, {
+    method: "GET",
+    headers: authHeaders(),
+  });
+  return unwrap(json).map(mapRencana);
+};
+
+// GET /rencana-pemeliharaan?mesin_id=1&status=belum
+// Rencana satu mesin yang belum dikerjakan (untuk halaman detail pemeliharaan).
+export const fetchRencanaMesin = async (mesinId: string | number): Promise<RencanaItem[]> => {
+  const json = await api(`/rencana-pemeliharaan?mesin_id=${mesinId}&status=belum`, {
     method: "GET",
     headers: authHeaders(),
   });
