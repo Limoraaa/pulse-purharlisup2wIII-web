@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link"; 
 import { Row, Col, Card, CardBody, Spinner, Alert, Badge, Button } from "react-bootstrap";
 import {
@@ -32,8 +32,7 @@ const formatWaktu = (iso: string) => {
     timeZone: "Asia/Jakarta",
     day: "2-digit",
     month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
+    year: "numeric",
   });
 };
 
@@ -44,25 +43,29 @@ const DashboardPemeliharaanManager = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Data dummy untuk grafik tren agar tidak kosong (bisa diganti data API nantinya)
-  const dummyChartData = [
-    { tanggal: "01 Sep", total: 2 },
-    { tanggal: "03 Sep", total: 5 },
-    { tanggal: "05 Sep", total: 3 },
-    { tanggal: "07 Sep", total: 8 },
-    { tanggal: "09 Sep", total: 4 },
-  ];
+  const [hari, setHari] = useState(30);
+  const [tren, setTren] = useState<{ tanggal: string; total: number }[]>([]);
+
+  const chartData = useMemo(
+    () =>
+      tren.map((t) => ({
+        tanggal: new Date(t.tanggal).toLocaleDateString("id-ID", { day: "2-digit", month: "short" }),
+        total: t.total,
+      })),
+    [tren]
+  );
 
   useEffect(() => {
     const loadAll = async () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await api<any>("/pemeliharaan/dashboard-stats", { method: "GET" });
+        const response = await api<any>(`/pemeliharaan/dashboard-stats?hari=${hari}`, { method: "GET" });
         
         if (response && response.success) {
           setSummary(response.data);
           setAktivitas(response.data.aktivitas_terbaru || []);
+          setTren(response.data.tren || []);
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : "Gagal memuat data dashboard pemeliharaan";
@@ -73,7 +76,7 @@ const DashboardPemeliharaanManager = () => {
     };
 
     loadAll();
-  }, []);
+  }, [hari]);
 
   const PageHeader = (
     <Row>
@@ -202,12 +205,28 @@ const DashboardPemeliharaanManager = () => {
         <Col lg={7}>
           <Card className="card-lg h-100 shadow-sm border-0">
             <CardBody>
-              <div className="d-flex align-items-center gap-2 mb-3">
-                <IconTrendingUp className="text-primary" size={20} />
-                <h5 className="mb-0">Tren Aktivitas Pemeliharaan</h5>
+              <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                <div className="d-flex align-items-center gap-2">
+                  <IconTrendingUp className="text-primary" size={20} />
+                  <h5 className="mb-0">Tren Aktivitas Pemeliharaan</h5>
+                </div>
+                <div className="d-flex gap-1">
+                  {[7, 30, 90].map((h) => (
+                    <Button
+                      key={h}
+                      size="sm"
+                      variant={hari === h ? "primary" : "outline-secondary"}
+                      className="py-1 px-2"
+                      style={{ fontSize: "0.75rem" }}
+                      onClick={() => setHari(h)}
+                    >
+                      {h} hari
+                    </Button>
+                  ))}
+                </div>
               </div>
               <ResponsiveContainer width="100%" height={220}>
-                <AreaChart data={dummyChartData}>
+                <AreaChart data={chartData}>
                   <defs>
                     <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#006492" stopOpacity={0.4}/>
@@ -215,10 +234,10 @@ const DashboardPemeliharaanManager = () => {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
-                  <XAxis dataKey="tanggal" fontSize={12} stroke="#a0a0a0" />
+                  <XAxis dataKey="tanggal" fontSize={12} stroke="#a0a0a0" minTickGap={24} />
                   <YAxis allowDecimals={false} fontSize={12} stroke="#a0a0a0" />
                   <Tooltip />
-                  <Area type="monotone" dataKey="total" stroke="#006492" strokeWidth={2} fillOpacity={1} fill="url(#colorTotal)" />
+                  <Area type="monotone" dataKey="total" name="Jumlah log" stroke="#006492" strokeWidth={2} fillOpacity={1} fill="url(#colorTotal)" />
                 </AreaChart>
               </ResponsiveContainer>
             </CardBody>
@@ -288,8 +307,13 @@ const DashboardPemeliharaanManager = () => {
                               {item.tanggal ? formatWaktu(item.tanggal) : "-"}
                             </div>
                           </div>
-                          <Badge bg="success" className="flex-shrink-0 px-2 py-1 text-uppercase" style={{ fontSize: "0.7rem" }}>
-                            {item.status || "Selesai / Tercatat"}
+                          <Badge
+                            bg={item.status === "rusak" ? "danger" : item.status === "perlu_perhatian" ? "warning" : "success"}
+                            text={item.status === "perlu_perhatian" ? "dark" : undefined}
+                            className="flex-shrink-0 px-2 py-1 text-uppercase"
+                            style={{ fontSize: "0.7rem" }}
+                          >
+                            {item.status === "rusak" ? "Rusak" : item.status === "perlu_perhatian" ? "Perlu perhatian" : item.status === "baik" ? "Baik" : "Selesai / Tercatat"}
                           </Badge>
                         </div>
                       </li>
