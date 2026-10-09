@@ -1,38 +1,36 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { Row, Col, Card, CardBody, Spinner, Alert, Badge, Button } from "react-bootstrap";
 import {
   IconTool,
   IconServer,
   IconAlertTriangle,
+  IconPlus,
+  IconClipboardCheck,
   IconCalendarEvent,
   IconCalendarDue,
+  IconTrendingUp,
   IconActivity,
-  IconPlus,
-  IconChartBar,
-  IconClipboardCheck,
 } from "@tabler/icons-react";
 import {
   ResponsiveContainer,
-  BarChart,
-  Bar,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   Tooltip,
-  Legend,
   CartesianGrid,
 } from "recharts";
 
 import Flex from "components/common/Flex";
-import DasherBreadcrumb from "components/common/DasherBreadcrumb";
+
 import StatCard from "components/dashboard/StatCard";
 import api from "lib/api";
 import { usePermission } from "hooks/usePermissions";
 import { AksiRencana } from "types/RencanaPemeliharaanTypes";
 import {
   ACTION_META,
-  MONTHS_SHORT,
   PEMELIHARAAN_MESIN_PATH,
   RENCANA_PATH,
   formatJadwal,
@@ -79,11 +77,17 @@ interface RencanaRingkasan {
   perlu_dikerjakan_total: number;
 }
 
+interface TrenItem {
+  tanggal: string;
+  total: number;
+}
+
 interface DashboardStats {
   total_mesin: number;
   mesin_perbaikan: number;
   pemeliharaan_rutin: number; // total kegiatan pemeliharaan yang tercatat
   aktivitas_terbaru: AktivitasItem[];
+  tren?: TrenItem[];
   rencana?: RencanaRingkasan;
 }
 
@@ -93,8 +97,7 @@ const formatWaktu = (iso: string) => {
     timeZone: "Asia/Jakarta",
     day: "2-digit",
     month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
+    year: "numeric",
   });
 };
 
@@ -151,17 +154,28 @@ const DashboardPemeliharaanManager = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [hari, setHari] = useState(30);
+  const [tren, setTren] = useState<TrenItem[]>([]);
+
+  const chartData = useMemo(
+    () =>
+      tren.map((t) => ({
+        tanggal: new Date(t.tanggal).toLocaleDateString("id-ID", { day: "2-digit", month: "short" }),
+        total: t.total,
+      })),
+    [tren]
+  );
+
   useEffect(() => {
     const loadAll = async () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await api<{ success: boolean; data: DashboardStats }>(
-          "/pemeliharaan/dashboard-stats",
-          { method: "GET" }
-        );
+        const response = await api<any>(`/pemeliharaan/dashboard-stats?hari=${hari}`, { method: "GET" });
+
         if (response && response.success) {
           setSummary(response.data);
+          setTren(response.data.tren || []);
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : "Gagal memuat data dashboard pemeliharaan";
@@ -172,7 +186,7 @@ const DashboardPemeliharaanManager = () => {
     };
 
     loadAll();
-  }, []);
+  }, [hari]);
 
   const PageHeader = (
     <Row>
@@ -183,7 +197,6 @@ const DashboardPemeliharaanManager = () => {
             <p className="text-secondary mb-0">
               Ringkasan jadwal, pelaksanaan, dan kondisi mesin produksi.
             </p>
-            <DasherBreadcrumb />
           </div>
           {canViewMesin && (
             <div className="mt-3 mt-md-0">
@@ -224,15 +237,6 @@ const DashboardPemeliharaanManager = () => {
   const rencana = summary?.rencana;
   const mesinHref = canViewMesin ? PEMELIHARAAN_MESIN_PATH : null;
   const rencanaHref = canViewMesin ? RENCANA_PATH : null;
-
-  const chartData = (rencana?.per_bulan ?? []).map((m) => ({
-    bulan: MONTHS_SHORT[m.bulan - 1],
-    Selesai: m.selesai,
-    Terlewat: m.terlewat,
-    Menunggu: m.menunggu,
-  }));
-  const persenSelesai =
-    rencana && rencana.total > 0 ? Math.round((rencana.selesai / rencana.total) * 100) : 0;
 
   return (
     <>
@@ -282,47 +286,54 @@ const DashboardPemeliharaanManager = () => {
         </Col>
       </Row>
 
-      {/* Baris 2: Rencana vs realisasi + daftar yang perlu dikerjakan */}
+      {/* Baris 2: Tren aktivitas + daftar yang perlu dikerjakan */}
       <Row className="g-3 mb-4">
         <Col lg={7}>
           <Card className="card-lg h-100 shadow-sm border-0">
             <CardBody>
-              <div className="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+              <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
                 <div className="d-flex align-items-center gap-2">
-                  <IconChartBar className="text-primary" size={20} />
-                  <h5 className="mb-0">Rencana vs Realisasi {rencana?.tahun ?? new Date().getFullYear()}</h5>
+                  <IconTrendingUp className="text-primary" size={20} />
+                  <h5 className="mb-0">Tren Aktivitas Pemeliharaan</h5>
                 </div>
-                {rencana && rencana.total > 0 && (
-                  <span className="text-secondary small">
-                    <span className="fw-semibold text-body">{rencana.selesai}</span> dari {rencana.total} rencana
-                    selesai ({persenSelesai}%)
-                  </span>
-                )}
+                <div className="d-flex gap-1">
+                  {[7, 30, 90].map((h) => (
+                    <Button
+                      key={h}
+                      size="sm"
+                      variant={hari === h ? "primary" : "outline-secondary"}
+                      className="py-1 px-2"
+                      style={{ fontSize: "0.75rem" }}
+                      onClick={() => setHari(h)}
+                    >
+                      {h} hari
+                    </Button>
+                  ))}
+                </div>
               </div>
-
-              {!rencana || rencana.total === 0 ? (
-                <div className="text-center py-5 text-secondary">
-                  <p className="mb-3">Belum ada rencana pemeliharaan untuk tahun ini.</p>
-                  {canViewMesin && (
-                    <Link href={RENCANA_PATH}>
-                      <Button variant="outline-primary" size="sm">Susun Rencana</Button>
-                    </Link>
-                  )}
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height={240}>
-                  <BarChart data={chartData} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#eee" vertical={false} />
-                    <XAxis dataKey="bulan" fontSize={12} stroke="#a0a0a0" />
-                    <YAxis allowDecimals={false} fontSize={12} stroke="#a0a0a0" />
-                    <Tooltip />
-                    <Legend wrapperStyle={{ fontSize: 12 }} />
-                    <Bar dataKey="Selesai" stackId="rencana" fill="#006492" />
-                    <Bar dataKey="Terlewat" stackId="rencana" fill="#dc3545" />
-                    <Bar dataKey="Menunggu" stackId="rencana" fill="#c5d3dc" />
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
+              <ResponsiveContainer width="100%" height={220}>
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#006492" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="#006492" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                  <XAxis dataKey="tanggal" fontSize={12} stroke="#a0a0a0" minTickGap={24} />
+                  <YAxis allowDecimals={false} fontSize={12} stroke="#a0a0a0" />
+                  <Tooltip />
+                  <Area
+                    type="monotone"
+                    dataKey="total"
+                    name="Jumlah log"
+                    stroke="#006492"
+                    strokeWidth={2}
+                    fillOpacity={1}
+                    fill="url(#colorTotal)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
             </CardBody>
           </Card>
         </Col>
@@ -330,12 +341,7 @@ const DashboardPemeliharaanManager = () => {
         <Col lg={5}>
           <Card className="card-lg h-100 shadow-sm border-0">
             <CardBody>
-              <div className="d-flex justify-content-between align-items-center mb-3">
-                <h5 className="mb-0">Perlu Dikerjakan</h5>
-                {rencana && rencana.perlu_dikerjakan_total > 0 && (
-                  <Badge bg="secondary" pill>{rencana.perlu_dikerjakan_total}</Badge>
-                )}
-              </div>
+              <h5 className="mb-3">Perlu Dikerjakan</h5>
 
               {!rencana || rencana.perlu_dikerjakan.length === 0 ? (
                 <p className="text-secondary small mb-0">
@@ -417,16 +423,20 @@ const DashboardPemeliharaanManager = () => {
                               {item.tanggal ? formatWaktu(item.tanggal) : "-"}
                             </div>
                           </div>
-                          <div className="d-flex flex-column align-items-end gap-1 flex-shrink-0">
-                            <Badge bg="success" className="px-2 py-1 text-uppercase" style={{ fontSize: "0.7rem" }}>
-                              {item.status || "Selesai / Tercatat"}
-                            </Badge>
-                            {item.sesuai_rencana && (
-                              <Badge bg="info" className="px-2 py-1" style={{ fontSize: "0.7rem" }}>
-                                Sesuai rencana
-                              </Badge>
-                            )}
-                          </div>
+                          <Badge
+                            bg={item.status === "rusak" ? "danger" : item.status === "perlu_perhatian" ? "warning" : "success"}
+                            text={item.status === "perlu_perhatian" ? "dark" : undefined}
+                            className="flex-shrink-0 px-2 py-1 text-uppercase"
+                            style={{ fontSize: "0.7rem" }}
+                          >
+                            {item.status === "rusak"
+                              ? "Rusak"
+                              : item.status === "perlu_perhatian"
+                              ? "Perlu perhatian"
+                              : item.status === "baik"
+                              ? "Baik"
+                              : "Selesai / Tercatat"}
+                          </Badge>
                         </div>
                       </li>
                     ))}

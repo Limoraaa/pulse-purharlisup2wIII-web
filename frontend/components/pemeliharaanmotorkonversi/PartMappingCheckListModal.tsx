@@ -146,12 +146,7 @@ export default function PartMappingChecklistModalMotor({ show, onHide, mesinId, 
       setSubmitError("Periksa minimal satu part sebelum menyimpan kegiatan.");
       return;
     }
-    if (
-      checkedCount < parts.length &&
-      !window.confirm(`${parts.length - checkedCount} part belum diperiksa. Tetap simpan kegiatan ini?`)
-    ) {
-      return;
-    }
+
 
     setSubmitting(true);
     setSubmitError("");
@@ -178,12 +173,23 @@ export default function PartMappingChecklistModalMotor({ show, onHide, mesinId, 
         });
       });
 
+      const labelOf = (s: string) => STATUS_OPTIONS.find((o) => o.value === s)?.label ?? s;
+      const namaPart = hasil.map((p) => p.partName).join(", ");
+      const uraianOtomatis = `Pemeliharaan preventif (${hasil.length} dari ${parts.length} part): ${namaPart}`;
+      const keteranganOtomatis = hasil
+        .map((p) => {
+          const items = p.items.map((i) => `${i.item} (${labelOf(i.status)})`).join(", ");
+          return `${p.partName}: ${items}${p.catatan ? ` — Temuan: ${p.catatan}` : ""}`;
+        })
+        .join(" | ");
+
       // PERBAIKAN: Tambahkan uraian_pemeliharaan, status, dan jumlah_part_diperiksa
       await api("/log-pemeliharaan-motor", {
         method: "POST",
         body: JSON.stringify({
           motor_konversi_id: mesinId, 
-          uraian_pemeliharaan: "Pemeriksaan Checklist Visual (Peta Komponen)", // <-- Ini yang menyelesaikan error Anda!
+          uraian_pemeliharaan: uraianOtomatis,
+          keterangan: keteranganOtomatis,
           waktu_pelaksana: new Date().toISOString().split("T")[0],
           paraf: teknisi.trim(),
           status: overallStatus,                               // <-- Badge status (Baik/Perlu Perhatian/Rusak)
@@ -271,6 +277,7 @@ export default function PartMappingChecklistModalMotor({ show, onHide, mesinId, 
           <Modal.Footer className="d-flex justify-content-between">
             <span className="small text-muted">
               Diperiksa: <strong>{checkedCount}</strong> dari {parts.length} part
+              {checkedCount === 0 && " · periksa minimal 1 part"}
             </span>
             <div className="d-flex gap-2">
               <Button variant="outline-secondary" onClick={handleCloseMain} disabled={submitting}>

@@ -4,7 +4,7 @@ import { Row, Col, Card, CardBody, Alert, Spinner, InputGroup, Form, Button, Bad
 import { IconCircleCheck, IconSearch, IconX, IconClipboardList, IconShoppingCart, IconEdit, IconTrash } from "@tabler/icons-react";
 import TanstackTable from "components/table/TanstackTable";
 import Flex from "components/common/Flex";
-import DasherBreadcrumb from "components/common/DasherBreadcrumb";
+
 import { Modal } from "react-bootstrap";
 import OrderToolsFormModal from './OrderToolsFormModal';
 import OrderToolsEditModal from './OrderToolsEditModal';
@@ -307,10 +307,9 @@ export default function OrderToolsManager() {
           >
             <div>
               <h1 className="mb-2 h2">Order Tools</h1>
-              <p className="text-secondary mb-3">
+              <p className="text-secondary mb-0">
                 Kelola daftar pengajuan dan pemesanan alat tools baru.
               </p>
-              <DasherBreadcrumb />
             </div>
 
             <div className="mt-3 mt-md-0">

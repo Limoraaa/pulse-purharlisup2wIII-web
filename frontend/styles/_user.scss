@@ -36,7 +36,12 @@
 // ============================================================
 // Data Tools - scoped (UI only, tidak berdampak ke halaman lain)
 // ============================================================
-.datatools-page {
+// Aturan toolbar + search dipakai bersama halaman Pemeliharaan Mesin
+// agar search bar tampil identik. Table/pagination/empty tetap
+// khusus Data Tools.
+// ============================================================
+.datatools-page,
+.datamesin-page {
   // ---- Toolbar: search + filter ----
   .datatools-toolbar {
     padding: 1rem 1.25rem;
@@ -96,6 +101,19 @@
     }
   }
 
+  // ---- Responsive toolbar (berlaku untuk kedua halaman) ----
+  @include media-breakpoint-down(md) {
+    .datatools-toolbar {
+      padding: 1rem;
+    }
+  }
+}
+
+// ============================================================
+// Data Tools - table/pagination/empty/responsive tetap khusus
+// halaman ini (tidak ikut ke Pemeliharaan Mesin)
+// ============================================================
+.datatools-page {
   // ---- Table ----
   .table {
     thead th {
@@ -156,13 +174,6 @@
       border-radius: 50%;
       background-color: var(--#{$prefix}primary-subtle);
       color: var(--#{$prefix}primary);
-    }
-  }
-
-  // ---- Responsive ----
-  @include media-breakpoint-down(md) {
-    .datatools-toolbar {
-      padding: 1rem;
     }
   }
 }
@@ -2096,6 +2107,10 @@ html.collapsed #miniSidebar,
   background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
 }
 
+[data-bs-theme="dark"] .auth-wrapper {
+  background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+}
+
 // Animasi fade-in ringan untuk kedua panel
 @keyframes loginFadeLeft {
   from {
@@ -2401,6 +2416,50 @@ html.collapsed #miniSidebar,
       flex-basis: 100%;
       max-width: 100%;
       padding: 2.5rem 1.75rem;
+    }
+  }
+
+  // ---- Dark mode: samakan dengan tema gelap website ----
+  // Judul/label/ikon otomatis terang via gray vars tema; di sini hanya
+  // warna hex hardcoded yang perlu versi gelapnya.
+  [data-bs-theme="dark"] & {
+    .login-card {
+      background-color: #1e293b; // slate-800
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+    }
+
+    // Logo berlatar putih: beri wadah putih agar terlihat disengaja
+    .login-logo {
+      background-color: #fff;
+      padding: 0.5rem 1rem;
+      border-radius: 12px;
+    }
+
+    .login-subtitle {
+      color: #94a3b8; // slate-400
+    }
+
+    .login-input {
+      border-color: #334155; // slate-700
+      background-color: #0f172a; // slate-900
+
+      &:hover {
+        border-color: #475569; // slate-600
+      }
+    }
+
+    .form-check {
+      .form-check-input {
+        border-color: #475569;
+      }
+    }
+
+    .login-forgot {
+      color: #94a3b8;
+
+      &:hover {
+        color: var(--#{$prefix}primary);
+      }
     }
   }
 }
@@ -2863,19 +2922,22 @@ html.collapsed #miniSidebar,
 // table-responsive memotong dropdown karena overflow:auto. Lepaskan clipping
 // hanya selama menu terbuka; horizontal scrolling tetap aktif saat tertutup.
 .datatools-page .table-responsive:has(.dropdown-menu.show),
-.dataconsumable-page .table-responsive:has(.dropdown-menu.show) {
+.dataconsumable-page .table-responsive:has(.dropdown-menu.show),
+.datamesin-page .table-responsive:has(.dropdown-menu.show) {
   overflow: visible;
 }
 
 // Naikkan cell sticky pemilik dropdown, bukan hanya wrapper action.
 // Sticky td membentuk stacking context sendiri; z-index pada child saja tidak cukup.
 .datatools-page .table-responsive tbody td:has(.dropdown-menu.show),
-.dataconsumable-page .table-responsive tbody td:has(.dropdown-menu.show) {
+.dataconsumable-page .table-responsive tbody td:has(.dropdown-menu.show),
+.datamesin-page .table-responsive tbody td:has(.dropdown-menu.show) {
   z-index: 1000 !important;
 }
 
 .datatools-page .table-responsive tbody tr:has(.dropdown-menu.show),
-.dataconsumable-page .table-responsive tbody tr:has(.dropdown-menu.show) {
+.dataconsumable-page .table-responsive tbody tr:has(.dropdown-menu.show),
+.datamesin-page .table-responsive tbody tr:has(.dropdown-menu.show) {
   position: relative;
   z-index: 1000;
 }
@@ -2892,17 +2954,20 @@ html.collapsed #miniSidebar,
 .datapeminjam-page,
 .consumablemasuk-page,
 .toolsmasuk-page,
+.dataaktivitas-page,
+.datamesin-page,
 .riwayat-page {
   .table-responsive {
-    // Kolom terakhir (Aksi) selalu terlihat saat scroll horizontal
+    // Kolom Aksi (ditandai data-column-id="aksi") selalu terlihat saat
+    // scroll horizontal, di manapun posisinya dalam array kolom --
+    // termasuk saat kolom ini disembunyikan untuk role view-only,
+    // tidak ada kolom lain yang ikut salah ke-freeze.
     table {
       thead th[data-column-id="aksi"],
       tbody td[data-column-id="aksi"] {
         position: sticky;
         right: 0;
         z-index: 2;
-        // shadow tipis sebagai pemisah dari kolom yang tergulir di baliknya
-        box-shadow: -6px 0 8px -6px rgba(0, 0, 0, 0.15);
       }
 
       // Header kolom Aksi mengikuti warna header tabel
@@ -3051,4 +3116,150 @@ th:has(.kode-sort-header) {
 th:has(.kode-sort-header):hover .kode-sort-icon:not(.is-active) {
   color: var(--#{$prefix}gray-700);
   opacity: 1;
+}
+
+// ============================================================
+// Pemeliharaan Mesin - mobile card view (UI only)
+// Desktop/tablet: tabel seperti semula. Hanya di bawah md tabel
+// disembunyikan dan diganti card. Scoped .datamesin-page.
+// ============================================================
+.datamesin-page {
+  // Card view disembunyikan di desktop/tablet
+  .mesin-cards {
+    display: none;
+  }
+
+  @include media-breakpoint-down(md) {
+    // Sembunyikan tabel list (pagination di bawahnya tetap tampil)
+    .mesin-list-card .table-responsive {
+      display: none;
+    }
+
+    // Tampilkan card list
+    .mesin-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .mesin-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      min-width: 0;
+      padding: 0.875rem;
+      background-color: var(--#{$prefix}card-bg, #fff);
+      border: 1px solid var(--#{$prefix}border-color);
+      border-radius: $border-radius;
+    }
+
+    .mesin-card-main {
+      flex: 1 1 auto;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.25rem;
+    }
+
+    .mesin-card-title {
+      font-weight: 700;
+      overflow-wrap: anywhere;
+    }
+
+    .mesin-card-sub {
+      font-size: 0.8rem;
+      color: var(--#{$prefix}gray-600);
+    }
+
+    .mesin-card-meta {
+      display: flex;
+      gap: 0.375rem;
+      font-size: 0.8rem;
+      min-width: 0;
+    }
+
+    .mesin-card-label {
+      color: var(--#{$prefix}gray-600);
+      flex-shrink: 0;
+    }
+
+    .mesin-card-value {
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .mesin-card-status {
+      margin-top: 0.25rem;
+      padding: 0.375rem 0.75rem;
+    }
+
+    // Kebab menu: tombol icon-only + tanpa caret
+    .mesin-card-menu .dropdown-toggle::after {
+      display: none;
+    }
+
+    .mesin-kebab-btn {
+      width: 34px;
+      height: 34px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: $border-radius;
+      flex-shrink: 0;
+    }
+
+    // Tombol Tambah full-width, touch-friendly
+    .datamesin-add-btn {
+      width: 100%;
+      min-height: 44px;
+      justify-content: center;
+    }
+
+    // Pagination compact: hanya Previous, halaman aktif, Next
+    .pagination {
+      flex-wrap: wrap;
+      gap: 0.25rem;
+    }
+
+    .pagination .page-item:not(.active):not(:first-child):not(:last-child) {
+      display: none;
+    }
+
+    // Previous/Next jadi chevron icon-only
+    .pagination .page-item:first-child .page-link,
+    .pagination .page-item:last-child .page-link {
+      font-size: 0;
+      min-width: 38px;
+    }
+
+    .pagination .page-item:first-child .page-link::after {
+      content: "‹";
+      font-size: 1.25rem;
+      line-height: 1;
+    }
+
+    .pagination .page-item:last-child .page-link::after {
+      content: "›";
+      font-size: 1.25rem;
+      line-height: 1;
+    }
+  }
+}
+
+// ============================================================
+// Aktivitas log - perbaiki susunan paint kolom Aksi sticky (UI only)
+// Chrome/Safari salah mengurutkan paint sel sticky terhadap konten
+// yang di-scroll bila tabel memakai border-collapse: collapse
+// (bawaan Bootstrap reboot), sehingga kolom Selesai tampil DI ATAS
+// kolom Aksi saat tabel digeser. Paksa separate + spacing 0 agar
+// kolom Aksi sticky selalu di atas. Tampilan garis tabel tidak
+// berubah. Scoped .dataaktivitas-page.
+// ============================================================
+.dataaktivitas-page {
+  .table-responsive table {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
 }

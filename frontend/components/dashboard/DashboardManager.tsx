@@ -48,7 +48,7 @@ import { usePermission } from "hooks/usePermissions";
 
 // import custom components
 import Flex from "components/common/Flex";
-import DasherBreadcrumb from "components/common/DasherBreadcrumb";
+
 import StatCard from "components/dashboard/StatCard";
 
 const formatWaktu = (iso: string) => {
@@ -147,8 +147,7 @@ const DashboardManager = () => {
             <p className="text-secondary mb-0">
               Ringkasan aktivitas dan kondisi inventaris Ruang Tools.
             </p>
-            <DasherBreadcrumb />
-          </div>
+            </div>
         </Flex>
       </Col>
     </Row>

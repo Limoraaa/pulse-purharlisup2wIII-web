@@ -73,6 +73,22 @@ class LogPemeliharaanMotorKonversiController extends Controller
         try {
             $totalMotor = MotorKonversi::count();
             $totalLogPemeliharaan = LogPemeliharaanMotorKonversi::count();
+            $motorPerbaikan = MotorKonversi::where('status', 'Maintenance')->count();
+
+            // Tren aktivitas: jumlah log per hari, default 30 hari terakhir
+            $hari = min(max((int) request('hari', 30), 1), 365);
+            $mulai = now()->subDays($hari - 1)->startOfDay();
+
+            $perHari = LogPemeliharaanMotorKonversi::where('waktu_pelaksana', '>=', $mulai)
+                ->selectRaw('DATE(waktu_pelaksana) as tanggal, COUNT(*) as total')
+                ->groupBy('tanggal')
+                ->pluck('total', 'tanggal');
+
+            // Hari tanpa log tetap ditampilkan dengan nilai 0
+            $tren = collect(range(0, $hari - 1))->map(function ($i) use ($mulai, $perHari) {
+                $tgl = $mulai->copy()->addDays($i)->toDateString();
+                return ['tanggal' => $tgl, 'total' => (int) ($perHari[$tgl] ?? 0)];
+            });
 
             // Mengambil 5 aktivitas pemeliharaan terbaru berdasarkan waktu pelaksana
             $aktivitasTerbaru = LogPemeliharaanMotorKonversi::orderBy('waktu_pelaksana', 'desc')
@@ -86,7 +102,7 @@ class LogPemeliharaanMotorKonversiController extends Controller
                         'nama_motor' => $motor ? $motor->nama_motor : 'Motor #' . $item->motor_konversi_id,
                         'deskripsi' => $item->uraian_pemeliharaan,
                         'tanggal' => $item->waktu_pelaksana,
-                        'status' => 'Selesai / Tercatat',
+                        'status' => $item->status,
                     ];
                 });
 
@@ -94,9 +110,10 @@ class LogPemeliharaanMotorKonversiController extends Controller
                 'success' => true,
                 'data' => [
                     'total_motor' => $totalMotor,
-                    'motor_perbaikan' => $totalLogPemeliharaan, // Bisa disesuaikan logikanya nanti
+                    'motor_perbaikan' => $motorPerbaikan,
                     'pemeliharaan_rutin' => $totalLogPemeliharaan,
                     'aktivitas_terbaru' => $aktivitasTerbaru,
+                    'tren' => $tren,
                 ]
             ]);
         } catch (\Exception $e) {
@@ -178,7 +195,7 @@ class LogPemeliharaanMotorKonversiController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Log pemeliharaan berhasil dicatat', 
+                'message' => 'Log pemeliharaan berhasil dicatat',
                 'data' => $log
             ], 201);
         } catch (\Exception $e) {
@@ -223,7 +240,7 @@ class LogPemeliharaanMotorKonversiController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Log pemeliharaan berhasil diperbarui', 
+                'message' => 'Log pemeliharaan berhasil diperbarui',
                 'data' => $log
             ], 200);
         } catch (\Exception $e) {

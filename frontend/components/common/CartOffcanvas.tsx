@@ -1,5 +1,6 @@
 "use client";
 // import node module libraries
+import { useState } from "react";
 import { Offcanvas, Button, Form } from "react-bootstrap";
 import {
   IconTrash,
@@ -42,6 +43,12 @@ const CartOffcanvas = ({
   onRemove,
   onProceed,
 }: CartOffcanvasProps) => {
+  // Draft lokal untuk input qty manual, terpisah dari state parent,
+  // supaya field boleh dikosongkan sementara saat user mengetik ulang.
+  const [draftValues, setDraftValues] = useState<Record<string, string>>({});
+
+  const getItemKey = (item: UnifiedCartItem) =>
+    String(item.cartId ?? item.id ?? item.toolId ?? item.consumable_id ?? "");
 
   const handleDecrease = (item: UnifiedCartItem) => {
     if (item.jumlah <= 1) return;
@@ -58,16 +65,18 @@ const CartOffcanvas = ({
 
   // Fungsi baru untuk menangani input angka manual
   const handleInputChange = (item: UnifiedCartItem, value: string) => {
+    const key = getItemKey(item);
+
     // Hanya izinkan angka
     const digitsOnly = value.replace(/[^0-9]/g, "");
-    
-    // Jika input dikosongkan sementara oleh user (saat menghapus angka), 
-    // kita biarkan saja / kirim 1 agar tidak error, tapi jangan langsung panggil update jika empty string
-    if (digitsOnly === "") {
-        // Bisa dibiarkan saja karena akan dikoreksi saat onBlur, 
-        // atau kita tembak angka 1 sementara.
-        return; 
-    }
+
+    // Simpan draft dulu (boleh kosong) supaya field tidak "melompat balik"
+    // saat user sedang menghapus angka untuk mengetik ulang.
+    setDraftValues((prev) => ({ ...prev, [key]: digitsOnly }));
+
+    // Selama masih kosong, jangan panggil update ke parent dulu —
+    // biarkan user lanjut mengetik, akan dirapikan saat onBlur.
+    if (digitsOnly === "") return;
 
     let num = Number(digitsOnly);
     const maxLimit = item.maxJumlah ?? item.stok_tersedia ?? 99;
@@ -78,6 +87,29 @@ const CartOffcanvas = ({
 
     const targetId = item.cartId ?? item.id ?? "";
     onUpdateQty(targetId, num);
+  };
+
+  const handleInputBlur = (item: UnifiedCartItem) => {
+    const key = getItemKey(item);
+    const draft = draftValues[key];
+    const targetId = item.cartId ?? item.id ?? "";
+    const maxLimit = item.maxJumlah ?? item.stok_tersedia ?? 99;
+
+    if (draft === "" || draft === undefined) {
+      onUpdateQty(targetId, 1);
+    } else {
+      let num = Number(draft);
+      if (num > maxLimit) num = maxLimit;
+      if (num < 1) num = 1;
+      onUpdateQty(targetId, num);
+    }
+
+    // Bersihkan draft, biarkan tampilan kembali mengikuti item.jumlah dari parent
+    setDraftValues((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
   };
 
   const totalUnit = items.reduce((sum, item) => sum + item.jumlah, 0);
@@ -155,14 +187,9 @@ const CartOffcanvas = ({
                         pattern="[0-9]*"
                         className="cart-stepper-input text-center fw-semibold mx-1 p-0 border-0"
                         style={{ width: "40px", boxShadow: "none", backgroundColor: "transparent" }}
-                        value={item.jumlah}
+                        value={draftValues[getItemKey(item)] ?? String(item.jumlah)}
                         onChange={(e) => handleInputChange(item, e.target.value)}
-                        // Tambahkan onBlur untuk memastikan jika input kosong saat ditinggalkan, di-reset ke 1
-                        onBlur={(e) => {
-                            if(e.target.value === "" || Number(e.target.value) < 1) {
-                                handleInputChange(item, "1");
-                            }
-                        }}
+                        onBlur={() => handleInputBlur(item)}
                       />
 
                       <Button

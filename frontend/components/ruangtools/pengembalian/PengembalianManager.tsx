@@ -1,8 +1,8 @@
 "use client";
 // import node module libraries
 import { useEffect, useState } from "react";
-import { Row, Col, Alert, Spinner } from "react-bootstrap";
-import { IconCircleCheck } from "@tabler/icons-react";
+import { Row, Col, Alert, Spinner, Nav } from "react-bootstrap";
+import { IconCircleCheck, IconScan, IconUserSearch } from "@tabler/icons-react";
 import { createLaporanKerusakan } from "services/laporanKerusakanService";
 
 // import custom types
@@ -15,8 +15,9 @@ import { usePermission } from "hooks/usePermissions";
 
 // import custom components
 import Flex from "components/common/Flex";
-import DasherBreadcrumb from "components/common/DasherBreadcrumb";
+
 import PengembalianScanForm from "components/ruangtools/pengembalian/PengembalianScanForm";
+import PengembalianCariManual from "components/ruangtools/pengembalian/PengembalianCariManual";
 import PengembalianChecklist, {
   PengembalianBatchItem,
   PengembalianGroupItem,
@@ -36,6 +37,7 @@ const PengembalianManager = () => {
   const [itemsPeminjam, setItemsPeminjam] = useState<PengembalianGroupItem[] | null>(null);
   const [recordsByGroup, setRecordsByGroup] = useState<Record<string, PeminjamanAktifItemType[]>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [mode, setMode] = useState<"scan" | "manual">("scan");
 
   const loadData = async () => {
     setLoading(true);
@@ -230,9 +232,8 @@ const PengembalianManager = () => {
             <div>
               <h1 className="mb-2 h2">Pengembalian Alat</h1>
               <p className="text-secondary mb-0">
-                Scan kartu peminjam, lalu centang alat yang ingin dikembalikan sekaligus.
+                Pilih peminjam lewat scan kartu atau pencarian manual, lalu centang alat yang ingin dikembalikan sekaligus.
               </p>
-              <DasherBreadcrumb />
             </div>
           </Flex>
         </Col>
@@ -250,7 +251,31 @@ const PengembalianManager = () => {
           Memuat data...
         </div>
       ) : !itemsPeminjam ? (
-        <PengembalianScanForm onScan={handleScan} loading={scanning} error={scanError} />
+        <>
+          <Nav
+            variant="tabs"
+            activeKey={mode}
+            onSelect={(k) => k && setMode(k as "scan" | "manual")}
+            className="mb-3"
+          >
+            <Nav.Item>
+              <Nav.Link eventKey="scan" className="d-flex align-items-center gap-2">
+                <IconScan size={18} /> Scan Kartu
+              </Nav.Link>
+            </Nav.Item>
+            <Nav.Item>
+              <Nav.Link eventKey="manual" className="d-flex align-items-center gap-2">
+                <IconUserSearch size={18} /> Cari Manual
+              </Nav.Link>
+            </Nav.Item>
+          </Nav>
+
+          {mode === "scan" ? (
+            <PengembalianScanForm onScan={handleScan} loading={scanning} error={scanError} />
+          ) : (
+            <PengembalianCariManual items={items} onSelect={handleScan} disabled={scanning} />
+          )}
+        </>
       ) : (
         <PengembalianChecklist
           namaPeminjam={namaPeminjamAktif || ""}

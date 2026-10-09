@@ -26,7 +26,7 @@ import {
 
 // import custom components
 import Flex from "components/common/Flex";
-import DasherBreadcrumb from "components/common/DasherBreadcrumb";
+
 import { Avatar } from "components/common/Avatar";
 
 // import services
@@ -256,7 +256,6 @@ const ProfileManager = () => {
             <p className="text-secondary mb-0">
               Kelola informasi akun dan keamanan Anda.
             </p>
-            <DasherBreadcrumb />
           </div>
         </Col>
       </Row>

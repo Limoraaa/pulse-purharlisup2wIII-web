@@ -23,10 +23,11 @@ import {
 import Image from "next/image";
 
 import Flex from "components/common/Flex";
-import DasherBreadcrumb from "components/common/DasherBreadcrumb";
 import DetailMesinManager from "./DetailMesinManager";
 import MesinFormModal from "./MesinFormModal";
 import api from "lib/api";
+import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
+import { usePermission } from "hooks/usePermissions";
 
 interface MesinItemType {
   id: number | string;
@@ -37,7 +38,16 @@ interface MesinItemType {
   foto_katalog?: string | null;
 }
 
+// Definisi Kolom Export Katalog Mesin
+const EXPORT_COLUMNS_MESIN: ExportColumn[] = [
+  { header: "Kode Mesin", key: "kode_mesin" },
+  { header: "Nama Mesin", key: "nama_mesin" },
+  { header: "Lokasi / Ruang", key: "lokasi_ruang" },
+  { header: "Status", key: "status" },
+];
+
 const DataMesinManager = () => {
+  const canManageMesin = usePermission("manage_pemeliharaan_mesin");
   // State untuk menyimpan objek mesin yang sedang dipilih untuk dibuka detailnya
   const [selectedMesin, setSelectedMesin] = useState<MesinItemType | null>(null);
   const [mesinList, setMesinList] = useState<MesinItemType[]>([]);
@@ -85,6 +95,12 @@ const DataMesinManager = () => {
     });
   }, [mesinList, searchTerm]);
 
+  // Handler Export Katalog
+  const handleExportPDF = () =>
+    exportToPDF(filteredMesin as unknown as Record<string, unknown>[], EXPORT_COLUMNS_MESIN, "data-mesin-produksi", "Data Mesin Produksi");
+  const handleExportExcel = () =>
+    exportToExcel(filteredMesin as unknown as Record<string, unknown>[], EXPORT_COLUMNS_MESIN, "data-mesin-produksi");
+
   // Jika ada mesin yang dipilih, langsung render komponen DetailMesinManager dan kirim datanya
   if (selectedMesin) {
     return (
@@ -97,6 +113,7 @@ const DataMesinManager = () => {
           status: selectedMesin.status,
           foto_katalog: selectedMesin.foto_katalog
         }} 
+        canManage={canManageMesin}
         onBack={() => setSelectedMesin(null)} 
       />
     );
@@ -117,14 +134,15 @@ const DataMesinManager = () => {
         <Col>
           <Flex justifyContent="between" alignItems="center" className="mb-3 w-100" breakpoint="md">
             <div>
-              <h1 className="mb-1 h4 h2-md">Katalog Mesin Produksi</h1>
-              <p className="text-secondary mb-0 small">Daftar mesin produksi beserta dokumen IK dan log aktivitas.</p>
-              <DasherBreadcrumb />
+              <h1 className="mb-2 h2">Katalog Mesin Produksi</h1>
+              <p className="text-secondary mb-0">Daftar mesin produksi beserta dokumen IK dan log aktivitas.</p>
             </div>
             <div>
-              <Button variant="primary" size="sm" className="d-flex align-items-center gap-1 py-2 px-3" onClick={() => setFormModalOpen(true)}>
-                <IconPlus size={16} /> Tambah Mesin Baru
-              </Button>
+              {canManageMesin && (
+                <Button variant="primary" size="sm" className="d-flex align-items-center gap-1 py-2 px-3" onClick={() => setFormModalOpen(true)}>
+                  <IconPlus size={16} /> Tambah Mesin Baru
+                </Button>
+              )}
             </div>
           </Flex>
         </Col>
@@ -149,6 +167,14 @@ const DataMesinManager = () => {
                 )}
               </InputGroup>
             </Col>
+            <Col xs={12} md={7} lg={8} className="d-flex justify-content-md-end gap-2 flex-wrap align-items-center mt-2 mt-md-0">
+              {/* Grup Export Katalog Mesin */}
+              <div className="d-flex align-items-center">
+                <span className="me-2 small text-secondary d-none d-lg-inline" style={{ fontSize: "0.7rem" }}>Katalog:</span>
+                <Button variant="outline-danger" size="sm" className="py-1 px-2 mx-1" style={{ fontSize: "0.75rem" }} onClick={handleExportPDF}>PDF</Button>
+                <Button variant="outline-success" size="sm" className="py-1 px-2" style={{ fontSize: "0.75rem" }} onClick={handleExportExcel}>Excel</Button>
+              </div>
+            </Col>
           </Row>
         </div>
 
@@ -162,9 +188,11 @@ const DataMesinManager = () => {
               <div className="datatools-empty-icon mb-2 text-muted"><IconBox size={40} /></div>
               <h6 className="mb-1">Belum ada data mesin produksi</h6>
               <p className="text-secondary small mb-3">Mulai dengan menambahkan data mesin pertama.</p>
-              <Button variant="primary" size="sm" className="d-inline-flex align-items-center gap-1" onClick={() => setFormModalOpen(true)}>
-                <IconPlus size={16} /> Tambah Mesin Baru
-              </Button>
+              {canManageMesin && (
+                <Button variant="primary" size="sm" className="d-inline-flex align-items-center gap-1" onClick={() => setFormModalOpen(true)}>
+                  <IconPlus size={16} /> Tambah Mesin Baru
+                </Button>
+              )}
             </div>
           ) : filteredMesin.length === 0 ? (
             <div className="datatools-empty text-center py-5 bg-white rounded border">
@@ -266,7 +294,7 @@ const DataMesinManager = () => {
       </Card>
 
       {/* Modal Tambah Mesin */}
-      {formModalOpen && (
+      {canManageMesin && formModalOpen && (
         <MesinFormModal
           show={formModalOpen}
           onHide={() => setFormModalOpen(false)}

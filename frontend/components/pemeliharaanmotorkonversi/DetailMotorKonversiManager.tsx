@@ -9,7 +9,6 @@ import {
   IconAlertTriangle, 
   IconMapPin,
   IconCalendarEvent,
-  IconCash,
   IconClipboardList,
   IconMapPin as IconMap,
   IconClipboardCheck,
@@ -36,6 +35,7 @@ interface MotorProps {
     lokasi_ruang?: string;
     foto_katalog?: string | null;
   };
+  canManage?: boolean;
   onBack: () => void;
 }
 
@@ -64,7 +64,7 @@ const STATUS_BADGE = {
   rusak: { label: "Rusak", bg: "danger" },
 } as const;
 
-export default function DetailMotorKonversiManager({ motor, onBack }: MotorProps) {
+export default function DetailMotorKonversiManager({ motor, canManage = false, onBack }: MotorProps) {
   const motorId = motor?.id;
   const motorNama = motor?.nama_motor || motor?.nama || 'Tanpa Nama';
   const motorKode = motor?.kode_motor || motor?.kode || '-';
@@ -77,6 +77,16 @@ export default function DetailMotorKonversiManager({ motor, onBack }: MotorProps
 
   const [logs, setLogs] = useState<LogItemType[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
+  const [expandedLogs, setExpandedLogs] = useState<Set<number>>(new Set());
+
+  const toggleLog = (id: number) => {
+    setExpandedLogs((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const [showMappingEditor, setShowMappingEditor] = useState(false);
   const [showChecklistModal, setShowChecklistModal] = useState(false);
@@ -107,14 +117,16 @@ export default function DetailMotorKonversiManager({ motor, onBack }: MotorProps
     }
   }, [activeTab, loadLogs]);
 
+  const exportFileName = `kartu-gantung-${motorKode.replace(/\s+/g, "-")}`;
+
   const handleExportLogPDF = () => {
     const dataWithIndex = logs.map((log, index) => ({ no: index + 1, ...log }));
-    exportToPDF(dataWithIndex as unknown as Record<string, unknown>[], EXPORT_COLUMNS_LOG, `kartu-gantung-${motorKode}`, `Kartu Gantung - ${motorNama}`);
+    exportToPDF(dataWithIndex as unknown as Record<string, unknown>[], EXPORT_COLUMNS_LOG, exportFileName, `Kartu Gantung - ${motorNama}`);
   };
 
   const handleExportLogExcel = () => {
     const dataWithIndex = logs.map((log, index) => ({ no: index + 1, ...log }));
-    exportToExcel(dataWithIndex as unknown as Record<string, unknown>[], EXPORT_COLUMNS_LOG, `kartu-gantung-${motorKode}`);
+    exportToExcel(dataWithIndex as unknown as Record<string, unknown>[], EXPORT_COLUMNS_LOG, exportFileName);
   };
 
   return (
@@ -169,7 +181,7 @@ export default function DetailMotorKonversiManager({ motor, onBack }: MotorProps
               <div className="mb-2 text-center text-md-start">
                 <span className="text-muted small fw-bold tracking-wider" style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>KODE: {motorKode}</span>
                 <div className="d-flex align-items-center justify-content-center justify-content-md-start gap-3 mt-1 flex-wrap">
-                  <h2 className="h4 fw-bold text-body mb-0">{motorNama}</h2>
+                  <h2 className="h2 fw-bold text-body mb-0">{motorNama}</h2>
                   <Badge 
                     bg={motorStatus === 'Aktif' ? 'success' : motorStatus === 'Maintenance' ? 'warning' : 'danger'}
                     className="px-3 py-1 shadow-sm"
@@ -185,15 +197,7 @@ export default function DetailMotorKonversiManager({ motor, onBack }: MotorProps
               </p>
 
               <Row className="g-3 pt-3 border-top">
-                <Col xs={12} sm={6}>
-                  <div className="p-3 bg-body-tertiary rounded border h-100 text-center text-md-start">
-                    <div className="d-flex align-items-center justify-content-center justify-content-md-start text-muted small mb-1" style={{ fontSize: '0.75rem' }}>
-                      <IconCash size={16} className="me-2 text-primary" /> Total Biaya Pemeliharaan
-                    </div>
-                    <h6 className="fw-bold text-body mb-0 fs-5 mt-1">Rp 0</h6>
-                  </div>
-                </Col>
-                <Col xs={12} sm={6}>
+                <Col xs={12}>
                   <div className="p-3 bg-body-tertiary rounded border h-100 text-center text-md-start">
                     <div className="d-flex align-items-center justify-content-center justify-content-md-start text-muted small mb-1" style={{ fontSize: '0.75rem' }}>
                       <IconCalendarEvent size={16} className="me-2 text-success" /> Servis / Pemeliharaan Berikutnya
@@ -258,13 +262,16 @@ export default function DetailMotorKonversiManager({ motor, onBack }: MotorProps
                       <Dropdown.Item onClick={handleExportLogExcel}>Export sebagai Excel</Dropdown.Item>
                     </Dropdown.Menu>
                   </Dropdown>
-                  
-                  <Button variant="outline-primary" size="sm" onClick={() => setShowMappingEditor(true)} className="d-flex align-items-center gap-1 shadow-sm" style={{ fontSize: '0.75rem' }}>
-                    <IconMap size={14} /> Peta Komponen
-                  </Button>
-                  <Button variant="primary" size="sm" onClick={() => setShowChecklistModal(true)} className="d-flex align-items-center gap-1 shadow-sm" style={{ fontSize: '0.75rem' }}>
-                    <IconClipboardCheck size={14} /> Checklist Visual
-                  </Button>
+                  {canManage && (
+                    <Button variant="outline-primary" size="sm" onClick={() => setShowMappingEditor(true)} className="d-flex align-items-center gap-1 shadow-sm" style={{ fontSize: '0.75rem' }}>
+                      <IconMap size={14} /> Peta Komponen
+                    </Button>
+                  )}
+                  {canManage && (
+                    <Button variant="primary" size="sm" onClick={() => setShowChecklistModal(true)} className="d-flex align-items-center gap-1 shadow-sm" style={{ fontSize: '0.75rem' }}>
+                      <IconClipboardCheck size={14} /> Checklist Visual
+                    </Button>
+                  )}
                 </div>
               </div>
 
@@ -278,20 +285,19 @@ export default function DetailMotorKonversiManager({ motor, onBack }: MotorProps
                       <th style={{ width: "12%" }}>Teknisi</th>
                       <th style={{ width: "12%" }}>Part Diperiksa</th>
                       <th style={{ width: "10%" }}>Status</th>
-                      <th className="text-start" style={{ width: "15%" }}>Keterangan</th>
-                      <th style={{ width: "9%" }}>Aksi</th>
+                      <th className="text-start" style={{ width: "24%" }}>Keterangan</th>
                     </tr>
                   </thead>
                   <tbody>
                     {loadingLogs ? (
                       <tr>
-                        <td colSpan={8} className="text-center py-4 text-muted">
+                        <td colSpan={7} className="text-center py-4 text-muted">
                           <Spinner animation="border" size="sm" className="me-2" /> Memuat riwayat log pemeliharaan...
                         </td>
                       </tr>
                     ) : logs.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="text-center py-5 text-secondary">
+                        <td colSpan={7} className="text-center py-5 text-secondary">
                           <IconHistory size={32} className="mb-2 opacity-50" /><br/>
                           Belum ada catatan log pemeliharaan untuk motor ini.
                         </td>
@@ -322,24 +328,35 @@ export default function DetailMotorKonversiManager({ motor, onBack }: MotorProps
                               ) : "-"}
                             </td>
                             <td>
-                              <div style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={log.keterangan || ""}>
-                                {log.keterangan || "-"}
-                              </div>
-                            </td>
-                            {/* --- TAMBAHAN TOMBOL AKSI --- */}
-                            <td className="text-center text-nowrap">
-                              <Button 
-                                variant="outline-primary" 
-                                size="sm" 
-                                className="px-2 py-1"
-                                style={{ fontSize: '0.75rem' }}
-                                onClick={() => {
-                                  // Nanti Anda bisa memanggil fungsi modal detail di sini
-                                  console.log("Lihat Detail Log", log.id);
-                                }}
-                              >
-                                Detail
-                              </Button>
+                              {(() => {
+                                const ket = log.keterangan || "-";
+                                const expanded = expandedLogs.has(log.id);
+                                const panjang = ket.length > 80;
+                                return (
+                                  <>
+                                    {expanded ? (
+                                      ket.split(" | ").map((bagian, i) => (
+                                        <div key={i} className="mb-1">{bagian}</div>
+                                      ))
+                                    ) : (
+                                      <div style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                        {ket}
+                                      </div>
+                                    )}
+                                    {panjang && (
+                                      <Button
+                                        variant="link"
+                                        size="sm"
+                                        className="p-0"
+                                        style={{ fontSize: '0.75rem' }}
+                                        onClick={() => toggleLog(log.id)}
+                                      >
+                                        {expanded ? "Sembunyikan" : "Selengkapnya"}
+                                      </Button>
+                                    )}
+                                  </>
+                                );
+                              })()}
                             </td>
                           </tr>
                         );
