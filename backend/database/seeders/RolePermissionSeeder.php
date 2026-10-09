@@ -41,9 +41,13 @@ class RolePermissionSeeder extends Seeder
             // --- LAPORAN KERUSAKAN ALAT (domain Operasional Alat) ---
             'view_kerusakan_alat', 'create_kerusakan_alat', 'process_kerusakan_alat', 'manage_kerusakan_alat',
 
-            // --- PEMELIHARAAN MESIN (domain terpisah) ---
+// --- PEMELIHARAAN MESIN (domain terpisah) ---
             'view_dashboard_pemeliharaan',
             'view_pemeliharaan_mesin', 'create_pemeliharaan_mesin', 'process_pemeliharaan_mesin', 'manage_pemeliharaan_mesin',
+
+            // --- PEMELIHARAAN MOTOR KONVERSI (domain terpisah) ---
+            'view_dashboard_pemeliharaan_motor_konversi',
+            'view_pemeliharaan_motor_konversi', 'process_pemeliharaan_motor_konversi', 'manage_pemeliharaan_motor_konversi',
 
             // --- ADMINISTRASI ---
             'manage_users',
@@ -73,6 +77,8 @@ class RolePermissionSeeder extends Seeder
             'manage_master_data',
             'view_dashboard_pemeliharaan',
             'view_pemeliharaan_mesin', 'create_pemeliharaan_mesin', 'process_pemeliharaan_mesin', 'manage_pemeliharaan_mesin',
+            'view_dashboard_pemeliharaan_motor_konversi',
+            'view_pemeliharaan_motor_konversi', 'process_pemeliharaan_motor_konversi', 'manage_pemeliharaan_motor_konversi',
             'view_users', 'manage_users',
         ]);
 

@@ -7,6 +7,7 @@ import {
   IconHistory,
   IconShoppingCart,
   IconTools,
+  IconMotorbike,
   IconReportAnalytics,
   IconUsers,
   IconCalendarEvent,
@@ -123,7 +124,7 @@ export const DashboardMenu: MenuItemType[] = [
     icon: <IconReportAnalytics size={20} strokeWidth={1.5} />,
   },
   // ==========================================
-  // MENU PEMELIHARAAN (Hanya Mesin & Motor Konversi)
+  // MENU PEMELIHARAAN MESIN
   // ==========================================
   {
     id: uuid(),
@@ -138,26 +139,29 @@ export const DashboardMenu: MenuItemType[] = [
   },
   {
     id: uuid(),
-    title: "Rencana Pemeliharaan",
-    link: "/pemeliharaan/rencana",
-    icon: <IconCalendarEvent size={20} strokeWidth={1.5} />,
+    title: "Pemeliharaan Mesin",
+    link: "/pemeliharaan/data-mesin",
+    icon: <IconTools size={20} strokeWidth={1.5} />,
+  },
+  // ==========================================
+  // MENU PEMELIHARAAN MOTOR KONVERSI
+  // ==========================================
+  {
+    id: uuid(),
+    title: "Pemeliharaan Motor Konversi",
+    grouptitle: true,
   },
   {
     id: uuid(),
-    title: "Data Pemeliharaan",
-    icon: <IconTools size={20} strokeWidth={1.5} />,
-    children: [
-      {
-        id: uuid(),
-        name: "Mesin Produksi",
-        link: "/pemeliharaan/data-mesin",
-      },
-      {
-        id: uuid(),
-        name: "Motor Konversi",
-        link: "/pemeliharaan/data-motor-konversi",
-      },
-    ],
+    title: "Dashboard Pemeliharaan",
+    link: "/pemeliharaan/dashboard-motor-konversi",
+    icon: <IconLayoutDashboard size={20} strokeWidth={1.5} />,
+  },
+  {
+    id: uuid(),
+    title: "Pemeliharaan Motor Konversi",
+    link: "/pemeliharaan/data-motor-konversi",
+    icon: <IconMotorbike size={20} strokeWidth={1.5} />,
   },
   {
     id: uuid(),

@@ -38,6 +38,22 @@ class LogPemeliharaanMesinController extends Controller
         try {
             $totalMesin = MesinProduksi::count();
             $totalLogPemeliharaan = LogPemeliharaanMesin::count();
+            $mesinPerbaikan = MesinProduksi::where('status', 'Maintenance')->count();
+
+            // Tren aktivitas: jumlah log per hari, default 30 hari terakhir
+            $hari = min(max((int) request('hari', 30), 1), 365);
+            $mulai = now()->subDays($hari - 1)->startOfDay();
+
+            $perHari = LogPemeliharaanMesin::where('waktu_pelaksana', '>=', $mulai)
+                ->selectRaw('DATE(waktu_pelaksana) as tanggal, COUNT(*) as total')
+                ->groupBy('tanggal')
+                ->pluck('total', 'tanggal');
+
+            // Hari tanpa log tetap ditampilkan dengan nilai 0
+            $tren = collect(range(0, $hari - 1))->map(function ($i) use ($mulai, $perHari) {
+                $tgl = $mulai->copy()->addDays($i)->toDateString();
+                return ['tanggal' => $tgl, 'total' => (int) ($perHari[$tgl] ?? 0)];
+            });
 
             // Mengambil 5 aktivitas pemeliharaan terbaru berdasarkan waktu pelaksana
             $aktivitasTerbaru = LogPemeliharaanMesin::orderBy('waktu_pelaksana', 'desc')
@@ -52,7 +68,7 @@ class LogPemeliharaanMesinController extends Controller
                         'nama_mesin' => $mesin ? $mesin->nama_mesin : 'Mesin #' . $item->mesin_produksi_id,
                         'deskripsi' => $item->uraian_pemeliharaan,
                         'tanggal' => $item->waktu_pelaksana,
-                        'status' => 'Selesai / Tercatat',
+                        'status' => $item->status,
                     ];
                 });
 
@@ -60,9 +76,10 @@ class LogPemeliharaanMesinController extends Controller
                 'success' => true,
                 'data' => [
                     'total_mesin' => $totalMesin,
-                    'mesin_perbaikan' => $totalLogPemeliharaan,
+                    'mesin_perbaikan' => $mesinPerbaikan,
                     'pemeliharaan_rutin' => $totalLogPemeliharaan,
                     'aktivitas_terbaru' => $aktivitasTerbaru,
+                    'tren' => $tren,
                 ]
             ]);
         } catch (\Exception $e) {

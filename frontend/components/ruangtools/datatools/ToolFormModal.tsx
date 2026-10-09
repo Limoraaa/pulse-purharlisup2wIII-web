@@ -42,7 +42,13 @@ const ToolFormModal = ({
   useEffect(() => {
   if (show) {
     if (initialData) {
-      setForm({ ...initialData });
+      const normalisasi = (v?: string): ToolFormValues["kategori"] => {
+        const k = (v ?? "").trim().toLowerCase().replace(/\s+/g, "_");
+        if (k === "mesin") return "mesin";
+        if (k === "perkakas_mesin") return "perkakas_mesin";
+        return "alat_biasa"; // termasuk "perkakas_tangan" / "alat_biasa"
+      };
+      setForm({ ...initialData, kategori: normalisasi(initialData.kategori) });
     } else {
       setForm({ ...emptyForm, kodeBarang: suggestedKodeBarang || "" });
     }

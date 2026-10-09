@@ -11,6 +11,7 @@ class MotorKonversiSeeder extends Seeder
     {
         // 1. Buat Data Master Motor Konversi
         $motor = MotorKonversi::create([
+            'kode_motor' => 'MK-001',
             'nomor_polisi' => 'B 3821 PLN',
             'nama_motor' => 'Motor Listrik Konversi Operasional',
             'merek' => 'Honda',

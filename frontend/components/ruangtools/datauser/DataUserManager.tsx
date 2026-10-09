@@ -33,7 +33,7 @@ import api from "lib/api";
 
 import TanstackTable from "components/table/TanstackTable";
 import Flex from "components/common/Flex";
-import DasherBreadcrumb from "components/common/DasherBreadcrumb";
+
 import { getDataUserColumns } from "components/ruangtools/datauser/ColumnDefination";
 import UserFormModal from "components/ruangtools/datauser/UserFormModal";
 import DeleteConfirmModal from "components/ruangtools/datauser/DeleteConfirmModal";
@@ -279,7 +279,6 @@ const DataUserManager = () => {
                   ? "Mengelola seluruh akun pengguna sistem."
                   : "Melihat daftar akun pengguna sistem."}
               </p>
-              <DasherBreadcrumb />
             </div>
             {isAdmin && (
               <div>

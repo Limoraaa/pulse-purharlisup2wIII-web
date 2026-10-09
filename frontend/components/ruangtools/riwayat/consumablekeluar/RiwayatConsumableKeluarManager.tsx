@@ -20,7 +20,7 @@ import {
 
 import TanstackTable from "components/table/TanstackTable";
 import Flex from "components/common/Flex";
-import DasherBreadcrumb from "components/common/DasherBreadcrumb";
+
 import RiwayatFilterBar from "components/ruangtools/riwayat/common/RiwayatFilterBar";
 import {
   DateFilterValue,
@@ -189,7 +189,6 @@ const RiwayatConsumableKeluarManager = () => {
               <p className="text-secondary mb-0">
                 Menampilkan riwayat pengambilan barang consumable.
               </p>
-              <DasherBreadcrumb />
             </div>
           </Flex>
         </Col>

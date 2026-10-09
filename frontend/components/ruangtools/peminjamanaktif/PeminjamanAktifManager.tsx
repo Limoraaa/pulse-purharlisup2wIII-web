@@ -27,7 +27,7 @@ import { getPeminjamanAktif } from "services/peminjamanService";
 // import custom components
 import TanstackTable from "components/table/TanstackTable";
 import Flex from "components/common/Flex";
-import DasherBreadcrumb from "components/common/DasherBreadcrumb";
+
 import { getPeminjamanAktifColumns } from "components/ruangtools/peminjamanaktif/ColumnDefination";
 import RiwayatFilterBar from "components/ruangtools/riwayat/common/RiwayatFilterBar";
 import {
@@ -117,7 +117,6 @@ const PeminjamanAktifManager = () => {
               <p className="text-secondary mb-0">
                 Menampilkan seluruh alat yang masih dipinjam dan belum dikembalikan.
               </p>
-              <DasherBreadcrumb />
             </div>
           </Flex>
         </Col>
