@@ -206,25 +206,17 @@ const PeminjamFormModal = ({
                 </Form.Label>
                 <Form.Control
                   type="text" // Diubah ke text agar hasil scan langsung terlihat, tidak blank!
-                  placeholder={isEditMode ? "Sudah terdaftar" : "Klik di sini, lalu tap kartu ke reader..."}
+                  placeholder="Klik di sini, lalu tap kartu baru ke reader..."
                   value={form.id}
-                  readOnly={isEditMode} // Kalau edit, input ini dimatikan supaya ID utama tidak terubah
                   onChange={(e) =>
                     setForm((prev) => ({ ...prev, id: e.target.value }))
                   }
                   onKeyDown={handleRfidKeyDown}
                   autoComplete="off"
-                  className={isEditMode ? "bg-light text-muted" : ""} // Beri efek abu-abu kalau mode edit
                 />
-                {!isEditMode ? (
-                   <Form.Text className="text-muted small">
-                     Kosongkan jika pegawai belum memiliki kartu, sistem akan membuatkan ID otomatis.
-                   </Form.Text>
-                ) : (
-                   <Form.Text className="text-muted small">
-                     ID Kartu RFID tidak dapat diubah setelah pegawai didaftarkan.
-                   </Form.Text>
-                )}
+                <Form.Text className="text-muted small">
+                  Opsional. Kosongkan jika belum punya kartu, sistem membuat ID otomatis. Saat kartu sudah ada, buka Edit lalu tap kartu ke reader.
+                </Form.Text>
               </Col>
             </Row>
           </div>
