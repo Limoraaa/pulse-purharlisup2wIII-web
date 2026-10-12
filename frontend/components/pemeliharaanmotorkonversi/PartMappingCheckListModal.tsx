@@ -163,38 +163,14 @@ export default function PartMappingChecklistModalMotor({ show, onHide, mesinId, 
           catatan: results[p.id].catatan || undefined,
         }));
 
-      // --- TAMBAHAN BARU: Menghitung status keseluruhan untuk disimpan ke log ---
-      let overallStatus = "baik";
-      hasil.forEach((p) => {
-        p.items.forEach((item) => {
-          if (ORDER[item.status as keyof typeof ORDER] > ORDER[overallStatus as keyof typeof ORDER]) {
-            overallStatus = item.status;
-          }
-        });
-      });
-
-      const labelOf = (s: string) => STATUS_OPTIONS.find((o) => o.value === s)?.label ?? s;
-      const namaPart = hasil.map((p) => p.partName).join(", ");
-      const uraianOtomatis = `Pemeliharaan preventif (${hasil.length} dari ${parts.length} part): ${namaPart}`;
-      const keteranganOtomatis = hasil
-        .map((p) => {
-          const items = p.items.map((i) => `${i.item} (${labelOf(i.status)})`).join(", ");
-          return `${p.partName}: ${items}${p.catatan ? ` — Temuan: ${p.catatan}` : ""}`;
-        })
-        .join(" | ");
-
       // PERBAIKAN: Tambahkan uraian_pemeliharaan, status, dan jumlah_part_diperiksa
       await api("/log-pemeliharaan-motor", {
         method: "POST",
         body: JSON.stringify({
-          motor_konversi_id: mesinId, 
-          uraian_pemeliharaan: uraianOtomatis,
-          keterangan: keteranganOtomatis,
+          motor_konversi_id: mesinId,
           waktu_pelaksana: new Date().toISOString().split("T")[0],
           paraf: teknisi.trim(),
-          status: overallStatus,                               // <-- Badge status (Baik/Perlu Perhatian/Rusak)
-          jumlah_part_diperiksa: hasil.length,                 // <-- Angka part yang dicek
-          jumlah_part_total: parts.length,                     // <-- Angka total part di gambar
+          jumlah_part_total: parts.length,
           hasil_checklist: hasil,
         }),
       });
