@@ -143,6 +143,12 @@ export const DashboardMenu: MenuItemType[] = [
     link: "/pemeliharaan/data-mesin",
     icon: <IconTools size={20} strokeWidth={1.5} />,
   },
+  {
+    id: uuid(),
+    title: "Rencana Pemeliharaan",
+    link: "/pemeliharaan/rencana",
+    icon: <IconCalendarEvent size={20} strokeWidth={1.5} />,
+  },
   // ==========================================
   // MENU PEMELIHARAAN MOTOR KONVERSI
   // ==========================================
