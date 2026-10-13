@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
+import { mutate } from 'swr';
 import { Row, Col, Card, CardBody, Button, Badge, Table, Spinner, Alert, Dropdown, Modal, Form } from 'react-bootstrap';
 import { 
   IconArrowLeft, 
@@ -23,11 +24,14 @@ import {
 } from '@tabler/icons-react';
 import Image from 'next/image';
 import api from 'lib/api';
+import { usePermission } from 'hooks/usePermissions';
 import { exportToExcel, exportToPDF, ExportColumn } from 'components/ruangtools/riwayat/common/exportUtils';
+import type { RencanaItem } from 'types/RencanaPemeliharaanTypes';
 
 // Import Modal pendukung
 import PartMappingEditor from './pemeliharaanmesin/PartMappingEditor';
 import PartMappingChecklistModal from './pemeliharaanmesin/PartMappingCheckListModal';
+import RencanaMesinCard, { rencanaMesinKey } from 'components/manajemenmesin/rencanapemeliharaanmesin/RencanaMesinCard';
 
 interface MesinProps {
   mesin: {
@@ -107,6 +111,8 @@ export default function DetailMesinManager({
   const mesinStatus = mesin?.status || 'Aktif';
   const mesinFoto = mesin?.foto_katalog;
 
+  const canProcess = usePermission('process_pemeliharaan_mesin');
+
   const [activeTab, setActiveTab] = useState(mode === 'operasional' ? 'log_aktivitas' : 'log_pemeliharaan');
 
   // --- FIX: Sinkronisasi Tab Saat Mode Berubah ---
@@ -135,6 +141,8 @@ export default function DetailMesinManager({
 
   const [showMappingEditor, setShowMappingEditor] = useState(false);
   const [showChecklistModal, setShowChecklistModal] = useState(false);
+  // Rencana yang sedang dikerjakan lewat tombol "Kerjakan" (null = checklist biasa tanpa rencana)
+  const [rencanaAktif, setRencanaAktif] = useState<RencanaItem | null>(null);
 
   const [showAktivitasModal, setShowAktivitasModal] = useState(false);
   const [submitLoadingAktivitas, setSubmitLoadingAktivitas] = useState(false);
@@ -564,6 +572,18 @@ export default function DetailMesinManager({
 
           {activeTab === 'log_pemeliharaan' && (
             <div>
+              {/* Rencana pemeliharaan yang belum dikerjakan untuk mesin ini */}
+              {mesinId && (
+                <RencanaMesinCard
+                  mesinId={mesinId}
+                  canProcess={canProcess}
+                  onKerjakan={(r) => {
+                    setRencanaAktif(r);
+                    setShowChecklistModal(true);
+                  }}
+                />
+              )}
+
               <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2 text-center text-md-start">
                 <h5 className="mb-0 d-flex align-items-center gap-2 fs-6 fw-bold w-100 w-md-auto justify-content-center justify-content-md-start">
                   <IconClipboardList size={18} /> Riwayat Log Pemeliharaan
@@ -585,7 +605,16 @@ export default function DetailMesinManager({
                     </Button>
                   )}
                   {canManage && (
-                    <Button variant="primary" size="sm" onClick={() => setShowChecklistModal(true)} className="d-flex align-items-center gap-1 shadow-sm" style={{ fontSize: '0.75rem' }}>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => {
+                        setRencanaAktif(null); // checklist biasa, tidak terkait rencana
+                        setShowChecklistModal(true);
+                      }}
+                      className="d-flex align-items-center gap-1 shadow-sm"
+                      style={{ fontSize: '0.75rem' }}
+                    >
                       <IconClipboardCheck size={14} /> Checklist Visual
                     </Button>
                   )}
@@ -802,13 +831,19 @@ export default function DetailMesinManager({
           />
           <PartMappingChecklistModal
             show={showChecklistModal}
-            onHide={() => setShowChecklistModal(false)}
+            onHide={() => {
+              setShowChecklistModal(false);
+              setRencanaAktif(null);
+            }}
             mesinId={mesinId}
             mesinNama={mesinNama}
+            rencanaId={rencanaAktif?.id}
             onSubmitted={() => {
               setShowChecklistModal(false);
+              setRencanaAktif(null);
               setSuccessMessage("Laporan checklist visual berhasil disimpan!");
               loadLogs();
+              mutate(rencanaMesinKey(mesinId)); // refresh kartu rencana mesin ini
               setTimeout(() => setSuccessMessage(null), 4000);
             }}
           />

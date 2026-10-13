@@ -163,7 +163,7 @@ export const DashboardMenu: MenuItemType[] = [
     children: [
       {
         id: uuid(),
-        name: "Kalibrasi",
+        name: "Catatan Kalibrasi Mesin",
         link: "/pemeliharaan/kalibrasi",
       },
       {

@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import { mutate } from "swr";
 import { Row, Col, Card, CardBody, Button, Spinner, Alert, InputGroup, Form, Table, Badge } from "react-bootstrap";
 import {
   IconPlus,
@@ -17,12 +18,14 @@ import {
 import Link from "next/link";
 
 import TanstackTable from "components/table/TanstackTable";
+import { usePermission } from "hooks/usePermissions";
 
 import api from "lib/api";
 import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
 import MesinFormModal from "../MesinFormModal";
 import PartMappingEditor from "./PartMappingEditor";
 import PartMappingChecklistModal from "./PartMappingCheckListModal";
+import RencanaMesinCard, { rencanaMesinKey } from "components/manajemenmesin/rencanapemeliharaanmesin/RencanaMesinCard";
 
 interface MesinItemType {
   id: number | string;
@@ -64,6 +67,8 @@ const STATUS_BADGE = {
 } as const;
 
 const DataPemeliharaanManager = () => {
+  const canProcess = usePermission("process_pemeliharaan_mesin");
+
   const [viewMode, setViewMode] = useState<"list" | "detail">("list");
   const [selectedMesin, setSelectedMesin] = useState<MesinItemType | null>(null);
 
@@ -341,6 +346,15 @@ const DataPemeliharaanManager = () => {
             </CardBody>
           </Card>
 
+          {/* Rencana pemeliharaan yang belum dikerjakan untuk mesin ini */}
+          {selectedMesin && (
+            <RencanaMesinCard
+              mesinId={selectedMesin.id}
+              canProcess={canProcess}
+              onKerjakan={() => setShowChecklistModal(true)}
+            />
+          )}
+
           <Card>
             <CardBody>
               <div className="d-flex justify-content-between align-items-center mb-4">
@@ -447,6 +461,7 @@ const DataPemeliharaanManager = () => {
               setShowChecklistModal(false);
               setSuccessMessage("Laporan checklist visual berhasil disimpan!");
               handleOpenDetail(selectedMesin); // refresh riwayat log biar laporan baru langsung tampil
+              mutate(rencanaMesinKey(selectedMesin.id)); // refresh kartu rencana mesin ini
               setTimeout(() => setSuccessMessage(null), 4000);
             }}
           />
