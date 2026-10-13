@@ -29,6 +29,7 @@ import api from "lib/api";
 import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
 import { usePermission } from "hooks/usePermissions";
 
+// Interface untuk data mesin dari API
 interface MesinItemType {
   id: number | string;
   nama_mesin: string;
@@ -36,6 +37,11 @@ interface MesinItemType {
   lokasi_ruang: string;
   status: 'Aktif' | 'Maintenance' | 'Rusak' | string;
   foto_katalog?: string | null;
+}
+
+// Interface Props untuk komponen ini agar bisa menerima "mode"
+interface DataMesinManagerProps {
+  mode?: 'operasional' | 'pemeliharaan';
 }
 
 // Definisi Kolom Export Katalog Mesin
@@ -46,7 +52,7 @@ const EXPORT_COLUMNS_MESIN: ExportColumn[] = [
   { header: "Status", key: "status" },
 ];
 
-const DataMesinManager = () => {
+const DataMesinManager = ({ mode = 'pemeliharaan' }: DataMesinManagerProps) => {
   const canManageMesin = usePermission("manage_pemeliharaan_mesin");
   // State untuk menyimpan objek mesin yang sedang dipilih untuk dibuka detailnya
   const [selectedMesin, setSelectedMesin] = useState<MesinItemType | null>(null);
@@ -101,7 +107,7 @@ const DataMesinManager = () => {
   const handleExportExcel = () =>
     exportToExcel(filteredMesin as unknown as Record<string, unknown>[], EXPORT_COLUMNS_MESIN, "data-mesin-produksi");
 
-  // Jika ada mesin yang dipilih, langsung render komponen DetailMesinManager dan kirim datanya
+  // Jika ada mesin yang dipilih, langsung render komponen DetailMesinManager dan alirkan props 'mode'
   if (selectedMesin) {
     return (
       <DetailMesinManager 
@@ -114,6 +120,7 @@ const DataMesinManager = () => {
           foto_katalog: selectedMesin.foto_katalog
         }} 
         canManage={canManageMesin}
+        mode={mode} // <--- MENGIRIMKAN PROPS MODE KE DETAIL MESIN
         onBack={() => setSelectedMesin(null)} 
       />
     );
@@ -134,11 +141,18 @@ const DataMesinManager = () => {
         <Col>
           <Flex justifyContent="between" alignItems="center" className="mb-3 w-100" breakpoint="md">
             <div>
-              <h1 className="mb-2 h2">Katalog Mesin Produksi</h1>
-              <p className="text-secondary mb-0">Daftar mesin produksi beserta dokumen IK dan log aktivitas.</p>
+              <h1 className="mb-2 h2">
+                {mode === 'operasional' ? 'Katalog Operasional Mesin' : 'Katalog Mesin Produksi'}
+              </h1>
+              <p className="text-secondary mb-0">
+                {mode === 'operasional' 
+                  ? 'Pilih mesin untuk mencatat log aktivitas harian.' 
+                  : 'Daftar mesin produksi beserta dokumen IK dan riwayat pemeliharaan.'}
+              </p>
             </div>
             <div>
-              {canManageMesin && (
+              {/* Tombol Tambah Mesin hanya relevan di mode pemeliharaan (opsional, disesuaikan) */}
+              {canManageMesin && mode === 'pemeliharaan' && (
                 <Button variant="primary" size="sm" className="d-flex align-items-center gap-1 py-2 px-3" onClick={() => setFormModalOpen(true)}>
                   <IconPlus size={16} /> Tambah Mesin Baru
                 </Button>
@@ -168,7 +182,6 @@ const DataMesinManager = () => {
               </InputGroup>
             </Col>
             <Col xs={12} md={7} lg={8} className="d-flex justify-content-md-end gap-2 flex-wrap align-items-center mt-2 mt-md-0">
-              {/* Grup Export Katalog Mesin */}
               <div className="d-flex align-items-center">
                 <span className="me-2 small text-secondary d-none d-lg-inline" style={{ fontSize: "0.7rem" }}>Katalog:</span>
                 <Button variant="outline-danger" size="sm" className="py-1 px-2 mx-1" style={{ fontSize: "0.75rem" }} onClick={handleExportPDF}>PDF</Button>
@@ -210,7 +223,6 @@ const DataMesinManager = () => {
                   <Card 
                     className="h-100 shadow-sm border border-light overflow-hidden" 
                     style={{ cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s' }}
-                    // Mengirimkan objek mesin secara utuh saat kartu diklik
                     onClick={() => setSelectedMesin({
                       id: mesin.id,
                       nama_mesin: mesin.nama_mesin,
@@ -230,7 +242,6 @@ const DataMesinManager = () => {
                       e.currentTarget.style.borderColor = '#f8f9fa';
                     }}
                   >
-                    {/* Image Area */}
                     <div style={{ paddingTop: '100%', position: 'relative', backgroundColor: '#f8f9fa', borderBottom: '1px solid #f1f5f9' }}>
                       {mesin.foto_katalog ? (
                         <Image 
@@ -246,7 +257,6 @@ const DataMesinManager = () => {
                         </div>
                       )}
                       
-                      {/* Badge Status */}
                       <div className="position-absolute top-0 end-0 mt-2 z-3">
                         <span 
                           className={`badge rounded-start-2 rounded-end-0 shadow-sm ${
@@ -260,7 +270,6 @@ const DataMesinManager = () => {
                       </div>
                     </div>
 
-                    {/* Info Area */}
                     <CardBody className="p-2 d-flex flex-column">
                       <div className="flex-grow-1">
                         <h6 
@@ -293,7 +302,6 @@ const DataMesinManager = () => {
         </CardBody>
       </Card>
 
-      {/* Modal Tambah Mesin */}
       {canManageMesin && formModalOpen && (
         <MesinFormModal
           show={formModalOpen}

@@ -20,7 +20,7 @@ import TanstackTable from "components/table/TanstackTable";
 
 import api from "lib/api";
 import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
-import MesinFormModal from "./MesinFormModal";
+import MesinFormModal from "../MesinFormModal";
 import PartMappingEditor from "./PartMappingEditor";
 import PartMappingChecklistModal from "./PartMappingCheckListModal";
 
