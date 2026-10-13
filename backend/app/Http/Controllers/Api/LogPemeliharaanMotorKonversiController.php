@@ -168,30 +168,53 @@ class LogPemeliharaanMotorKonversiController extends Controller
     // Tambah log pemeliharaan baru dari form manual atau Checklist Visual
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'motor_konversi_id' => 'required|exists:motor_konversi,id',
-            'uraian_pemeliharaan' => 'required|string',
             'waktu_pelaksana' => 'required|date',
-            'keterangan' => 'nullable|string',
             'paraf' => 'required|string',
-            // Validasi tambahan untuk fitur Checklist Visual
-            'status' => 'nullable|string|in:baik,perlu_perhatian,rusak',
-            'jumlah_part_diperiksa' => 'nullable|integer',
-            'jumlah_part_total' => 'nullable|integer',
+
+            'uraian_pemeliharaan' => 'required_without:hasil_checklist|nullable|string',
+            'keterangan' => 'nullable|string',
+
+            'hasil_checklist' => 'required_without:uraian_pemeliharaan|nullable|array|min:1',
+            'hasil_checklist.*.partId' => 'required|string',
+            'hasil_checklist.*.partName' => 'required|string',
+            'hasil_checklist.*.items' => 'required|array|min:1',
+            'hasil_checklist.*.items.*.item' => 'required|string',
+            'hasil_checklist.*.items.*.status' => 'required|in:baik,perlu_perhatian,rusak',
+            'hasil_checklist.*.catatan' => 'nullable|string',
+            'jumlah_part_total' => 'nullable|integer|min:0',
         ]);
 
+        $data = [
+            'motor_konversi_id' => $validated['motor_konversi_id'],
+            'waktu_pelaksana' => $validated['waktu_pelaksana'],
+            'paraf' => $validated['paraf'],
+        ];
+
+        if (!empty($validated['hasil_checklist'])) {
+            $hasil = $validated['hasil_checklist'];
+            $diperiksa = count($hasil);
+            $total = max($validated['jumlah_part_total'] ?? $diperiksa, $diperiksa);
+
+            $data += [
+                'uraian_pemeliharaan' => "Pemeliharaan preventif ({$diperiksa} dari {$total} part): "
+                    . implode(', ', array_column($hasil, 'partName')),
+                'keterangan' => $this->susunKeterangan($hasil),
+                'hasil_checklist' => $hasil,
+                'status' => $this->statusTerburuk($hasil),
+                'jumlah_part_diperiksa' => $diperiksa,
+                'jumlah_part_total' => $total,
+            ];
+        } else {
+            $data += [
+                'uraian_pemeliharaan' => $validated['uraian_pemeliharaan'],
+                'keterangan' => $validated['keterangan'] ?? '',
+            ];
+        }
+
         try {
-            $log = LogPemeliharaanMotorKonversi::create([
-                'motor_konversi_id' => $request->motor_konversi_id,
-                'uraian_pemeliharaan' => $request->uraian_pemeliharaan,
-                'waktu_pelaksana' => $request->waktu_pelaksana,
-                'keterangan' => $request->keterangan ?? '',
-                'paraf' => $request->paraf,
-                // Insert data tambahan
-                'status' => $request->status,
-                'jumlah_part_diperiksa' => $request->jumlah_part_diperiksa,
-                'jumlah_part_total' => $request->jumlah_part_total,
-            ]);
+            $log = LogPemeliharaanMotorKonversi::create($data);
 
             return response()->json([
                 'success' => true,
@@ -204,6 +227,45 @@ class LogPemeliharaanMotorKonversiController extends Controller
                 'message' => 'Gagal menyimpan log: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    // Keterangan lengkap dalam satu baris: tiap part berisi semua item beserta statusnya,
+    // antar part dipisah " | ", catatan temuan menyusul setelah part-nya.
+    private function susunKeterangan(array $hasil): string
+    {
+        $label = ['baik' => 'Baik', 'perlu_perhatian' => 'Perlu perhatian', 'rusak' => 'Rusak'];
+        $baris = [];
+
+        foreach ($hasil as $part) {
+            $items = array_map(
+                fn ($it) => "{$it['item']} ({$label[$it['status']]})",
+                $part['items']
+            );
+            $baris[] = "{$part['partName']}: " . implode('; ', $items);
+
+            if (!empty($part['catatan'])) {
+                $baris[] = "Catatan {$part['partName']}: {$part['catatan']}";
+            }
+        }
+
+        return implode(' | ', $baris);
+    }
+
+    // Status terburuk dari semua item di semua part.
+    private function statusTerburuk(array $hasil): string
+    {
+        $urutan = ['baik' => 0, 'perlu_perhatian' => 1, 'rusak' => 2];
+        $terburuk = 'baik';
+
+        foreach ($hasil as $part) {
+            foreach ($part['items'] as $it) {
+                if ($urutan[$it['status']] > $urutan[$terburuk]) {
+                    $terburuk = $it['status'];
+                }
+            }
+        }
+
+        return $terburuk;
     }
 
     // Memperbarui log pemeliharaan berdasarkan ID (Untuk Fitur Edit)
