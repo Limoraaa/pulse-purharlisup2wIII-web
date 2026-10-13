@@ -1,5 +1,6 @@
 import { Metadata } from "next";
-import DataMesinManager from "components/pemeliharaanmesin/DataPemeliharaanManager";
+// Import dari file komponen generik yang sudah dibuat
+import DataMesinManager from "components/manajemenmesin/DataMesinManager";
 
 export const metadata: Metadata = {
   title: "Pemeliharaan Mesin Produksi | PULSE PUSHARLIS",
@@ -7,7 +8,8 @@ export const metadata: Metadata = {
 };
 
 const PemeliharaanMesinPage = () => {
-  return <DataMesinManager />;
+  // Kirimkan props mode="pemeliharaan"
+  return <DataMesinManager mode="pemeliharaan" />;
 };
 
 export default PemeliharaanMesinPage;

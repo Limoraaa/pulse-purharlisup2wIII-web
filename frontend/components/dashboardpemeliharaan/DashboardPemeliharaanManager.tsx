@@ -34,7 +34,7 @@ import {
   PEMELIHARAAN_MESIN_PATH,
   RENCANA_PATH,
   formatJadwal,
-} from "components/pemeliharaanmesin/RencanaHelpers";
+} from "components/manajemenmesin/rencanapemeliharaanmesin/RencanaHelpers";
 
 // ---------- Tipe respons /pemeliharaan/dashboard-stats ----------
 interface AktivitasItem {

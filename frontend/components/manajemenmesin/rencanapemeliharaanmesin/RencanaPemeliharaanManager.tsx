@@ -82,8 +82,9 @@ const stickyCell = (bg: string, zIndex: number): React.CSSProperties => ({
   left: 0,
   zIndex,
   background: bg,
-  minWidth: 260,
-  maxWidth: 260,
+  minWidth: 200,
+  maxWidth: 200,
+  borderRight: "1px solid var(--bs-border-color)",
 });
 
 interface StatCardProps {
@@ -518,8 +519,19 @@ const RencanaPemeliharaanManager = () => {
 
         <CardBody className={viewMode === "matrix" && hasData && !noResults && !loadingRencana ? "p-0" : undefined}>
           {rencanaError && (
-            <Alert variant="danger" className={viewMode === "matrix" ? "m-3" : undefined}>
-              {rencanaError instanceof Error ? rencanaError.message : "Gagal memuat rencana pemeliharaan"}
+            <Alert
+              variant="warning"
+              className={`d-flex align-items-center justify-content-between gap-3 flex-wrap ${
+                viewMode === "matrix" ? "m-3" : ""
+              }`}
+            >
+              <div className="d-flex align-items-center gap-2">
+                <IconAlertCircle size={20} />
+                <span>Gagal memuat rencana pemeliharaan. Koneksi ke server sempat terputus.</span>
+              </div>
+              <Button size="sm" variant="outline-dark" onClick={() => mutateRencana()}>
+                Coba lagi
+              </Button>
             </Alert>
           )}
 
@@ -564,7 +576,7 @@ const RencanaPemeliharaanManager = () => {
                   <tr>
                     <th
                       rowSpan={2}
-                      className="px-4 py-3"
+                      className="px-3 py-3"
                       style={stickyCell("var(--bs-tertiary-bg, #f8f9fa)", 3)}
                     >
                       Kode &amp; Nama Mesin
@@ -593,11 +605,11 @@ const RencanaPemeliharaanManager = () => {
                     const totalRab = plans.reduce((sum, p) => sum + p.rab, 0);
                     return (
                       <tr key={mesin.id}>
-                        <td className="px-4 py-2" style={stickyCell("var(--bs-body-bg, #fff)", 2)}>
+                        <td className="px-3 py-2" style={stickyCell("var(--bs-body-bg, #fff)", 2)}>
                           <div className="fw-semibold">{mesin.kodeMesin}</div>
                           <div
                             className="text-secondary small text-truncate"
-                            style={{ maxWidth: 220 }}
+                            style={{ maxWidth: 168 }}
                             title={mesin.namaMesin}
                           >
                             {mesin.namaMesin}

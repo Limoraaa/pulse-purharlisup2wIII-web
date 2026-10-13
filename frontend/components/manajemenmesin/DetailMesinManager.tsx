@@ -17,15 +17,17 @@ import {
   IconDownload,
   IconPlus,
   IconEdit,
-  IconTrash
+  IconTrash,
+  IconAdjustments,
+  IconTools
 } from '@tabler/icons-react';
 import Image from 'next/image';
 import api from 'lib/api';
 import { exportToExcel, exportToPDF, ExportColumn } from 'components/ruangtools/riwayat/common/exportUtils';
 
 // Import Modal pendukung
-import PartMappingEditor from './PartMappingEditor';
-import PartMappingChecklistModal from './PartMappingCheckListModal';
+import PartMappingEditor from './pemeliharaanmesin/PartMappingEditor';
+import PartMappingChecklistModal from './pemeliharaanmesin/PartMappingCheckListModal';
 
 interface MesinProps {
   mesin: {
@@ -40,6 +42,7 @@ interface MesinProps {
     foto_katalog?: string | null;
   };
   canManage?: boolean;
+  mode?: 'operasional' | 'pemeliharaan'; 
   onBack: () => void;
 }
 
@@ -90,7 +93,12 @@ const STATUS_BADGE = {
   rusak: { label: "Rusak", bg: "danger" },
 } as const;
 
-export default function DetailMesinManager({ mesin, canManage = false, onBack }: MesinProps) {
+export default function DetailMesinManager({ 
+  mesin, 
+  canManage = false, 
+  mode = 'pemeliharaan', // Default mode
+  onBack 
+}: MesinProps) {
 
   const mesinId = mesin?.id;
   const mesinNama = mesin?.nama_mesin || mesin?.nama || 'Tanpa Nama';
@@ -99,7 +107,14 @@ export default function DetailMesinManager({ mesin, canManage = false, onBack }:
   const mesinStatus = mesin?.status || 'Aktif';
   const mesinFoto = mesin?.foto_katalog;
 
-  const [activeTab, setActiveTab] = useState('log_pemeliharaan');
+  const [activeTab, setActiveTab] = useState(mode === 'operasional' ? 'log_aktivitas' : 'log_pemeliharaan');
+
+  // --- FIX: Sinkronisasi Tab Saat Mode Berubah ---
+  useEffect(() => {
+    setActiveTab(mode === 'operasional' ? 'log_aktivitas' : 'log_pemeliharaan');
+  }, [mode]);
+  // ---------------------------------------------
+
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const [logs, setLogs] = useState<LogItemType[]>([]);
@@ -121,7 +136,6 @@ export default function DetailMesinManager({ mesin, canManage = false, onBack }:
   const [showMappingEditor, setShowMappingEditor] = useState(false);
   const [showChecklistModal, setShowChecklistModal] = useState(false);
 
-  // State Modal (Aktivitas) - CRUD Terpadu
   const [showAktivitasModal, setShowAktivitasModal] = useState(false);
   const [submitLoadingAktivitas, setSubmitLoadingAktivitas] = useState(false);
   const [editingLogId, setEditingLogId] = useState<number | null>(null);
@@ -281,6 +295,28 @@ export default function DetailMesinManager({ mesin, canManage = false, onBack }:
     }
   };
 
+  const renderTabButton = (tab: { id: string, label: string, icon: React.ElementType }) => {
+    const IconComponent = tab.icon;
+    const isActive = activeTab === tab.id;
+    return (
+      <li className="nav-item" key={tab.id}>
+        <button
+          type="button"
+          onClick={() => setActiveTab(tab.id)}
+          className={`nav-link d-flex align-items-center gap-1 py-2 px-3 rounded-2 fw-semibold border-0 transition ${
+            isActive 
+              ? 'bg-primary text-white shadow-sm' 
+              : 'text-secondary bg-transparent hover-bg-body-secondary'
+          }`}
+          style={{ fontSize: '0.85rem', whiteSpace: 'nowrap' }}
+        >
+          {IconComponent && <IconComponent size={16} />}
+          {tab.label}
+        </button>
+      </li>
+    );
+  };
+
   return (
     <div className="detail-mesin-page">
       {successMessage && (
@@ -290,7 +326,6 @@ export default function DetailMesinManager({ mesin, canManage = false, onBack }:
         </Alert>
       )}
 
-      {/* Header Navigator Tombol Kembali */}
       <div className="mb-3">
         <Button 
           variant="outline-secondary" 
@@ -302,11 +337,9 @@ export default function DetailMesinManager({ mesin, canManage = false, onBack }:
         </Button>
       </div>
 
-      {/* Hero Section: Profil Detail Mesin */}
       <Card className="mb-4 shadow-sm border-0">
         <CardBody className="p-4">
           <Row className="align-items-center g-4">
-            
             <Col xs={12} md={4} lg={3}>
               <div 
                 className="position-relative rounded overflow-hidden border bg-body shadow-sm d-flex align-items-center justify-content-center p-2" 
@@ -363,43 +396,172 @@ export default function DetailMesinManager({ mesin, canManage = false, onBack }:
         </CardBody>
       </Card>
 
-      {/* Navigation Tabs */}
       <Card className="shadow-sm border-0">
-        <div className="bg-body-tertiary border-bottom px-3 py-3 rounded-top">
-          {/* justify-content-center memastikan tombol center di mobile */}
-          <ul className="nav nav-pills gap-2 m-0 justify-content-center justify-content-md-start">
-            {[
-              { id: 'log_pemeliharaan', label: 'Log Pemeliharaan', icon: IconHistory }, 
-              { id: 'log_aktivitas', label: 'Log Aktivitas', icon: IconActivity },
-              { id: 'ik', label: 'Instruksi Kerja (IK)', icon: IconFileText },
-              { id: 'hirarc', label: 'HIRARC', icon: IconAlertTriangle },
-            ].map((tab) => {
-              const IconComponent = tab.icon;
-              const isActive = activeTab === tab.id;
-              return (
-                <li className="nav-item" key={tab.id}>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`nav-link d-flex align-items-center gap-1 py-2 px-3 rounded-2 fw-semibold border-0 transition ${
-                      isActive 
-                        ? 'bg-primary text-white shadow-sm' 
-                        : 'text-secondary bg-transparent hover-bg-body-secondary'
-                    }`}
-                    style={{ fontSize: '0.85rem' }}
-                  >
-                    {IconComponent && <IconComponent size={16} />}
-                    {tab.label}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+        <div className="bg-body-tertiary border-bottom px-3 py-3 rounded-top overflow-auto">
+          <div className="d-flex gap-4 m-0 flex-nowrap" style={{ minWidth: 'max-content' }}>
+            
+            {/* HANYA MUNCUL JIKA MODE = OPERASIONAL */}
+            {mode === 'operasional' && (
+              <div className="d-flex align-items-center pe-4 border-end">
+                <span className="text-muted small fw-bold me-3" style={{fontSize: '0.7rem', letterSpacing: '0.5px'}}>OPERASIONAL:</span>
+                <ul className="nav nav-pills gap-2 m-0 flex-nowrap">
+                  {[
+                    { id: 'log_aktivitas', label: 'Log Aktivitas', icon: IconActivity },
+                    { id: 'ik_operasional', label: 'IK Operasional', icon: IconFileText },
+                  ].map(renderTabButton)}
+                </ul>
+              </div>
+            )}
+
+            {/* HANYA MUNCUL JIKA MODE = PEMELIHARAAN */}
+            {mode === 'pemeliharaan' && (
+              <div className="d-flex align-items-center pe-4 border-end">
+                <span className="text-muted small fw-bold me-3" style={{fontSize: '0.7rem', letterSpacing: '0.5px'}}>PEMELIHARAAN:</span>
+                <ul className="nav nav-pills gap-2 m-0 flex-nowrap">
+                  {[
+                    { id: 'log_pemeliharaan', label: 'Log Pemeliharaan', icon: IconHistory }, 
+                    { id: 'kalibrasi', label: 'Kalibrasi', icon: IconAdjustments },
+                    { id: 'ik_pemeliharaan', label: 'IK Pemeliharaan', icon: IconTools },
+                  ].map(renderTabButton)}
+                </ul>
+              </div>
+            )}
+
+            {/* MUNCUL DI KEDUA MODE */}
+            <div className="d-flex align-items-center">
+              <span className="text-muted small fw-bold me-3" style={{fontSize: '0.7rem', letterSpacing: '0.5px'}}>K3:</span>
+              <ul className="nav nav-pills gap-2 m-0 flex-nowrap">
+                {[
+                  { id: 'hirarc', label: 'HIRARC', icon: IconAlertTriangle },
+                ].map(renderTabButton)}
+              </ul>
+            </div>
+
+          </div>
         </div>
 
         <CardBody className="p-3 p-md-4">
           
-          {/* TAB: LOG PEMELIHARAAN */}
+          {/* RENDER KONTEN TAB */}
+          {activeTab === 'log_aktivitas' && (
+            <div>
+              <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2 text-center text-md-start">
+                <h5 className="mb-0 d-flex align-items-center gap-2 fs-6 fw-bold w-100 w-md-auto justify-content-center justify-content-md-start">
+                  <IconActivity size={18} /> Riwayat Log Aktivitas
+                </h5>
+                <div className="d-flex gap-2 flex-wrap w-100 w-md-auto justify-content-center">
+                  <Dropdown>
+                    <Dropdown.Toggle variant="outline-secondary" size="sm" className="d-flex align-items-center gap-1 shadow-sm" style={{ fontSize: '0.75rem' }}>
+                      <IconDownload size={14} /> Export
+                    </Dropdown.Toggle>
+                    <Dropdown.Menu className="shadow border-0" style={{ fontSize: '0.8rem' }}>
+                      <Dropdown.Item onClick={handleExportAktivitasPDF}>Export sebagai PDF</Dropdown.Item>
+                      <Dropdown.Item onClick={handleExportAktivitasExcel}>Export sebagai Excel</Dropdown.Item>
+                    </Dropdown.Menu>
+                  </Dropdown>
+
+                  {canManage && (
+                    <Button 
+                      variant="primary" 
+                      size="sm" 
+                      className="d-flex align-items-center gap-1 shadow-sm" 
+                      style={{ fontSize: '0.75rem' }} 
+                      onClick={handleOpenAddAktivitas}
+                    >
+                      <IconPlus size={14} /> Tambah Aktivitas
+                    </Button>
+                  )}
+                </div>
+              </div>
+              
+              <div className="table-responsive border rounded shadow-sm">
+                <Table hover className="align-middle mb-0 text-nowrap" style={{ fontSize: '0.8rem' }}>
+                  <thead className="table-light text-center">
+                    <tr>
+                      <th rowSpan={2} style={{ width: "40px", verticalAlign: "middle" }}>No</th>
+                      <th rowSpan={2} style={{ verticalAlign: "middle" }}>Operator Pelaksana</th>
+                      <th className="text-start" rowSpan={2} style={{ verticalAlign: "middle", minWidth: "200px" }}>Uraian Pekerjaan</th>
+                      <th rowSpan={2} style={{ verticalAlign: "middle" }}>Tanggal</th>
+                      <th colSpan={2}>Waktu</th>
+                      <th rowSpan={2} style={{ verticalAlign: "middle" }}>Jumlah</th>
+                      <th rowSpan={2} style={{ verticalAlign: "middle" }}>Pemeriksa</th>
+                      {canManage && <th rowSpan={2} style={{ width: "80px", verticalAlign: "middle" }}>Aksi</th>}
+                    </tr>
+                    <tr>
+                      <th>Mulai</th>
+                      <th>Selesai</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loadingAktivitas ? (
+                      <tr>
+                        <td colSpan={canManage ? 9 : 8} className="text-center py-4 text-muted">
+                          <Spinner animation="border" size="sm" className="me-2" /> Memuat log aktivitas...
+                        </td>
+                      </tr>
+                    ) : logAktivitas.length === 0 ? (
+                      <tr>
+                        <td colSpan={canManage ? 9 : 8} className="text-center py-5 text-secondary">
+                          <IconActivity size={32} className="mb-2 opacity-50" /><br/>
+                          Belum ada catatan log aktivitas harian untuk mesin ini.
+                        </td>
+                      </tr>
+                    ) : (
+                      logAktivitas.map((item, index) => (
+                        <tr key={item.id}>
+                          <td className="text-center fw-semibold text-muted">{index + 1}</td>
+                          <td className="text-center fw-semibold text-secondary">{item.operator_pelaksana}</td>
+                          <td style={{ whiteSpace: "normal" }}>
+                            <div style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                              {item.uraian_pekerjaan}
+                            </div>
+                          </td>
+                          <td className="text-center">{item.tanggal}</td>
+                          <td className="text-center">{item.waktu_mulai?.slice(0, 5) || "-"}</td>
+                          <td className="text-center">{item.waktu_selesai?.slice(0, 5) || "-"}</td>
+                          <td className="text-center fw-bold">{item.jumlah}</td>
+                          <td className="text-center">{item.pemeriksa}</td>
+                          {canManage && (
+                            <td className="text-center">
+                              <div className="d-flex justify-content-center gap-1">
+                                <Button 
+                                  variant="outline-warning" 
+                                  size="sm" 
+                                  className="p-1"
+                                  title="Edit"
+                                  onClick={() => handleOpenEditAktivitas(item)}
+                                >
+                                  <IconEdit size={12} />
+                                </Button>
+                                <Button 
+                                  variant="outline-danger" 
+                                  size="sm" 
+                                  className="p-1"
+                                  title="Hapus"
+                                  onClick={() => handleDeleteAktivitas(item.id)}
+                                >
+                                  <IconTrash size={12} />
+                                </Button>
+                              </div>
+                            </td>
+                          )}
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </Table>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'ik_operasional' && (
+            <div className="text-center py-5 text-muted border rounded shadow-sm bg-light">
+              <IconFileText size={36} className="mb-2 opacity-50" />
+              <h6 className="mb-1">Instruksi Kerja (IK) Operasional</h6>
+              <p className="small text-secondary mb-0">Menampilkan panduan standar operasional harian untuk {mesinNama}.</p>
+            </div>
+          )}
+
           {activeTab === 'log_pemeliharaan' && (
             <div>
               <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2 text-center text-md-start">
@@ -523,128 +685,29 @@ export default function DetailMesinManager({ mesin, canManage = false, onBack }:
             </div>
           )}
 
-          {/* TAB: LOG AKTIVITAS */}
-          {activeTab === 'log_aktivitas' && (
+          {activeTab === 'kalibrasi' && (
             <div>
               <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2 text-center text-md-start">
                 <h5 className="mb-0 d-flex align-items-center gap-2 fs-6 fw-bold w-100 w-md-auto justify-content-center justify-content-md-start">
-                  <IconActivity size={18} /> Riwayat Log Aktivitas
+                  <IconAdjustments size={18} /> Riwayat Kalibrasi Mesin
                 </h5>
-                <div className="d-flex gap-2 flex-wrap w-100 w-md-auto justify-content-center">
-                  <Dropdown>
-                    <Dropdown.Toggle variant="outline-secondary" size="sm" className="d-flex align-items-center gap-1 shadow-sm" style={{ fontSize: '0.75rem' }}>
-                      <IconDownload size={14} /> Export
-                    </Dropdown.Toggle>
-                    <Dropdown.Menu className="shadow border-0" style={{ fontSize: '0.8rem' }}>
-                      <Dropdown.Item onClick={handleExportAktivitasPDF}>Export sebagai PDF</Dropdown.Item>
-                      <Dropdown.Item onClick={handleExportAktivitasExcel}>Export sebagai Excel</Dropdown.Item>
-                    </Dropdown.Menu>
-                  </Dropdown>
-
-                  {canManage && (
-                    <Button 
-                      variant="primary" 
-                      size="sm" 
-                      className="d-flex align-items-center gap-1 shadow-sm" 
-                      style={{ fontSize: '0.75rem' }} 
-                      onClick={handleOpenAddAktivitas}
-                    >
-                      <IconPlus size={14} /> Tambah Aktivitas
-                    </Button>
-                  )}
-                </div>
               </div>
-              
-              <div className="table-responsive border rounded shadow-sm">
-                <Table hover className="align-middle mb-0 text-nowrap" style={{ fontSize: '0.8rem' }}>
-                  <thead className="table-light text-center">
-                    <tr>
-                      <th rowSpan={2} style={{ width: "40px", verticalAlign: "middle" }}>No</th>
-                      <th rowSpan={2} style={{ verticalAlign: "middle" }}>Operator Pelaksana</th>
-                      <th className="text-start" rowSpan={2} style={{ verticalAlign: "middle", minWidth: "200px" }}>Uraian Pekerjaan</th>
-                      <th rowSpan={2} style={{ verticalAlign: "middle" }}>Tanggal</th>
-                      <th colSpan={2}>Waktu</th>
-                      <th rowSpan={2} style={{ verticalAlign: "middle" }}>Jumlah</th>
-                      <th rowSpan={2} style={{ verticalAlign: "middle" }}>Pemeriksa</th>
-                      {canManage && <th rowSpan={2} style={{ width: "80px", verticalAlign: "middle" }}>Aksi</th>}
-                    </tr>
-                    <tr>
-                      <th>Mulai</th>
-                      <th>Selesai</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {loadingAktivitas ? (
-                      <tr>
-                        <td colSpan={canManage ? 9 : 8} className="text-center py-4 text-muted">
-                          <Spinner animation="border" size="sm" className="me-2" /> Memuat log aktivitas...
-                        </td>
-                      </tr>
-                    ) : logAktivitas.length === 0 ? (
-                      <tr>
-                        <td colSpan={canManage ? 9 : 8} className="text-center py-5 text-secondary">
-                          <IconActivity size={32} className="mb-2 opacity-50" /><br/>
-                          Belum ada catatan log aktivitas harian untuk mesin ini.
-                        </td>
-                      </tr>
-                    ) : (
-                      logAktivitas.map((item, index) => (
-                        <tr key={item.id}>
-                          <td className="text-center fw-semibold text-muted">{index + 1}</td>
-                          <td className="text-center fw-semibold text-secondary">{item.operator_pelaksana}</td>
-                          <td style={{ whiteSpace: "normal" }}>
-                            <div style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                              {item.uraian_pekerjaan}
-                            </div>
-                          </td>
-                          <td className="text-center">{item.tanggal}</td>
-                          <td className="text-center">{item.waktu_mulai?.slice(0, 5) || "-"}</td>
-                          <td className="text-center">{item.waktu_selesai?.slice(0, 5) || "-"}</td>
-                          <td className="text-center fw-bold">{item.jumlah}</td>
-                          <td className="text-center">{item.pemeriksa}</td>
-                          {canManage && (
-                            <td className="text-center">
-                              <div className="d-flex justify-content-center gap-1">
-                                <Button 
-                                  variant="outline-warning" 
-                                  size="sm" 
-                                  className="p-1"
-                                  title="Edit"
-                                  onClick={() => handleOpenEditAktivitas(item)}
-                                >
-                                  <IconEdit size={12} />
-                                </Button>
-                                <Button 
-                                  variant="outline-danger" 
-                                  size="sm" 
-                                  className="p-1"
-                                  title="Hapus"
-                                  onClick={() => handleDeleteAktivitas(item.id)}
-                                >
-                                  <IconTrash size={12} />
-                                </Button>
-                              </div>
-                            </td>
-                          )}
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </Table>
+              <div className="text-center py-5 text-muted border rounded shadow-sm bg-light">
+                <IconAdjustments size={36} className="mb-2 opacity-50" />
+                <h6 className="mb-1">Modul Kalibrasi</h6>
+                <p className="small text-secondary mb-0">Fitur pencatatan dan riwayat kalibrasi untuk {mesinNama} sedang disiapkan.</p>
               </div>
             </div>
           )}
 
-          {/* TAB: INSTRUKSI KERJA */}
-          {activeTab === 'ik' && (
-            <div className="text-center py-5 text-muted">
-              <IconFileText size={36} className="mb-2 opacity-50" />
-              <h6 className="mb-1">Dokumen Instruksi Kerja (IK)</h6>
-              <p className="small text-secondary mb-0">Menampilkan file panduan instruksi kerja untuk {mesinNama}.</p>
+          {activeTab === 'ik_pemeliharaan' && (
+            <div className="text-center py-5 text-muted border rounded shadow-sm bg-light">
+              <IconTools size={36} className="mb-2 opacity-50" />
+              <h6 className="mb-1">Instruksi Kerja (IK) Pemeliharaan</h6>
+              <p className="small text-secondary mb-0">Menampilkan panduan standar servis, perbaikan, dan perawatan untuk {mesinNama}.</p>
             </div>
           )}
 
-          {/* TAB: HIRARC */}
           {activeTab === 'hirarc' && (
             <div className="text-center py-5 text-muted">
               <IconAlertTriangle size={36} className="mb-2 opacity-50 text-warning" />
@@ -655,7 +718,6 @@ export default function DetailMesinManager({ mesin, canManage = false, onBack }:
         </CardBody>
       </Card>
 
-      {/* MODAL: Tambah/Edit Aktivitas */}
       <Modal show={showAktivitasModal} onHide={() => setShowAktivitasModal(false)} size="lg" centered backdrop="static">
         <Modal.Header closeButton className="py-2 px-3 bg-body-tertiary">
           <Modal.Title className="fs-6 fw-bold d-flex align-items-center gap-2 text-body">
@@ -726,7 +788,6 @@ export default function DetailMesinManager({ mesin, canManage = false, onBack }:
         </Modal.Footer>
       </Modal>
 
-      {/* Modal Peta Part & Checklist Visual */}
       {mesinId && (
         <>
           <PartMappingEditor
