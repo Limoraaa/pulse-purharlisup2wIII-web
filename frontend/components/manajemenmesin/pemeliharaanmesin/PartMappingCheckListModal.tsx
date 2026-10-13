@@ -10,6 +10,7 @@ interface Props {
   onHide: () => void;
   mesinId: number | string;
   mesinNama: string;
+  rencanaId?: number | string | null; // rencana yang sedang dikerjakan (opsional)
   onSubmitted?: () => void; // dipanggil setelah kegiatan berhasil disimpan
 }
 
@@ -41,7 +42,7 @@ function worstOf(statuses: Record<string, ChecklistStatus>): ChecklistStatus {
   return worst;
 }
 
-export default function PartMappingChecklistModal({ show, onHide, mesinId, mesinNama, onSubmitted }: Props) {
+export default function PartMappingChecklistModal({ show, onHide, mesinId, mesinNama, rencanaId, onSubmitted }: Props) {
   const [loadingMapping, setLoadingMapping] = useState(true);
   const [gambarUrl, setGambarUrl] = useState<string | null>(null);
   const [parts, setParts] = useState<MachinePart[]>([]);
@@ -169,6 +170,7 @@ export default function PartMappingChecklistModal({ show, onHide, mesinId, mesin
           paraf: teknisi.trim(),
           jumlah_part_total: parts.length,
           hasil_checklist: hasil,
+          ...(rencanaId ? { rencana_id: rencanaId } : {}),
         }),
       });
 

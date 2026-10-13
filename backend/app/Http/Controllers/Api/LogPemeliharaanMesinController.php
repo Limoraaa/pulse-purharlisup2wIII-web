@@ -5,11 +5,19 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\LogPemeliharaanMesin;
 use App\Models\MesinProduksi;
+use App\Models\RencanaPemeliharaanMesin;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class LogPemeliharaanMesinController extends Controller
 {
+    // Status rencana. Samakan STATUS_BELUM dengan nilai default kolom `status`
+    // di migration tabel rencana_pemeliharaan_mesin.
+    private const STATUS_SELESAI = 'Selesai';
+    private const STATUS_BELUM = 'Terjadwal';
+
     // Mengambil SEMUA log pemeliharaan dari semua mesin
     public function index()
     {
@@ -108,12 +116,15 @@ class LogPemeliharaanMesinController extends Controller
     // Mode baru  : kirim hasil_checklist (banyak part) -> uraian, keterangan, status
     //              dihitung server, jadi tidak bisa dimanipulasi dari client.
     // Mode lama  : kirim uraian_pemeliharaan (+ keterangan) seperti sebelumnya.
+    // Opsional   : rencana_id -> rencana tersebut otomatis ditandai Selesai
+    //              (dalam satu transaksi dengan penyimpanan log).
     public function store(Request $request)
     {
         $validated = $request->validate([
             'mesin_produksi_id' => 'required|exists:mesin_produksi,id',
             'waktu_pelaksana' => 'required|date',
             'paraf' => 'required|string', // Diisi nama user login/teknisi
+            'rencana_id' => 'nullable|integer|exists:rencana_pemeliharaan_mesin,id',
 
             'uraian_pemeliharaan' => 'required_without:hasil_checklist|nullable|string',
             'keterangan' => 'nullable|string',
@@ -157,7 +168,31 @@ class LogPemeliharaanMesinController extends Controller
             ];
         }
 
-        $log = LogPemeliharaanMesin::create($data);
+        $log = DB::transaction(function () use ($data, $validated) {
+            if (!empty($validated['rencana_id'])) {
+                // Kunci baris rencana supaya tidak bisa diselesaikan dua kali bersamaan.
+                $rencana = RencanaPemeliharaanMesin::lockForUpdate()->findOrFail($validated['rencana_id']);
+
+                if ((int) $rencana->mesin_id !== (int) $validated['mesin_produksi_id']) {
+                    throw ValidationException::withMessages([
+                        'rencana_id' => 'Rencana ini bukan milik mesin yang dipilih.',
+                    ]);
+                }
+
+                if ($rencana->status === self::STATUS_SELESAI) {
+                    throw ValidationException::withMessages([
+                        'rencana_id' => 'Rencana ini sudah selesai dikerjakan.',
+                    ]);
+                }
+
+                $log = LogPemeliharaanMesin::create($data + ['rencana_id' => $rencana->id]);
+                $rencana->update(['status' => self::STATUS_SELESAI]);
+
+                return $log;
+            }
+
+            return LogPemeliharaanMesin::create($data);
+        });
 
         return response()->json(['message' => 'Kegiatan pemeliharaan berhasil dicatat', 'data' => $log], 201);
     }
@@ -188,7 +223,8 @@ class LogPemeliharaanMesinController extends Controller
         return response()->json(['message' => 'Log pemeliharaan berhasil diperbarui', 'data' => $log], 200);
     }
 
-    // Menghapus log pemeliharaan berdasarkan ID
+    // Menghapus log pemeliharaan berdasarkan ID.
+    // Kalau log ini yang menyelesaikan sebuah rencana, rencananya dibuka kembali.
     public function destroy($id)
     {
         $log = LogPemeliharaanMesin::find($id);
@@ -197,7 +233,14 @@ class LogPemeliharaanMesinController extends Controller
             return response()->json(['message' => 'Data log pemeliharaan tidak ditemukan'], 404);
         }
 
-        $log->delete();
+        DB::transaction(function () use ($log) {
+            if ($log->rencana_id) {
+                RencanaPemeliharaanMesin::where('id', $log->rencana_id)
+                    ->update(['status' => self::STATUS_BELUM]);
+            }
+
+            $log->delete();
+        });
 
         return response()->json(['message' => 'Log pemeliharaan berhasil dihapus'], 200);
     }

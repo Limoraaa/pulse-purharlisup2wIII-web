@@ -163,8 +163,6 @@ const RencanaPemeliharaanManager = () => {
   );
 
   // ================= TURUNAN DATA =================
-  // Baris matrix: semua mesin (agar sel kosong bisa diisi), ditambah mesin
-  // yang punya rencana tetapi tidak ada di daftar mesin.
   const allRows = useMemo(() => {
     const map = new Map<string, { mesin: MesinOption; plans: RencanaItem[] }>();
     mesinList.forEach((m) => map.set(m.id, { mesin: m, plans: [] }));
@@ -244,8 +242,6 @@ const RencanaPemeliharaanManager = () => {
         await createRencana(values);
       }
       await mutateRencana();
-      // Jika tahun diubah di form, pindahkan tampilan ke tahun tersebut
-      // agar rencana yang baru disimpan langsung terlihat.
       if (values.tahun !== tahun) setTahun(values.tahun);
       flashSuccess(activeItem ? "Rencana berhasil diperbarui." : "Rencana berhasil ditambahkan.");
       closeModal();
@@ -276,7 +272,7 @@ const RencanaPemeliharaanManager = () => {
     filteredPlans.map((p) => ({
       kodeMesin: p.kodeMesin,
       namaMesin: p.namaMesin,
-      tindakan: `${p.aksi} - ${ACTION_META[p.aksi].label}`,
+      tindakan: `${p.aksi}\n${ACTION_META[p.aksi].label}`,
       jadwal: formatJadwal(p),
       status: getStatusTampil(p, today),
       rab: formatRupiah(p.rab),
@@ -411,13 +407,7 @@ const RencanaPemeliharaanManager = () => {
       <Row>
         <Col>
           <Flex justifyContent="between" alignItems="center" className="mb-4 w-100" breakpoint="md">
-            <div>
-              <h1 className="mb-2 h2">Rencana Pemeliharaan</h1>
-              <p className="text-secondary mb-0">
-                Mengelola jadwal pemeliharaan mesin produksi per minggu sepanjang tahun.
-              </p>
-              <DasherBreadcrumb />
-            </div>
+            <DasherBreadcrumb />
             <div>
               {canManage && (
                 <Button
@@ -623,7 +613,28 @@ const RencanaPemeliharaanManager = () => {
                             const plan = cellPlans[0];
                             const status = plan ? getStatusTampil(plan, today) : null;
                             const meta = plan ? ACTION_META[plan.aksi] : null;
-                            const done = status === "Selesai";
+
+                            // WARNA BERDASARKAN STATUS
+                            let cellBg = "var(--bs-body-bg, #fff)"; // Default Terjadwal: Putih
+                            let cellColor = meta ? meta.color : "#000";
+                            let cellBorderColor = meta ? meta.color : "var(--bs-border-color)";
+
+                            if (plan) {
+                              if (status === "Selesai") {
+                                cellBg = "#198754"; // Hijau Sukses
+                                cellColor = "#fff";
+                                cellBorderColor = "#198754";
+                              } else if (status === "Terlewat") {
+                                cellBg = "#dc3545"; // Merah Danger
+                                cellColor = "#fff";
+                                cellBorderColor = "#dc3545";
+                              } else {
+                                cellBg = "var(--bs-body-bg, #fff)"; // Putih
+                                cellColor = meta ? meta.color : "#000";
+                                cellBorderColor = meta ? meta.color : "var(--bs-border-color)";
+                              }
+                            }
+
                             return (
                               <td
                                 key={`${mesin.id}-${mIdx}-${w}`}
@@ -639,14 +650,12 @@ const RencanaPemeliharaanManager = () => {
                                       height: 24,
                                       fontSize: 12,
                                       cursor: "pointer",
-                                      background: done ? meta.color : "var(--bs-body-bg, #fff)",
-                                      color: done ? meta.textColor : meta.color,
-                                      borderColor: meta.color,
-                                      boxShadow:
-                                        status === "Terlewat" ? "0 0 0 2px var(--bs-danger)" : undefined,
+                                      background: cellBg,
+                                      color: cellColor,
+                                      borderColor: cellBorderColor,
                                     }}
                                     title={cellPlans
-                                      .map((p) => `${p.aksi} - ${ACTION_META[p.aksi].label} (${getStatusTampil(p, today)})`)
+                                      .map((p) => `${p.aksi}\n${ACTION_META[p.aksi].label} (${getStatusTampil(p, today)})`)
                                       .join("\n")}
                                     onClick={() => openEditModal(plan)}
                                   >
@@ -666,7 +675,7 @@ const RencanaPemeliharaanManager = () => {
                                     tabIndex={0}
                                     className="rencana-cell-empty rounded mx-auto"
                                     style={{ width: 24, height: 24, cursor: "pointer" }}
-                                    title={`Tambah rencana ${mesin.kodeMesin} - Minggu ${w}, ${MONTHS_SHORT[mIdx]}`}
+                                    title={`Tambah rencana ${mesin.kodeMesin} Minggu ${w}, ${MONTHS_SHORT[mIdx]}`}
                                     onClick={() => openAddModal({ mesinId: mesin.id, bulan: mIdx + 1, minggu: w })}
                                     onKeyDown={(e) => {
                                       if (e.key === "Enter" || e.key === " ") {
@@ -698,7 +707,7 @@ const RencanaPemeliharaanManager = () => {
       {/* ---- Keterangan ---- */}
       <Card className="mb-6">
         <CardBody className="d-flex flex-wrap align-items-center gap-4 small">
-          <span className="fw-semibold">Keterangan:</span>
+          <span className="fw-semibold">Keterangan Tindakan:</span>
           {ACTION_KEYS.map((k) => (
             <span key={k} className="d-inline-flex align-items-center gap-2">
               <span
@@ -709,23 +718,21 @@ const RencanaPemeliharaanManager = () => {
             </span>
           ))}
           <span className="vr d-none d-md-block" />
+          <span className="fw-semibold">Status:</span>
           <span className="d-inline-flex align-items-center gap-2">
             <span
               className="d-inline-block rounded bg-body border border-secondary"
               style={{ width: 16, height: 16 }}
             />
-            Terjadwal
+            Terjadwal (Putih)
           </span>
           <span className="d-inline-flex align-items-center gap-2">
-            <span className="d-inline-block rounded bg-secondary" style={{ width: 16, height: 16 }} />
-            Selesai
+            <span className="d-inline-block rounded" style={{ width: 16, height: 16, background: "#198754" }} />
+            Selesai (Hijau)
           </span>
           <span className="d-inline-flex align-items-center gap-2">
-            <span
-              className="d-inline-block rounded bg-body border border-secondary"
-              style={{ width: 16, height: 16, boxShadow: "0 0 0 2px var(--bs-danger)" }}
-            />
-            Terlewat
+            <span className="d-inline-block rounded" style={{ width: 16, height: 16, background: "#dc3545" }} />
+            Terlewat (Merah)
           </span>
         </CardBody>
       </Card>

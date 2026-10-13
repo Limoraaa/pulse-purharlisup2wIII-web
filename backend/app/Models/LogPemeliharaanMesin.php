@@ -13,6 +13,7 @@ class LogPemeliharaanMesin extends Model
 
     protected $fillable = [
         'mesin_produksi_id',
+        'rencana_id',
         'uraian_pemeliharaan',
         'waktu_pelaksana',
         'keterangan',
