@@ -1,0 +1,289 @@
+"use client";
+import { useEffect, useState, useMemo } from "react";
+import Link from "next/link"; 
+import { Row, Col, Card, CardBody, Spinner, Alert, Badge, Button } from "react-bootstrap";
+import {
+  IconMotorbike,
+  IconAlertTriangle,
+  IconChecklist,
+  IconPlus,
+  IconTrendingUp,
+} from "@tabler/icons-react";
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+} from "recharts";
+
+import Flex from "components/common/Flex";
+import StatCard from "components/dashboard/StatCard";
+import api from "/lib/api";
+import { usePermission } from "hooks/usePermissions";
+
+const formatWaktu = (iso: string) => {
+  const d = new Date(iso);
+  return d.toLocaleString("id-ID", {
+    timeZone: "Asia/Jakarta",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
+
+const DashboardMotorKonversiManager = () => {
+  const canViewMotor = usePermission("view_pemeliharaan_motor_konversi");
+  const [summary, setSummary] = useState<any>(null);
+  const [aktivitas, setAktivitas] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [hari, setHari] = useState(30);
+  const [tren, setTren] = useState<{ tanggal: string; total: number }[]>([]);
+
+  const chartData = useMemo(
+    () =>
+      tren.map((t) => ({
+        tanggal: new Date(t.tanggal).toLocaleDateString("id-ID", { day: "2-digit", month: "short" }),
+        total: t.total,
+      })),
+    [tren]
+  );
+
+  useEffect(() => {
+    const loadAll = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await api<any>(`/pemeliharaan-motor-konversi/dashboard-stats?hari=${hari}`, { method: "GET" });
+
+        if (response && response.success) {
+          setSummary(response.data);
+          setAktivitas(response.data.aktivitas_terbaru || []);
+          setTren(response.data.tren || []);
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Gagal memuat data dashboard pemeliharaan motor konversi";
+        setError(message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadAll();
+  }, [hari]);
+
+  const PageHeader = (
+    <Row>
+      <Col>
+        <Flex
+          justifyContent="between"
+          alignItems="center"
+          className="mb-4 w-100"
+          breakpoint="md"
+        >
+          <div>
+            <h1 className="mb-2 h2">Dashboard Pemeliharaan Motor Konversi</h1>
+            <p className="text-secondary mb-0">
+              Ringkasan aktivitas, kondisi motor, dan pemeliharaan motor konversi.
+            </p>
+          </div>
+          {canViewMotor && (
+          <div className="mt-3 mt-md-0">
+            <Link href="/pemeliharaan/data-motor-konversi">
+              <Button variant="primary" className="d-flex align-items-center gap-2">
+                <IconPlus size={18} /> Catat Log Pemeliharaan
+              </Button>
+            </Link>
+          </div>
+          )}
+        </Flex>
+      </Col>
+    </Row>
+  );
+
+  if (loading) {
+    return (
+      <>
+        {PageHeader}
+        <div className="text-center py-5">
+          <Spinner animation="border" size="sm" className="me-2" />
+          Memuat dashboard pemeliharaan motor konversi...
+        </div>
+      </>
+    );
+  }
+
+  if (error) {
+    return (
+      <>
+        {PageHeader}
+        <Alert variant="danger">{error}</Alert>
+      </>
+    );
+  }
+
+  return (
+    <>
+      {PageHeader}
+
+      {/* Baris 1: Ringkasan Utama Pemeliharaan Motor Konversi */}
+      <Row className="g-3 mb-4">
+        <Col xs={12} md={4} xl={4}>
+          {canViewMotor ? (
+            <Link href="/pemeliharaan/data-motor-konversi" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
+              <StatCard
+                icon={<IconMotorbike size={26} />}
+                title="Total Motor Terdaftar"
+                value={summary?.total_motor ?? 0}
+                variant="primary"
+              />
+            </Link>
+          ) : (
+            <div style={{ display: "block" }}>
+              <StatCard
+                icon={<IconMotorbike size={26} />}
+                title="Total Motor Terdaftar"
+                value={summary?.total_motor ?? 0}
+                variant="primary"
+              />
+            </div>
+          )}
+        </Col>
+        <Col xs={12} md={4} xl={4}>
+          {canViewMotor ? (
+            <Link href="/pemeliharaan/data-motor-konversi" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
+              <StatCard
+                icon={<IconAlertTriangle size={26} />}
+                title="Motor Dalam Perbaikan"
+                value={summary?.motor_perbaikan ?? 0}
+                variant="danger"
+              />
+            </Link>
+          ) : (
+            <div style={{ display: "block" }}>
+              <StatCard
+                icon={<IconAlertTriangle size={26} />}
+                title="Motor Dalam Perbaikan"
+                value={summary?.motor_perbaikan ?? 0}
+                variant="danger"
+              />
+            </div>
+          )}
+        </Col>
+        <Col xs={12} md={4} xl={4}>
+          {canViewMotor ? (
+            <Link href="/pemeliharaan/data-motor-konversi" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
+              <StatCard
+                icon={<IconChecklist size={26} />}
+                title="Total Pemeliharaan Rutin"
+                value={summary?.pemeliharaan_rutin ?? 0}
+                variant="success"
+              />
+            </Link>
+          ) : (
+            <div style={{ display: "block" }}>
+              <StatCard
+                icon={<IconChecklist size={26} />}
+                title="Total Pemeliharaan Rutin"
+                value={summary?.pemeliharaan_rutin ?? 0}
+                variant="success"
+              />
+            </div>
+          )}
+        </Col>
+      </Row>
+
+      {/* Baris 2: Grafik Tren */}
+      <Row className="g-3 mb-4">
+        <Col lg={12}>
+          <Card className="card-lg h-100 shadow-sm border-0">
+            <CardBody>
+              <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                <div className="d-flex align-items-center gap-2">
+                  <IconTrendingUp className="text-primary" size={20} />
+                  <h5 className="mb-0">Tren Aktivitas Pemeliharaan Motor Konversi</h5>
+                </div>
+                <div className="d-flex gap-1">
+                  {[7, 30, 90].map((h) => (
+                    <Button
+                      key={h}
+                      size="sm"
+                      variant={hari === h ? "primary" : "outline-secondary"}
+                      className="py-1 px-2"
+                      style={{ fontSize: "0.75rem" }}
+                      onClick={() => setHari(h)}
+                    >
+                      {h} hari
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              <ResponsiveContainer width="100%" height={220}>
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="colorTotalMotor" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#006492" stopOpacity={0.4}/>
+                      <stop offset="95%" stopColor="#006492" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                  <XAxis dataKey="tanggal" fontSize={12} stroke="#a0a0a0" minTickGap={24} />
+                  <YAxis allowDecimals={false} fontSize={12} stroke="#a0a0a0" />
+                  <Tooltip />
+                  <Area type="monotone" dataKey="total" name="Jumlah log" stroke="#006492" strokeWidth={2} fillOpacity={1} fill="url(#colorTotalMotor)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </CardBody>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Baris 3: Aktivitas Pemeliharaan Terbaru */}
+      <Row className="g-3 mb-4">
+        <Col md={12}>
+          <Card className="card-lg h-100 shadow-sm border-0">
+            <CardBody>
+              <h5 className="mb-3">Aktivitas Pemeliharaan Terbaru</h5>
+              {aktivitas.length === 0 ? (
+                <p className="text-secondary small mb-0">Belum ada aktivitas pemeliharaan tercatat.</p>
+              ) : (
+                <div style={{ maxHeight: 320, overflowY: "auto", paddingRight: "5px" }}>
+                  <ul className="list-unstyled mb-0 dash-list">
+                    {aktivitas.map((item, idx) => (
+                      <li key={idx} className="px-3 py-3 rounded border-bottom bg-white hover-bg-light transition">
+                        <div className="d-flex justify-content-between align-items-center gap-2">
+                          <div>
+                            <div className="fw-semibold text-dark fs-6">{item.nama_motor}</div>
+                            <div className="small text-secondary mt-1">{item.deskripsi}</div>
+                            <div className="text-muted mt-1" style={{ fontSize: "0.75rem" }}>
+                              {item.tanggal ? formatWaktu(item.tanggal) : "-"}
+                            </div>
+                          </div>
+                          <Badge
+                            bg={item.status === "rusak" ? "danger" : item.status === "perlu_perhatian" ? "warning" : "success"}
+                            text={item.status === "perlu_perhatian" ? "dark" : undefined}
+                            className="flex-shrink-0 px-2 py-1 text-uppercase"
+                            style={{ fontSize: "0.7rem" }}
+                          >
+                            {item.status === "rusak" ? "Rusak" : item.status === "perlu_perhatian" ? "Perlu perhatian" : item.status === "baik" ? "Baik" : "Selesai / Tercatat"}
+                          </Badge>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </CardBody>
+          </Card>
+        </Col>
+      </Row>
+      <div className="mb-5"></div>
+    </>
+  );
+};
+
+export default DashboardMotorKonversiManager;

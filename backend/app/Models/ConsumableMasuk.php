@@ -19,9 +19,11 @@ class ConsumableMasuk extends Model
         'tanggal',
         'consumable_id',
         'jumlah_masuk',
+        'satuan', // <-- TAMBAHAN: Agar kolom satuan bisa diisi
         'keterangan',
         'dicatat_oleh',
     ];
+    
     protected static function boot()
     {
         parent::boot();
@@ -41,13 +43,14 @@ class ConsumableMasuk extends Model
         ];
     }
 
-    public function consumable(): BelongsTo
+    public function consumable()
     {
-        return $this->belongsTo(Consumable::class);
+        return $this->belongsTo(Consumable::class, 'consumable_id');
     }
 
-    public function dicatatOleh(): BelongsTo
+    public function dicatatOleh()
     {
-        return $this->belongsTo(User::class, 'dicatat_oleh');
+        // Pastikan foreign key 'dicatat_oleh' dihubungkan ke primary key 'id' pada model Peminta
+        return $this->belongsTo(Peminta::class, 'dicatat_oleh', 'id');
     }
 }

@@ -1,4 +1,5 @@
 export type ToolCondition = "Baik" | "Rusak";
+export type ToolKategori = "mesin" | "alat_biasa" | "perkakas_mesin";
 
 export interface ToolItemType {
   id: string;
@@ -11,10 +12,45 @@ export interface ToolItemType {
   kondisi: ToolCondition;
   stok: number;
   dipinjam: number;
+  kategori?: ToolKategori;
 }
 
 export type ToolFormValues = Omit<ToolItemType, "id">;
 
+// ------------------------------------------------------------------
+// Tools Masuk (riwayat alat masuk)
+// ------------------------------------------------------------------
+export interface ToolMasukType {
+  id: string;
+  tanggal: string;
+  tool_id: string;
+  kode_barang: string;
+  nama_barang: string;
+  merk: string;
+  tipe: string;
+  warna: string;
+  ukuran: string;
+  jumlah_masuk: number;
+  keterangan: string;
+  dicatatOleh?: {
+    id: string;
+    name: string;
+  };
+}
+
+export interface ToolMasukFormValues {
+  tanggal: string;
+  tool_id: string;
+  kode_barang: string;
+  nama_barang: string;
+  merk: string;
+  tipe: string;
+  warna: string;
+  ukuran: string;
+  jumlah_masuk: number;
+  keterangan: string;
+  id_card?: string;
+}
 // ------------------------------------------------------------------
 // Keranjang Peminjaman
 // ------------------------------------------------------------------
@@ -30,10 +66,16 @@ export interface CartItemType {
 // ------------------------------------------------------------------
 // Data Peminjam
 // ------------------------------------------------------------------
+// ------------------------------------------------------------------
+// Data Peminjam
+// ------------------------------------------------------------------
 export interface PeminjamType {
   id: string;
   nama: string;
   divisi: string;
+  rfid_uid?: string | null;
+  aktif: boolean;
+  role?: "user" | "inventory man"; // <--- Tambahkan baris ini
 }
 
 // ------------------------------------------------------------------
@@ -44,6 +86,7 @@ export interface LoanFormValues {
   peminjamId: string;
   namaPeminjam: string;
   divisi: string;
+  namaPekerjaan: string;
   areaKerja: string;
   spesifikasi?: string;
   keterangan?: string;
@@ -61,6 +104,7 @@ export interface TransaksiPeminjamanItemType {
   jumlah: number;
   kondisiSaatDipinjam: ToolCondition;
 }
+
 
 export interface TransaksiPeminjamanType {
   id: string;
@@ -113,8 +157,10 @@ export interface PeminjamanAktifItemType {
   warna: string;
   ukuran: string;
   jumlah: number;
+  peminjamId: string;
   namaPeminjam: string;
   divisi: string;
+  namaPekerjaan: string;
   areaKerja: string;
   spesifikasi: string;
   keterangan: string;

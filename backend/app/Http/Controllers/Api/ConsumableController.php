@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Consumable;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class ConsumableController extends Controller
 {
@@ -13,24 +14,32 @@ class ConsumableController extends Controller
      * Tampilkan semua data consumable, plus stok akhir (computed).
      */
    public function index()
-{
-    $consumables = Consumable::orderBy('kode_barang')->get()->map(function ($item) {
-            return [
-                'id' => $item->id,
-                'kode_barang' => $item->kode_barang,
-                'nama' => $item->nama,
-                'merk' => $item->merk,
-                'er_e' => $item->er_e,
-                'type' => $item->type,
-                'ukuran' => $item->ukuran,
-                'stok_awal' => $item->stok_awal,
-                'stok_akhir' => $item->stok_awal,
-            ];
-        });
+    {
+        $consumables = Consumable::active()
+            ->withSum('masuk as total_masuk', 'jumlah_masuk')
+            ->withSum('keluar as total_keluar', 'jumlah_keluar')
+            ->orderBy('kode_barang')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'kode_barang' => $item->kode_barang,
+                    'nama' => $item->nama,
+                    'merk' => $item->merk,
+                    'er_e' => $item->er_e,
+                    'type' => $item->type,
+                    'ukuran' => $item->ukuran,
+                    'satuan' => $item->satuan,
+                    'stok_tersedia' => $item->stok_tersedia,
+                    'stok_akhir' => $item->stok_tersedia,
+                    'stok_awal_asli' => $item->stok_awal_asli,
+                    'total_masuk' => $item->total_masuk ?? 0,
+                    'total_keluar' => $item->total_keluar ?? 0,
+                ];
+            });
 
         return response()->json($consumables);
     }
-
     /**
      * POST /api/consumables
      * Tambah data consumable baru.
@@ -44,12 +53,29 @@ class ConsumableController extends Controller
             'er_e' => 'nullable|string',
             'type' => 'nullable|string',
             'ukuran' => 'nullable|string',
-            'stok_awal' => 'required|integer|min:0',
+            'satuan' => 'nullable|string',
+            'stok_tersedia' => 'required|integer|min:0',
         ]);
+
+        $validated['stok_awal_asli'] = $validated['stok_tersedia'];
 
         $consumable = Consumable::create($validated);
 
-        return response()->json($consumable, 201);
+        return response()->json([
+            'id' => $consumable->id,
+            'kode_barang' => $consumable->kode_barang,
+            'nama' => $consumable->nama,
+            'merk' => $consumable->merk,
+            'er_e' => $consumable->er_e,
+            'type' => $consumable->type,
+            'ukuran' => $consumable->ukuran,
+            'satuan' => $consumable->satuan,
+            'stok_tersedia' => $consumable->stok_tersedia,
+            'stok_akhir' => $consumable->stok_tersedia,
+            'stok_awal_asli' => $consumable->stok_awal_asli,
+            'total_masuk' => 0,
+            'total_keluar' => 0,
+        ], 201);
     }
 
     /**
@@ -68,8 +94,9 @@ class ConsumableController extends Controller
             'er_e' => $consumable->er_e,
             'type' => $consumable->type,
             'ukuran' => $consumable->ukuran,
-            'stok_awal' => $consumable->stok_awal,
-            'stok_akhir' => $consumable->stok_awal,
+            'satuan' => $consumable->satuan,
+            'stok_tersedia' => $consumable->stok_tersedia,
+            'stok_akhir' => $consumable->stok_tersedia,
             'riwayat_masuk' => $consumable->masuk,
             'riwayat_keluar' => $consumable->keluar,
         ]);
@@ -88,21 +115,48 @@ class ConsumableController extends Controller
             'er_e' => 'nullable|string',
             'type' => 'nullable|string',
             'ukuran' => 'nullable|string',
-            'stok_awal' => 'sometimes|integer|min:0',
+            'satuan' => 'nullable|string',
+            'stok_tersedia' => 'sometimes|integer|min:0',
         ]);
 
+        if (array_key_exists('stok_tersedia', $validated)) {
+            // Input "Stok Tersedia" dari form merepresentasikan stok_awal_asli
+            // (nilai stok awal yang sebenarnya), bukan field live "stok_tersedia".
+            // stok_tersedia (live) dihitung ulang: stok_awal_asli + masuk - keluar.
+            $totalMasuk = $consumable->masuk()->sum('jumlah_masuk');
+            $totalKeluar = $consumable->keluar()->sum('jumlah_keluar');
+
+            $validated['stok_awal_asli'] = $validated['stok_tersedia'];
+            $validated['stok_tersedia'] = $validated['stok_awal_asli'] + $totalMasuk - $totalKeluar;
+        }
+
         $consumable->update($validated);
+        $consumable->loadSum('masuk as total_masuk', 'jumlah_masuk');
+        $consumable->loadSum('keluar as total_keluar', 'jumlah_keluar');
 
-        return response()->json($consumable);
+        return response()->json([
+            'id' => $consumable->id,
+            'kode_barang' => $consumable->kode_barang,
+            'nama' => $consumable->nama,
+            'merk' => $consumable->merk,
+            'er_e' => $consumable->er_e,
+            'type' => $consumable->type,
+            'ukuran' => $consumable->ukuran,
+            'satuan' => $consumable->satuan,
+            'stok_tersedia' => $consumable->stok_tersedia,
+            'stok_akhir' => $consumable->stok_tersedia,
+            'stok_awal_asli' => $consumable->stok_awal_asli,
+            'total_masuk' => $consumable->total_masuk ?? 0,
+            'total_keluar' => $consumable->total_keluar ?? 0,
+        ]);
     }
-
     /**
      * DELETE /api/consumables/{id}
      * Hapus data consumable.
      */
     public function destroy(Consumable $consumable)
     {
-        $consumable->delete();
+        $consumable->update(['is_active' => false]);
 
         return response()->json(['message' => 'Data consumable berhasil dihapus']);
     }
