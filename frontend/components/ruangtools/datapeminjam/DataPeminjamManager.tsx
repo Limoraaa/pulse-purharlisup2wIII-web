@@ -56,7 +56,7 @@ function sortByNama(items: PeminjamType[]): PeminjamType[] {
 const EXPORT_COLUMNS: ExportColumn[] = [
   { header: "Nama", key: "nama" },
   { header: "Divisi", key: "divisi" },
-  { header: "RFID UID", key: "rfid_uid" },
+  { header: "RFID UID", key: "id" },
   { header: "Status", key: "statusLabel" },
 ];
 
@@ -150,14 +150,22 @@ const PeminjamManager = () => {
     setFormError(null);
     try {
       if (activeItem) {
-        const updated = await updatePeminta(activeItem.id, values);
+        const oldId = activeItem.id;
+        const updated = await updatePeminta(oldId, values);
         setPeminjamList((prev) =>
-          sortByNama(prev.map((p) => (p.id === updated.id ? updated : p)))
+          sortByNama(prev.map((p) => (p.id === oldId ? updated : p)))
+        );
+        setSuccessMessage(
+          updated.id !== oldId
+            ? `Data ${updated.nama} berhasil diperbarui. ID kartu RFID diganti menjadi ${updated.id}.`
+            : `Data ${updated.nama} berhasil diperbarui.`
         );
       } else {
         const created = await createPeminta(values);
         setPeminjamList((prev) => sortByNama([created, ...prev]));
+        setSuccessMessage(`${created.nama} berhasil ditambahkan.`);
       }
+      setTimeout(() => setSuccessMessage(null), 5000);
       setFormModalOpen(false);
       setActiveItem(null);
     } catch (err) {

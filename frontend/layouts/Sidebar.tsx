@@ -96,6 +96,7 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
   const linkPermissionMap: Record<string, string> = {
     "/pemeliharaan/dashboard": "view_dashboard_pemeliharaan",
     "/pemeliharaan/data-mesin": "view_pemeliharaan_mesin",
+    "/pemeliharaan/rencana": "view_pemeliharaan_mesin",
     "/pemeliharaan/dashboard-motor-konversi": "view_dashboard_pemeliharaan_motor_konversi",
     "/pemeliharaan/data-motor-konversi": "view_pemeliharaan_motor_konversi",
   };
