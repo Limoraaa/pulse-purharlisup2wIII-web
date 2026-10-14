@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\LogAktivitasMesinController;
 use App\Http\Controllers\Api\MotorKonversiController;
 use App\Http\Controllers\Api\LogPemeliharaanMotorKonversiController;
 use App\Http\Controllers\Api\RencanaPemeliharaanMesinController;
+use App\Http\Controllers\Api\KalibrasiMesinController;
 
 // ==========================================
 // 1. ROUTE PUBLIK (Tanpa Auth)
@@ -242,6 +243,22 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/log-aktivitas/{id}', [LogAktivitasMesinController::class, 'destroy']);
     });
 
+    // ------------------------------------------
+    // KALIBRASI MESIN
+    // ------------------------------------------
+    Route::middleware('permission:view_pemeliharaan_mesin')->group(function () {
+        Route::get('/pemeliharaan/kalibrasi', [KalibrasiMesinController::class, 'index']);
+        Route::get('/pemeliharaan/kalibrasi/mesin/{mesin_id}', [KalibrasiMesinController::class, 'getByMesin']);
+        Route::get('/pemeliharaan/kalibrasi/{id}', [KalibrasiMesinController::class, 'show']);
+    });
+ 
+    Route::middleware('permission:manage_pemeliharaan_mesin')->group(function () {
+        Route::post('/pemeliharaan/kalibrasi', [KalibrasiMesinController::class, 'store']);
+        Route::put('/pemeliharaan/kalibrasi/{id}', [KalibrasiMesinController::class, 'update']);
+        Route::delete('/pemeliharaan/kalibrasi/{id}', [KalibrasiMesinController::class, 'destroy']);
+    });
+
+    
     // ------------------------------------------
     // RENCANA PEMELIHARAAN MESIN (jadwal mingguan per tahun)
     // ------------------------------------------

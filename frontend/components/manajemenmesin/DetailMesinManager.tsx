@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
-import { mutate } from 'swr';
+import useSWR, { mutate } from 'swr';
 import { Row, Col, Card, CardBody, Button, Badge, Table, Spinner, Alert, Dropdown, Modal, Form } from 'react-bootstrap';
 import { 
   IconArrowLeft, 
@@ -20,18 +20,29 @@ import {
   IconEdit,
   IconTrash,
   IconAdjustments,
-  IconTools
+  IconTools,
+  IconCertificate
 } from '@tabler/icons-react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import api from 'lib/api';
 import { usePermission } from 'hooks/usePermissions';
 import { exportToExcel, exportToPDF, ExportColumn } from 'components/ruangtools/riwayat/common/exportUtils';
 import type { RencanaItem } from 'types/RencanaPemeliharaanTypes';
 
 // Import Modal pendukung
-import PartMappingEditor from './pemeliharaanmesin/PartMappingEditor';
-import PartMappingChecklistModal from './pemeliharaanmesin/PartMappingCheckListModal';
+import PartMappingEditor from './pemeliharaanmesin/PartMappingEditor'; // Sesuaikan path jika berbeda
+import PartMappingChecklistModal from './pemeliharaanmesin/PartMappingCheckListModal'; // Sesuaikan path jika berbeda
 import RencanaMesinCard, { rencanaMesinKey } from 'components/manajemenmesin/rencanapemeliharaanmesin/RencanaMesinCard';
+import KalibrasiFormModal from 'components/manajemenmesin/kalibrasimesin/KalibrasiFormModal'; // Pastikan path ini benar
+import { ACTION_META } from 'components/manajemenmesin/rencanapemeliharaanmesin/RencanaHelpers';
+
+// Halaman form kalibrasi (SESUAIKAN dengan route yang sebenarnya di proyekmu)
+const KALIBRASI_PATH = '/pemeliharaan/kalibrasi';
+
+// Rencana dianggap kalibrasi jika kodenya "K" atau labelnya memuat kata "kalibrasi"
+const isRencanaKalibrasi = (r: RencanaItem) =>
+  r.aksi === 'K' || ACTION_META[r.aksi]?.label?.toLowerCase().includes('kalibrasi');
 
 interface MesinProps {
   mesin: {
@@ -97,10 +108,17 @@ const STATUS_BADGE = {
   rusak: { label: "Rusak", bg: "danger" },
 } as const;
 
+// Fetcher khusus untuk SWR (dengan auth token)
+const fetcher = async (url: string) => {
+  const token = localStorage.getItem("token");
+  const res = await api<any>(url, { headers: { Authorization: `Bearer ${token}` } });
+  return res.data || [];
+};
+
 export default function DetailMesinManager({ 
   mesin, 
   canManage = false, 
-  mode = 'pemeliharaan', // Default mode
+  mode = 'pemeliharaan', 
   onBack 
 }: MesinProps) {
 
@@ -111,18 +129,18 @@ export default function DetailMesinManager({
   const mesinStatus = mesin?.status || 'Aktif';
   const mesinFoto = mesin?.foto_katalog;
 
+  const router = useRouter();
   const canProcess = usePermission('process_pemeliharaan_mesin');
 
   const [activeTab, setActiveTab] = useState(mode === 'operasional' ? 'log_aktivitas' : 'log_pemeliharaan');
 
-  // --- FIX: Sinkronisasi Tab Saat Mode Berubah ---
   useEffect(() => {
     setActiveTab(mode === 'operasional' ? 'log_aktivitas' : 'log_pemeliharaan');
   }, [mode]);
-  // ---------------------------------------------
 
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  // States untuk Log Pemeliharaan
   const [logs, setLogs] = useState<LogItemType[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [expandedLogs, setExpandedLogs] = useState<Set<number>>(new Set());
@@ -136,12 +154,13 @@ export default function DetailMesinManager({
     });
   };
   
+  // States untuk Log Aktivitas
   const [logAktivitas, setLogAktivitas] = useState<LogAktivitasType[]>([]);
   const [loadingAktivitas, setLoadingAktivitas] = useState(false);
 
+  // States untuk Modals & Form
   const [showMappingEditor, setShowMappingEditor] = useState(false);
   const [showChecklistModal, setShowChecklistModal] = useState(false);
-  // Rencana yang sedang dikerjakan lewat tombol "Kerjakan" (null = checklist biasa tanpa rencana)
   const [rencanaAktif, setRencanaAktif] = useState<RencanaItem | null>(null);
 
   const [showAktivitasModal, setShowAktivitasModal] = useState(false);
@@ -155,6 +174,16 @@ export default function DetailMesinManager({
   const [jamSelesai, setJamSelesai] = useState("16:00");
   const [jumlahAkt, setJumlahAkt] = useState<number>(1);
   const [pemeriksaAkt, setPemeriksaAkt] = useState("");
+
+  // States untuk Modul Kalibrasi
+  const [showKalibrasiModal, setShowKalibrasiModal] = useState(false);
+  const [selectedKalibrasi, setSelectedKalibrasi] = useState<any | null>(null);
+
+  // Fetcher untuk tab Kalibrasi
+  const { data: kalibrasiData, mutate: mutateKalibrasi, isLoading: loadingKalibrasi } = useSWR<any[]>(
+    activeTab === 'kalibrasi' && mesinId ? `/pemeliharaan/kalibrasi/mesin/${mesinId}` : null,
+    fetcher
+  );
 
   const loadLogs = useCallback(async () => {
     if (!mesinId) return;
@@ -301,6 +330,20 @@ export default function DetailMesinManager({
     } catch (err) {
       alert(err instanceof Error ? err.message : "Gagal menghapus log aktivitas");
     }
+  };
+
+  // Handler bersama untuk tombol "Kerjakan" pada kartu rencana
+  // (dipakai di tab Log Pemeliharaan dan tab Kalibrasi)
+  const handleKerjakanRencana = (r: RencanaItem) => {
+    if (isRencanaKalibrasi(r)) {
+      // Jadwal kalibrasi -> pindah ke halaman form kalibrasi
+      router.push(`${KALIBRASI_PATH}?mesin=${mesinId}&rencana=${r.id}`);
+      return;
+    }
+
+    // Jadwal rutin (M, C/Cleaning, dll) -> buka checklist visual
+    setRencanaAktif(r);
+    setShowChecklistModal(true);
   };
 
   const renderTabButton = (tab: { id: string, label: string, icon: React.ElementType }) => {
@@ -572,15 +615,12 @@ export default function DetailMesinManager({
 
           {activeTab === 'log_pemeliharaan' && (
             <div>
-              {/* Rencana pemeliharaan yang belum dikerjakan untuk mesin ini */}
+              {/* Rencana Pemeliharaan: tombol "Kerjakan" diarahkan ke modal yang tepat */}
               {mesinId && (
                 <RencanaMesinCard
                   mesinId={mesinId}
                   canProcess={canProcess}
-                  onKerjakan={(r) => {
-                    setRencanaAktif(r);
-                    setShowChecklistModal(true);
-                  }}
+                  onKerjakan={handleKerjakanRencana}
                 />
               )}
 
@@ -609,7 +649,7 @@ export default function DetailMesinManager({
                       variant="primary"
                       size="sm"
                       onClick={() => {
-                        setRencanaAktif(null); // checklist biasa, tidak terkait rencana
+                        setRencanaAktif(null); 
                         setShowChecklistModal(true);
                       }}
                       className="d-flex align-items-center gap-1 shadow-sm"
@@ -714,17 +754,128 @@ export default function DetailMesinManager({
             </div>
           )}
 
+          {/* TAB KALIBRASI */}
           {activeTab === 'kalibrasi' && (
             <div>
+              {/* Rencana Pemeliharaan/Kalibrasi mesin ini (sama seperti di tab Log Pemeliharaan) */}
+              {mesinId && (
+                <RencanaMesinCard
+                  mesinId={mesinId}
+                  canProcess={canProcess}
+                  onKerjakan={handleKerjakanRencana}
+                />
+              )}
+
               <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2 text-center text-md-start">
                 <h5 className="mb-0 d-flex align-items-center gap-2 fs-6 fw-bold w-100 w-md-auto justify-content-center justify-content-md-start">
                   <IconAdjustments size={18} /> Riwayat Kalibrasi Mesin
                 </h5>
+                <div className="d-flex gap-2 flex-wrap w-100 w-md-auto justify-content-center">
+                  {canManage && (
+                    <Button 
+                      variant="primary" 
+                      size="sm" 
+                      className="d-flex align-items-center gap-1 shadow-sm" 
+                      style={{ fontSize: '0.75rem' }}
+                      onClick={() => {
+                        setSelectedKalibrasi(null);
+                        setRencanaAktif(null);
+                        setShowKalibrasiModal(true);
+                      }}
+                    >
+                      <IconPlus size={14} /> Catat Kalibrasi
+                    </Button>
+                  )}
+                </div>
               </div>
-              <div className="text-center py-5 text-muted border rounded shadow-sm bg-light">
-                <IconAdjustments size={36} className="mb-2 opacity-50" />
-                <h6 className="mb-1">Modul Kalibrasi</h6>
-                <p className="small text-secondary mb-0">Fitur pencatatan dan riwayat kalibrasi untuk {mesinNama} sedang disiapkan.</p>
+              
+              <div className="table-responsive border rounded shadow-sm">
+                <Table hover className="align-middle mb-0 text-nowrap" style={{ fontSize: '0.8rem' }}>
+                  <thead className="table-light text-center">
+                    <tr>
+                      <th style={{ width: "5%" }}>No</th>
+                      <th className="text-start">No. Sertifikat</th>
+                      <th>Tgl. Kalibrasi</th>
+                      <th>Jatuh Tempo</th>
+                      <th>Kalibrator</th>
+                      <th>Status</th>
+                      <th>Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loadingKalibrasi ? (
+                      <tr>
+                        <td colSpan={7} className="text-center py-4 text-muted">
+                          <Spinner animation="border" size="sm" className="me-2" /> Memuat data kalibrasi...
+                        </td>
+                      </tr>
+                    ) : !kalibrasiData || kalibrasiData.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="text-center py-5 text-secondary">
+                          <IconCertificate size={32} className="mb-2 opacity-50" /><br/>
+                          Belum ada riwayat kalibrasi untuk mesin ini.
+                        </td>
+                      </tr>
+                    ) : (
+                      kalibrasiData.map((kal: any, index: number) => {
+                        const isOverdue = new Date(kal.tanggal_jatuh_tempo) < new Date();
+                        let bg = "secondary";
+                        if (kal.hasil_status === "Lulus") bg = "success";
+                        if (kal.hasil_status === "Perlu Penyesuaian") bg = "warning";
+                        if (kal.hasil_status === "Tidak Layak") bg = "danger";
+
+                        return (
+                          <tr key={kal.id}>
+                            <td className="text-center fw-semibold text-muted">{index + 1}</td>
+                            <td className="fw-medium text-start">
+                              <IconCertificate size={14} className="me-1 text-secondary" />
+                              {kal.nomor_sertifikat}
+                            </td>
+                            <td className="text-center">{kal.tanggal_kalibrasi}</td>
+                            <td className="text-center">
+                              <span className={isOverdue ? "text-danger fw-semibold" : ""}>{kal.tanggal_jatuh_tempo}</span>
+                            </td>
+                            <td className="text-center">{kal.kalibrator}</td>
+                            <td className="text-center">
+                              <Badge bg={bg} text={kal.hasil_status === "Perlu Penyesuaian" ? "dark" : "white"} pill>
+                                {kal.hasil_status}
+                              </Badge>
+                            </td>
+                            <td className="text-center">
+                              <div className="d-flex justify-content-center gap-1">
+                                {kal.file_sertifikat && (
+                                  <Button
+                                    variant="outline-secondary"
+                                    size="sm"
+                                    className="p-1"
+                                    title="Download Sertifikat"
+                                    onClick={() => window.open(kal.file_sertifikat, "_blank")}
+                                  >
+                                    <IconDownload size={12} />
+                                  </Button>
+                                )}
+                                {canManage && (
+                                  <Button
+                                    variant="outline-primary"
+                                    size="sm"
+                                    className="p-1"
+                                    title="Edit"
+                                    onClick={() => {
+                                      setSelectedKalibrasi(kal);
+                                      setShowKalibrasiModal(true);
+                                    }}
+                                  >
+                                    <IconEdit size={12} />
+                                  </Button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </Table>
               </div>
             </div>
           )}
@@ -747,6 +898,7 @@ export default function DetailMesinManager({
         </CardBody>
       </Card>
 
+      {/* --- MODAL LOG AKTIVITAS --- */}
       <Modal show={showAktivitasModal} onHide={() => setShowAktivitasModal(false)} size="lg" centered backdrop="static">
         <Modal.Header closeButton className="py-2 px-3 bg-body-tertiary">
           <Modal.Title className="fs-6 fw-bold d-flex align-items-center gap-2 text-body">
@@ -817,6 +969,7 @@ export default function DetailMesinManager({
         </Modal.Footer>
       </Modal>
 
+      {/* --- MODAL PENUNJANG PEMELIHARAAN LAINNYA --- */}
       {mesinId && (
         <>
           <PartMappingEditor
@@ -844,6 +997,24 @@ export default function DetailMesinManager({
               setSuccessMessage("Laporan checklist visual berhasil disimpan!");
               loadLogs();
               mutate(rencanaMesinKey(mesinId)); // refresh kartu rencana mesin ini
+              setTimeout(() => setSuccessMessage(null), 4000);
+            }}
+          />
+
+          {/* --- MODAL KALIBRASI FORM DARI FILE TERPISAH (OTOMATIS TERSAMBUNG KE RENCANA) --- */}
+          <KalibrasiFormModal
+            show={showKalibrasiModal}
+            onHide={() => {
+               setShowKalibrasiModal(false);
+               setRencanaAktif(null);
+            }}
+            editData={selectedKalibrasi}
+            rencanaId={null}
+            mesinIdDefault={mesinId}
+            onSuccess={() => {
+              setSuccessMessage(selectedKalibrasi ? "Data kalibrasi berhasil diupdate!" : "Kalibrasi berhasil dicatat! Jadwal telah diselesaikan.");
+              mutateKalibrasi(); 
+              mutate(rencanaMesinKey(mesinId)); // Refresh daftar jadwal agar kotak yang "C" langsung jadi hijau
               setTimeout(() => setSuccessMessage(null), 4000);
             }}
           />
