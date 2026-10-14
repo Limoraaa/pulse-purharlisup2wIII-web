@@ -2,21 +2,23 @@
 //import node module libraries
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import React, { Fragment, useEffect, useState } from "react";
+import React, { Fragment, useContext, useEffect, useState } from "react";
 import {
   Accordion,
+  AccordionContext,
   Badge,
   Image,
   ListGroup,
   Nav,
+  useAccordionButton,
 } from "react-bootstrap";
-import { IconLogout } from "@tabler/icons-react";
+import { IconLogout, IconChevronDown } from "@tabler/icons-react";
 
 //import custom types
 import { MenuItemType } from "types/menuTypes";
 
 //import custom components
-import CustomToggle, { CustomToggleLevel2 } from "./SidebarMenuToggle";
+import { CustomToggleLevel2 } from "./SidebarMenuToggle";
 
 //import custom hooks
 import useMenu from "hooks/useMenu";
@@ -29,18 +31,138 @@ import { getAssetPath } from "helper/assetPath";
 import { DashboardMenu } from "routes/DashboardRoute";
 
 // Import helper API Anda (Sesuaikan path-nya jika berbeda)
-import api from "lib/api"; 
+import api from "lib/api";
 
 interface SidebarProps {
   hideLogo: boolean;
   containerId?: string;
 }
 
+// ---------------------------------------------------------------------------
+// STYLE (inline, tanpa file CSS)
+// Palet: teal PLN #0A6C8F / #0097B2, kuning aksen #FDB913
+// ---------------------------------------------------------------------------
+
+// Satu baris menu (dipakai oleh menu biasa, toggle induk, dan sub-menu)
+const rowStyle = (
+  active: boolean,
+  hover: boolean,
+  sub = false,
+  compact = false
+): React.CSSProperties => ({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: compact ? "center" : "flex-start",
+  gap: compact ? 0 : 10,
+  minHeight: sub ? 38 : 44,
+  padding: compact ? "6px 0" : sub ? "8px 12px" : "6px 10px",
+  margin: compact ? "2px 6px" : "2px 8px",
+  borderRadius: 10,
+  fontSize: sub ? 13.5 : 14,
+  fontWeight: active ? 600 : 500,
+  lineHeight: 1.25,
+  color: active ? "#0A6C8F" : "#334155",
+  background: active ? "#E3F2F7" : hover ? "#F1F6F8" : "transparent",
+  boxShadow: active ? "inset 3px 0 0 #0097B2" : "none",
+  transition: "background .15s ease, color .15s ease",
+  textDecoration: "none",
+  cursor: "pointer",
+});
+
+// Kotak ikon di kiri teks
+const iconTileStyle = (active: boolean): React.CSSProperties => ({
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  flexShrink: 0,
+  width: 32,
+  height: 32,
+  borderRadius: 9,
+  background: active ? "#0A6C8F" : "#F1F5F8",
+  color: active ? "#fff" : "#5B6B7A",
+  transition: "background .15s ease, color .15s ease",
+});
+
+// Teks boleh turun baris (tidak terpotong)
+const labelStyle: React.CSSProperties = {
+  flex: 1,
+  minWidth: 0,
+  overflowWrap: "anywhere",
+};
+
+// Garis pohon untuk sub-menu
+const subListStyle: React.CSSProperties = {
+  margin: "2px 0 6px 28px",
+  padding: 0,
+  borderLeft: "2px solid #E2EBF0",
+  borderRadius: 0,
+  background: "transparent",
+  boxShadow: "none",
+};
+
+// Toggle menu induk (menggantikan CustomToggle supaya gayanya seragam)
+interface NavToggleProps {
+  eventKey: string;
+  icon?: React.ReactNode;
+  active: boolean;
+  compact?: boolean;
+  children: React.ReactNode;
+}
+
+const NavToggle: React.FC<NavToggleProps> = ({
+  eventKey,
+  icon,
+  active,
+  compact = false,
+  children,
+}) => {
+  const { activeEventKey } = useContext(AccordionContext);
+  const open = Array.isArray(activeEventKey)
+    ? activeEventKey.includes(eventKey)
+    : activeEventKey === eventKey;
+  const onClick = useAccordionButton(eventKey);
+  const [hover, setHover] = useState(false);
+
+  return (
+    <Nav.Item as='li'>
+      <button
+        type='button'
+        onClick={onClick}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+        aria-expanded={open}
+        title={compact && typeof children === "string" ? children : undefined}
+        style={{
+          ...rowStyle(active, hover, false, compact),
+          width: compact ? "calc(100% - 12px)" : "calc(100% - 16px)",
+          border: 0,
+          textAlign: "left",
+        }}>
+        <span style={iconTileStyle(active)}>{icon}</span>
+        <span style={compact ? { display: "none" } : labelStyle}>{children}</span>
+        <IconChevronDown
+          size={16}
+          style={{
+            display: compact ? "none" : "block",
+            flexShrink: 0,
+            color: "#8A97A5",
+            transform: open ? "rotate(180deg)" : "none",
+            transition: "transform .2s ease",
+          }}
+        />
+      </button>
+    </Nav.Item>
+  );
+};
+
 const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
   const location = usePathname();
   const router = useRouter();
   const { handleCollapsed } = useMenu();
   const collapsed = useAppSelector((state) => state.app.collapsed);
+  // Mode ciut: hanya ikon yang tampil (teks, panah, dan sub-menu disembunyikan)
+  const isCollapsed = collapsed === "collapsed";
+  const label: React.CSSProperties = isCollapsed ? { display: "none" } : labelStyle;
 
   // Saat sidebar dalam keadaan menutup (collapsed), cukup arahkan kursor
   // ke area sidebar maka otomatis terbuka. Menutup kembali hanya lewat
@@ -55,18 +177,25 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
   const [userRole, setUserRole] = useState<string>("");
   const [userPermissions, setUserPermissions] = useState<string[]>([]);
 
+  // --- STATE UNTUK EFEK HOVER ---
+  const [hovered, setHovered] = useState<string | null>(null);
+  const hoverProps = (key: string) => ({
+    onMouseEnter: () => setHovered(key),
+    onMouseLeave: () => setHovered(null),
+  });
+
   // Mengambil data hak akses user yang sedang login
   useEffect(() => {
     const fetchUserAccess = async () => {
       try {
         const res: any = await api("/user");
         const data = res?.data || res;
-        
+
         if (data) {
           // Ambil nama role pertama (misal: "Super Admin", "Staff")
           const roles = data.roles?.map((r: any) => r.name) || [];
           setUserRole(roles[0] || "");
-          
+
           // Ambil seluruh array permissions (misal: ["view_dashboard", "view_users"])
           setUserPermissions(data.all_permissions || []);
         }
@@ -74,13 +203,13 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
         console.error("Gagal memuat hak akses profil", error);
       }
     };
-    
+
     fetchUserAccess();
   }, []);
 
   // --- KAMUS MAPPING MENU KE PERMISSION ---
   // Mencocokkan nama judul di sidebar (kiri) dengan nama permission di database (kanan)
-    const permissionMap: Record<string, string> = {
+  const permissionMap: Record<string, string> = {
     "Dashboard": "view_dashboard",
     "Inventaris": "view_inventaris",
     "Transaksi": "view_transaksi",
@@ -122,13 +251,17 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
     return false;
   };
 
+  // Link sub-menu (tanpa ikon)
   const generateLink = (item: MenuItemType) => {
+    const key = `g-${item.link}`;
     return (
       <Link
         href={`${item.link}`}
-        className={`nav-link ${location === item.link ? "active" : ""}`}>
-        <span className='text'>{item.name}</span>
-        {item.badge && (
+        className='nav-link'
+        style={rowStyle(location === item.link, hovered === key, true)}
+        {...hoverProps(key)}>
+        <span className='text' style={label}>{item.name}</span>
+        {item.badge && !isCollapsed && (
           <Badge
             className='ms-1'
             bg={item.badgecolor ? item.badgecolor : "primary"}>
@@ -160,21 +293,21 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
           defaultActiveKey='0'
           as='ul'
           bsPrefix='navbar-nav flex-column'>
-          
+
           {/* MAPPING MENU UTAMA */}
           {DashboardMenu.map(function (menu, index) {
-            
+
             // --- LOGIKA CEK HAK AKSES MENU ---
             const requiredPerm = getRequiredPerm(menu);
             // Jika menu ini terdaftar di kamus mapping, DAN user bukan Super Admin,
-            // DAN user tidak punya permission tersebut di databasenya, 
+            // DAN user tidak punya permission tersebut di databasenya,
             // maka menu ini DISEMBUNYIKAN (return null).
             if (requiredPerm && userRole !== "Super Admin" && !userPermissions.includes(requiredPerm)) {
-              return null; 
+              return null;
             }
             // ----------------------------------
 
-                        if (menu.grouptitle) {
+            if (menu.grouptitle) {
               // Cek apakah ada minimal satu menu di bawah section ini yang
               // masih terlihat untuk role user sekarang. Kalau semua anaknya
               // disembunyikan (misal Staff tidak punya akses sama sekali ke
@@ -192,22 +325,55 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
 
               return (
                 <Nav.Item key={index} as='li'>
-                  <div className='nav-heading'>{menu.title}</div>
-                  <hr className='mx-5 nav-line mb-1' />
+                  {isCollapsed ? (
+                    <hr
+                      style={{
+                        margin: "12px 14px",
+                        border: 0,
+                        borderTop: "1px solid #E2EBF0",
+                        opacity: 1,
+                      }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        margin: index === 0 ? "8px 8px 6px" : "20px 8px 6px",
+                        padding: "8px 12px",
+                        fontSize: 11.5,
+                        fontWeight: 800,
+                        letterSpacing: "0.8px",
+                        lineHeight: 1.3,
+                        color: "#0A6C8F",
+                        textTransform: "uppercase",
+                        background:
+                          "linear-gradient(90deg, #E3F2F7 0%, rgba(227,242,247,0) 100%)",
+                        borderLeft: "4px solid #FDB913",
+                        borderRadius: "4px 8px 8px 4px",
+                      }}>
+                      {menu.title}
+                    </div>
+                  )}
                 </Nav.Item>
               );
             } else {
               if (menu.children) {
                 return (
                   <Fragment key={index}>
-                    <CustomToggle
+                    <NavToggle
                       eventKey={index.toString()}
                       icon={menu.icon}
-                      isActive={isMenuActive(menu)}>
+                      active={isMenuActive(menu)}
+                      compact={isCollapsed}>
                       {menu.title}
-                    </CustomToggle>
+                    </NavToggle>
                     <Accordion.Collapse eventKey={index.toString()}>
-                      <ListGroup as='ul' className='dropdown-menu flex-column'>
+                      <ListGroup
+                        as='ul'
+                        className='dropdown-menu flex-column'
+                        style={{
+                          ...subListStyle,
+                          ...(isCollapsed ? { display: "none" } : {}),
+                        }}>
                         {menu.children.map(function (
                           menuLevel1Item,
                           menuLevel1Index
@@ -260,6 +426,7 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
                                                         menuLevel3Item,
                                                         menuLevel3Index
                                                       ) {
+                                                        const key3 = `l3-${menuLevel3Item.link}`;
                                                         return (
                                                           <ListGroup.Item
                                                             key={menuLevel3Index}
@@ -267,10 +434,16 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
                                                             bsPrefix='nav-item'>
                                                             <Link
                                                               href={`${menuLevel3Item.link}`}
-                                                              className={`nav-link ${
-                                                                location === menuLevel3Item.link ? "active" : ""
-                                                              }`}>
-                                                              {menuLevel3Item.name}
+                                                              className='nav-link'
+                                                              style={rowStyle(
+                                                                location === menuLevel3Item.link,
+                                                                hovered === key3,
+                                                                true
+                                                              )}
+                                                              {...hoverProps(key3)}>
+                                                              <span style={labelStyle}>
+                                                                {menuLevel3Item.name}
+                                                              </span>
                                                             </Link>
                                                           </ListGroup.Item>
                                                         );
@@ -298,6 +471,7 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
                               </ListGroup.Item>
                             );
                           } else {
+                            const key1 = `l1-${menuLevel1Item.link}`;
                             return (
                               <ListGroup.Item
                                 as='li'
@@ -305,10 +479,14 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
                                 key={menuLevel1Index}>
                                 <Link
                                   href={`${menuLevel1Item?.link}`}
-                                  className={`nav-link ${
-                                    location === menuLevel1Item.link ? "active" : ""
-                                  }`}>
-                                  {menuLevel1Item.name}
+                                  className='nav-link'
+                                  style={rowStyle(
+                                    location === menuLevel1Item.link,
+                                    hovered === key1,
+                                    true
+                                  )}
+                                  {...hoverProps(key1)}>
+                                  <span style={labelStyle}>{menuLevel1Item.name}</span>
                                 </Link>
                               </ListGroup.Item>
                             );
@@ -319,15 +497,22 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
                   </Fragment>
                 );
               } else {
+                const active = location === menu.link;
+                const key = `m-${index}`;
                 return (
                   <Nav.Item as='li' key={index}>
                     <Link
                       href={menu.link ? `${menu.link}` : "#"}
-                      className={`nav-link ${
-                        location === menu.link ? "active" : ""
-                      }`}>
-                      <span className='nav-icon'>{menu.icon}</span>
-                      <span className='text'>{menu.title}</span>
+                      className='nav-link'
+                      title={isCollapsed ? menu.title : undefined}
+                      style={rowStyle(active, hovered === key, false, isCollapsed)}
+                      {...hoverProps(key)}>
+                      <span className='nav-icon' style={iconTileStyle(active)}>
+                        {menu.icon}
+                      </span>
+                      <span className='text' style={label}>
+                        {menu.title}
+                      </span>
                     </Link>
                   </Nav.Item>
                 );
@@ -336,15 +521,37 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
           })}
 
           {/* Tombol Logout */}
-          <Nav.Item as='li'>
+          <Nav.Item
+            as='li'
+            style={{
+              marginTop: 14,
+              paddingTop: 10,
+              borderTop: "1px solid #EEF2F5",
+            }}>
             <button
               type='button'
               onClick={handleLogout}
-              className='nav-link border-0 bg-transparent w-100 text-start'>
-              <span className='nav-icon'>
+              {...hoverProps("logout")}
+              title={isCollapsed ? "Logout" : undefined}
+              style={{
+                ...rowStyle(false, false, false, isCollapsed),
+                width: isCollapsed ? "calc(100% - 12px)" : "calc(100% - 16px)",
+                border: 0,
+                textAlign: "left",
+                color: "#C62828",
+                fontWeight: 600,
+                background: hovered === "logout" ? "#FFECEC" : "transparent",
+              }}>
+              <span
+                className='nav-icon'
+                style={{
+                  ...iconTileStyle(false),
+                  background: "#FFECEC",
+                  color: "#C62828",
+                }}>
                 <IconLogout size={18} />
               </span>
-              <span className='text'>Logout</span>
+              <span className='text' style={label}>Logout</span>
             </button>
           </Nav.Item>
 

@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
+import useSWR from "swr";
 import { Row, Col, Card, CardBody, Spinner, Alert, Badge, Button } from "react-bootstrap";
 import {
   IconTool,
@@ -12,6 +13,10 @@ import {
   IconCalendarDue,
   IconTrendingUp,
   IconActivity,
+  IconBellRinging,
+  IconMoodSmile,
+  IconAdjustmentsAlt,
+  IconCertificate,
 } from "@tabler/icons-react";
 import {
   ResponsiveContainer,
@@ -24,16 +29,17 @@ import {
 } from "recharts";
 
 import Flex from "components/common/Flex";
-
 import StatCard from "components/dashboard/StatCard";
 import api from "lib/api";
 import { usePermission } from "hooks/usePermissions";
-import { AksiRencana } from "types/RencanaPemeliharaanTypes";
+import { fetchRencana } from "services/rencanaPemeliharaanService";
+import { RencanaItem } from "types/RencanaPemeliharaanTypes";
 import {
   ACTION_META,
   PEMELIHARAAN_MESIN_PATH,
   RENCANA_PATH,
   formatJadwal,
+  getStatusTampil,
 } from "components/manajemenmesin/rencanapemeliharaanmesin/RencanaHelpers";
 
 // ---------- Tipe respons /pemeliharaan/dashboard-stats ----------
@@ -46,35 +52,13 @@ interface AktivitasItem {
   sesuai_rencana?: boolean;
 }
 
-interface RencanaPerBulan {
-  bulan: number;
-  selesai: number;
-  terlewat: number;
-  menunggu: number;
-}
-
-interface RencanaPerluItem {
-  id: number | string;
+interface KalibrasiReminder {
+  id: number;
   mesin_id: number | string;
   kode_mesin: string;
   nama_mesin: string;
-  aksi: AksiRencana;
-  tahun: number;
-  bulan: number;
-  minggu: number;
-  terlewat: boolean;
-}
-
-interface RencanaRingkasan {
-  tahun: number;
-  total: number;
-  selesai: number;
-  bulan_ini_total: number;
-  bulan_ini_selesai: number;
-  terlewat_total: number;
-  per_bulan: RencanaPerBulan[];
-  perlu_dikerjakan: RencanaPerluItem[];
-  perlu_dikerjakan_total: number;
+  jatuh_tempo: string;
+  status: "terlewat" | "mendekat";
 }
 
 interface TrenItem {
@@ -85,10 +69,10 @@ interface TrenItem {
 interface DashboardStats {
   total_mesin: number;
   mesin_perbaikan: number;
-  pemeliharaan_rutin: number; // total kegiatan pemeliharaan yang tercatat
+  pemeliharaan_rutin: number; 
   aktivitas_terbaru: AktivitasItem[];
   tren?: TrenItem[];
-  rencana?: RencanaRingkasan;
+  kalibrasi_mendekat?: KalibrasiReminder[]; 
 }
 
 const formatWaktu = (iso: string) => {
@@ -97,6 +81,15 @@ const formatWaktu = (iso: string) => {
     timeZone: "Asia/Jakarta",
     day: "2-digit",
     month: "short",
+    year: "numeric",
+  });
+};
+
+const formatTanggalSaja = (iso: string) => {
+  const d = new Date(iso);
+  return d.toLocaleDateString("id-ID", {
+    day: "2-digit",
+    month: "long",
     year: "numeric",
   });
 };
@@ -117,13 +110,13 @@ interface ShortcutProps {
   icon: React.ReactNode;
   title: string;
   desc: string;
-  tone: "primary" | "success" | "warning";
+  tone: "primary" | "success" | "warning" | "info" | "danger";
 }
 
 const Shortcut = ({ href, enabled, icon, title, desc, tone }: ShortcutProps) => {
   const body = (
     <div
-      className="p-3 border rounded-3 bg-light d-flex align-items-center gap-3"
+      className="p-3 border rounded-3 bg-light d-flex align-items-center gap-3 hover-bg-light transition"
       style={enabled ? undefined : { opacity: 0.6 }}
     >
       <div className={`p-2 text-white rounded-2 ${enabled ? `bg-${tone}` : "bg-secondary"}`}>{icon}</div>
@@ -150,6 +143,10 @@ const DashboardPemeliharaanManager = () => {
   const canViewMesin = usePermission("view_pemeliharaan_mesin");
   const canProcess = usePermission("process_pemeliharaan_mesin");
 
+  const today = useMemo(() => new Date(), []);
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth() + 1; // 1-12
+
   const [summary, setSummary] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -166,6 +163,7 @@ const DashboardPemeliharaanManager = () => {
     [tren]
   );
 
+  // 1. Fetch Data Statistik Utama (Mesin, Tren, Kalibrasi)
   useEffect(() => {
     const loadAll = async () => {
       setLoading(true);
@@ -188,14 +186,45 @@ const DashboardPemeliharaanManager = () => {
     loadAll();
   }, [hari]);
 
+  // 2. Fetch Data Rencana Pemeliharaan Langsung ke Service Rencana
+  const { data: rencanaList } = useSWR(
+    `/rencana-pemeliharaan?tahun=${currentYear}`,
+    () => fetchRencana(currentYear)
+  );
+
+  // 3. Olah Data Rencana untuk Kalkulasi Statistik
+  const statsRencana = useMemo(() => {
+    if (!rencanaList) return { bulanIniTotal: 0, bulanIniSelesai: 0, terlewatTotal: 0 };
+    
+    const bulanIni = rencanaList.filter((r) => r.bulan === currentMonth);
+    return {
+      bulanIniTotal: bulanIni.length,
+      bulanIniSelesai: bulanIni.filter((r) => r.status === "Selesai").length,
+      terlewatTotal: rencanaList.filter((r) => getStatusTampil(r, today) === "Terlewat").length,
+    };
+  }, [rencanaList, currentMonth, today]);
+
+  // 4. Filter Rencana yang Perlu Masuk Reminder (Terlewat atau Bulan Ini)
+  const reminderRencana = useMemo(() => {
+    if (!rencanaList) return [];
+    return rencanaList.filter((r) => {
+      const status = getStatusTampil(r, today);
+      if (status === "Selesai") return false; 
+      if (status === "Terlewat") return true; 
+      if (status === "Rencana" && r.bulan <= currentMonth) return true; 
+      
+      return false;
+    });
+  }, [rencanaList, today, currentMonth]);
+
   const PageHeader = (
     <Row>
       <Col>
         <Flex justifyContent="between" alignItems="center" className="mb-4 w-100" breakpoint="md">
           <div>
-            <h1 className="mb-2 h2">Dashboard Pemeliharaan</h1>
+            <h1 className="mb-2 h2">Dashboard Manajemen Mesin Produksi</h1>
             <p className="text-secondary mb-0">
-              Ringkasan jadwal, pelaksanaan, dan kondisi mesin produksi.
+              Ringkasan jadwal, log aktivitas, kalibrasi, dan kondisi mesin produksi.
             </p>
           </div>
           {canViewMesin && (
@@ -234,9 +263,12 @@ const DashboardPemeliharaanManager = () => {
   }
 
   const aktivitas = summary?.aktivitas_terbaru ?? [];
-  const rencana = summary?.rencana;
+  const kalibrasi = summary?.kalibrasi_mendekat ?? [];
+  
   const mesinHref = canViewMesin ? PEMELIHARAAN_MESIN_PATH : null;
   const rencanaHref = canViewMesin ? RENCANA_PATH : null;
+
+  const noReminders = reminderRencana.length === 0 && kalibrasi.length === 0;
 
   return (
     <>
@@ -268,8 +300,8 @@ const DashboardPemeliharaanManager = () => {
           <LinkIf href={rencanaHref}>
             <StatCard
               icon={<IconCalendarEvent size={26} />}
-              title={`Rencana Bulan Ini (${rencana?.bulan_ini_selesai ?? 0} selesai)`}
-              value={rencana?.bulan_ini_total ?? 0}
+              title={`Rencana Bulan Ini (${statsRencana.bulanIniSelesai} selesai)`}
+              value={statsRencana.bulanIniTotal}
               variant="success"
             />
           </LinkIf>
@@ -279,14 +311,14 @@ const DashboardPemeliharaanManager = () => {
             <StatCard
               icon={<IconCalendarDue size={26} />}
               title="Rencana Terlewat"
-              value={rencana?.terlewat_total ?? 0}
+              value={statsRencana.terlewatTotal}
               variant="danger"
             />
           </LinkIf>
         </Col>
       </Row>
 
-      {/* Baris 2: Tren aktivitas + daftar yang perlu dikerjakan */}
+      {/* Baris 2: Tren aktivitas + WIDGET REMINDER */}
       <Row className="g-3 mb-4">
         <Col lg={7}>
           <Card className="card-lg h-100 shadow-sm border-0">
@@ -294,7 +326,7 @@ const DashboardPemeliharaanManager = () => {
               <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
                 <div className="d-flex align-items-center gap-2">
                   <IconTrendingUp className="text-primary" size={20} />
-                  <h5 className="mb-0">Tren Aktivitas Pemeliharaan</h5>
+                  <h5 className="mb-0">Tren Log Pemeliharaan & Aktivitas</h5>
                 </div>
                 <div className="d-flex gap-1">
                   {[7, 30, 90].map((h) => (
@@ -338,44 +370,94 @@ const DashboardPemeliharaanManager = () => {
           </Card>
         </Col>
 
+        {/* WIDGET REMINDER PEMELIHARAAN & KALIBRASI */}
         <Col lg={5}>
           <Card className="card-lg h-100 shadow-sm border-0">
-            <CardBody>
-              <h5 className="mb-3">Perlu Dikerjakan</h5>
+            <CardBody className="d-flex flex-column">
+              <h5 className="mb-3 d-flex align-items-center gap-2">
+                <IconBellRinging size={22} className="text-warning" /> Reminder &amp; Jatuh Tempo
+              </h5>
 
-              {!rencana || rencana.perlu_dikerjakan.length === 0 ? (
-                <p className="text-secondary small mb-0">
-                  Tidak ada rencana yang tertunda. Semua jadwal sampai bulan ini sudah dikerjakan.
-                </p>
+              {noReminders ? (
+                <div className="text-center py-5 mt-auto mb-auto">
+                  <IconMoodSmile size={48} className="text-success opacity-50 mb-2" />
+                  <p className="text-secondary small mb-0">
+                    Semua jadwal aman. Tidak ada pemeliharaan atau kalibrasi yang tertunda atau mendekati batas waktu.
+                  </p>
+                </div>
               ) : (
-                <div className="d-flex flex-column gap-2">
-                  {rencana.perlu_dikerjakan.map((r) => {
+                <div className="d-flex flex-column gap-2" style={{ maxHeight: "250px", overflowY: "auto" }}>
+                  
+                  {/* List Kalibrasi Mendekat / Overdue */}
+                  {kalibrasi.map((k) => (
+                    <div
+                      key={`kal-${k.id}`}
+                      className={`d-flex justify-content-between align-items-center gap-2 border rounded p-2 ${k.status === 'terlewat' ? 'border-danger bg-danger-subtle' : 'border-warning bg-warning-subtle'}`}
+                    >
+                      <div className="d-flex align-items-center gap-2 min-w-0">
+                        <span className="d-inline-flex align-items-center justify-content-center rounded bg-white border flex-shrink-0" style={{ width: 28, height: 28 }}>
+                          <IconAdjustmentsAlt size={16} className={k.status === 'terlewat' ? 'text-danger' : 'text-warning'} />
+                        </span>
+                        <div className="text-truncate">
+                          <div className="fw-semibold text-truncate" title={k.nama_mesin}>
+                            [Kalibrasi] {k.kode_mesin}
+                          </div>
+                          <div className="text-secondary small">Jatuh Tempo: {formatTanggalSaja(k.jatuh_tempo)}</div>
+                        </div>
+                      </div>
+                      <div className="flex-shrink-0">
+                        {k.status === "terlewat" ? (
+                           <Badge bg="danger" pill>Terlewat</Badge>
+                        ) : (
+                           <Badge bg="warning" text="dark" pill>Mendekat</Badge>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* List Pemeliharaan Rutin (Rencana) */}
+                  {reminderRencana.map((r) => {
                     const meta = ACTION_META[r.aksi];
+                    const statusTampil = getStatusTampil(r, today);
+                    const isTerlewat = statusTampil === "Terlewat";
+
+                    // PERBAIKAN LOGIKA WARNA DI SINI
+                    const iconBg = isTerlewat ? "#dc3545" : "#fff"; // Merah jika terlewat, putih jika terjadwal
+                    const iconText = isTerlewat ? "#fff" : (meta?.color || "#000"); // Teks putih jika merah, teks warna-warni jika putih
+                    const iconBorder = isTerlewat ? "#dc3545" : (meta?.color || "#ccc");
+
                     return (
                       <div
-                        key={r.id}
-                        className="d-flex justify-content-between align-items-center gap-2 border rounded p-2"
+                        key={`ren-${r.id}`}
+                        className={`d-flex justify-content-between align-items-center gap-2 border rounded p-2 ${isTerlewat ? 'border-danger bg-danger-subtle' : ''}`}
                       >
                         <div className="d-flex align-items-center gap-2 min-w-0">
                           <span
                             className="d-inline-flex align-items-center justify-content-center rounded fw-bold flex-shrink-0"
-                            style={{ width: 28, height: 28, fontSize: 13, background: meta.color, color: meta.textColor }}
-                            title={meta.label}
+                            style={{ 
+                              width: 28, 
+                              height: 28, 
+                              fontSize: 13, 
+                              backgroundColor: iconBg, 
+                              color: iconText,
+                              border: `1px solid ${iconBorder}`
+                            }}
+                            title={meta?.label}
                           >
                             {r.aksi}
                           </span>
                           <div className="text-truncate">
-                            <div className="fw-semibold text-truncate" title={r.nama_mesin}>
-                              {r.kode_mesin}
+                            <div className="fw-semibold text-truncate" title={r.namaMesin}>
+                              {r.kodeMesin}
                             </div>
                             <div className="text-secondary small">{formatJadwal(r)}</div>
                           </div>
                         </div>
                         <div className="d-flex align-items-center gap-2 flex-shrink-0">
-                          {r.terlewat && <Badge bg="danger" pill>Terlewat</Badge>}
+                          {isTerlewat && <Badge bg="danger" pill>Terlewat</Badge>}
                           {canProcess && (
                             <Link
-                              href={`${PEMELIHARAAN_MESIN_PATH}?mesin=${r.mesin_id}&rencana=${r.id}`}
+                              href={`${PEMELIHARAAN_MESIN_PATH}?mesin=${r.mesinId}&rencana=${r.id}`}
                               className="btn btn-primary btn-sm d-inline-flex align-items-center gap-1"
                             >
                               <IconClipboardCheck size={14} /> Kerjakan
@@ -385,11 +467,6 @@ const DashboardPemeliharaanManager = () => {
                       </div>
                     );
                   })}
-                  {rencana.perlu_dikerjakan_total > rencana.perlu_dikerjakan.length && (
-                    <Link href={RENCANA_PATH} className="small">
-                      Lihat semua di Rencana Pemeliharaan
-                    </Link>
-                  )}
                 </div>
               )}
             </CardBody>
@@ -403,13 +480,13 @@ const DashboardPemeliharaanManager = () => {
           <Card className="card-lg h-100 shadow-sm border-0">
             <CardBody>
               <div className="d-flex justify-content-between align-items-center mb-3">
-                <h5 className="mb-0">Aktivitas Pemeliharaan Terbaru</h5>
+                <h5 className="mb-0">Log Aktivitas & Pemeliharaan Terbaru</h5>
                 <span className="text-secondary small">
-                  {summary?.pemeliharaan_rutin ?? 0} kegiatan tercatat
+                  {summary?.pemeliharaan_rutin ?? 0} log tercatat
                 </span>
               </div>
               {aktivitas.length === 0 ? (
-                <p className="text-secondary small mb-0">Belum ada aktivitas pemeliharaan tercatat.</p>
+                <p className="text-secondary small mb-0">Belum ada log mesin yang tercatat.</p>
               ) : (
                 <div style={{ maxHeight: 320, overflowY: "auto", paddingRight: "5px" }}>
                   <ul className="list-unstyled mb-0 dash-list">
@@ -450,31 +527,35 @@ const DashboardPemeliharaanManager = () => {
         <Col lg={5}>
           <Card className="card-lg h-100 shadow-sm border-0">
             <CardBody>
-              <h5 className="mb-3">Akses Modul Cepat</h5>
+              <h5 className="mb-3">Akses Modul Manajemen Mesin</h5>
+              
               <Shortcut
                 href={PEMELIHARAAN_MESIN_PATH}
                 enabled={canViewMesin}
                 icon={<IconTool size={20} />}
-                title="Kelola Data Mesin"
-                desc="Tambah & lihat spesifikasi unit"
+                title="Katalog & Log Mesin"
+                desc="Lihat spesifikasi, aktivitas, dan riwayat"
                 tone="primary"
               />
+              
               <Shortcut
                 href={RENCANA_PATH}
                 enabled={canViewMesin}
                 icon={<IconCalendarEvent size={20} />}
                 title="Rencana Pemeliharaan"
-                desc="Jadwal mingguan per mesin"
+                desc="Manajemen jadwal mingguan mesin (M/C)"
                 tone="warning"
               />
+
               <Shortcut
-                href="/pemeliharaan/motor-konversi"
+                href="/pemeliharaan/kalibrasi"
                 enabled={canViewMesin}
-                icon={<IconActivity size={20} />}
-                title="Pemeliharaan Motor Konversi"
-                desc="Monitoring unit konversi khusus"
-                tone="success"
+                icon={<IconCertificate size={20} />}
+                title="Sertifikasi & Kalibrasi"
+                desc="Riwayat kelayakan dan jadwal kalibrasi"
+                tone="info"
               />
+
             </CardBody>
           </Card>
         </Col>
