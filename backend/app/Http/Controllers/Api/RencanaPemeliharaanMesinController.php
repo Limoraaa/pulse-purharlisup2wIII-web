@@ -253,6 +253,10 @@ class RencanaPemeliharaanMesinController extends Controller
             'tahun_realisasi'  => $tahunRealisasi,
             'bulan_realisasi'  => $bulanRealisasi,
             'minggu_realisasi' => $mingguRealisasi,
+            'jenis_pelaksana'  => $r->jenis_pelaksana,
+            'nama_vendor'      => $r->nama_vendor,
+            'no_po'            => $r->no_po,
+            'biaya_aktual'     => $r->biaya_aktual,
         ];
     }
 }

@@ -18,7 +18,7 @@ class RencanaPemeliharaanMesin extends Model
         'aksi',
         'status',
         'rab',
-        'keterangan',
+        'keterangan','jenis_pelaksana', 'nama_vendor', 'no_po', 'biaya_aktual'
     ];
 
     // Default di level model, jaga-jaga kalau default kolom di migration berbeda.

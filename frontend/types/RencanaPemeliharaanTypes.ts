@@ -28,6 +28,12 @@ export interface RencanaItem {
   tahunRealisasi?: number | null;
   bulanRealisasi?: number | null;
   mingguRealisasi?: number | null;
+
+  // --- TAMBAHAN PROPERTI VENDOR ---
+  jenis_pelaksana?: 'Internal' | 'Vendor';
+  nama_vendor?: string | null;
+  no_po?: string | null;
+  biaya_aktual?: number | null;
 }
 
 // Log pemeliharaan yang tidak terhubung ke plotting mana pun (rencana_id kosong).
@@ -51,6 +57,12 @@ export interface RencanaFormValues {
   aksi: AksiRencana;
   rab: number;
   keterangan: string;
+  
+  // --- TAMBAHAN PROPERTI VENDOR ---
+  jenis_pelaksana?: 'Internal' | 'Vendor';
+  nama_vendor?: string | null;
+  no_po?: string | null;
+  biaya_aktual?: number | null;
 }
 
 export interface MesinOption {

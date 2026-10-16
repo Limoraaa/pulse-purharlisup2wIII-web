@@ -2,7 +2,7 @@
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import useSWR from "swr";
-import { Row, Col, Card, CardBody, Spinner, Alert, Badge, Button } from "react-bootstrap";
+import { Row, Col, Card, CardBody, Spinner, Alert, Badge, Button, ProgressBar } from "react-bootstrap";
 import {
   IconTool,
   IconServer,
@@ -17,6 +17,7 @@ import {
   IconMoodSmile,
   IconAdjustmentsAlt,
   IconCertificate,
+  IconReportMoney,
 } from "@tabler/icons-react";
 import {
   ResponsiveContainer,
@@ -37,10 +38,17 @@ import { RencanaItem } from "types/RencanaPemeliharaanTypes";
 import {
   ACTION_META,
   PEMELIHARAAN_MESIN_PATH,
-  RENCANA_PATH,
   formatJadwal,
   getStatusTampil,
 } from "components/manajemenmesin/rencanapemeliharaanmesin/RencanaHelpers";
+import {
+  StatusPekerjaan,
+  MONTHS_LONG,
+} from "components/manajemenmesin/rencanapemeliharaanmesin/LaporanAnggaranFormModal";
+
+// Sesuaikan kedua route ini dengan route halaman di aplikasimu
+const RENCANA_PATH = "/pemeliharaan/rencana";
+const LAPORAN_ANGGARAN_PATH = "/pemeliharaan/laporan-anggaran";
 
 // ---------- Tipe respons /pemeliharaan/dashboard-stats ----------
 interface AktivitasItem {
@@ -74,6 +82,35 @@ interface DashboardStats {
   tren?: TrenItem[];
   kalibrasi_mendekat?: KalibrasiReminder[]; 
 }
+
+// ---------- Laporan anggaran (endpoint /laporan-anggaran) ----------
+interface AnggaranPekerjaan {
+  id: number;
+  bulan: number;
+  nama_pekerjaan: string;
+  biaya: number;
+  biaya_aktual: number | null;
+  status: StatusPekerjaan;
+  nama_vendor: string | null;
+}
+
+interface AnggaranData {
+  totalDisburse: number;
+  pekerjaan: AnggaranPekerjaan[];
+}
+
+const STATUS_PEKERJAAN: StatusPekerjaan[] = ["belum_dikerjakan", "sedang_dikerjakan", "sudah_dikerjakan"];
+
+const STATUS_META: Record<StatusPekerjaan, { label: string; color: string }> = {
+  belum_dikerjakan: { label: "Belum dikerjakan", color: "#C00000" },
+  sedang_dikerjakan: { label: "Sedang dikerjakan", color: "#D97706" },
+  sudah_dikerjakan: { label: "Sudah dikerjakan", color: "#1E7B4F" },
+};
+
+const formatRupiah = (value: number | string | null | undefined): string =>
+  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(
+    Number(value) || 0
+  );
 
 const formatWaktu = (iso: string) => {
   const d = new Date(iso);
@@ -139,6 +176,15 @@ const Shortcut = ({ href, enabled, icon, title, desc, tone }: ShortcutProps) => 
   );
 };
 
+const StatusPill = ({ status }: { status: StatusPekerjaan }) => (
+  <span
+    className="d-inline-block fw-bold text-white rounded-pill px-2 py-1"
+    style={{ backgroundColor: STATUS_META[status].color, fontSize: "0.7rem" }}
+  >
+    {STATUS_META[status].label}
+  </span>
+);
+
 const DashboardPemeliharaanManager = () => {
   const canViewMesin = usePermission("view_pemeliharaan_mesin");
   const canProcess = usePermission("process_pemeliharaan_mesin");
@@ -192,6 +238,29 @@ const DashboardPemeliharaanManager = () => {
     () => fetchRencana(currentYear)
   );
 
+  // 2b. Fetch Laporan Anggaran (disburse + pekerjaan) tahun berjalan
+  const { data: anggaran, error: anggaranError } = useSWR<AnggaranData>(
+    `/laporan-anggaran?tahun=${currentYear}`,
+    async () => {
+      const res: any = await api(`/laporan-anggaran?tahun=${currentYear}`, { method: "GET" });
+      const body = res?.data ?? res ?? {};
+      const disburse: any[] = Array.isArray(body.disburse) ? body.disburse : [];
+      const pekerjaan: any[] = Array.isArray(body.pekerjaan) ? body.pekerjaan : [];
+      return {
+        totalDisburse: disburse.reduce((acc, d) => acc + (Number(d.nominal) || 0), 0),
+        pekerjaan: pekerjaan.map((r) => ({
+          id: Number(r.id),
+          bulan: Number(r.bulan),
+          nama_pekerjaan: r.nama_pekerjaan ?? "",
+          biaya: Number(r.biaya) || 0,
+          biaya_aktual: r.biaya_aktual === null || r.biaya_aktual === undefined ? null : Number(r.biaya_aktual),
+          status: STATUS_PEKERJAAN.includes(r.status) ? (r.status as StatusPekerjaan) : "belum_dikerjakan",
+          nama_vendor: r.nama_vendor ?? null,
+        })),
+      };
+    }
+  );
+
   // 3. Olah Data Rencana untuk Kalkulasi Statistik
   const statsRencana = useMemo(() => {
     if (!rencanaList) return { bulanIniTotal: 0, bulanIniSelesai: 0, terlewatTotal: 0 };
@@ -204,6 +273,22 @@ const DashboardPemeliharaanManager = () => {
     };
   }, [rencanaList, currentMonth, today]);
 
+  // 3b. Olah Data Anggaran: serapan + pemetaan status pengerjaan
+  const statsAnggaran = useMemo(() => {
+    const pekerjaan = anggaran?.pekerjaan ?? [];
+    const totalDisburse = anggaran?.totalDisburse ?? 0;
+    const totalDibayar = pekerjaan.reduce((acc, p) => acc + ((p.biaya_aktual ?? 0) > 0 ? (p.biaya_aktual ?? 0) : 0), 0);
+    const sisa = totalDisburse - totalDibayar;
+    const persen = totalDisburse > 0 ? Math.min(100, Math.round((totalDibayar / totalDisburse) * 100)) : 0;
+
+    const perStatus = STATUS_PEKERJAAN.map((s) => {
+      const list = pekerjaan.filter((p) => p.status === s);
+      return { status: s, jumlah: list.length, biaya: list.reduce((acc, p) => acc + p.biaya, 0) };
+    });
+
+    return { totalDisburse, totalDibayar, sisa, persen, perStatus, totalPekerjaan: pekerjaan.length };
+  }, [anggaran]);
+
   // 4. Filter Rencana yang Perlu Masuk Reminder (Terlewat atau Bulan Ini)
   const reminderRencana = useMemo(() => {
     if (!rencanaList) return [];
@@ -211,11 +296,20 @@ const DashboardPemeliharaanManager = () => {
       const status = getStatusTampil(r, today);
       if (status === "Selesai") return false; 
       if (status === "Terlewat") return true; 
-      if (status === "Rencana" && r.bulan <= currentMonth) return true; 
+      if (status === "Terjadwal" && r.bulan <= currentMonth) return true; 
       
       return false;
     });
   }, [rencanaList, today, currentMonth]);
+
+  // 4b. Pekerjaan anggaran yang belum selesai dan jadwalnya sudah masuk bulan ini atau sebelumnya
+  const reminderAnggaran = useMemo(
+    () =>
+      (anggaran?.pekerjaan ?? [])
+        .filter((p) => p.status !== "sudah_dikerjakan" && p.bulan <= currentMonth)
+        .sort((a, b) => a.bulan - b.bulan),
+    [anggaran, currentMonth]
+  );
 
   const PageHeader = (
     <Row>
@@ -224,7 +318,7 @@ const DashboardPemeliharaanManager = () => {
           <div>
             <h1 className="mb-2 h2">Dashboard Manajemen Mesin Produksi</h1>
             <p className="text-secondary mb-0">
-              Ringkasan jadwal, log aktivitas, kalibrasi, dan kondisi mesin produksi.
+              Ringkasan jadwal, log aktivitas, kalibrasi, anggaran, dan kondisi mesin produksi.
             </p>
           </div>
           {canViewMesin && (
@@ -267,8 +361,9 @@ const DashboardPemeliharaanManager = () => {
   
   const mesinHref = canViewMesin ? PEMELIHARAAN_MESIN_PATH : null;
   const rencanaHref = canViewMesin ? RENCANA_PATH : null;
+  const anggaranHref = canViewMesin ? LAPORAN_ANGGARAN_PATH : null;
 
-  const noReminders = reminderRencana.length === 0 && kalibrasi.length === 0;
+  const noReminders = reminderRencana.length === 0 && kalibrasi.length === 0 && reminderAnggaran.length === 0;
 
   return (
     <>
@@ -315,6 +410,105 @@ const DashboardPemeliharaanManager = () => {
               variant="danger"
             />
           </LinkIf>
+        </Col>
+      </Row>
+
+      {/* Baris 1b: Serapan anggaran PRK + pemetaan status pengerjaan */}
+      <Row className="g-3 mb-4">
+        <Col lg={5}>
+          <Card className="card-lg h-100 shadow-sm border-0">
+            <CardBody>
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <h5 className="mb-0 d-flex align-items-center gap-2">
+                  <IconReportMoney size={22} className="text-primary" /> Serapan Anggaran PRK {currentYear}
+                </h5>
+                {anggaranHref && (
+                  <Link href={anggaranHref} className="small text-decoration-none">
+                    Lihat laporan
+                  </Link>
+                )}
+              </div>
+
+              {anggaranError ? (
+                <p className="text-danger small mb-0">Data laporan anggaran gagal dimuat.</p>
+              ) : !anggaran ? (
+                <div className="text-center py-4">
+                  <Spinner animation="border" size="sm" />
+                </div>
+              ) : (
+                <>
+                  <div className="d-flex justify-content-between small text-secondary mb-1">
+                    <span>Dibayarkan dari disburse</span>
+                    <span className="fw-semibold text-dark">{statsAnggaran.persen}%</span>
+                  </div>
+                  <ProgressBar now={statsAnggaran.persen} variant="success" style={{ height: 10 }} className="mb-3" />
+
+                  <div className="d-flex justify-content-between py-2 border-bottom">
+                    <span className="text-secondary small">Total disburse</span>
+                    <span className="fw-semibold">{formatRupiah(statsAnggaran.totalDisburse)}</span>
+                  </div>
+                  <div className="d-flex justify-content-between py-2 border-bottom">
+                    <span className="text-secondary small">Total dibayarkan</span>
+                    <span className="fw-semibold">{formatRupiah(statsAnggaran.totalDibayar)}</span>
+                  </div>
+                  <div className="d-flex justify-content-between py-2">
+                    <span className="text-secondary small">Sisa PRK pemeliharaan</span>
+                    <span className="fw-bold" style={{ color: statsAnggaran.sisa < 0 ? "#C00000" : "#000" }}>
+                      {formatRupiah(statsAnggaran.sisa)}
+                    </span>
+                  </div>
+                </>
+              )}
+            </CardBody>
+          </Card>
+        </Col>
+
+        <Col lg={7}>
+          <Card className="card-lg h-100 shadow-sm border-0">
+            <CardBody>
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <h5 className="mb-0">Status Pengerjaan Rencana Pekerjaan</h5>
+                <span className="text-secondary small">{statsAnggaran.totalPekerjaan} pekerjaan</span>
+              </div>
+
+              {anggaranError ? (
+                <p className="text-danger small mb-0">Data laporan anggaran gagal dimuat.</p>
+              ) : !anggaran ? (
+                <div className="text-center py-4">
+                  <Spinner animation="border" size="sm" />
+                </div>
+              ) : statsAnggaran.totalPekerjaan === 0 ? (
+                <p className="text-secondary small mb-0">Belum ada rencana pekerjaan di tahun {currentYear}.</p>
+              ) : (
+                <div className="d-flex flex-column gap-3">
+                  {statsAnggaran.perStatus.map((s) => {
+                    const lebar = Math.round((s.jumlah / statsAnggaran.totalPekerjaan) * 100);
+                    return (
+                      <div key={s.status}>
+                        <div className="d-flex justify-content-between align-items-center mb-1">
+                          <div className="d-flex align-items-center gap-2">
+                            <span
+                              className="d-inline-block rounded-circle"
+                              style={{ width: 10, height: 10, backgroundColor: STATUS_META[s.status].color }}
+                            />
+                            <span className="fw-semibold small">{STATUS_META[s.status].label}</span>
+                          </div>
+                          <span className="small text-secondary">
+                            {s.jumlah} pekerjaan &middot; {formatRupiah(s.biaya)}
+                          </span>
+                        </div>
+                        <div className="rounded-pill bg-light" style={{ height: 8, overflow: "hidden" }}>
+                          <div
+                            style={{ width: `${lebar}%`, height: "100%", backgroundColor: STATUS_META[s.status].color }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardBody>
+          </Card>
         </Col>
       </Row>
 
@@ -382,7 +576,7 @@ const DashboardPemeliharaanManager = () => {
                 <div className="text-center py-5 mt-auto mb-auto">
                   <IconMoodSmile size={48} className="text-success opacity-50 mb-2" />
                   <p className="text-secondary small mb-0">
-                    Semua jadwal aman. Tidak ada pemeliharaan atau kalibrasi yang tertunda atau mendekati batas waktu.
+                    Semua jadwal aman. Tidak ada pemeliharaan, kalibrasi, atau pekerjaan anggaran yang tertunda atau mendekati batas waktu.
                   </p>
                 </div>
               ) : (
@@ -414,6 +608,35 @@ const DashboardPemeliharaanManager = () => {
                       </div>
                     </div>
                   ))}
+
+                  {/* List Pekerjaan Anggaran yang belum selesai */}
+                  {reminderAnggaran.map((p) => {
+                    const isTerlewat = p.bulan < currentMonth;
+                    return (
+                      <div
+                        key={`ang-${p.id}`}
+                        className={`d-flex justify-content-between align-items-center gap-2 border rounded p-2 ${isTerlewat ? 'border-danger bg-danger-subtle' : ''}`}
+                      >
+                        <div className="d-flex align-items-center gap-2 min-w-0">
+                          <span className="d-inline-flex align-items-center justify-content-center rounded bg-white border flex-shrink-0" style={{ width: 28, height: 28 }}>
+                            <IconReportMoney size={16} style={{ color: STATUS_META[p.status].color }} />
+                          </span>
+                          <div className="text-truncate">
+                            <div className="fw-semibold text-truncate" title={p.nama_pekerjaan}>
+                              [Anggaran] {p.nama_pekerjaan}
+                            </div>
+                            <div className="text-secondary small">
+                              {MONTHS_LONG[p.bulan - 1]} {currentYear} &middot; {p.nama_vendor || "Vendor belum diisi"}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="d-flex align-items-center gap-2 flex-shrink-0">
+                          {isTerlewat && <Badge bg="danger" pill>Terlewat</Badge>}
+                          <StatusPill status={p.status} />
+                        </div>
+                      </div>
+                    );
+                  })}
 
                   {/* List Pemeliharaan Rutin (Rencana) */}
                   {reminderRencana.map((r) => {
@@ -545,6 +768,15 @@ const DashboardPemeliharaanManager = () => {
                 title="Rencana Pemeliharaan"
                 desc="Manajemen jadwal mingguan mesin (M/C)"
                 tone="warning"
+              />
+
+              <Shortcut
+                href={LAPORAN_ANGGARAN_PATH}
+                enabled={canViewMesin}
+                icon={<IconReportMoney size={20} />}
+                title="Laporan Anggaran PRK"
+                desc="Disburse, rencana pekerjaan, dan pembayaran vendor"
+                tone="success"
               />
 
               <Shortcut
