@@ -17,6 +17,9 @@ return new class extends Migration
                   ->constrained('mesin_produksi')
                   ->onDelete('cascade');
 
+            // Tindakan: C / L / P / M / K, dipakai untuk mencocokkan log ke plotting rencana
+            $table->string('aksi', 1)->nullable();
+
             $table->text('uraian_pemeliharaan');
             $table->date('waktu_pelaksana');
             $table->text('keterangan')->nullable();

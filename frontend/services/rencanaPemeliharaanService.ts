@@ -1,6 +1,7 @@
 // services/rencanaPemeliharaanService.ts
 import api from "lib/api";
 import {
+  LogDiLuarRencana,
   MesinOption,
   RencanaFormValues,
   RencanaItem,
@@ -19,6 +20,9 @@ const authHeaders = (withJson = false): Record<string, string> => {
 const unwrap = (json: any): any[] =>
   Array.isArray(json) ? json : Array.isArray(json?.data) ? json.data : [];
 
+const toNumOrNull = (v: unknown): number | null =>
+  v === null || v === undefined || v === "" ? null : Number(v);
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mapRencana = (r: any): RencanaItem => ({
   id: String(r.id),
@@ -34,6 +38,21 @@ const mapRencana = (r: any): RencanaItem => ({
   keterangan: r.keterangan ?? "",
   logId: r.log_id != null ? String(r.log_id) : null,
   tanggalSelesai: r.tanggal_selesai ?? null,
+  tahunRealisasi: toNumOrNull(r.tahun_realisasi),
+  bulanRealisasi: toNumOrNull(r.bulan_realisasi),
+  mingguRealisasi: toNumOrNull(r.minggu_realisasi),
+});
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mapLogDiLuar = (l: any): LogDiLuarRencana => ({
+  id: String(l.id),
+  mesinId: String(l.mesin_id ?? l.mesin_produksi_id ?? ""),
+  aksi: l.aksi ?? null,
+  uraian: l.uraian_pemeliharaan ?? "",
+  tanggal: l.tanggal ?? "",
+  tahun: Number(l.tahun),
+  bulan: Number(l.bulan),
+  minggu: Number(l.minggu),
 });
 
 const toPayload = (v: RencanaFormValues) => ({
@@ -53,6 +72,26 @@ export const fetchRencana = async (tahun: number): Promise<RencanaItem[]> => {
     headers: authHeaders(),
   });
   return unwrap(json).map(mapRencana);
+};
+
+// GET /rencana-pemeliharaan?tahun=2026
+// Sama seperti fetchRencana, tapi juga membawa log pemeliharaan yang tidak terhubung
+// ke plotting (di_luar_rencana) untuk baris Realisasi. Satu request saja.
+export const fetchRencanaLengkap = async (
+  tahun: number
+): Promise<{ rencana: RencanaItem[]; diLuarRencana: LogDiLuarRencana[] }> => {
+  const json = await api<{ data?: unknown[]; di_luar_rencana?: unknown[] }>(
+    `/rencana-pemeliharaan?tahun=${tahun}`,
+    {
+      method: "GET",
+      headers: authHeaders(),
+    }
+  );
+  const diLuar = Array.isArray(json?.di_luar_rencana) ? json.di_luar_rencana : [];
+  return {
+    rencana: unwrap(json).map(mapRencana),
+    diLuarRencana: diLuar.map(mapLogDiLuar),
+  };
 };
 
 // GET /rencana-pemeliharaan?mesin_id=1&status=belum

@@ -21,6 +21,11 @@ class RencanaPemeliharaanMesin extends Model
         'keterangan',
     ];
 
+    // Default di level model, jaga-jaga kalau default kolom di migration berbeda.
+    protected $attributes = [
+        'status' => 'Terjadwal',
+    ];
+
     protected $casts = [
         'tahun'  => 'integer',
         'bulan'  => 'integer',

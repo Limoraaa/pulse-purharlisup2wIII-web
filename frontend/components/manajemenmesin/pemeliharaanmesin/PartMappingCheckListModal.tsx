@@ -5,12 +5,15 @@ import { IconClipboardCheck } from "@tabler/icons-react";
 import api from "lib/api";
 import type { ChecklistStatus, MachinePart, PartMappingPayload } from "./PartMappingType";
 
+type AksiCode = "C" | "L" | "P" | "M" | "K";
+
 interface Props {
   show: boolean;
   onHide: () => void;
   mesinId: number | string;
   mesinNama: string;
   rencanaId?: number | string | null; // rencana yang sedang dikerjakan (opsional)
+  aksiRencana?: AksiCode | null; // tindakan dari rencana tsb; selalu dikirim ke server bersama rencana_id
   onSubmitted?: () => void; // dipanggil setelah kegiatan berhasil disimpan
 }
 
@@ -19,6 +22,15 @@ interface PartResult {
   statuses: Record<string, ChecklistStatus>;
   catatan: string;
 }
+
+// Tindakan pemeliharaan yang dikerjakan. Dipakai server untuk mengisi baris Realisasi di Rencana.
+const AKSI_OPTIONS: { value: AksiCode; label: string }[] = [
+  { value: "C", label: "C - Cleaning / Check" },
+  { value: "L", label: "L - Lubrication" },
+  { value: "M", label: "M - Maintenance" },
+  { value: "P", label: "P - Part Replacement" },
+  { value: "K", label: "K - Kalibrasi" },
+];
 
 const STATUS_OPTIONS: { value: ChecklistStatus; label: string; variant: string }[] = [
   { value: "baik", label: "Baik", variant: "success" },
@@ -42,7 +54,24 @@ function worstOf(statuses: Record<string, ChecklistStatus>): ChecklistStatus {
   return worst;
 }
 
-export default function PartMappingChecklistModal({ show, onHide, mesinId, mesinNama, rencanaId, onSubmitted }: Props) {
+// Tanggal lokal (YYYY-MM-DD). toISOString() memakai UTC, sehingga di WIB sebelum jam 07.00
+// tanggalnya mundur sehari dan log bisa masuk minggu yang salah.
+function todayLocal(): string {
+  const d = new Date();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
+export default function PartMappingChecklistModal({
+  show,
+  onHide,
+  mesinId,
+  mesinNama,
+  rencanaId,
+  aksiRencana,
+  onSubmitted,
+}: Props) {
   const [loadingMapping, setLoadingMapping] = useState(true);
   const [gambarUrl, setGambarUrl] = useState<string | null>(null);
   const [parts, setParts] = useState<MachinePart[]>([]);
@@ -51,6 +80,7 @@ export default function PartMappingChecklistModal({ show, onHide, mesinId, mesin
   // Hasil semua part yang sudah diperiksa pada kegiatan ini (key = id part)
   const [results, setResults] = useState<Record<string, PartResult>>({});
   const [teknisi, setTeknisi] = useState("");
+  const [aksi, setAksi] = useState<AksiCode | "">("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
 
@@ -60,6 +90,13 @@ export default function PartMappingChecklistModal({ show, onHide, mesinId, mesin
   const [draftCatatan, setDraftCatatan] = useState("");
   const [partError, setPartError] = useState("");
 
+  // Dikerjakan dari rencana: tindakan ikut rencana, tidak perlu dipilih lagi.
+  // Dropdown hanya muncul untuk kegiatan di luar rencana.
+  // Dianggap "dari rencana" hanya kalau tindakan rencananya diketahui (aksiRencana). Kalau halaman induk
+  // hanya mengirim rencanaId tanpa aksiRencana, dropdown tetap tampil supaya aksi selalu terkirim.
+  const dariRencana = !!aksiRencana;
+  const aksiRencanaLabel = AKSI_OPTIONS.find((o) => o.value === aksiRencana)?.label;
+
   // Tiap kali modal dibuka: muat peta part & mulai kegiatan baru yang bersih
   useEffect(() => {
     if (!show) return;
@@ -68,6 +105,7 @@ export default function PartMappingChecklistModal({ show, onHide, mesinId, mesin
     setResults({});
     setSelectedPart(null);
     setSubmitError("");
+    setAksi("");
     setTeknisi(localStorage.getItem("userName") || "");
 
     (async () => {
@@ -142,6 +180,15 @@ export default function PartMappingChecklistModal({ show, onHide, mesinId, mesin
       setSubmitError("Nama teknisi wajib diisi.");
       return;
     }
+
+    // Tindakan: dari rencana kalau ada, selain itu dari pilihan teknisi.
+    const aksiKirim: AksiCode | "" = aksiRencana || aksi;
+
+    // Tindakan selalu dikirim: server memakainya untuk mencocokkan plotting dan memvalidasi rencana.
+    if (!aksiKirim) {
+      setSubmitError("Pilih tindakan yang dikerjakan.");
+      return;
+    }
     if (checkedCount === 0) {
       setSubmitError("Periksa minimal satu part sebelum menyimpan kegiatan.");
       return;
@@ -166,11 +213,13 @@ export default function PartMappingChecklistModal({ show, onHide, mesinId, mesin
         method: "POST",
         body: JSON.stringify({
           mesin_produksi_id: mesinId,
-          waktu_pelaksana: new Date().toISOString().split("T")[0],
+          waktu_pelaksana: todayLocal(),
           paraf: teknisi.trim(),
           jumlah_part_total: parts.length,
           hasil_checklist: hasil,
+          // rencana_id & aksi dikirim bersama; server hanya menolak kalau tindakannya beda dari rencana
           ...(rencanaId ? { rencana_id: rencanaId } : {}),
+          ...(aksiKirim ? { aksi: aksiKirim } : {}),
         }),
       });
 
@@ -238,6 +287,37 @@ export default function PartMappingChecklistModal({ show, onHide, mesinId, mesin
               <div className="small text-muted mt-2">
                 Biru = belum diperiksa · Hijau = baik · Kuning = perlu perhatian · Merah = rusak
               </div>
+
+              {/* Tindakan: dipakai untuk mencocokkan kegiatan ini ke plotting di Rencana Pemeliharaan.
+                  Kalau dikerjakan dari sebuah rencana, tindakannya ikut rencana itu. */}
+              {dariRencana ? (
+                <div className="small mt-3">
+                  <span className="fw-semibold">Tindakan:</span>{" "}
+                  {aksiRencanaLabel ?? "sesuai rencana"}{" "}
+                  <span className="text-muted">(mengerjakan rencana, hasilnya otomatis menyelesaikan rencana ini)</span>
+                </div>
+              ) : (
+                <Form.Group className="mt-3" style={{ maxWidth: 320 }}>
+                  <Form.Label className="small fw-semibold">Tindakan yang dikerjakan</Form.Label>
+                  <Form.Select
+                    size="sm"
+                    value={aksi}
+                    onChange={(e) => setAksi(e.target.value as AksiCode | "")}
+                  >
+                    <option value="">Pilih tindakan...</option>
+                    {AKSI_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </Form.Select>
+                  {rencanaId && (
+                    <Form.Text className="text-muted">
+                      Pilih tindakan yang sama dengan rencana yang sedang dikerjakan.
+                    </Form.Text>
+                  )}
+                </Form.Group>
+              )}
 
               <Form.Group className="mt-3" style={{ maxWidth: 320 }}>
                 <Form.Label className="small fw-semibold">Nama teknisi</Form.Label>

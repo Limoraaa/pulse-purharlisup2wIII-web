@@ -1,6 +1,6 @@
 // types/RencanaPemeliharaanTypes.ts
 
-export type AksiRencana = "C" | "L" | "P" | "M" | "K";
+export type AksiRencana = "C" | "L" | "P" | "M";
 
 // Status yang disimpan di database.
 export type StatusRencana = "Rencana" | "Selesai";
@@ -21,9 +21,26 @@ export interface RencanaItem {
   status: StatusRencana;
   rab: number;
   keterangan: string;
-  // Terisi otomatis saat rencana dikerjakan lewat Checklist Visual.
+  // Terisi otomatis saat operator menyimpan log pemeliharaan yang cocok dengan rencana ini.
   logId: string | null;
   tanggalSelesai: string | null;
+  // Posisi realisasi (dihitung backend dari tanggal log). Kosong bila belum selesai.
+  tahunRealisasi?: number | null;
+  bulanRealisasi?: number | null;
+  mingguRealisasi?: number | null;
+}
+
+// Log pemeliharaan yang tidak terhubung ke plotting mana pun (rencana_id kosong).
+// Ditampilkan di baris Realisasi sebagai pekerjaan "di luar rencana".
+export interface LogDiLuarRencana {
+  id: string;
+  mesinId: string;
+  aksi: AksiRencana | null; // null untuk log lama / log tanpa Tindakan
+  uraian: string;
+  tanggal: string;
+  tahun: number;
+  bulan: number; // 1-12
+  minggu: number; // 1-4
 }
 
 export interface RencanaFormValues {
