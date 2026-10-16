@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { mutate } from "swr";
 import { Row, Col, Card, CardBody, Button, Spinner, Alert, InputGroup, Form, Table, Badge } from "react-bootstrap";
 import {
@@ -24,6 +24,7 @@ import api from "lib/api";
 import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
 import MesinFormModal from "../MesinFormModal";
 import PartMappingEditor from "./PartMappingEditor";
+// Nama file yang benar: PartMappingChecklistModal (huruf "l" kecil di "list")
 import PartMappingChecklistModal from "./PartMappingCheckListModal";
 import RencanaMesinCard, { rencanaMesinKey } from "components/manajemenmesin/rencanapemeliharaanmesin/RencanaMesinCard";
 
@@ -88,6 +89,13 @@ const DataPemeliharaanManager = () => {
   const [showMappingEditor, setShowMappingEditor] = useState(false);
   const [showChecklistModal, setShowChecklistModal] = useState(false);
 
+  // Rencana yang sedang dikerjakan (dari tombol "Kerjakan sekarang" atau kartu rencana mesin).
+  // Null = kegiatan di luar rencana, tindakan dipilih manual di modal checklist.
+  const [activeRencanaId, setActiveRencanaId] = useState<string | number | null>(null);
+
+  // Parameter URL (?mesin=&rencana=&aksi=) hanya diproses sekali
+  const urlHandled = useRef(false);
+
   const loadMesin = async () => {
     setLoading(true);
     setError(null);
@@ -125,6 +133,35 @@ const DataPemeliharaanManager = () => {
       setLoadingLogs(false);
     }
   };
+
+  // Datang dari Rencana Pemeliharaan lewat tombol "Kerjakan sekarang":
+  //   /...?mesin=3&rencana=11&aksi=M
+  // -> langsung buka detail mesin, lalu buka Checklist Visual untuk rencana itu.
+  useEffect(() => {
+    if (urlHandled.current || mesinList.length === 0) return;
+    urlHandled.current = true;
+
+    const params = new URLSearchParams(window.location.search);
+    const mesinParam = params.get("mesin");
+    if (!mesinParam) return;
+
+    // Bersihkan parameter supaya refresh halaman tidak membuka ulang modal
+    window.history.replaceState(null, "", window.location.pathname);
+
+    const found = mesinList.find((m) => String(m.id) === mesinParam);
+    if (!found) {
+      setError("Mesin dari rencana tidak ditemukan.");
+      return;
+    }
+
+    const rencanaParam = params.get("rencana");
+    handleOpenDetail(found);
+    if (rencanaParam) {
+      setActiveRencanaId(rencanaParam);
+      if (canProcess) setShowChecklistModal(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mesinList]);
 
   const filteredMesin = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
@@ -311,7 +348,10 @@ const DataPemeliharaanManager = () => {
                   <Button
                     variant="primary"
                     size="sm"
-                    onClick={() => setShowChecklistModal(true)}
+                    onClick={() => {
+                      setActiveRencanaId(null); // kegiatan di luar rencana
+                      setShowChecklistModal(true);
+                    }}
                     className="d-flex align-items-center justify-content-center gap-1 w-100 w-sm-auto order-4 order-sm-5"
                   >
                     <IconClipboardCheck size={16} /> Checklist Visual
@@ -351,7 +391,12 @@ const DataPemeliharaanManager = () => {
             <RencanaMesinCard
               mesinId={selectedMesin.id}
               canProcess={canProcess}
-              onKerjakan={() => setShowChecklistModal(true)}
+              // Kalau kartu mengirim rencana yang diklik, id-nya dipakai supaya log
+              // langsung menyelesaikan rencana itu. Tanpa argumen = pilih tindakan manual.
+              onKerjakan={(rencana?: { id: string | number }) => {
+                setActiveRencanaId(rencana?.id ?? null);
+                setShowChecklistModal(true);
+              }}
             />
           )}
 
@@ -454,11 +499,16 @@ const DataPemeliharaanManager = () => {
           />
           <PartMappingChecklistModal
             show={showChecklistModal}
-            onHide={() => setShowChecklistModal(false)}
+            onHide={() => {
+              setShowChecklistModal(false);
+              setActiveRencanaId(null);
+            }}
             mesinId={selectedMesin.id}
             mesinNama={selectedMesin.nama_mesin}
+            rencanaId={activeRencanaId}
             onSubmitted={() => {
               setShowChecklistModal(false);
+              setActiveRencanaId(null);
               setSuccessMessage("Laporan checklist visual berhasil disimpan!");
               handleOpenDetail(selectedMesin); // refresh riwayat log biar laporan baru langsung tampil
               mutate(rencanaMesinKey(selectedMesin.id)); // refresh kartu rencana mesin ini

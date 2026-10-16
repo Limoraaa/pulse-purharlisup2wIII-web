@@ -1,7 +1,7 @@
 "use client";
 // components/pemeliharaan/rencana/RencanaFormModal.tsx
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Modal, Form, Button, Alert, Row, Col, Spinner } from "react-bootstrap";
 import {
   AksiRencana,
@@ -13,7 +13,8 @@ import {
   ACTION_KEYS,
   ACTION_META,
   MONTHS_LONG,
-  PEMELIHARAAN_MESIN_PATH,
+  buildKerjakanUrl,
+  formatDateIndo,
 } from "./RencanaHelpers";
 
 export interface RencanaFormDefaults {
@@ -53,6 +54,18 @@ const buildEmptyForm = (
   keterangan: "",
 });
 
+// Posisi Bulan & Minggu (W1-W4) dari tanggal selesai (realisasi).
+// Tanggal dipotong manual (bukan new Date) supaya tidak bergeser sehari karena zona waktu.
+const getRealisasiInfo = (tanggalSelesai?: string | null) => {
+  if (!tanggalSelesai) return null;
+  const m = String(tanggalSelesai).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return null;
+  const tahun = Number(m[1]);
+  const bulan = MONTHS_LONG[Number(m[2]) - 1];
+  const minggu = Math.min(4, Math.max(1, Math.ceil(Number(m[3]) / 7)));
+  return `${bulan} ${tahun} (Minggu ke-${minggu} / W${minggu})`;
+};
+
 const RencanaFormModal = ({
   show,
   onClose,
@@ -67,6 +80,7 @@ const RencanaFormModal = ({
   canManage,
   canProcess,
 }: Props) => {
+  const router = useRouter();
   const [form, setForm] = useState<RencanaFormValues>(buildEmptyForm(tahun, defaults));
   const [localError, setLocalError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -107,7 +121,17 @@ const RencanaFormModal = ({
     onSubmit(form);
   };
 
+  // Tutup modal dulu (supaya backdrop/overlay tidak tertinggal), lalu pindah ke
+  // halaman pemeliharaan mesin dengan membawa mesin + rencana yang dipilih.
+  const handleKerjakan = () => {
+    if (!initialData) return;
+    const url = buildKerjakanUrl(initialData);
+    onClose();
+    router.push(url);
+  };
+
   const title = readOnly ? "Detail Rencana" : isEdit ? "Edit Rencana" : "Tambah Rencana";
+  const realisasiSlotText = completed ? getRealisasiInfo(initialData?.tanggalSelesai) : null;
 
   return (
     <Modal show={show} onHide={onClose} centered backdrop="static">
@@ -119,9 +143,23 @@ const RencanaFormModal = ({
         <Modal.Body>
           {completed && initialData && (
             <Alert variant="success" className="py-2 small">
-              Sudah dikerjakan
-              {initialData.tanggalSelesai ? ` pada ${initialData.tanggalSelesai}` : ""}. Hasilnya
-              tercatat di log pemeliharaan mesin ini, sehingga rencana tidak bisa diubah.
+              <div className="fw-semibold mb-1">
+                Status: Terealisasi (Selesai)
+              </div>
+              <div>
+                <strong>Rencana:</strong> {MONTHS_LONG[initialData.bulan - 1]}{" "}
+                {initialData.tahun} (Minggu ke-{initialData.minggu} / W{initialData.minggu})
+              </div>
+              <div>
+                <strong>Realisasi:</strong>{" "}
+                {realisasiSlotText
+                  ? `${realisasiSlotText} — ${formatDateIndo(initialData.tanggalSelesai)}`
+                  : formatDateIndo(initialData.tanggalSelesai) ||
+                    `${MONTHS_LONG[initialData.bulan - 1]} ${initialData.tahun} (W${initialData.minggu})`}
+              </div>
+              <div className="mt-1 text-muted">
+                Hasilnya tercatat di log pemeliharaan mesin ini, sehingga rencana tidak bisa diubah.
+              </div>
             </Alert>
           )}
 
@@ -149,14 +187,16 @@ const RencanaFormModal = ({
 
           <Row className="g-3 mb-3">
             <Col xs={12} sm={5}>
-              <Form.Label>Bulan</Form.Label>
+              <Form.Label>Bulan Rencana</Form.Label>
               <Form.Select
                 value={form.bulan}
                 onChange={(e) => set("bulan", Number(e.target.value))}
                 disabled={readOnly}
               >
                 {MONTHS_LONG.map((m, i) => (
-                  <option key={m} value={i + 1}>{m}</option>
+                  <option key={m} value={i + 1}>
+                    {m}
+                  </option>
                 ))}
               </Form.Select>
             </Col>
@@ -168,7 +208,9 @@ const RencanaFormModal = ({
                 disabled={readOnly}
               >
                 {[1, 2, 3, 4].map((w) => (
-                  <option key={w} value={w}>{w}</option>
+                  <option key={w} value={w}>
+                    {w}
+                  </option>
                 ))}
               </Form.Select>
             </Col>
@@ -180,7 +222,9 @@ const RencanaFormModal = ({
                 disabled={readOnly}
               >
                 {YEAR_OPTIONS.map((y) => (
-                  <option key={y} value={y}>{y}</option>
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
                 ))}
               </Form.Select>
             </Col>
@@ -195,7 +239,9 @@ const RencanaFormModal = ({
                 disabled={readOnly}
               >
                 {ACTION_KEYS.map((k) => (
-                  <option key={k} value={k}>{k} - {ACTION_META[k].label}</option>
+                  <option key={k} value={k}>
+                    {k} - {ACTION_META[k].label}
+                  </option>
                 ))}
               </Form.Select>
             </Col>
@@ -231,35 +277,62 @@ const RencanaFormModal = ({
               confirmDelete ? (
                 <>
                   <span className="text-danger small">Hapus rencana ini?</span>
-                  <Button variant="danger" size="sm" onClick={() => onDelete(initialData)} disabled={submitting}>
+                  <Button
+                    type="button"
+                    variant="danger"
+                    size="sm"
+                    onClick={() => onDelete(initialData)}
+                    disabled={submitting}
+                  >
                     Ya, hapus
                   </Button>
-                  <Button variant="link" size="sm" onClick={() => setConfirmDelete(false)}>
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    onClick={() => setConfirmDelete(false)}
+                  >
                     Batal
                   </Button>
                 </>
               ) : (
-                <Button variant="outline-danger" size="sm" onClick={() => setConfirmDelete(true)} disabled={submitting}>
+                <Button
+                  type="button"
+                  variant="outline-danger"
+                  size="sm"
+                  onClick={() => setConfirmDelete(true)}
+                  disabled={submitting}
+                >
                   Hapus
                 </Button>
               )
             )}
             {canProcess && initialData && !completed && (
-              <Link
-                href={`${PEMELIHARAAN_MESIN_PATH}?mesin=${initialData.mesinId}&rencana=${initialData.id}`}
-                className="btn btn-success btn-sm"
+              <Button
+                type="button"
+                variant="success"
+                size="sm"
+                onClick={handleKerjakan}
+                disabled={submitting}
               >
                 Kerjakan sekarang
-              </Link>
+              </Button>
             )}
           </div>
           <div className="d-flex gap-2">
-            <Button variant="outline-secondary" onClick={onClose} disabled={submitting}>
+            <Button
+              type="button"
+              variant="outline-secondary"
+              onClick={onClose}
+              disabled={submitting}
+            >
               {readOnly ? "Tutup" : "Batal"}
             </Button>
             {canManage && !completed && (
               <Button type="submit" variant="primary" disabled={submitting}>
-                {submitting && <Spinner animation="border" size="sm" className="me-2" />}
+                {submitting && (
+                  <Spinner animation="border" size="sm" className="me-2" />
+                )}
                 Simpan
               </Button>
             )}

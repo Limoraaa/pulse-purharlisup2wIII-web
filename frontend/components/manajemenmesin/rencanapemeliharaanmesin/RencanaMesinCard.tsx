@@ -67,6 +67,8 @@ const RencanaMesinCard = ({ mesinId, canProcess, onKerjakan }: Props) => {
             {tampil.map((r) => {
               const meta = ACTION_META[r.aksi];
               const status = getStatusTampil(r, today);
+              const isCompleted = r.status === "Selesai";
+
               return (
                 <div
                   key={r.id}
@@ -81,6 +83,10 @@ const RencanaMesinCard = ({ mesinId, canProcess, onKerjakan }: Props) => {
                         fontSize: 13,
                         background: meta.color,
                         color: meta.textColor,
+                        border:
+                          meta.color === "#ffffff" || meta.color === "white"
+                            ? "1.5px solid #cbd5e1"
+                            : undefined,
                       }}
                       title={meta.label}
                     >
@@ -88,14 +94,25 @@ const RencanaMesinCard = ({ mesinId, canProcess, onKerjakan }: Props) => {
                     </span>
                     <div>
                       <div className="fw-semibold">{meta.label}</div>
-                      <div className="text-secondary small">{formatJadwal(r)}</div>
+                      <div className="text-secondary small d-flex flex-wrap gap-2">
+                        <span>
+                          <strong>Rencana:</strong> {formatJadwal(r)}
+                        </span>
+                        <span>•</span>
+                        <span>
+                          <strong>Realisasi:</strong>{" "}
+                          {isCompleted
+                            ? r.tanggalSelesai || "Selesai"
+                            : "Belum terealisasi"}
+                        </span>
+                      </div>
                     </div>
                   </div>
                   <div className="d-flex align-items-center gap-2">
                     <Badge pill bg={STATUS_VARIANT[status]}>
                       {status}
                     </Badge>
-                    {canProcess && (
+                    {canProcess && !isCompleted && (
                       <Button
                         size="sm"
                         variant="primary"

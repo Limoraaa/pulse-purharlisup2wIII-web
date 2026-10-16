@@ -49,13 +49,14 @@ import Flex from "components/common/Flex";
 import DasherBreadcrumb from "components/common/DasherBreadcrumb";
 
 import {
-  fetchRencana,
+  fetchRencanaLengkap,
   fetchMesinOptions,
   createRencana,
   updateRencana,
   deleteRencana,
 } from "services/rencanaPemeliharaanService";
 import {
+  LogDiLuarRencana,
   MesinOption,
   RencanaFormValues,
   RencanaItem,
@@ -66,6 +67,7 @@ import {
   MONTHS_LONG,
   MONTHS_SHORT,
   STATUS_VARIANT,
+  formatDateIndo,
   formatJadwal,
   formatRupiah,
   getStatusTampil,
@@ -74,7 +76,28 @@ import RencanaFormModal, { RencanaFormDefaults } from "./RencanaFormModal";
 
 const EMPTY_RENCANA: RencanaItem[] = [];
 const EMPTY_MESIN: MesinOption[] = [];
+const EMPTY_LOG: LogDiLuarRencana[] = [];
 const WEEKS = [1, 2, 3, 4];
+
+// Fallback aman untuk data lama / kode tindakan yang tidak dikenal.
+// Nilai `aksi` dari database bisa di luar C/L/P/M (huruf kecil, spasi, kode lama),
+// sehingga ACTION_META[aksi] bisa undefined saat runtime.
+const FALLBACK_META = {
+  label: "Tidak diketahui",
+  color: "#94a3b8",
+  textColor: "#ffffff",
+};
+
+const getActionMeta = (aksi?: string | null): typeof FALLBACK_META => {
+  const key = String(aksi ?? "").trim().toUpperCase();
+  const meta = (ACTION_META as Record<string, typeof FALLBACK_META>)[key];
+  return (
+    meta ?? {
+      ...FALLBACK_META,
+      label: aksi ? String(aksi) : FALLBACK_META.label,
+    }
+  );
+};
 
 // Kolom untuk Export bentuk List standar
 const EXPORT_COLUMNS_LIST: ExportColumn[] = [
@@ -96,10 +119,96 @@ const stickyCell = (bg: string, zIndex: number): React.CSSProperties => ({
   borderRight: "1px solid var(--bs-border-color)",
 });
 
+// Kolom label "Rencana / Realisasi" (sticky, menempel di kanan kolom mesin yang lebarnya 200)
+const labelCell = (bg: string, zIndex: number): React.CSSProperties => ({
+  position: "sticky",
+  left: 200,
+  zIndex,
+  background: bg,
+  minWidth: 84,
+  maxWidth: 84,
+  borderRight: "1px solid var(--bs-border-color)",
+});
+
 // Helper konversi warna Hex (#198754 -> 198754) untuk Excel
 const cleanHex = (hex?: string, fallback = "000000") => {
   if (!hex || !hex.startsWith("#")) return fallback;
   return hex.replace("#", "").toUpperCase();
+};
+
+// Posisi realisasi sebuah rencana. Memakai hasil hitung backend (*Realisasi) jika
+// service memetakannya; kalau tidak, dihitung dari tanggalSelesai.
+const getRealisasiPos = (p: RencanaItem) => {
+  if (p.status !== "Selesai") return null;
+  if (p.bulanRealisasi && p.mingguRealisasi) {
+    return {
+      tahun: Number(p.tahunRealisasi || p.tahun),
+      bulan: Number(p.bulanRealisasi),
+      minggu: Number(p.mingguRealisasi),
+    };
+  }
+  const m = String(p.tanggalSelesai ?? "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) {
+    return {
+      tahun: Number(m[1]),
+      bulan: Number(m[2]),
+      minggu: Math.min(4, Math.max(1, Math.ceil(Number(m[3]) / 7))),
+    };
+  }
+  return { tahun: p.tahun, bulan: p.bulan, minggu: p.minggu };
+};
+
+// Rencana selesai yang realisasinya jatuh di tahun/bulan/minggu tertentu
+const getRealisasiAt = (
+  plans: RencanaItem[],
+  tahun: number,
+  bulan: number,
+  minggu: number
+) =>
+  plans.filter((p) => {
+    const pos = getRealisasiPos(p);
+    return !!pos && pos.tahun === tahun && pos.bulan === bulan && pos.minggu === minggu;
+  });
+
+// Pekerjaan di luar rencana (log tanpa plotting) pada mesin & posisi tertentu
+const getExtraAt = (
+  logs: LogDiLuarRencana[],
+  mesinId: string,
+  tahun: number,
+  bulan: number,
+  minggu: number
+) =>
+  logs.filter(
+    (l) =>
+      l.mesinId === String(mesinId) &&
+      l.tahun === tahun &&
+      l.bulan === bulan &&
+      l.minggu === minggu
+  );
+
+const extraTitle = (l: LogDiLuarRencana) =>
+  `${l.aksi ? `${l.aksi} - ${getActionMeta(l.aksi).label}` : "Tindakan tidak dicatat"}\nRealisasi: ${
+    formatDateIndo(l.tanggal) ?? "-"
+  }\nDi luar rencana`;
+
+// Warna pekerjaan di luar rencana (hijau muda, beda dari realisasi yang terhubung ke plotting)
+const EXTRA_BG = "#a3cfbb";
+const EXTRA_TEXT = "#0f5132";
+const EXTRA_BORDER = "#75b798";
+
+// Susunan badge ke bawah di dalam satu sel matrix
+const stackStyle: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  gap: 3,
+};
+
+const badgeBase: React.CSSProperties = {
+  width: 24,
+  height: 24,
+  fontSize: 12,
+  padding: 0,
 };
 
 interface StatCardProps {
@@ -164,11 +273,12 @@ const RencanaPemeliharaanManager = () => {
     error: rencanaError,
     isLoading: loadingRencana,
     mutate: mutateRencana,
-  } = useSWR(`/rencana-pemeliharaan?tahun=${tahun}`, () => fetchRencana(tahun));
+  } = useSWR(`/rencana-pemeliharaan?tahun=${tahun}&lengkap=1`, () => fetchRencanaLengkap(tahun));
 
   const { data: mesinData } = useSWR("/mesin-produksi/options", fetchMesinOptions);
 
-  const rencana = rencanaData ?? EMPTY_RENCANA;
+  const rencana = rencanaData?.rencana ?? EMPTY_RENCANA;
+  const logDiLuar = rencanaData?.diLuarRencana ?? EMPTY_LOG;
   const mesinList = mesinData ?? EMPTY_MESIN;
 
   const yearOptions = useMemo(
@@ -286,7 +396,7 @@ const RencanaPemeliharaanManager = () => {
     filteredPlans.map((p) => ({
       kodeMesin: p.kodeMesin,
       namaMesin: p.namaMesin,
-      tindakan: `${p.aksi} - ${ACTION_META[p.aksi].label}`,
+      tindakan: `${p.aksi} - ${getActionMeta(p.aksi).label}`,
       jadwal: formatJadwal(p),
       status: getStatusTampil(p, today),
       rab: formatRupiah(p.rab),
@@ -307,6 +417,52 @@ const RencanaPemeliharaanManager = () => {
       `rencana-pemeliharaan-list-${tahun}`
     );
 
+  // ================= HELPER EXPORT MATRIX =================
+  // Tiap kegiatan = satu badge, ditumpuk ke bawah di dalam sel (sama seperti tampilan web).
+  type ExportBadge = {
+    label: string;
+    kind: "rencana" | "terlewat" | "selesai" | "luar";
+    color: string; // warna tindakan (hex), dipakai untuk badge rencana
+  };
+
+  const hexToRgb = (hex: string): [number, number, number] => {
+    const h = cleanHex(hex, "000000");
+    return [
+      parseInt(h.slice(0, 2), 16),
+      parseInt(h.slice(2, 4), 16),
+      parseInt(h.slice(4, 6), 16),
+    ];
+  };
+
+  // Badge baris Rencana pada bulan & minggu tertentu
+  const getRencanaBadges = (plans: RencanaItem[], bulan: number, minggu: number): ExportBadge[] =>
+    plans
+      .filter((p) => p.bulan === bulan && p.minggu === minggu)
+      .map((p) => ({
+        label: p.aksi,
+        kind: (getStatusTampil(p, today) === "Terlewat" ? "terlewat" : "rencana") as ExportBadge["kind"],
+        color: getActionMeta(p.aksi).color,
+      }));
+
+  // Badge baris Realisasi: yang terhubung ke plotting (hijau) lalu di luar rencana (hijau muda)
+  const getRealisasiBadges = (
+    plans: RencanaItem[],
+    mesinId: string,
+    bulan: number,
+    minggu: number
+  ): ExportBadge[] => [
+    ...getRealisasiAt(plans, tahun, bulan, minggu).map((p) => ({
+      label: p.aksi as string,
+      kind: "selesai" as ExportBadge["kind"],
+      color: "#198754",
+    })),
+    ...getExtraAt(logDiLuar, mesinId, tahun, bulan, minggu).map((l) => ({
+      label: (l.aksi ?? "?") as string,
+      kind: "luar" as ExportBadge["kind"],
+      color: EXTRA_BORDER,
+    })),
+  ];
+
   // ================= 2. EXPORT PDF FORMAT MATRIX (PERSIS UI) =================
   const handleExportPDFMatrix = () => {
     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
@@ -320,6 +476,7 @@ const RencanaPemeliharaanManager = () => {
 
     const headRow1: any[] = [
       { content: "KODE & NAMA MESIN", rowSpan: 2, styles: { valign: "middle", halign: "left" } },
+      { content: "BARIS", rowSpan: 2, styles: { valign: "middle", halign: "left" } },
     ];
     MONTHS_SHORT.forEach((m) => {
       headRow1.push({
@@ -344,57 +501,76 @@ const RencanaPemeliharaanManager = () => {
       });
     });
 
-    const bodyRows: any[] = filteredRows.map(({ mesin, plans }) => {
+    // Ukuran badge (mm) dan tinggi baris yang menyesuaikan jumlah badge tertumpuk
+    const BADGE = 3.6;
+    const GAP = 0.6;
+    const PAD = 0.8;
+    const LINE_H = BADGE + GAP;
+    const blockHeight = (n: number) => Math.max(1, n) * LINE_H - GAP + PAD * 2;
+
+    const bodyRows: any[] = filteredRows.flatMap(({ mesin, plans }) => {
       const totalRab = plans.reduce((sum, p) => sum + p.rab, 0);
-      const rowData: any[] = [
+
+      const rencanaCells = MONTHS_SHORT.flatMap((_, mIdx) =>
+        WEEKS.map((w) => getRencanaBadges(plans, mIdx + 1, w))
+      );
+      const realisasiCells = MONTHS_SHORT.flatMap((_, mIdx) =>
+        WEEKS.map((w) => getRealisasiBadges(plans, mesin.id, mIdx + 1, w))
+      );
+
+      const maxR = Math.max(1, ...rencanaCells.map((c) => c.length));
+      const maxZ = Math.max(1, ...realisasiCells.map((c) => c.length));
+      const hR = blockHeight(maxR);
+      const hZ = blockHeight(maxZ);
+
+      const rencanaRow: any[] = [
         {
           content: `${mesin.kodeMesin}\n${mesin.namaMesin}`,
-          styles: { fontStyle: "bold", halign: "left", fontSize: 6.5 },
+          rowSpan: 2,
+          styles: { fontStyle: "bold", halign: "left", valign: "middle", fontSize: 6.5 },
+        },
+        {
+          content: "Rencana",
+          styles: {
+            fontStyle: "bold",
+            fontSize: 5.5,
+            textColor: [73, 80, 87],
+            valign: "middle",
+            minCellHeight: hR,
+          },
+        },
+        // Sel kosong; badge digambar di didDrawCell lewat properti `badges`
+        ...rencanaCells.map((badges) => ({
+          content: "",
+          badges,
+          styles: { minCellHeight: hR },
+        })),
+        {
+          content: formatRupiah(totalRab),
+          rowSpan: 2,
+          styles: { halign: "right", valign: "middle", fontStyle: "bold", fontSize: 6.5 },
         },
       ];
 
-      MONTHS_SHORT.forEach((_, mIdx) => {
-        WEEKS.forEach((w) => {
-          const cellPlans = plans.filter((p) => p.bulan === mIdx + 1 && p.minggu === w);
-          const plan = cellPlans[0];
+      const realisasiRow: any[] = [
+        {
+          content: "Realisasi",
+          styles: {
+            fontStyle: "bold",
+            fontSize: 5.5,
+            textColor: [25, 135, 84],
+            valign: "middle",
+            minCellHeight: hZ,
+          },
+        },
+        ...realisasiCells.map((badges) => ({
+          content: "",
+          badges,
+          styles: { minCellHeight: hZ },
+        })),
+      ];
 
-          if (plan) {
-            const status = getStatusTampil(plan, today);
-            let fillColor: [number, number, number] = [255, 255, 255];
-            let textColor: [number, number, number] = [33, 37, 41];
-
-            if (status === "Selesai") {
-              fillColor = [25, 135, 84]; // Hijau (#198754)
-              textColor = [255, 255, 255];
-            } else if (status === "Terlewat") {
-              fillColor = [220, 53, 69]; // Merah (#dc3545)
-              textColor = [255, 255, 255];
-            }
-
-            const label = cellPlans.length > 1 ? `${plan.aksi}+` : plan.aksi;
-
-            rowData.push({
-              content: label,
-              styles: {
-                halign: "center",
-                valign: "middle",
-                fontStyle: "bold",
-                fillColor,
-                textColor,
-              },
-            });
-          } else {
-            rowData.push({ content: "", styles: { halign: "center" } });
-          }
-        });
-      });
-
-      rowData.push({
-        content: formatRupiah(totalRab),
-        styles: { halign: "right", valign: "middle", fontStyle: "bold", fontSize: 6.5 },
-      });
-
-      return rowData;
+      return [rencanaRow, realisasiRow];
     });
 
     autoTable(doc, {
@@ -415,13 +591,54 @@ const RencanaPemeliharaanManager = () => {
         fontSize: 6.5,
       },
       columnStyles: {
-        0: { cellWidth: 34 },
-        49: { cellWidth: 22 },
+        0: { cellWidth: 30 },
+        1: { cellWidth: 11 },
+        50: { cellWidth: 20 },
       },
       margin: { left: 8, right: 8 },
+      // Gambar badge ke bawah di dalam sel, warnanya sama seperti di web
+      didDrawCell: (data: any) => {
+        if (data.section !== "body") return;
+        const badges: ExportBadge[] | undefined = data.cell?.raw?.badges;
+        if (!badges || badges.length === 0) return;
+
+        badges.forEach((b, i) => {
+          const x = data.cell.x + (data.cell.width - BADGE) / 2;
+          const y = data.cell.y + PAD + i * LINE_H;
+
+          let fill: [number, number, number] = [255, 255, 255];
+          let text: [number, number, number] = hexToRgb(b.color);
+          let border: [number, number, number] = hexToRgb(b.color);
+
+          if (b.kind === "terlewat") {
+            fill = [220, 53, 69];
+            text = [255, 255, 255];
+            border = [220, 53, 69];
+          } else if (b.kind === "selesai") {
+            fill = [25, 135, 84];
+            text = [255, 255, 255];
+            border = [25, 135, 84];
+          } else if (b.kind === "luar") {
+            fill = [163, 207, 187];
+            text = [15, 81, 50];
+            border = [117, 183, 152];
+          }
+
+          doc.setFillColor(fill[0], fill[1], fill[2]);
+          doc.setDrawColor(border[0], border[1], border[2]);
+          doc.setLineWidth(0.25);
+          doc.roundedRect(x, y, BADGE, BADGE, 0.7, 0.7, "FD");
+
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(5.5);
+          doc.setTextColor(text[0], text[1], text[2]);
+          doc.text(b.label, x + BADGE / 2, y + BADGE / 2, { align: "center", baseline: "middle" });
+        });
+      },
     });
 
     const finalY = (doc as any).lastAutoTable.finalY + 6;
+    doc.setTextColor(33, 37, 41);
     doc.setFontSize(7.5);
     doc.setFont("helvetica", "bold");
     doc.text("Keterangan Tindakan:", 10, finalY);
@@ -434,7 +651,7 @@ const RencanaPemeliharaanManager = () => {
     doc.text("Status Warna:", 10, finalY + 5);
     doc.setFont("helvetica", "normal");
     doc.text(
-      "Putih = Terjadwal     |     Hijau = Selesai     |     Merah = Terlewat",
+      "Putih = Terjadwal     |     Merah = Terlewat     |     Hijau (baris Realisasi) = Selesai     |     Hijau muda = Di luar rencana",
       32,
       finalY + 5
     );
@@ -489,10 +706,15 @@ const RencanaPemeliharaanManager = () => {
       },
     ];
 
-    // Baris 3: Header Tabel Utama (Kode & Nama Mesin + 12 Bulan + RAB)
+    // Baris 3: Header Tabel Utama (Kode & Nama Mesin + Baris + 12 Bulan + RAB)
     const headRow1: any[] = [
       {
         v: "KODE & NAMA MESIN",
+        t: "s",
+        s: { ...headerStyle, alignment: { horizontal: "left", vertical: "center" } },
+      },
+      {
+        v: "BARIS",
         t: "s",
         s: { ...headerStyle, alignment: { horizontal: "left", vertical: "center" } },
       },
@@ -512,7 +734,10 @@ const RencanaPemeliharaanManager = () => {
     });
 
     // Baris 4: Sub-Header Minggu (W1 - W4)
-    const headRow2: any[] = [{ v: "", t: "s", s: headerStyle }];
+    const headRow2: any[] = [
+      { v: "", t: "s", s: headerStyle },
+      { v: "", t: "s", s: headerStyle },
+    ];
     MONTHS_SHORT.forEach(() => {
       WEEKS.forEach((w) => {
         headRow2.push({ v: `W${w}`, t: "s", s: subHeaderStyle });
@@ -520,88 +745,133 @@ const RencanaPemeliharaanManager = () => {
     });
     headRow2.push({ v: "", t: "s", s: headerStyle });
 
-    // Baris Data Mesin (Mulai Baris 5)
-    const dataRows: any[][] = filteredRows.map(({ mesin, plans }) => {
-      const row: any[] = [
-        {
-          v: `${mesin.kodeMesin}\n${mesin.namaMesin}`,
-          t: "s",
-          s: {
-            font: { name: "Arial", sz: 9, bold: true, color: { rgb: "212529" } },
-            fill: { fgColor: { rgb: "FFFFFF" } },
-            alignment: { horizontal: "left", vertical: "center", wrapText: true },
-            border: borderThin,
-          },
-        },
-      ];
+    // Style dasar sel
+    const machineStyle = {
+      font: { name: "Arial", sz: 9, bold: true, color: { rgb: "212529" } },
+      fill: { fgColor: { rgb: "FFFFFF" } },
+      alignment: { horizontal: "left", vertical: "center", wrapText: true },
+      border: borderThin,
+    };
+    const rabStyle = {
+      font: { name: "Arial", sz: 9, bold: true, color: { rgb: "212529" } },
+      fill: { fgColor: { rgb: "FFFFFF" } },
+      alignment: { horizontal: "right", vertical: "center" },
+      border: borderThin,
+    };
+    const labelStyle = (rgb: string) => ({
+      font: { name: "Arial", sz: 8, bold: true, color: { rgb } },
+      fill: { fgColor: { rgb: "FFFFFF" } },
+      alignment: { horizontal: "left", vertical: "center" },
+      border: borderThin,
+    });
+    const emptyCell = {
+      v: "",
+      t: "s",
+      s: {
+        fill: { fgColor: { rgb: "FFFFFF" } },
+        alignment: { horizontal: "center", vertical: "center" },
+        border: borderThin,
+      },
+    };
 
-      MONTHS_SHORT.forEach((_, mIdx) => {
-        WEEKS.forEach((w) => {
-          const cellPlans = plans.filter((p) => p.bulan === mIdx + 1 && p.minggu === w);
-          const plan = cellPlans[0];
+    // Style badge: sama dengan warna di web
+    const badgeStyle = (b: ExportBadge) => {
+      let bg = "FFFFFF";
+      let fg = cleanHex(b.color, "212529");
+      let border: any = {
+        top: { style: "medium", color: { rgb: fg } },
+        bottom: { style: "medium", color: { rgb: fg } },
+        left: { style: "medium", color: { rgb: fg } },
+        right: { style: "medium", color: { rgb: fg } },
+      };
 
-          if (plan) {
-            const status = getStatusTampil(plan, today);
-            const meta = ACTION_META[plan.aksi];
-            const label = cellPlans.length > 1 ? `${plan.aksi} (+${cellPlans.length - 1})` : plan.aksi;
+      if (b.kind === "terlewat") {
+        bg = "DC3545";
+        fg = "FFFFFF";
+        border = borderThin;
+      } else if (b.kind === "selesai") {
+        bg = "198754";
+        fg = "FFFFFF";
+        border = borderThin;
+      } else if (b.kind === "luar") {
+        bg = "A3CFBB";
+        fg = "0F5132";
+        border = borderThin;
+      }
 
-            // Default Terjadwal: Putih dengan Teks Berwarna sesuai Aksi
-            let bgRgb = "FFFFFF";
-            let textRgb = cleanHex(meta?.color, "212529");
-            let cellBorder = {
-              top: { style: "medium", color: { rgb: cleanHex(meta?.color, "ADB5BD") } },
-              bottom: { style: "medium", color: { rgb: cleanHex(meta?.color, "ADB5BD") } },
-              left: { style: "medium", color: { rgb: cleanHex(meta?.color, "ADB5BD") } },
-              right: { style: "medium", color: { rgb: cleanHex(meta?.color, "ADB5BD") } },
-            };
+      return {
+        font: { name: "Arial", sz: 9, bold: true, color: { rgb: fg } },
+        fill: { fgColor: { rgb: bg } },
+        alignment: { horizontal: "center", vertical: "center" },
+        border,
+      };
+    };
 
-            if (status === "Selesai") {
-              bgRgb = "198754"; // Hijau Sukses persis UI
-              textRgb = "FFFFFF";
-              cellBorder = borderThin;
-            } else if (status === "Terlewat") {
-              bgRgb = "DC3545"; // Merah Terlewat persis UI
-              textRgb = "FFFFFF";
-              cellBorder = borderThin;
-            }
+    // Baris data: tiap mesin = blok baris Rencana + blok baris Realisasi.
+    // Jumlah sub-baris mengikuti sel dengan kegiatan terbanyak, sehingga badge ditumpuk
+    // ke bawah (satu badge per baris) seperti di web.
+    const dataRows: any[][] = [];
+    const rowHeights: any[] = [
+      { hpt: 24 }, // Title
+      { hpt: 18 }, // Subtitle
+      { hpt: 10 }, // Spacer
+      { hpt: 22 }, // Header Bulan
+      { hpt: 18 }, // Header W1-W4
+    ];
+    const blocks: { start: number; nR: number; nZ: number }[] = [];
+    let cursor = 5; // baris data pertama (index 5)
 
-            row.push({
-              v: label,
-              t: "s",
-              s: {
-                font: { name: "Arial", sz: 9, bold: true, color: { rgb: textRgb } },
-                fill: { fgColor: { rgb: bgRgb } },
-                alignment: { horizontal: "center", vertical: "center" },
-                border: cellBorder,
-              },
-            });
-          } else {
-            row.push({
-              v: "",
-              t: "s",
-              s: {
-                fill: { fgColor: { rgb: "FFFFFF" } },
-                alignment: { horizontal: "center", vertical: "center" },
-                border: borderThin,
-              },
-            });
-          }
-        });
-      });
-
+    filteredRows.forEach(({ mesin, plans }) => {
       const totalRab = plans.reduce((sum, p) => sum + p.rab, 0);
-      row.push({
-        v: formatRupiah(totalRab),
-        t: "s",
-        s: {
-          font: { name: "Arial", sz: 9, bold: true, color: { rgb: "212529" } },
-          fill: { fgColor: { rgb: "FFFFFF" } },
-          alignment: { horizontal: "right", vertical: "center" },
-          border: borderThin,
-        },
-      });
 
-      return row;
+      const rencanaCells = MONTHS_SHORT.flatMap((_, mIdx) =>
+        WEEKS.map((w) => getRencanaBadges(plans, mIdx + 1, w))
+      );
+      const realisasiCells = MONTHS_SHORT.flatMap((_, mIdx) =>
+        WEEKS.map((w) => getRealisasiBadges(plans, mesin.id, mIdx + 1, w))
+      );
+
+      const nR = Math.max(1, ...rencanaCells.map((c) => c.length));
+      const nZ = Math.max(1, ...realisasiCells.map((c) => c.length));
+      blocks.push({ start: cursor, nR, nZ });
+
+      const buildBlock = (
+        cells: ExportBadge[][],
+        n: number,
+        label: string,
+        labelRgb: string,
+        isFirstBlock: boolean
+      ) => {
+        for (let k = 0; k < n; k++) {
+          const row: any[] = [
+            isFirstBlock && k === 0
+              ? { v: `${mesin.kodeMesin}\n${mesin.namaMesin}`, t: "s", s: machineStyle }
+              : { v: "", t: "s", s: machineStyle },
+            k === 0
+              ? { v: label, t: "s", s: labelStyle(labelRgb) }
+              : { v: "", t: "s", s: labelStyle(labelRgb) },
+          ];
+
+          cells.forEach((badges) => {
+            const b = badges[k];
+            row.push(b ? { v: b.label, t: "s", s: badgeStyle(b) } : emptyCell);
+          });
+
+          row.push(
+            isFirstBlock && k === 0
+              ? { v: formatRupiah(totalRab), t: "s", s: rabStyle }
+              : { v: "", t: "s", s: rabStyle }
+          );
+
+          dataRows.push(row);
+          rowHeights.push({ hpt: 20 });
+        }
+      };
+
+      buildBlock(rencanaCells, nR, "Rencana", "495057", true);
+      buildBlock(realisasiCells, nZ, "Realisasi", "198754", false);
+
+      cursor += nR + nZ;
     });
 
     // Baris Legenda Keterangan di Bawah Tabel (Persis UI Card Keterangan)
@@ -673,7 +943,7 @@ const RencanaPemeliharaanManager = () => {
         },
       },
       {
-        v: "Selesai (Hijau)",
+        v: "Selesai (Hijau, baris Realisasi)",
         t: "s",
         s: { font: { name: "Arial", sz: 9 }, alignment: { vertical: "center" } },
       },
@@ -694,6 +964,23 @@ const RencanaPemeliharaanManager = () => {
         t: "s",
         s: { font: { name: "Arial", sz: 9 }, alignment: { vertical: "center" } },
       },
+      { v: "", t: "s" },
+      { v: "", t: "s" },
+      {
+        v: "M",
+        t: "s",
+        s: {
+          font: { name: "Arial", sz: 9, bold: true, color: { rgb: "0F5132" } },
+          fill: { fgColor: { rgb: "A3CFBB" } },
+          alignment: { horizontal: "center", vertical: "center" },
+          border: borderThin,
+        },
+      },
+      {
+        v: "Di luar rencana (Hijau muda)",
+        t: "s",
+        s: { font: { name: "Arial", sz: 9 }, alignment: { vertical: "center" } },
+      },
     ];
 
     const worksheetData = [
@@ -710,43 +997,44 @@ const RencanaPemeliharaanManager = () => {
 
     const ws = XLSX.utils.aoa_to_sheet(worksheetData);
 
-    // Merge Cells untuk Judul, Kode/Nama Mesin, 12 Bulan (4 kolom per bulan), dan RAB
+    // Merge Cells: Judul, Header Kode/Nama Mesin, Header Baris, 12 Bulan (4 kolom per bulan), RAB
+    // Total kolom: 1 (mesin) + 1 (baris) + 48 (minggu) + 1 (RAB) = 51 -> RAB di kolom 50
     const merges: any[] = [
       { s: { r: 0, c: 0 }, e: { r: 0, c: 20 } }, // Merge Judul
       { s: { r: 1, c: 0 }, e: { r: 1, c: 20 } }, // Merge Subjudul
       { s: { r: 3, c: 0 }, e: { r: 4, c: 0 } }, // Merge Header Kode & Nama Mesin
-      { s: { r: 3, c: 49 }, e: { r: 4, c: 49 } }, // Merge Header RAB (RP)
+      { s: { r: 3, c: 1 }, e: { r: 4, c: 1 } }, // Merge Header Baris
+      { s: { r: 3, c: 50 }, e: { r: 4, c: 50 } }, // Merge Header RAB (RP)
     ];
 
     MONTHS_SHORT.forEach((_, mIdx) => {
-      const startCol = 1 + mIdx * 4;
+      const startCol = 2 + mIdx * 4;
       merges.push({
         s: { r: 3, c: startCol },
         e: { r: 3, c: startCol + 3 },
       });
     });
 
+    // Tiap mesin: gabungkan kolom mesin & RAB di seluruh blok, serta label Rencana/Realisasi
+    blocks.forEach(({ start, nR, nZ }) => {
+      const end = start + nR + nZ - 1;
+      merges.push({ s: { r: start, c: 0 }, e: { r: end, c: 0 } });
+      merges.push({ s: { r: start, c: 50 }, e: { r: end, c: 50 } });
+      if (nR > 1) merges.push({ s: { r: start, c: 1 }, e: { r: start + nR - 1, c: 1 } });
+      if (nZ > 1) merges.push({ s: { r: start + nR, c: 1 }, e: { r: end, c: 1 } });
+    });
+
     ws["!merges"] = merges;
 
     // Lebar Kolom Proporsional seperti UI (Kolom W1-W4 dibuat kotak kecil)
-    const colWidths: any[] = [{ wch: 30 }]; // Kolom 0: Kode & Nama Mesin
+    const colWidths: any[] = [{ wch: 30 }, { wch: 11 }]; // Kolom 0: Mesin, Kolom 1: Baris
     for (let i = 0; i < 48; i++) {
       colWidths.push({ wch: 4.5 }); // 48 Kolom Minggu dibuat kotak compact
     }
-    colWidths.push({ wch: 18 }); // Kolom 49: RAB (Rp)
+    colWidths.push({ wch: 18 }); // Kolom 50: RAB (Rp)
     ws["!cols"] = colWidths;
 
-    // Tinggi Baris agar lega seperti UI Web
-    const rowHeights: any[] = [
-      { hpt: 24 }, // Title
-      { hpt: 18 }, // Subtitle
-      { hpt: 10 }, // Spacer
-      { hpt: 22 }, // Header Bulan
-      { hpt: 18 }, // Header W1-W4
-    ];
-    filteredRows.forEach(() => {
-      rowHeights.push({ hpt: 32 }); // Tinggi baris tiap mesin (2 baris teks: kode + nama)
-    });
+    // Tinggi baris: header + tiap sub-baris data + legenda
     rowHeights.push({ hpt: 12 }, { hpt: 22 }, { hpt: 22 });
     ws["!rows"] = rowHeights;
 
@@ -776,7 +1064,7 @@ const RencanaPemeliharaanManager = () => {
         header: "Tindakan",
         enableSorting: false,
         cell: ({ row }) => {
-          const meta = ACTION_META[row.original.aksi];
+          const meta = getActionMeta(row.original.aksi);
           return (
             <span
               className="d-inline-flex align-items-center gap-2"
@@ -1136,6 +1424,13 @@ const RencanaPemeliharaanManager = () => {
                     >
                       Kode &amp; Nama Mesin
                     </th>
+                    <th
+                      rowSpan={2}
+                      className="px-2 small"
+                      style={labelCell("var(--bs-tertiary-bg, #f8f9fa)", 3)}
+                    >
+                      Baris
+                    </th>
                     {MONTHS_SHORT.map((m) => (
                       <th key={m} colSpan={4} className="text-center border-start">
                         {m}
@@ -1164,137 +1459,181 @@ const RencanaPemeliharaanManager = () => {
                 <tbody>
                   {filteredRows.map(({ mesin, plans }) => {
                     const totalRab = plans.reduce((sum, p) => sum + p.rab, 0);
-                    return (
-                      <tr key={mesin.id}>
+
+                    // ---- Sel baris RENCANA: semua plotting ditumpuk ke bawah ----
+                    const renderRencanaCell = (mIdx: number, w: number) => {
+                      const cellPlans = plans.filter(
+                        (p) => p.bulan === mIdx + 1 && p.minggu === w
+                      );
+
+                      return (
                         <td
-                          className="px-3 py-2"
-                          style={stickyCell("var(--bs-body-bg, #fff)", 2)}
+                          key={`r-${mesin.id}-${mIdx}-${w}`}
+                          className={`text-center p-1 ${w === 1 ? "border-start" : ""}`}
+                          style={{ minWidth: 32 }}
                         >
-                          <div className="fw-semibold">{mesin.kodeMesin}</div>
-                          <div
-                            className="text-secondary small text-truncate"
-                            style={{ maxWidth: 168 }}
-                            title={mesin.namaMesin}
-                          >
-                            {mesin.namaMesin}
-                          </div>
-                        </td>
-                        {MONTHS_SHORT.map((_, mIdx) =>
-                          WEEKS.map((w) => {
-                            const cellPlans = plans.filter(
-                              (p) => p.bulan === mIdx + 1 && p.minggu === w
-                            );
-                            const plan = cellPlans[0];
-                            const status = plan
-                              ? getStatusTampil(plan, today)
-                              : null;
-                            const meta = plan ? ACTION_META[plan.aksi] : null;
-
-                            let cellBg = "var(--bs-body-bg, #fff)";
-                            let cellColor = meta ? meta.color : "#000";
-                            let cellBorderColor = meta
-                              ? meta.color
-                              : "var(--bs-border-color)";
-
-                            if (plan) {
-                              if (status === "Selesai") {
-                                cellBg = "#198754";
-                                cellColor = "#fff";
-                                cellBorderColor = "#198754";
-                              } else if (status === "Terlewat") {
-                                cellBg = "#dc3545";
-                                cellColor = "#fff";
-                                cellBorderColor = "#dc3545";
-                              } else {
-                                cellBg = "var(--bs-body-bg, #fff)";
-                                cellColor = meta ? meta.color : "#000";
-                                cellBorderColor = meta
-                                  ? meta.color
-                                  : "var(--bs-border-color)";
-                              }
-                            }
-
-                            return (
-                              <td
-                                key={`${mesin.id}-${mIdx}-${w}`}
-                                className={`text-center p-1 ${
-                                  w === 1 ? "border-start" : ""
-                                }`}
-                                style={{ minWidth: 32 }}
-                              >
-                                {plan && meta ? (
+                          {cellPlans.length > 0 ? (
+                            <div style={stackStyle}>
+                              {cellPlans.map((p) => {
+                                const meta = getActionMeta(p.aksi);
+                                const status = getStatusTampil(p, today);
+                                const terlewat = status === "Terlewat";
+                                return (
                                   <button
+                                    key={p.id}
                                     type="button"
-                                    className="border rounded d-inline-flex align-items-center justify-content-center fw-bold position-relative p-0"
+                                    className="border rounded d-inline-flex align-items-center justify-content-center fw-bold"
                                     style={{
-                                      width: 24,
-                                      height: 24,
-                                      fontSize: 12,
+                                      ...badgeBase,
                                       cursor: "pointer",
-                                      background: cellBg,
-                                      color: cellColor,
-                                      borderColor: cellBorderColor,
+                                      background: terlewat
+                                        ? "#dc3545"
+                                        : "var(--bs-body-bg, #fff)",
+                                      color: terlewat ? "#fff" : meta.color,
+                                      borderColor: terlewat ? "#dc3545" : meta.color,
                                     }}
-                                    title={cellPlans
-                                      .map(
-                                        (p) =>
-                                          `${p.aksi}\n${
-                                            ACTION_META[p.aksi].label
-                                          } (${getStatusTampil(p, today)})`
-                                      )
-                                      .join("\n")}
-                                    onClick={() => openEditModal(plan)}
+                                    title={`${p.aksi} - ${meta.label}\nStatus: ${status}\nJadwal: ${formatJadwal(p)}`}
+                                    onClick={() => openEditModal(p)}
                                   >
-                                    {plan.aksi}
-                                    {cellPlans.length > 1 && (
-                                      <span
-                                        className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-dark"
-                                        style={{ fontSize: 9, padding: "2px 4px" }}
-                                      >
-                                        +{cellPlans.length - 1}
-                                      </span>
-                                    )}
+                                    {p.aksi}
                                   </button>
-                                ) : canManage ? (
-                                  <div
-                                    role="button"
-                                    tabIndex={0}
-                                    className="rencana-cell-empty rounded mx-auto"
-                                    style={{
-                                      width: 24,
-                                      height: 24,
-                                      cursor: "pointer",
-                                    }}
-                                    title={`Tambah rencana ${mesin.kodeMesin} Minggu ${w}, ${MONTHS_SHORT[mIdx]}`}
-                                    onClick={() =>
-                                      openAddModal({
-                                        mesinId: mesin.id,
-                                        bulan: mIdx + 1,
-                                        minggu: w,
-                                      })
-                                    }
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter" || e.key === " ") {
-                                        e.preventDefault();
-                                        openAddModal({
-                                          mesinId: mesin.id,
-                                          bulan: mIdx + 1,
-                                          minggu: w,
-                                        });
-                                      }
-                                    }}
-                                  />
-                                ) : (
-                                  <div style={{ width: 24, height: 24 }} />
-                                )}
-                              </td>
-                            );
-                          })
-                        )}
-                        <td className="text-end px-4 fw-medium">
-                          {formatRupiah(totalRab)}
+                                );
+                              })}
+                            </div>
+                          ) : canManage ? (
+                            <div
+                              role="button"
+                              tabIndex={0}
+                              className="rencana-cell-empty rounded mx-auto"
+                              style={{ width: 24, height: 24, cursor: "pointer" }}
+                              title={`Tambah rencana ${mesin.kodeMesin} Minggu ${w}, ${MONTHS_SHORT[mIdx]}`}
+                              onClick={() =>
+                                openAddModal({
+                                  mesinId: mesin.id,
+                                  bulan: mIdx + 1,
+                                  minggu: w,
+                                })
+                              }
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  openAddModal({
+                                    mesinId: mesin.id,
+                                    bulan: mIdx + 1,
+                                    minggu: w,
+                                  });
+                                }
+                              }}
+                            />
+                          ) : (
+                            <div style={{ width: 24, height: 24 }} />
+                          )}
                         </td>
-                      </tr>
+                      );
+                    };
+
+                    // ---- Sel baris REALISASI: tiap kegiatan jadi satu badge, ditumpuk ke bawah ----
+                    const renderRealisasiCell = (mIdx: number, w: number) => {
+                      const done = getRealisasiAt(plans, tahun, mIdx + 1, w);
+                      const extra = getExtraAt(logDiLuar, mesin.id, tahun, mIdx + 1, w);
+
+                      return (
+                        <td
+                          key={`z-${mesin.id}-${mIdx}-${w}`}
+                          className={`text-center p-1 ${w === 1 ? "border-start" : ""}`}
+                          style={{ minWidth: 32 }}
+                        >
+                          {done.length + extra.length > 0 ? (
+                            <div style={stackStyle}>
+                              {/* Realisasi yang terhubung ke plotting (hijau) */}
+                              {done.map((p) => (
+                                <button
+                                  key={`d-${p.id}`}
+                                  type="button"
+                                  className="border rounded d-inline-flex align-items-center justify-content-center fw-bold"
+                                  style={{
+                                    ...badgeBase,
+                                    cursor: "pointer",
+                                    background: "#198754",
+                                    color: "#fff",
+                                    borderColor: "#198754",
+                                  }}
+                                  title={`${p.aksi} - ${getActionMeta(p.aksi).label}\nRealisasi: ${
+                                    formatDateIndo(p.tanggalSelesai) ?? "-"
+                                  }\nRencana: ${formatJadwal(p)}`}
+                                  onClick={() => openEditModal(p)}
+                                >
+                                  {p.aksi}
+                                </button>
+                              ))}
+
+                              {/* Di luar rencana (hijau muda) */}
+                              {extra.map((l) => (
+                                <div
+                                  key={`x-${l.id}`}
+                                  className="border rounded d-inline-flex align-items-center justify-content-center fw-bold"
+                                  style={{
+                                    ...badgeBase,
+                                    background: EXTRA_BG,
+                                    color: EXTRA_TEXT,
+                                    borderColor: EXTRA_BORDER,
+                                    cursor: "default",
+                                  }}
+                                  title={extraTitle(l)}
+                                >
+                                  {l.aksi ?? "?"}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div style={{ width: 24, height: 24 }} />
+                          )}
+                        </td>
+                      );
+                    };
+
+                    return (
+                      <React.Fragment key={mesin.id}>
+                        <tr>
+                          <td
+                            rowSpan={2}
+                            className="px-3 py-2"
+                            style={stickyCell("var(--bs-body-bg, #fff)", 2)}
+                          >
+                            <div className="fw-semibold">{mesin.kodeMesin}</div>
+                            <div
+                              className="text-secondary small text-truncate"
+                              style={{ maxWidth: 168 }}
+                              title={mesin.namaMesin}
+                            >
+                              {mesin.namaMesin}
+                            </div>
+                          </td>
+                          <td
+                            className="px-2 small fw-semibold text-secondary"
+                            style={labelCell("var(--bs-body-bg, #fff)", 2)}
+                          >
+                            Rencana
+                          </td>
+                          {MONTHS_SHORT.map((_, mIdx) =>
+                            WEEKS.map((w) => renderRencanaCell(mIdx, w))
+                          )}
+                          <td rowSpan={2} className="text-end px-4 fw-medium">
+                            {formatRupiah(totalRab)}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td
+                            className="px-2 small fw-semibold text-success"
+                            style={labelCell("var(--bs-body-bg, #fff)", 2)}
+                          >
+                            Realisasi
+                          </td>
+                          {MONTHS_SHORT.map((_, mIdx) =>
+                            WEEKS.map((w) => renderRealisasiCell(mIdx, w))
+                          )}
+                        </tr>
+                      </React.Fragment>
                     );
                   })}
                 </tbody>
@@ -1338,7 +1677,14 @@ const RencanaPemeliharaanManager = () => {
               className="d-inline-block rounded"
               style={{ width: 16, height: 16, background: "#198754" }}
             />
-            Selesai (Hijau)
+            Selesai (Hijau, di baris Realisasi)
+          </span>
+          <span className="d-inline-flex align-items-center gap-2">
+            <span
+              className="d-inline-block rounded"
+              style={{ width: 16, height: 16, background: EXTRA_BG, border: `1px solid ${EXTRA_BORDER}` }}
+            />
+            Di luar rencana (Hijau muda)
           </span>
           <span className="d-inline-flex align-items-center gap-2">
             <span
