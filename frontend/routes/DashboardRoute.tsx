@@ -147,7 +147,7 @@ export const DashboardMenu: MenuItemType[] = [
       {
         id: uuid(),
         name: "Plotting Jadwal Operasional",
-        link: "/operasional",
+        link: "/operasional/mapping-pengerjaan",
       },
       {
         id: uuid(),
@@ -175,6 +175,12 @@ export const DashboardMenu: MenuItemType[] = [
         id: uuid(),
         name: "Catatan Pemeliharaan Mesin",
         link: "/pemeliharaan/data-mesin",
+      },
+      // --- MENU BARU DITAMBAHKAN DI SINI ---
+      {
+        id: uuid(),
+        name: "Laporan Anggaran & Vendor",
+        link: "/pemeliharaan/laporan-anggaran",
       },
     ],
   },

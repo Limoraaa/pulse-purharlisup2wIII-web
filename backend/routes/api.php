@@ -26,6 +26,8 @@ use App\Http\Controllers\Api\MotorKonversiController;
 use App\Http\Controllers\Api\LogPemeliharaanMotorKonversiController;
 use App\Http\Controllers\Api\RencanaPemeliharaanMesinController;
 use App\Http\Controllers\Api\KalibrasiMesinController;
+use App\Http\Controllers\Api\MappingPengerjaanMesinController;
+use App\Http\Controllers\Api\LaporanAnggaranController;
 
 // ==========================================
 // 1. ROUTE PUBLIK (Tanpa Auth)
@@ -211,6 +213,21 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
     // ==========================================
+// LAPORAN ANGGARAN (berdiri sendiri)
+// ==========================================
+    Route::middleware('permission:laporan_anggaran')->group(function () {
+        Route::get('/laporan-anggaran', [LaporanAnggaranController::class, 'index']);
+
+        Route::post('/laporan-anggaran/disburse', [LaporanAnggaranController::class, 'storeDisburse']);
+        Route::put('/laporan-anggaran/disburse/{id}', [LaporanAnggaranController::class, 'updateDisburse']);
+        Route::delete('/laporan-anggaran/disburse/{id}', [LaporanAnggaranController::class, 'destroyDisburse']);
+
+        Route::post('/laporan-anggaran/pekerjaan', [LaporanAnggaranController::class, 'storePekerjaan']);
+        Route::put('/laporan-anggaran/pekerjaan/{id}', [LaporanAnggaranController::class, 'updatePekerjaan']);
+        Route::delete('/laporan-anggaran/pekerjaan/{id}', [LaporanAnggaranController::class, 'destroyPekerjaan']);
+    });
+
+    // ==========================================
     // DOMAIN: PEMELIHARAAN MESIN
     // ==========================================
     Route::middleware('permission:view_dashboard_pemeliharaan')->group(function () {
@@ -243,6 +260,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/log-aktivitas/{id}', [LogAktivitasMesinController::class, 'destroy']);
     });
 
+    Route::middleware('permission:mapping_pengerjaan')->group(function () {
+        Route::get('/mapping-pengerjaan', [MappingPengerjaanMesinController::class, 'index']);
+        Route::post('/mapping-pengerjaan', [MappingPengerjaanMesinController::class, 'store']);
+        Route::put('/mapping-pengerjaan/{id}', [MappingPengerjaanMesinController::class, 'update']);
+        Route::delete('/mapping-pengerjaan/{id}', [MappingPengerjaanMesinController::class, 'destroy']);
+    });
+
     // ------------------------------------------
     // KALIBRASI MESIN
     // ------------------------------------------
@@ -272,6 +296,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/rencana-pemeliharaan/{id}', [RencanaPemeliharaanMesinController::class, 'destroy']);
     });
 
+    
+    
 
     // ==========================================
     // DOMAIN: PEMELIHARAAN MOTOR KONVERSI

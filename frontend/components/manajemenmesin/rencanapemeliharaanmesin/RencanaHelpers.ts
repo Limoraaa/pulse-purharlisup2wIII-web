@@ -26,6 +26,10 @@ export interface RencanaItem {
   tahun_realisasi?: number | null;
   bulan_realisasi?: number | null;
   minggu_realisasi?: number | null;
+  jenis_pelaksana?: 'Internal' | 'Vendor';
+  nama_vendor?: string | null;
+  no_po?: string | null;
+  biaya_aktual?: number | null;
 }
 
 export const BULAN_NAMES = [

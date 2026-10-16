@@ -18,7 +18,7 @@ import {
 } from "./RencanaHelpers";
 
 export interface RencanaFormDefaults {
-  mesinId?: string;
+  mesinId?: string | number;
   bulan?: number;
   minggu?: number;
 }
@@ -45,13 +45,15 @@ const buildEmptyForm = (
   tahun: number,
   defaults: RencanaFormDefaults | null
 ): RencanaFormValues => ({
-  mesinId: defaults?.mesinId ?? "",
+  // Bungkus defaults.mesinId dengan String() agar TypeScript tidak protes
+  mesinId: defaults?.mesinId ? String(defaults.mesinId) : "",
   tahun,
   bulan: defaults?.bulan ?? new Date().getMonth() + 1,
   minggu: defaults?.minggu ?? 1,
   aksi: "C",
   rab: 0,
   keterangan: "",
+  jenis_pelaksana: "Internal",
 });
 
 // Posisi Bulan & Minggu (W1-W4) dari tanggal selesai (realisasi).
@@ -85,6 +87,9 @@ const RencanaFormModal = ({
   const [localError, setLocalError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
+  // STATE UNTUK VENDOR
+  const [jenisPelaksana, setJenisPelaksana] = useState<'Internal' | 'Vendor'>('Internal');
+
   const isEdit = !!initialData;
   // Rencana yang sudah dikerjakan dikunci: statusnya mengikuti log pemeliharaan.
   const completed = initialData?.status === "Selesai";
@@ -94,18 +99,22 @@ const RencanaFormModal = ({
     if (!show) return;
     setLocalError(null);
     setConfirmDelete(false);
+    
     if (initialData) {
       setForm({
-        mesinId: initialData.mesinId,
+        mesinId: initialData.mesinId ? String(initialData.mesinId) : "",
         tahun: initialData.tahun,
         bulan: initialData.bulan,
         minggu: initialData.minggu,
         aksi: initialData.aksi,
-        rab: initialData.rab,
-        keterangan: initialData.keterangan,
+        rab: initialData.rab || 0,
+        keterangan: initialData.keterangan || "",
       });
+      // Set State Vendor dari data saat di-edit
+      setJenisPelaksana(initialData.jenis_pelaksana || 'Internal');
     } else {
       setForm(buildEmptyForm(tahun, defaults));
+      setJenisPelaksana('Internal');
     }
   }, [show, initialData, defaults, tahun]);
 
@@ -118,20 +127,32 @@ const RencanaFormModal = ({
       setLocalError("Pilih mesin terlebih dahulu.");
       return;
     }
-    onSubmit(form);
+    
+    // Gabungkan form dengan jenisPelaksana
+    const payload: RencanaFormValues = {
+      ...form,
+      jenis_pelaksana: jenisPelaksana,
+    };
+    
+    onSubmit(payload);
   };
 
   // Tutup modal dulu (supaya backdrop/overlay tidak tertinggal), lalu pindah ke
   // halaman pemeliharaan mesin dengan membawa mesin + rencana yang dipilih.
   const handleKerjakan = () => {
     if (!initialData) return;
-    const url = buildKerjakanUrl(initialData);
+    const url = buildKerjakanUrl({
+      id: initialData.id,
+      mesinId: initialData.mesinId,
+      aksi: initialData.aksi
+    });
     onClose();
     router.push(url);
   };
 
   const title = readOnly ? "Detail Rencana" : isEdit ? "Edit Rencana" : "Tambah Rencana";
   const realisasiSlotText = completed ? getRealisasiInfo(initialData?.tanggalSelesai) : null;
+  const tglSelesai = initialData?.tanggalSelesai;
 
   return (
     <Modal show={show} onHide={onClose} centered backdrop="static">
@@ -153,8 +174,8 @@ const RencanaFormModal = ({
               <div>
                 <strong>Realisasi:</strong>{" "}
                 {realisasiSlotText
-                  ? `${realisasiSlotText} — ${formatDateIndo(initialData.tanggalSelesai)}`
-                  : formatDateIndo(initialData.tanggalSelesai) ||
+                  ? `${realisasiSlotText} — ${formatDateIndo(tglSelesai)}`
+                  : formatDateIndo(tglSelesai) ||
                     `${MONTHS_LONG[initialData.bulan - 1]} ${initialData.tahun} (W${initialData.minggu})`}
               </div>
               <div className="mt-1 text-muted">
@@ -240,12 +261,36 @@ const RencanaFormModal = ({
               >
                 {ACTION_KEYS.map((k) => (
                   <option key={k} value={k}>
-                    {k} - {ACTION_META[k].label}
+                    {ACTION_META[k]?.label || k}
                   </option>
                 ))}
               </Form.Select>
             </Col>
           </Row>
+
+          <Form.Group className="mb-3">
+            <Form.Label className="d-block">Pelaksana Pekerjaan</Form.Label>
+            <div className="d-flex gap-3">
+              <Form.Check
+                type="radio"
+                id="radio-internal"
+                label="Internal PLN"
+                name="jenis_pelaksana"
+                checked={jenisPelaksana === 'Internal'}
+                onChange={() => setJenisPelaksana('Internal')}
+                disabled={readOnly}
+              />
+              <Form.Check
+                type="radio"
+                id="radio-vendor"
+                label="Vendor (Pihak Ketiga)"
+                name="jenis_pelaksana"
+                checked={jenisPelaksana === 'Vendor'}
+                onChange={() => setJenisPelaksana('Vendor')}
+                disabled={readOnly}
+              />
+            </div>
+          </Form.Group>
 
           <Form.Group className="mb-3">
             <Form.Label>RAB (Rp)</Form.Label>
