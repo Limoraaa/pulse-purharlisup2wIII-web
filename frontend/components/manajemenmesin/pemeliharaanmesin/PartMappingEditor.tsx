@@ -41,7 +41,6 @@ export default function PartMappingEditor({ show, onHide, mesinId, mesinNama, on
       setError(null);
       try {
         const token = localStorage.getItem("token");
-        // TODO backend: sediakan endpoint ini (boleh 404 kalau belum pernah dipetakan)
         const res = await api<PartMappingPayload>(`/mesin-produksi/${mesinId}/part-mapping`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -74,7 +73,6 @@ export default function PartMappingEditor({ show, onHide, mesinId, mesinNama, on
       const token = localStorage.getItem("token");
       const formData = new FormData();
       formData.append("gambar", file);
-      // TODO backend: sediakan endpoint upload ini, kembalikan { url }
       const res = await api<{ url: string }>(`/mesin-produksi/${mesinId}/upload-gambar`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
@@ -147,7 +145,6 @@ export default function PartMappingEditor({ show, onHide, mesinId, mesinNama, on
     setError(null);
     try {
       const token = localStorage.getItem("token");
-      // TODO backend: sediakan endpoint ini
       await api(`/mesin-produksi/${mesinId}/part-mapping`, {
         method: "PUT",
         headers: {
