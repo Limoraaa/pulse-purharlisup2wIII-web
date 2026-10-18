@@ -11,7 +11,6 @@ import {
   IconReportAnalytics,
   IconUsers,
   IconCalendarEvent,
-  IconSettings // Tambahan opsional jika ingin icon berbeda
 } from "@tabler/icons-react";
 
 //import custom type
