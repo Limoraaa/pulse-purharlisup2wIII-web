@@ -48,7 +48,8 @@
     "swiper": "^11.2.10",
     "swr": "^2.4.2",
     "uuid": "^11.1.0",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "xlsx-js-style": "^1.2.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
