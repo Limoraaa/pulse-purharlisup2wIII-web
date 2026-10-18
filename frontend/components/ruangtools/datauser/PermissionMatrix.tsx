@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Form, Spinner, Button, Card, Row, Col, Alert, Badge, Modal } from 'react-bootstrap';
 import { IconDeviceFloppy, IconShieldLock, IconCircleCheck, IconTrash, IconPencil, IconCheck, IconX } from '@tabler/icons-react';
 import api from '/lib/api';
@@ -25,6 +25,12 @@ const AVAILABLE_COLORS = [
 // 'switch' = modul cuma punya 1 permission (on/off biasa).
 // 'dropdown' = modul punya level "Lihat saja" vs "Kelola penuh".
 // managePerms = permission tambahan yang ikut aktif kalau pilih "Kelola penuh".
+// Lebar kolom matriks (px). Kolom role dibuat tetap agar dropdown tidak terpotong saat role bertambah.
+const MODULE_COL_WIDTH = 260;
+const ROLE_COL_WIDTH = 165;
+// Warna latar header bagian, senada dengan judul grup di sidebar
+const SECTION_BG = '#E8F4F8';
+
 interface ModuleConfig {
   key: string;
   label: string;
@@ -60,18 +66,18 @@ export default function PermissionMatrix() {
     {
       title: 'Operasional Alat',
       modules: [
-        { key: 'view_dashboard', label: 'Dashboard', type: 'switch' },
-        { key: 'view_inventaris', label: 'Inventaris', type: 'dropdown', managePerms: ['manage_inventaris', 'manage_master_data'] },
-        { key: 'view_transaksi', label: 'Transaksi', type: 'dropdown', managePerms: ['process_transaksi', 'manage_transaksi'] },
-        { key: 'view_riwayat', label: 'Riwayat', type: 'switch' },
-        { key: 'view_order', label: 'Pengajuan Order', type: 'dropdown', managePerms: ['create_order', 'process_order', 'manage_order'] },
-        { key: 'view_kerusakan_alat', label: 'Laporan Kerusakan Alat', type: 'dropdown', managePerms: ['create_kerusakan_alat', 'process_kerusakan_alat', 'manage_kerusakan_alat'] },
+        { key: 'view_dashboard', label: 'Dashboard', hint: 'Ringkasan operasional alat', type: 'switch' },
+        { key: 'view_inventaris', label: 'Inventaris', hint: 'Data Tools, Data Consumable, Data Peminjam, Data Pekerjaan', type: 'dropdown', managePerms: ['manage_inventaris', 'manage_master_data'] },
+        { key: 'view_transaksi', label: 'Transaksi', hint: 'Peminjaman Aktif, Pengembalian Alat, Consumable Masuk, Tools Masuk', type: 'dropdown', managePerms: ['process_transaksi', 'manage_transaksi'] },
+        { key: 'view_riwayat', label: 'Riwayat', hint: 'Peminjaman Tools, Consumable Keluar, Riwayat Perbaikan', type: 'switch' },
+        { key: 'view_order', label: 'Pengajuan Order', hint: 'Order Consumable, Order Tools', type: 'dropdown', managePerms: ['create_order', 'process_order', 'manage_order'] },
+        { key: 'view_kerusakan_alat', label: 'Laporan Kerusakan Alat', hint: 'Pelaporan dan penanganan kerusakan alat', type: 'dropdown', managePerms: ['create_kerusakan_alat', 'process_kerusakan_alat', 'manage_kerusakan_alat'] },
       ],
     },
     {
       title: 'Manajemen Mesin Produksi',
       modules: [
-        { key: 'view_dashboard_pemeliharaan', label: 'Dashboard Mesin', type: 'switch' },
+        { key: 'view_dashboard_pemeliharaan', label: 'Dashboard Mesin', hint: 'Ringkasan pemeliharaan dan kondisi mesin', type: 'switch' },
         {
           key: 'view_operasional_mesin',
           label: 'Operasional',
@@ -91,10 +97,11 @@ export default function PermissionMatrix() {
     {
       title: 'Pemeliharaan Motor Konversi',
       modules: [
-        { key: 'view_dashboard_pemeliharaan_motor_konversi', label: 'Dashboard Pemeliharaan', type: 'switch' },
+        { key: 'view_dashboard_pemeliharaan_motor_konversi', label: 'Dashboard Pemeliharaan', hint: 'Ringkasan pemeliharaan motor konversi', type: 'switch' },
         {
           key: 'view_pemeliharaan_motor_konversi',
           label: 'Pemeliharaan Motor Konversi',
+          hint: 'Data motor konversi dan catatan pemeliharaannya',
           type: 'dropdown',
           managePerms: ['process_pemeliharaan_motor_konversi', 'manage_pemeliharaan_motor_konversi'],
         },
@@ -102,7 +109,7 @@ export default function PermissionMatrix() {
     },
     {
       title: 'Administrasi',
-      modules: [{ key: 'view_users', label: 'Manajemen User', type: 'dropdown', managePerms: ['manage_users'] }],
+      modules: [{ key: 'view_users', label: 'Manajemen User', hint: 'Daftar Pengguna, Pengaturan Hak Akses', type: 'dropdown', managePerms: ['manage_users'] }],
     },
   ];
 
@@ -312,7 +319,7 @@ const startEditName = (role: RoleMatrix) => {
         value={level}
         disabled={isSuperAdmin}
         onChange={(e) => handleDropdownChange(role.id, nav, e.target.value as 'none' | 'view' | 'manage')}
-        style={{ cursor: isSuperAdmin ? 'not-allowed' : 'pointer', minWidth: '125px' }}
+        style={{ cursor: isSuperAdmin ? 'not-allowed' : 'pointer', width: '100%' }}
       >
         <option value="none">Tidak ada akses</option>
         <option value="view">Lihat saja</option>
@@ -399,83 +406,79 @@ const startEditName = (role: RoleMatrix) => {
         </Col>
       </Row>
 
-      {/* Satu tabel untuk semua modul: baris = modul (dikelompokkan seperti sidebar), kolom = role */}
+      {/* Satu tabel untuk semua modul: baris = modul (dikelompokkan seperti sidebar), kolom = role.
+          Lebar kolom role tetap, jadi kalau role banyak tabel bisa digeser ke samping. */}
       <div className="d-flex flex-wrap gap-3 text-secondary small mb-3">
         <span><strong className="text-dark">Lihat saja</strong>: hanya bisa melihat data</span>
         <span><strong className="text-dark">Kelola penuh</strong>: bisa tambah, ubah, dan hapus</span>
         <span>Super Admin selalu memiliki akses penuh</span>
+        {roles.length > 5 && <span className="ms-md-auto fst-italic">Geser tabel ke kanan untuk melihat role lainnya →</span>}
       </div>
-      <Card className="card-lg mb-6 border shadow-sm">
-        <div className="table-responsive">
-          <table className="table align-middle mb-0" style={{ tableLayout: 'fixed', minWidth: 240 + roles.length * 150 }}>
+      <Card className="card-lg mb-6 border shadow-sm overflow-hidden">
+        {/* maxHeight membuat scrollbar horizontal selalu terlihat tanpa harus scroll ke bawah tabel */}
+        <div className="table-responsive" style={{ maxHeight: '75vh' }}>
+          <table
+            className="table align-middle mb-0"
+            style={{ tableLayout: 'fixed', width: MODULE_COL_WIDTH + roles.length * ROLE_COL_WIDTH, minWidth: '100%' }}
+          >
             <colgroup>
-              <col style={{ width: 240 }} />
+              <col style={{ width: MODULE_COL_WIDTH }} />
               {roles.map((role) => (
-                <col key={role.id} />
+                <col key={role.id} style={{ width: ROLE_COL_WIDTH }} />
               ))}
             </colgroup>
-            <thead className="table-light border-bottom">
-              <tr>
-                <th
-                  className="py-3 px-4 text-uppercase fs-7 text-secondary fw-semibold"
-                  style={{ position: 'sticky', left: 0, zIndex: 2 }}
-                >
-                  Modul
-                </th>
-                {roles.map((role) => {
-                  const badgeVariant = role.color ?? 'secondary';
-                  return (
-                    <th key={role.id} className="py-3 px-2 text-center">
-                      <Badge
-                        bg={`${badgeVariant}-subtle`}
-                        text={`${badgeVariant}-emphasis` as any}
-                        className="text-wrap"
-                        style={{ lineHeight: 1.3 }}
-                      >
-                        {roleDisplayLabel[role.name] ?? role.name}
-                      </Badge>
-                    </th>
-                  );
-                })}
-              </tr>
-            </thead>
-            <tbody>
-              {sections.map((section) => (
-                <React.Fragment key={section.title}>
-                  <tr>
+            {sections.map((section) => (
+              <tbody key={section.title}>
+                {/* Header tiap bagian: nama bagian + nama role, supaya role selalu terlihat di atas modulnya */}
+                <tr>
+                  <th
+                    className="py-3 px-4 text-uppercase small fw-bold"
+                    style={{
+                      position: 'sticky',
+                      left: 0,
+                      zIndex: 2,
+                      backgroundColor: SECTION_BG,
+                      boxShadow: 'inset 4px 0 0 #FDB913',
+                      color: '#0A6C8F',
+                      letterSpacing: '0.6px',
+                    }}
+                  >
+                    {section.title}
+                  </th>
+                  {roles.map((role) => {
+                    const badgeVariant = role.color ?? 'secondary';
+                    return (
+                      <th key={role.id} className="py-3 px-2 text-center" style={{ backgroundColor: SECTION_BG }}>
+                        <Badge
+                          bg={`${badgeVariant}-subtle`}
+                          text={`${badgeVariant}-emphasis` as any}
+                          className="text-wrap"
+                          style={{ lineHeight: 1.3 }}
+                        >
+                          {roleDisplayLabel[role.name] ?? role.name}
+                        </Badge>
+                      </th>
+                    );
+                  })}
+                </tr>
+                {section.modules.map((nav) => (
+                  <tr key={nav.key}>
                     <td
-                      colSpan={roles.length + 1}
-                      className="py-2 px-4 text-uppercase fw-bold small"
-                      style={{
-                        // Warna sama dengan judul grup di sidebar (garis kuning + latar biru muda)
-                        background: 'linear-gradient(90deg, #E3F2F7 0%, rgba(227,242,247,0) 100%)',
-                        boxShadow: 'inset 4px 0 0 #FDB913',
-                        letterSpacing: '0.6px',
-                        color: '#0A6C8F',
-                      }}
+                      className="py-3 px-4"
+                      style={{ position: 'sticky', left: 0, zIndex: 1, backgroundColor: 'var(--bs-card-bg, #fff)' }}
                     >
-                      {section.title}
+                      <div className="fw-semibold text-dark">{nav.label}</div>
+                      {nav.hint && <div className="text-secondary small text-wrap">{nav.hint}</div>}
                     </td>
-                  </tr>
-                  {section.modules.map((nav) => (
-                    <tr key={nav.key}>
-                      <td
-                        className="py-3 px-4"
-                        style={{ position: 'sticky', left: 0, zIndex: 1, backgroundColor: 'var(--bs-card-bg, #fff)' }}
-                      >
-                        <div className="fw-semibold text-dark">{nav.label}</div>
-                        {nav.hint && <div className="text-secondary small text-wrap">{nav.hint}</div>}
+                    {roles.map((role) => (
+                      <td key={role.id} className="py-3 px-2 text-center">
+                        {renderModuleCell(role, nav, role.name === 'Super Admin')}
                       </td>
-                      {roles.map((role) => (
-                        <td key={role.id} className="py-3 px-2 text-center">
-                          {renderModuleCell(role, nav, role.name === 'Super Admin')}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </React.Fragment>
-              ))}
-            </tbody>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            ))}
           </table>
         </div>
       </Card>
