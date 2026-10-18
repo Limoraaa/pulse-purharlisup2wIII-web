@@ -108,7 +108,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('peminta', PemintaController::class)->only(['index', 'show']);
     });
 
-    Route::middleware('permission:view_inventaris|view_pemeliharaan_mesin')->group(function () {
+    Route::middleware('permission:view_inventaris|view_pemeliharaan_mesin|view_operasional_mesin')->group(function () {
         Route::apiResource('mesin-produksi', MesinProduksiController::class)->only(['index', 'show']);
     });
 
@@ -244,31 +244,32 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/log-pemeliharaan/mesin/{mesin_id}', [LogPemeliharaanMesinController::class, 'getByMesin']);
 
         Route::get('/log-pemeliharaan/{id}', [LogPemeliharaanMesinController::class, 'show']);
-
-        Route::get('/log-aktivitas', [LogAktivitasMesinController::class, 'index']);
-
-        // Lakukan hal yang sama untuk log aktivitas jika polanya mirip
-        Route::get('/log-aktivitas/mesin/{mesin_id}', [LogAktivitasMesinController::class, 'getByMesin']);
-
-        Route::get('/log-aktivitas/{id}', [LogAktivitasMesinController::class, 'show']);
     });
 
     Route::middleware('permission:process_pemeliharaan_mesin')->group(function () {
         Route::post('/log-pemeliharaan', [LogPemeliharaanMesinController::class, 'store']);
         Route::put('/log-pemeliharaan/{id}', [LogPemeliharaanMesinController::class, 'update']);
         Route::delete('/log-pemeliharaan/{id}', [LogPemeliharaanMesinController::class, 'destroy']);
-
-        Route::post('/log-aktivitas', [LogAktivitasMesinController::class, 'store']);
-        Route::put('/log-aktivitas/{id}', [LogAktivitasMesinController::class, 'update']);
-        Route::delete('/log-aktivitas/{id}', [LogAktivitasMesinController::class, 'destroy']);
     });
 
-    // Ikut hak akses Pemeliharaan Mesin: "Lihat saja" = view, "Kelola penuh" = manage
-    Route::middleware('permission:view_pemeliharaan_mesin')->group(function () {
+    // ------------------------------------------
+    // OPERASIONAL MESIN (Catatan Aktivitas & Plotting Jadwal)
+    // "Lihat saja" = view_operasional_mesin, "Kelola penuh" = manage_operasional_mesin
+    // ------------------------------------------
+    Route::middleware('permission:view_operasional_mesin')->group(function () {
+        Route::get('/log-aktivitas', [LogAktivitasMesinController::class, 'index']);
+        // Rute spesifik "mesin/{mesin_id}" harus di atas rute dinamis "{id}"
+        Route::get('/log-aktivitas/mesin/{mesin_id}', [LogAktivitasMesinController::class, 'getByMesin']);
+        Route::get('/log-aktivitas/{id}', [LogAktivitasMesinController::class, 'show']);
+
         Route::get('/mapping-pengerjaan', [MappingPengerjaanMesinController::class, 'index']);
     });
 
-    Route::middleware('permission:manage_pemeliharaan_mesin')->group(function () {
+    Route::middleware('permission:manage_operasional_mesin')->group(function () {
+        Route::post('/log-aktivitas', [LogAktivitasMesinController::class, 'store']);
+        Route::put('/log-aktivitas/{id}', [LogAktivitasMesinController::class, 'update']);
+        Route::delete('/log-aktivitas/{id}', [LogAktivitasMesinController::class, 'destroy']);
+
         Route::post('/mapping-pengerjaan', [MappingPengerjaanMesinController::class, 'store']);
         Route::put('/mapping-pengerjaan/{id}', [MappingPengerjaanMesinController::class, 'update']);
         Route::delete('/mapping-pengerjaan/{id}', [MappingPengerjaanMesinController::class, 'destroy']);

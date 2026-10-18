@@ -94,7 +94,7 @@ const statusOf = (mulai: string, selesai: string, today: string): StatusKey => {
 
 export default function MappingPengerjaanManager() {
   const calendarRef = useRef<FullCalendar>(null);
-  const canManage = usePermission('manage_pemeliharaan_mesin');
+  const canManage = usePermission('manage_operasional_mesin');
 
   const [daftarMesin, setDaftarMesin] = useState<Mesin[]>([]);
   const [selectedMesinId, setSelectedMesinId] = useState<string>('');
