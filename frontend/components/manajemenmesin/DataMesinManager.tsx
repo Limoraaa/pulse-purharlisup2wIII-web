@@ -54,6 +54,7 @@ const EXPORT_COLUMNS_MESIN: ExportColumn[] = [
 
 const DataMesinManager = ({ mode = 'pemeliharaan' }: DataMesinManagerProps) => {
   const canManageMesin = usePermission("manage_pemeliharaan_mesin");
+  const canManageOperasional = usePermission("manage_operasional_mesin");
   // State untuk menyimpan objek mesin yang sedang dipilih untuk dibuka detailnya
   const [selectedMesin, setSelectedMesin] = useState<MesinItemType | null>(null);
   const [mesinList, setMesinList] = useState<MesinItemType[]>([]);
@@ -119,7 +120,7 @@ const DataMesinManager = ({ mode = 'pemeliharaan' }: DataMesinManagerProps) => {
           status: selectedMesin.status,
           foto_katalog: selectedMesin.foto_katalog
         }} 
-        canManage={canManageMesin}
+        canManage={mode === 'operasional' ? canManageOperasional : canManageMesin}
         mode={mode} // <--- MENGIRIMKAN PROPS MODE KE DETAIL MESIN
         onBack={() => setSelectedMesin(null)} 
       />

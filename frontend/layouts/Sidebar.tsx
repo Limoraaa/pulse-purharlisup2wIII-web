@@ -218,7 +218,7 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
     "Laporan Kerusakan Alat": "view_kerusakan_alat",
     "Dashboard Pemeliharaan": "view_dashboard_pemeliharaan",
     "Pemeliharaan": "view_pemeliharaan_mesin",
-    "Operasional": "view_pemeliharaan_mesin",
+    "Operasional": "view_operasional_mesin",
     "Manajemen User": "view_users",
   };
 
