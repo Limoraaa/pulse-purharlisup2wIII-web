@@ -79,7 +79,7 @@ export default function PartMappingChecklistModalMotor({ show, onHide, mesinId, 
           setGambarUrl(res?.gambarUrl ?? null);
           setParts(res?.parts ?? []);
         }
-      } catch (err) {
+      } catch {
         if (!cancelled) {
           setLoadError("Mapping part untuk motor ini belum tersedia. Minta admin memetakan part terlebih dahulu.");
         }

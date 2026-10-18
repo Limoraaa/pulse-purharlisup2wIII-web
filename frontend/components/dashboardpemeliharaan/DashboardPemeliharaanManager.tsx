@@ -12,7 +12,6 @@ import {
   IconCalendarEvent,
   IconCalendarDue,
   IconTrendingUp,
-  IconActivity,
   IconBellRinging,
   IconMoodSmile,
   IconAdjustmentsAlt,
@@ -34,7 +33,6 @@ import StatCard from "components/dashboard/StatCard";
 import api from "lib/api";
 import { usePermission } from "hooks/usePermissions";
 import { fetchRencana } from "services/rencanaPemeliharaanService";
-import { RencanaItem } from "types/RencanaPemeliharaanTypes";
 import {
   ACTION_META,
   PEMELIHARAAN_MESIN_PATH,

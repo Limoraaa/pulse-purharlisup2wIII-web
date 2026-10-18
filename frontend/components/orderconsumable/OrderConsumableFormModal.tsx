@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { Modal, Form, Button, Row, Col, InputGroup } from 'react-bootstrap';
+import { Modal, Form, Button, Row, Col } from 'react-bootstrap';
 import { IconTrash, IconPlus } from '@tabler/icons-react';
 
 import { 
@@ -141,7 +141,7 @@ export default function OrderConsumableFormModal({ isOpen, onClose, onSuccess }:
 
       onSuccess();
       onClose();
-    } catch (error) {
+    } catch {
       alert('Gagal menyimpan data order. Pastikan semua field terisi dengan benar.');
     } finally {
       setIsSubmitting(false);

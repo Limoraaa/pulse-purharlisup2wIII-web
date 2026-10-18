@@ -47,7 +47,7 @@ export default function PartMappingEditorMotor({ show, onHide, mesinId, mesinNam
           setGambarUrl(res?.gambarUrl ?? null);
           setParts(res?.parts ?? []);
         }
-      } catch (err) {
+      } catch {
         if (!cancelled) {
           setGambarUrl(null);
           setParts([]);

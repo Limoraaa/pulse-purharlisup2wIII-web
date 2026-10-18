@@ -48,7 +48,7 @@ export default function PartMappingEditor({ show, onHide, mesinId, mesinNama, on
           setGambarUrl(res?.gambarUrl ?? null);
           setParts(res?.parts ?? []);
         }
-      } catch (err) {
+      } catch {
         // Belum ada mapping tersimpan itu wajar untuk mesin baru, jangan blokir UI
         if (!cancelled) {
           setGambarUrl(null);

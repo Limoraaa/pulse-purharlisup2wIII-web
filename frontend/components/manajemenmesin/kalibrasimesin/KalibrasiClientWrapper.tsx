@@ -21,7 +21,7 @@ export default function KalibrasiClientWrapper() {
   // Menampilkan daftar mesin. Jika DataMesinManager menggunakan prop lain atau kita tangani lewat state lokal, 
   // pastikan tipenya aman atau sesuaikan dengan props asli DataMesinManager.
   return (
-    <div onClick={(e: React.MouseEvent<HTMLDivElement>) => {
+    <div onClick={() => {
       // Sebagai alternatif aman jika DataMesinManager tidak mendukung onSelectMesin secara langsung,
       // kita bisa biarkan DataMesinManager mengatur halamannya sendiri, atau sesuaikan prop-nya.
     }}>
