@@ -252,7 +252,7 @@ const TimelinePemeliharaan: React.FC<TimelinePemeliharaanProps> = ({
                                   key={`plan-badge-${item.id}-${idx}`}
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    onSelectRencana && onSelectRencana(item);
+                                    onSelectRencana?.(item);
                                   }}
                                   title={`[RENCANA] ${meta.label}\nJadwal: ${
                                     MONTHS_LONG[mIdx]
@@ -343,7 +343,7 @@ const TimelinePemeliharaan: React.FC<TimelinePemeliharaanProps> = ({
                                   key={`actual-badge-${item.id}-${idx}`}
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    onSelectRencana && onSelectRencana(item);
+                                    onSelectRencana?.(item);
                                   }}
                                   title={`[REALISASI - SELESAI] ${meta.label}\nRencana: ${
                                     MONTHS_LONG[Number(item.bulan) - 1]

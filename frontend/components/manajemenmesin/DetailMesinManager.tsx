@@ -42,7 +42,8 @@ const KALIBRASI_PATH = '/pemeliharaan/kalibrasi';
 
 // Rencana dianggap kalibrasi jika kodenya "K" atau labelnya memuat kata "kalibrasi"
 const isRencanaKalibrasi = (r: RencanaItem) =>
-  r.aksi === 'K' || ACTION_META[r.aksi]?.label?.toLowerCase().includes('kalibrasi');
+  // 'K' bisa datang dari data di database walau belum ada di tipe AksiRencana
+  (r.aksi as string) === 'K' || ACTION_META[r.aksi]?.label?.toLowerCase().includes('kalibrasi');
 
 interface MesinProps {
   mesin: {

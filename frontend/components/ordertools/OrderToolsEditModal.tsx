@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { Modal, Form, Button, Row, Col, InputGroup } from 'react-bootstrap';
+import { Modal, Form, Button, Row, Col } from 'react-bootstrap';
 import { getPemintaListForTools, updateOrderTools } from '/services/orderToolsService';
 
 interface OrderToolsEditModalProps {
@@ -88,7 +88,7 @@ export default function OrderToolsEditModal({ isOpen, onClose, onSuccess, orderD
       await updateOrderTools(orderData.id, payload);
       onSuccess();
       onClose();
-    } catch (error) {
+    } catch {
       alert('Gagal memperbarui data order.');
     } finally {
       setIsSubmitting(false);

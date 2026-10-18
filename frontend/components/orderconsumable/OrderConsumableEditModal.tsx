@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { Modal, Form, Button, Row, Col, InputGroup } from 'react-bootstrap';
+import { Modal, Form, Button, Row, Col } from 'react-bootstrap';
 
 import { getPemintaListForConsumable, updateOrderConsumable } from '/services/orderConsumableService';
 
@@ -89,7 +89,7 @@ export default function OrderConsumableEditModal({ isOpen, onClose, onSuccess, o
       await updateOrderConsumable(orderData.id, payload);
       onSuccess();
       onClose();
-    } catch (error) {
+    } catch {
       alert('Gagal memperbarui data order consumable.');
     } finally {
       setIsSubmitting(false);

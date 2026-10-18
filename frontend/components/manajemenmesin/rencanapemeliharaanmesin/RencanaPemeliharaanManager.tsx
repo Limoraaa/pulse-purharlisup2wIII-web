@@ -35,7 +35,7 @@ import { ColumnDef } from "@tanstack/react-table";
 // Library untuk Custom Export Matrix (PDF & Styled Excel)
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-// @ts-ignore - menggunakan xlsx-js-style agar support warna, border, dan alignment
+// Menggunakan xlsx-js-style agar support warna, border, dan alignment
 import XLSX from "xlsx-js-style";
 
 import { usePermission } from "hooks/usePermissions";

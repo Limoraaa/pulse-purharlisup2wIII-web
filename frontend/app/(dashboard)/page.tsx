@@ -29,7 +29,7 @@ const HomePage = () => {
           return;
         }
         setChecked(true);
-      } catch (error) {
+      } catch {
         router.replace("/signin");
       }
     };

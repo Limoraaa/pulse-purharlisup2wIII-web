@@ -141,9 +141,6 @@ export default function OrderConsumableManager() {
     });
   }, [orders, searchTerm]);
 
-  const formatRupiah = (angka: number) => {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka || 0);
-  };
 
   const formatDateTime = (dateString?: string | null) => {
     if (!dateString) return "-";

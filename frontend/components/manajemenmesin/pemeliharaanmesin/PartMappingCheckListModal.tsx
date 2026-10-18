@@ -117,7 +117,7 @@ export default function PartMappingChecklistModal({
           setGambarUrl(res?.gambarUrl ?? null);
           setParts(res?.parts ?? []);
         }
-      } catch (err) {
+      } catch {
         if (!cancelled) {
           setLoadError("Mapping part untuk mesin ini belum tersedia. Minta admin memetakan part terlebih dahulu.");
         }
