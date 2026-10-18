@@ -215,9 +215,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // ==========================================
 // LAPORAN ANGGARAN (berdiri sendiri)
 // ==========================================
-    Route::middleware('permission:laporan_anggaran')->group(function () {
+    // Ikut hak akses Pemeliharaan Mesin: "Lihat saja" = view, "Kelola penuh" = manage
+    Route::middleware('permission:view_pemeliharaan_mesin')->group(function () {
         Route::get('/laporan-anggaran', [LaporanAnggaranController::class, 'index']);
+    });
 
+    Route::middleware('permission:manage_pemeliharaan_mesin')->group(function () {
         Route::post('/laporan-anggaran/disburse', [LaporanAnggaranController::class, 'storeDisburse']);
         Route::put('/laporan-anggaran/disburse/{id}', [LaporanAnggaranController::class, 'updateDisburse']);
         Route::delete('/laporan-anggaran/disburse/{id}', [LaporanAnggaranController::class, 'destroyDisburse']);
@@ -260,8 +263,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/log-aktivitas/{id}', [LogAktivitasMesinController::class, 'destroy']);
     });
 
-    Route::middleware('permission:mapping_pengerjaan')->group(function () {
+    // Ikut hak akses Pemeliharaan Mesin: "Lihat saja" = view, "Kelola penuh" = manage
+    Route::middleware('permission:view_pemeliharaan_mesin')->group(function () {
         Route::get('/mapping-pengerjaan', [MappingPengerjaanMesinController::class, 'index']);
+    });
+
+    Route::middleware('permission:manage_pemeliharaan_mesin')->group(function () {
         Route::post('/mapping-pengerjaan', [MappingPengerjaanMesinController::class, 'store']);
         Route::put('/mapping-pengerjaan/{id}', [MappingPengerjaanMesinController::class, 'update']);
         Route::delete('/mapping-pengerjaan/{id}', [MappingPengerjaanMesinController::class, 'destroy']);

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Card, Form, Spinner, Button, Alert } from 'react-bootstrap';
 import { IconEdit, IconPlus } from '@tabler/icons-react';
 import api from '/lib/api';
+import { usePermission } from 'hooks/usePermissions';
 import LaporanAnggaranFormModal, {
   PekerjaanItem,
   DisburseItem,
@@ -86,6 +87,7 @@ const sum = <T,>(list: T[], pick: (x: T) => number) => list.reduce((acc, x) => a
 export default function LaporanAnggaranManager() {
   const now = new Date();
   const currentYear = now.getFullYear();
+  const canManage = usePermission('manage_pemeliharaan_mesin');
 
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
   const [selectedMonth, setSelectedMonth] = useState<number>(0); // 0 = semua bulan
@@ -197,10 +199,12 @@ export default function LaporanAnggaranManager() {
                   Disburse bulan {namaBulan} {selectedYear}
                 </td>
                 <td colSpan={5} style={blank}>
-                  <Button size="sm" variant="outline-primary" onClick={() => openAddDisburse(bulan)}>
-                    <IconPlus size={14} className="me-1" />
-                    Tambah disburse
-                  </Button>
+                  {canManage && (
+                    <Button size="sm" variant="outline-primary" onClick={() => openAddDisburse(bulan)}>
+                      <IconPlus size={14} className="me-1" />
+                      Tambah disburse
+                    </Button>
+                  )}
                 </td>
               </tr>
               {dis.length === 0 ? (
@@ -218,17 +222,21 @@ export default function LaporanAnggaranManager() {
                       {formatRupiah(d.nominal)}
                     </td>
                     <td colSpan={4} style={blank} />
-                    <td className="text-center" style={cell}>
-                      <Button
-                        variant="light"
-                        size="sm"
-                        className="border"
-                        onClick={() => openModal('disburse', d, bulan)}
-                      >
-                        <IconEdit size={14} className="me-1" />
-                        Edit
-                      </Button>
-                    </td>
+                    {canManage ? (
+                      <td className="text-center" style={cell}>
+                        <Button
+                          variant="light"
+                          size="sm"
+                          className="border"
+                          onClick={() => openModal('disburse', d, bulan)}
+                        >
+                          <IconEdit size={14} className="me-1" />
+                          Edit
+                        </Button>
+                      </td>
+                    ) : (
+                      <td style={blank} />
+                    )}
                   </tr>
                 ))
               )}
@@ -300,10 +308,12 @@ export default function LaporanAnggaranManager() {
 
               <tr>
                 <td colSpan={7} style={{ ...blank, padding: '14px 0 10px 0' }}>
-                  <Button size="sm" variant="outline-primary" onClick={() => openAddPekerjaan(bulan)}>
-                    <IconPlus size={14} className="me-1" />
-                    Tambah rencana pekerjaan
-                  </Button>
+                  {canManage && (
+                    <Button size="sm" variant="outline-primary" onClick={() => openAddPekerjaan(bulan)}>
+                      <IconPlus size={14} className="me-1" />
+                      Tambah rencana pekerjaan
+                    </Button>
+                  )}
                 </td>
               </tr>
 
@@ -350,15 +360,19 @@ export default function LaporanAnggaranManager() {
                       {p.keterangan || '-'}
                     </td>
                     <td className="text-center" style={cell}>
-                      <Button
-                        variant="light"
-                        size="sm"
-                        className="border"
-                        onClick={() => openModal('pekerjaan', p, bulan)}
-                      >
-                        <IconEdit size={14} className="me-1" />
-                        Edit
-                      </Button>
+                      {canManage ? (
+                        <Button
+                          variant="light"
+                          size="sm"
+                          className="border"
+                          onClick={() => openModal('pekerjaan', p, bulan)}
+                        >
+                          <IconEdit size={14} className="me-1" />
+                          Edit
+                        </Button>
+                      ) : (
+                        '-'
+                      )}
                     </td>
                   </tr>
                 ))
@@ -422,14 +436,18 @@ export default function LaporanAnggaranManager() {
               ))}
             </Form.Select>
           </div>
-          <Button variant="outline-primary" onClick={() => openAddDisburse(defaultBulan)}>
-            <IconPlus size={16} className="me-1" />
-            Tambah disburse
-          </Button>
-          <Button variant="primary" onClick={() => openAddPekerjaan(defaultBulan)}>
-            <IconPlus size={16} className="me-1" />
-            Tambah rencana pekerjaan
-          </Button>
+          {canManage && (
+            <>
+              <Button variant="outline-primary" onClick={() => openAddDisburse(defaultBulan)}>
+                <IconPlus size={16} className="me-1" />
+                Tambah disburse
+              </Button>
+              <Button variant="primary" onClick={() => openAddPekerjaan(defaultBulan)}>
+                <IconPlus size={16} className="me-1" />
+                Tambah rencana pekerjaan
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
@@ -453,15 +471,19 @@ export default function LaporanAnggaranManager() {
               Belum ada data {selectedMonth ? `di ${MONTHS_LONG[selectedMonth - 1]} ` : 'di tahun '}
               {selectedYear}
             </p>
-            <p className="small mb-3">Mulai dengan menambahkan disburse atau rencana pekerjaan.</p>
-            <div className="d-flex justify-content-center gap-2">
-              <Button size="sm" variant="outline-primary" onClick={() => openAddDisburse(defaultBulan)}>
-                Tambah disburse
-              </Button>
-              <Button size="sm" variant="primary" onClick={() => openAddPekerjaan(defaultBulan)}>
-                Tambah rencana pekerjaan
-              </Button>
-            </div>
+            {canManage && (
+              <>
+                <p className="small mb-3">Mulai dengan menambahkan disburse atau rencana pekerjaan.</p>
+                <div className="d-flex justify-content-center gap-2">
+                  <Button size="sm" variant="outline-primary" onClick={() => openAddDisburse(defaultBulan)}>
+                    Tambah disburse
+                  </Button>
+                  <Button size="sm" variant="primary" onClick={() => openAddPekerjaan(defaultBulan)}>
+                    Tambah rencana pekerjaan
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
         </Card>
       ) : (
