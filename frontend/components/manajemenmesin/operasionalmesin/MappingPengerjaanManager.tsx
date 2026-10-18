@@ -7,6 +7,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import idLocale from '@fullcalendar/core/locales/id';
 import api from '/lib/api';
+import { usePermission } from 'hooks/usePermissions';
 
 const PLN_BLUE = '#00529C';
 const PLN_YELLOW = '#FFC20E';
@@ -93,6 +94,7 @@ const statusOf = (mulai: string, selesai: string, today: string): StatusKey => {
 
 export default function MappingPengerjaanManager() {
   const calendarRef = useRef<FullCalendar>(null);
+  const canManage = usePermission('manage_pemeliharaan_mesin');
 
   const [daftarMesin, setDaftarMesin] = useState<Mesin[]>([]);
   const [selectedMesinId, setSelectedMesinId] = useState<string>('');
@@ -358,7 +360,9 @@ export default function MappingPengerjaanManager() {
         <div>
           <h3 className="fw-bold text-dark mb-1">Mapping Pengerjaan Mesin</h3>
           <p className="text-muted mb-0 small">
-            Blok tanggal di kalender untuk menambah jadwal. Klik, geser, atau tarik tepi jadwal untuk mengubahnya.
+            {canManage
+              ? 'Blok tanggal di kalender untuk menambah jadwal. Klik, geser, atau tarik tepi jadwal untuk mengubahnya.'
+              : 'Klik jadwal untuk melihat detail pengerjaan.'}
           </p>
         </div>
         <div className="d-flex flex-wrap align-items-end gap-2">
@@ -379,13 +383,15 @@ export default function MappingPengerjaanManager() {
               ))}
             </Form.Select>
           </div>
-          <Button
-            variant="primary"
-            disabled={!selectedMesinId}
-            onClick={() => openModal('create', { mulai: today, selesai: today })}
-          >
-            + Tambah jadwal
-          </Button>
+          {canManage && (
+            <Button
+              variant="primary"
+              disabled={!selectedMesinId}
+              onClick={() => openModal('create', { mulai: today, selesai: today })}
+            >
+              + Tambah jadwal
+            </Button>
+          )}
         </div>
       </div>
 
@@ -468,8 +474,8 @@ export default function MappingPengerjaanManager() {
                 locale={idLocale}
                 headerToolbar={false}
                 datesSet={handleDatesSet}
-                selectable
-                editable
+                selectable={canManage}
+                editable={canManage}
                 eventResizableFromStart
                 select={handleDateSelect}
                 eventClick={handleEventClick}
@@ -505,15 +511,19 @@ export default function MappingPengerjaanManager() {
             {agenda.length === 0 ? (
               <div className="border rounded-3 p-4 text-center bg-light">
                 <p className="fw-semibold mb-1">Belum ada jadwal di bulan ini</p>
-                <p className="text-muted small mb-3">Blok tanggal di kalender, atau tambahkan langsung dari tombol di bawah.</p>
-                <Button
-                  size="sm"
-                  variant="outline-primary"
-                  disabled={!selectedMesinId}
-                  onClick={() => openModal('create', { mulai: today, selesai: today })}
-                >
-                  Tambah jadwal
-                </Button>
+                {canManage && (
+                  <>
+                    <p className="text-muted small mb-3">Blok tanggal di kalender, atau tambahkan langsung dari tombol di bawah.</p>
+                    <Button
+                      size="sm"
+                      variant="outline-primary"
+                      disabled={!selectedMesinId}
+                      onClick={() => openModal('create', { mulai: today, selesai: today })}
+                    >
+                      Tambah jadwal
+                    </Button>
+                  </>
+                )}
               </div>
             ) : (
               <div className="d-flex flex-column gap-2">
@@ -559,7 +569,7 @@ export default function MappingPengerjaanManager() {
           <Modal.Header closeButton className="border-0 pb-0">
             <div>
               <Modal.Title className="fw-bold fs-5">
-                {modalMode === 'create' ? 'Tambah jadwal pengerjaan' : 'Kelola jadwal pengerjaan'}
+                {modalMode === 'create' ? 'Tambah jadwal pengerjaan' : canManage ? 'Kelola jadwal pengerjaan' : 'Detail jadwal pengerjaan'}
               </Modal.Title>
               {modalMode === 'edit' && (
                 <span className="badge rounded-pill mt-2" style={{ background: STATUS[formStatus].soft, color: STATUS[formStatus].softFg }}>
@@ -569,6 +579,8 @@ export default function MappingPengerjaanManager() {
             </div>
           </Modal.Header>
           <Modal.Body>
+            {/* User "Lihat saja" hanya bisa melihat detail, semua input dikunci */}
+            <fieldset disabled={!canManage}>
             {formError && (
               <Alert variant="danger" className="py-2 small">
                 {formError}
@@ -626,9 +638,10 @@ export default function MappingPengerjaanManager() {
                 placeholder="Detail, instruksi, atau catatan pengerjaan"
               />
             </Form.Group>
+            </fieldset>
           </Modal.Body>
           <Modal.Footer className="border-0 pt-0 justify-content-between">
-            {modalMode === 'edit' ? (
+            {modalMode === 'edit' && canManage ? (
               confirmDelete ? (
                 <div className="d-flex align-items-center gap-2">
                   <Button variant="danger" size="sm" type="button" onClick={handleDelete} disabled={saving}>
@@ -648,11 +661,13 @@ export default function MappingPengerjaanManager() {
             )}
             <div className="d-flex gap-2">
               <Button variant="light" type="button" onClick={closeModal} disabled={saving}>
-                Batal
+                {canManage ? 'Batal' : 'Tutup'}
               </Button>
-              <Button variant="primary" type="submit" disabled={saving}>
-                {saving ? 'Menyimpan...' : 'Simpan jadwal'}
-              </Button>
+              {canManage && (
+                <Button variant="primary" type="submit" disabled={saving}>
+                  {saving ? 'Menyimpan...' : 'Simpan jadwal'}
+                </Button>
+              )}
             </div>
           </Modal.Footer>
         </Form>
