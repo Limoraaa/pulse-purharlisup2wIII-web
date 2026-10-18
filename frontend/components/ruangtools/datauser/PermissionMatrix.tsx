@@ -109,7 +109,7 @@ export default function PermissionMatrix() {
     },
     {
       title: 'Administrasi',
-      modules: [{ key: 'view_users', label: 'Manajemen User', hint: 'Daftar Pengguna, Pengaturan Hak Akses', type: 'dropdown', managePerms: ['manage_users'] }],
+      modules: [{ key: 'view_users', label: 'Manajemen User', hint: 'Daftar Pengguna', type: 'dropdown', managePerms: ['manage_users'] }],
     },
   ];
 
