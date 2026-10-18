@@ -5,12 +5,6 @@ import { Public_Sans } from "next/font/google";
 //import custom components
 import ClientWrapper from "components/common/ClientWrapper";
 
-// Import Swiper styles
-import "swiper/css";
-import "swiper/css/navigation";
-import "swiper/css/pagination";
-import "swiper/css/scrollbar";
-
 // import main theme scss
 import '../styles/theme.scss';
 
