@@ -40,6 +40,7 @@ import {
   updateRolePeminta,
 } from "services/pemintaService";
 import { usePermission } from "hooks/usePermissions";
+import { useFeedback } from "components/common/FeedbackProvider";
 
 function sortByNama(items: PeminjamType[]): PeminjamType[] {
   return [...items].sort((a, b) => {
@@ -61,6 +62,7 @@ const EXPORT_COLUMNS: ExportColumn[] = [
 ];
 
 const PeminjamManager = () => {
+  const { notify } = useFeedback();
   const canManage = usePermission("manage_master_data");
   const [peminjamList, setPeminjamList] = useState<PeminjamType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -189,7 +191,7 @@ const PeminjamManager = () => {
       setTimeout(() => setSuccessMessage(null), 5000);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Gagal menonaktifkan data";
-      alert(message);
+      notify(message);
     } finally {
       setDeleting(false);
     }
@@ -207,7 +209,7 @@ const PeminjamManager = () => {
       setTimeout(() => setSuccessMessage(null), 5000);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Gagal mengaktifkan data";
-      alert(message);
+      notify(message);
     } finally {
       setTogglingId(null);
     }
@@ -248,7 +250,7 @@ const PeminjamManager = () => {
       setTimeout(() => setSuccessMessage(null), 5000);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Gagal mengubah role";
-      alert(message);
+      notify(message);
     }
   };
 

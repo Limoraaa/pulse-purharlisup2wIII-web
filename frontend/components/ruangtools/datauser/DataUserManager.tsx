@@ -39,8 +39,10 @@ import UserFormModal from "components/ruangtools/datauser/UserFormModal";
 import DeleteConfirmModal from "components/ruangtools/datauser/DeleteConfirmModal";
 import ActivateConfirmModal from "components/ruangtools/datauser/ActivateConfirmModal";
 import ResetPasswordModal from "components/ruangtools/datauser/ResetPasswordModal";
+import { useFeedback } from "components/common/FeedbackProvider";
 
 const DataUserManager = () => {
+  const { notify } = useFeedback();
   const [users, setUsers] = useState<UserItemType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -200,7 +202,7 @@ const DataUserManager = () => {
       setUsers((prev) => prev.filter((u) => u.id !== activeUser.id));
       showSuccess("User berhasil dihapus.");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Gagal menghapus user");
+      notify(err instanceof Error ? err.message : "Gagal menghapus user");
     } finally {
       setDeactivateModalOpen(false);
       setActiveUser(null);
@@ -216,7 +218,7 @@ const DataUserManager = () => {
       );
       showSuccess(`${activeUser.full_name} berhasil diaktifkan kembali.`);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Gagal mengaktifkan user");
+      notify(err instanceof Error ? err.message : "Gagal mengaktifkan user");
     } finally {
       setActivateModalOpen(false);
       setActiveUser(null);

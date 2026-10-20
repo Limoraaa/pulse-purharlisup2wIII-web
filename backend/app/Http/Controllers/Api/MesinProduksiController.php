@@ -28,6 +28,9 @@ class MesinProduksiController extends Controller
             'lokasi_ruang' => 'required|string',
             'status' => 'sometimes|string|in:Aktif,Tidak Aktif,Maintenance,Rusak',
             'foto_katalog' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048', // Validasi foto
+        ], [
+            'kode_mesin.required' => 'Kode mesin wajib diisi.',
+            'kode_mesin.unique'   => 'Kode mesin ":input" sudah digunakan mesin lain.',
         ]);
 
         $fotoKatalogUrl = null;
@@ -64,6 +67,9 @@ class MesinProduksiController extends Controller
             'nama_mesin' => 'required|string',
             'lokasi_ruang' => 'required|string',
             'status' => 'sometimes|string|in:Aktif,Tidak Aktif',
+        ], [
+            'kode_mesin.required' => 'Kode mesin wajib diisi.',
+            'kode_mesin.unique'   => 'Kode mesin ":input" sudah digunakan mesin lain.',
         ]);
 
         $mesin->update($validated);

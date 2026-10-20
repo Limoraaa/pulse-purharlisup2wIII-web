@@ -36,7 +36,9 @@ import PartMappingChecklistModal from './pemeliharaanmesin/PartMappingCheckListM
 import RencanaMesinCard, { rencanaMesinKey } from 'components/manajemenmesin/rencanapemeliharaanmesin/RencanaMesinCard';
 import DokumenMesinPanel from './dokumenmesin/DokumenMesinPanel';
 import KalibrasiFormModal from 'components/manajemenmesin/kalibrasimesin/KalibrasiFormModal'; // Pastikan path ini benar
-import { ACTION_META } from 'components/manajemenmesin/rencanapemeliharaanmesin/RencanaHelpers';
+import { ACTION_META, formatJadwal, getStatusTampil } from 'components/manajemenmesin/rencanapemeliharaanmesin/RencanaHelpers';
+import { fetchRencanaMesin } from 'services/rencanaPemeliharaanService';
+import { useFeedback } from "components/common/FeedbackProvider";
 
 // Halaman form kalibrasi (SESUAIKAN dengan route yang sebenarnya di proyekmu)
 const KALIBRASI_PATH = '/pemeliharaan/kalibrasi';
@@ -123,6 +125,7 @@ export default function DetailMesinManager({
   mode = 'pemeliharaan', 
   onBack 
 }: MesinProps) {
+  const { notify, confirm: confirmDialog } = useFeedback();
 
   const mesinId = mesin?.id;
   const mesinNama = mesin?.nama_mesin || mesin?.nama || 'Tanpa Nama';
@@ -133,6 +136,23 @@ export default function DetailMesinManager({
 
   const router = useRouter();
   const canProcess = usePermission('process_pemeliharaan_mesin');
+  // Jadwal servis berikutnya = rencana pemeliharaan terdekat yang belum lewat
+  // (key & fetcher sama dengan RencanaMesinCard, jadi datanya berbagi cache SWR)
+  const { data: rencanaBelum, error: rencanaError } = useSWR(
+    mesinId ? rencanaMesinKey(mesinId) : null,
+    () => fetchRencanaMesin(mesinId)
+  );
+  const { servisBerikutnya, jumlahTerlewat } = React.useMemo(() => {
+    const today = new Date();
+    const urut = (rencanaBelum ?? [])
+      .filter((r) => getStatusTampil(r, today) !== 'Selesai')
+      .sort((a, b) => a.tahun - b.tahun || a.bulan - b.bulan || a.minggu - b.minggu);
+    return {
+      servisBerikutnya: urut.find((r) => getStatusTampil(r, today) === 'Terjadwal') ?? null,
+      jumlahTerlewat: urut.filter((r) => getStatusTampil(r, today) === 'Terlewat').length,
+    };
+  }, [rencanaBelum]);
+
   // HIRARC berlaku untuk semua mesin dan hanya dikelola oleh pengelola Pemeliharaan
   const canManageHirarc = usePermission('manage_pemeliharaan_mesin');
 
@@ -312,14 +332,19 @@ export default function DetailMesinManager({
       loadAktivitas(); 
       setTimeout(() => setSuccessMessage(null), 4000);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Gagal menyimpan log aktivitas");
+      notify(err instanceof Error ? err.message : "Gagal menyimpan log aktivitas");
     } finally {
       setSubmitLoadingAktivitas(false);
     }
   };
 
   const handleDeleteAktivitas = async (id: number) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus catatan log aktivitas ini?")) return;
+    const setuju = await confirmDialog({
+      title: "Hapus Log Aktivitas",
+      message: "Apakah Anda yakin ingin menghapus catatan log aktivitas ini?",
+      confirmLabel: "Ya, hapus",
+    });
+    if (!setuju) return;
 
     try {
       const token = localStorage.getItem("token");
@@ -332,7 +357,7 @@ export default function DetailMesinManager({
       loadAktivitas();
       setTimeout(() => setSuccessMessage(null), 4000);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Gagal menghapus log aktivitas");
+      notify(err instanceof Error ? err.message : "Gagal menghapus log aktivitas");
     }
   };
 
@@ -442,7 +467,24 @@ export default function DetailMesinManager({
                     <div className="d-flex align-items-center justify-content-center justify-content-md-start text-muted small mb-1" style={{ fontSize: '0.75rem' }}>
                       <IconCalendarEvent size={16} className="me-2 text-success" /> Servis / Pemeliharaan Berikutnya
                     </div>
-                    <h6 className="fw-bold text-body mb-0 fs-5 mt-1">15 Nov 2026</h6>
+                    <h6 className="fw-bold text-body mb-0 fs-5 mt-1">
+                      {rencanaError
+                        ? '-'
+                        : !rencanaBelum
+                          ? 'Memuat...'
+                          : servisBerikutnya
+                            ? formatJadwal(servisBerikutnya)
+                            : 'Belum terjadwal'}
+                    </h6>
+                    {servisBerikutnya && (
+                      <div className="small text-secondary mt-1">
+                        {ACTION_META[servisBerikutnya.aksi]?.label ?? servisBerikutnya.aksi}
+                        {servisBerikutnya.keterangan ? ` · ${servisBerikutnya.keterangan}` : ''}
+                      </div>
+                    )}
+                    {jumlahTerlewat > 0 && (
+                      <div className="small text-danger fw-semibold mt-1">{jumlahTerlewat} jadwal terlewat belum dikerjakan</div>
+                    )}
                   </div>
                 </Col>
               </Row>

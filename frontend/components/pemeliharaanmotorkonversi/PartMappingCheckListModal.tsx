@@ -4,6 +4,7 @@ import { Modal, Form, Button, ButtonGroup, Alert, Spinner } from "react-bootstra
 import { IconClipboardCheck } from "@tabler/icons-react";
 import api from "lib/api";
 import type { ChecklistStatus, MachinePart, PartMappingPayload } from "./PartMappingType";
+import { useFeedback } from "components/common/FeedbackProvider";
 
 interface Props {
   show: boolean;
@@ -42,6 +43,7 @@ function worstOf(statuses: Record<string, ChecklistStatus>): ChecklistStatus {
 }
 
 export default function PartMappingChecklistModalMotor({ show, onHide, mesinId, mesinNama, onSubmitted }: Props) {
+  const { confirm: confirmDialog } = useFeedback();
   const [loadingMapping, setLoadingMapping] = useState(true);
   const [gambarUrl, setGambarUrl] = useState<string | null>(null);
   const [parts, setParts] = useState<MachinePart[]>([]);
@@ -130,8 +132,16 @@ export default function PartMappingChecklistModalMotor({ show, onHide, mesinId, 
     setSelectedPart(null);
   };
 
-  const handleCloseMain = () => {
-    if (checkedCount > 0 && !window.confirm("Hasil pemeriksaan belum disimpan dan akan hilang. Tutup?")) {
+  const handleCloseMain = async () => {
+    if (
+      checkedCount > 0 &&
+      !(await confirmDialog({
+        title: "Tutup Checklist?",
+        message: "Hasil pemeriksaan belum disimpan dan akan hilang.",
+        confirmLabel: "Ya, tutup",
+        variant: "warning",
+      }))
+    ) {
       return;
     }
     onHide();
