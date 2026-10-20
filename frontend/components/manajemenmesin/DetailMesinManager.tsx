@@ -24,7 +24,6 @@ import {
   IconCertificate
 } from '@tabler/icons-react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
 import api from 'lib/api';
 import { usePermission } from 'hooks/usePermissions';
 import { exportToExcel, exportToPDF, ExportColumn } from 'components/ruangtools/riwayat/common/exportUtils';
@@ -39,9 +38,6 @@ import KalibrasiFormModal from 'components/manajemenmesin/kalibrasimesin/Kalibra
 import { ACTION_META, formatJadwal, getStatusTampil } from 'components/manajemenmesin/rencanapemeliharaanmesin/RencanaHelpers';
 import { fetchRencanaMesin } from 'services/rencanaPemeliharaanService';
 import { useFeedback } from "components/common/FeedbackProvider";
-
-// Halaman form kalibrasi (SESUAIKAN dengan route yang sebenarnya di proyekmu)
-const KALIBRASI_PATH = '/pemeliharaan/kalibrasi';
 
 // Rencana dianggap kalibrasi jika kodenya "K" atau labelnya memuat kata "kalibrasi"
 const isRencanaKalibrasi = (r: RencanaItem) =>
@@ -62,6 +58,8 @@ interface MesinProps {
   };
   canManage?: boolean;
   mode?: 'operasional' | 'pemeliharaan'; 
+  // ID rencana dari tombol "Kerjakan" (Dashboard/Rencana): langsung buka checklist atau form kalibrasinya
+  autoRencanaId?: string | null;
   onBack: () => void;
 }
 
@@ -123,6 +121,7 @@ export default function DetailMesinManager({
   mesin, 
   canManage = false, 
   mode = 'pemeliharaan', 
+  autoRencanaId = null,
   onBack 
 }: MesinProps) {
   const { notify, confirm: confirmDialog } = useFeedback();
@@ -134,7 +133,6 @@ export default function DetailMesinManager({
   const mesinStatus = mesin?.status || 'Aktif';
   const mesinFoto = mesin?.foto_katalog;
 
-  const router = useRouter();
   const canProcess = usePermission('process_pemeliharaan_mesin');
   // Jadwal servis berikutnya = rencana pemeliharaan terdekat yang belum lewat
   // (key & fetcher sama dengan RencanaMesinCard, jadi datanya berbagi cache SWR)
@@ -365,8 +363,11 @@ export default function DetailMesinManager({
   // (dipakai di tab Log Pemeliharaan dan tab Kalibrasi)
   const handleKerjakanRencana = (r: RencanaItem) => {
     if (isRencanaKalibrasi(r)) {
-      // Jadwal kalibrasi -> pindah ke halaman form kalibrasi
-      router.push(`${KALIBRASI_PATH}?mesin=${mesinId}&rencana=${r.id}`);
+      // Jadwal kalibrasi -> buka form kalibrasi di halaman ini, tersambung ke jadwalnya
+      setRencanaAktif(r);
+      setSelectedKalibrasi(null);
+      setActiveTab('kalibrasi');
+      setShowKalibrasiModal(true);
       return;
     }
 
@@ -374,6 +375,24 @@ export default function DetailMesinManager({
     setRencanaAktif(r);
     setShowChecklistModal(true);
   };
+
+  // Datang dari tombol "Kerjakan" di Dashboard/Rencana: jalankan sekali setelah daftar rencana mesin termuat
+  const autoKerjakanSelesai = React.useRef(false);
+  useEffect(() => {
+    if (!autoRencanaId || autoKerjakanSelesai.current || !rencanaBelum) return;
+    autoKerjakanSelesai.current = true;
+    const r = rencanaBelum.find((x) => String(x.id) === String(autoRencanaId));
+    if (!r) {
+      notify("Jadwal tidak ditemukan atau sudah selesai dikerjakan.", "warning");
+      return;
+    }
+    if (!canProcess) {
+      notify("Anda tidak memiliki akses untuk mengerjakan jadwal pemeliharaan.", "warning");
+      return;
+    }
+    handleKerjakanRencana(r);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoRencanaId, rencanaBelum, canProcess]);
 
   const renderTabButton = (tab: { id: string, label: string, icon: React.ElementType }) => {
     const IconComponent = tab.icon;
@@ -1045,6 +1064,8 @@ export default function DetailMesinManager({
             mesinId={mesinId}
             mesinNama={mesinNama}
             rencanaId={rencanaAktif?.id}
+            // Tindakan mengikuti jadwal yang dikerjakan, jadi user tidak perlu memilih ulang
+            aksiRencana={rencanaAktif && !isRencanaKalibrasi(rencanaAktif) ? rencanaAktif.aksi : null}
             onSubmitted={() => {
               setShowChecklistModal(false);
               setRencanaAktif(null);
@@ -1063,7 +1084,8 @@ export default function DetailMesinManager({
                setRencanaAktif(null);
             }}
             editData={selectedKalibrasi}
-            rencanaId={null}
+            // Kirim ID jadwal saat mencatat kalibrasi dari tombol "Kerjakan" agar jadwalnya ditandai selesai
+            rencanaId={!selectedKalibrasi && rencanaAktif ? Number(rencanaAktif.id) : null}
             mesinIdDefault={mesinId}
             onSuccess={() => {
               setSuccessMessage(selectedKalibrasi ? "Data kalibrasi berhasil diupdate!" : "Kalibrasi berhasil dicatat! Jadwal telah diselesaikan.");
