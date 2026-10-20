@@ -28,6 +28,7 @@ use App\Http\Controllers\Api\RencanaPemeliharaanMesinController;
 use App\Http\Controllers\Api\KalibrasiMesinController;
 use App\Http\Controllers\Api\MappingPengerjaanMesinController;
 use App\Http\Controllers\Api\LaporanAnggaranController;
+use App\Http\Controllers\Api\DokumenMesinController;
 
 // ==========================================
 // 1. ROUTE PUBLIK (Tanpa Auth)
@@ -273,6 +274,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/mapping-pengerjaan', [MappingPengerjaanMesinController::class, 'store']);
         Route::put('/mapping-pengerjaan/{id}', [MappingPengerjaanMesinController::class, 'update']);
         Route::delete('/mapping-pengerjaan/{id}', [MappingPengerjaanMesinController::class, 'destroy']);
+    });
+
+    // ------------------------------------------
+    // DOKUMEN MESIN (IK Operasional, IK Pemeliharaan, HIRARC)
+    // Hak akses detail per jenis dokumen dicek di DokumenMesinController
+    // ------------------------------------------
+    Route::middleware('permission:view_operasional_mesin|view_pemeliharaan_mesin')->group(function () {
+        Route::get('/dokumen-mesin', [DokumenMesinController::class, 'show']);
+        Route::get('/dokumen-mesin/{id}/file', [DokumenMesinController::class, 'file']);
+        Route::post('/dokumen-mesin', [DokumenMesinController::class, 'store']);
+        Route::delete('/dokumen-mesin/{id}', [DokumenMesinController::class, 'destroy']);
     });
 
     // ------------------------------------------

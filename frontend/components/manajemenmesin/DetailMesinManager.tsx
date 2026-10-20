@@ -34,6 +34,7 @@ import type { RencanaItem } from 'types/RencanaPemeliharaanTypes';
 import PartMappingEditor from './pemeliharaanmesin/PartMappingEditor'; // Sesuaikan path jika berbeda
 import PartMappingChecklistModal from './pemeliharaanmesin/PartMappingCheckListModal'; // Sesuaikan path jika berbeda
 import RencanaMesinCard, { rencanaMesinKey } from 'components/manajemenmesin/rencanapemeliharaanmesin/RencanaMesinCard';
+import DokumenMesinPanel from './dokumenmesin/DokumenMesinPanel';
 import KalibrasiFormModal from 'components/manajemenmesin/kalibrasimesin/KalibrasiFormModal'; // Pastikan path ini benar
 import { ACTION_META } from 'components/manajemenmesin/rencanapemeliharaanmesin/RencanaHelpers';
 
@@ -132,6 +133,8 @@ export default function DetailMesinManager({
 
   const router = useRouter();
   const canProcess = usePermission('process_pemeliharaan_mesin');
+  // HIRARC berlaku untuk semua mesin dan hanya dikelola oleh pengelola Pemeliharaan
+  const canManageHirarc = usePermission('manage_pemeliharaan_mesin');
 
   const [activeTab, setActiveTab] = useState(mode === 'operasional' ? 'log_aktivitas' : 'log_pemeliharaan');
 
@@ -607,11 +610,14 @@ export default function DetailMesinManager({
           )}
 
           {activeTab === 'ik_operasional' && (
-            <div className="text-center py-5 text-muted border rounded shadow-sm bg-light">
-              <IconFileText size={36} className="mb-2 opacity-50" />
-              <h6 className="mb-1">Instruksi Kerja (IK) Operasional</h6>
-              <p className="small text-secondary mb-0">Menampilkan panduan standar operasional harian untuk {mesinNama}.</p>
-            </div>
+            <DokumenMesinPanel
+              jenis="ik_operasional"
+              mesinId={mesinId}
+              canManage={canManage}
+              icon={IconFileText}
+              title="IK Operasional"
+              keterangan={`Panduan standar operasional untuk ${mesinNama}.`}
+            />
           )}
 
           {activeTab === 'log_pemeliharaan' && (
@@ -882,19 +888,24 @@ export default function DetailMesinManager({
           )}
 
           {activeTab === 'ik_pemeliharaan' && (
-            <div className="text-center py-5 text-muted border rounded shadow-sm bg-light">
-              <IconTools size={36} className="mb-2 opacity-50" />
-              <h6 className="mb-1">Instruksi Kerja (IK) Pemeliharaan</h6>
-              <p className="small text-secondary mb-0">Menampilkan panduan standar servis, perbaikan, dan perawatan untuk {mesinNama}.</p>
-            </div>
+            <DokumenMesinPanel
+              jenis="ik_pemeliharaan"
+              mesinId={mesinId}
+              canManage={canManage}
+              icon={IconTools}
+              title="IK Pemeliharaan"
+              keterangan={`Panduan standar servis, perbaikan, dan perawatan untuk ${mesinNama}.`}
+            />
           )}
 
           {activeTab === 'hirarc' && (
-            <div className="text-center py-5 text-muted">
-              <IconAlertTriangle size={36} className="mb-2 opacity-50 text-warning" />
-              <h6 className="mb-1">Dokumen HIRARC</h6>
-              <p className="small text-secondary mb-0">Analisis potensi bahaya dan risiko keselamatan kerja mesin {mesinNama}.</p>
-            </div>
+            <DokumenMesinPanel
+              jenis="hirarc"
+              canManage={canManageHirarc}
+              icon={IconAlertTriangle}
+              title="HIRARC"
+              keterangan="Analisis potensi bahaya dan risiko K3. Satu dokumen berlaku untuk semua mesin."
+            />
           )}
         </CardBody>
       </Card>
