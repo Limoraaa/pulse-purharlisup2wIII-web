@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
   Row,
   Col,
@@ -66,6 +66,9 @@ const DataMesinManager = ({ mode = 'pemeliharaan' }: DataMesinManagerProps) => {
   const [tampilkanNonaktif, setTampilkanNonaktif] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // Rencana yang otomatis dikerjakan saat datang dari tombol "Kerjakan" (?mesin=..&rencana=..)
+  const [autoRencanaId, setAutoRencanaId] = useState<string | null>(null);
+  const urlHandled = useRef(false);
 
   // Fungsi untuk mengambil data mesin dari API Laravel
   const loadMesin = useCallback(async () => {
@@ -88,6 +91,28 @@ const DataMesinManager = ({ mode = 'pemeliharaan' }: DataMesinManagerProps) => {
   useEffect(() => {
     loadMesin();
   }, [loadMesin]);
+
+  // Datang dari Dashboard/Rencana lewat tombol "Kerjakan": /...?mesin=3&rencana=11
+  // -> langsung buka detail mesin, lalu checklist visual / form kalibrasi untuk rencana itu.
+  useEffect(() => {
+    if (urlHandled.current || mesinList.length === 0) return;
+    urlHandled.current = true;
+
+    const params = new URLSearchParams(window.location.search);
+    const mesinParam = params.get("mesin");
+    if (!mesinParam) return;
+
+    // Bersihkan parameter supaya refresh halaman tidak membuka ulang modal
+    window.history.replaceState(null, "", window.location.pathname);
+
+    const found = mesinList.find((m) => String(m.id) === mesinParam);
+    if (!found) {
+      setError("Mesin dari jadwal tidak ditemukan.");
+      return;
+    }
+    setAutoRencanaId(params.get("rencana"));
+    setSelectedMesin(found);
+  }, [mesinList]);
 
   // Logika pencarian
   const filteredMesin = useMemo(() => {
@@ -126,7 +151,11 @@ const DataMesinManager = ({ mode = 'pemeliharaan' }: DataMesinManagerProps) => {
         }} 
         canManage={mode === 'operasional' ? canManageOperasional : canManageMesin}
         mode={mode} // <--- MENGIRIMKAN PROPS MODE KE DETAIL MESIN
-        onBack={() => setSelectedMesin(null)} 
+        autoRencanaId={autoRencanaId}
+        onBack={() => {
+          setSelectedMesin(null);
+          setAutoRencanaId(null);
+        }} 
       />
     );
   }
