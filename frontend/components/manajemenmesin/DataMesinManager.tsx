@@ -12,8 +12,7 @@ import {
   Spinner,
 } from "react-bootstrap";
 import {
-  IconPlus,
-  IconCircleCheck,
+  IconDatabase,
   IconSearch,
   IconX,
   IconBox,
@@ -25,11 +24,9 @@ import Link from "next/link";
 
 import Flex from "components/common/Flex";
 import DetailMesinManager from "./DetailMesinManager";
-import MesinFormModal from "./MesinFormModal";
 import api from "lib/api";
 import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
 import { usePermission } from "hooks/usePermissions";
-import { PEMELIHARAAN_MESIN_PATH } from "./rencanapemeliharaanmesin/RencanaHelpers";
 
 // Interface untuk data mesin dari API
 interface MesinItemType {
@@ -40,6 +37,8 @@ interface MesinItemType {
   status: 'Aktif' | 'Maintenance' | 'Rusak' | string;
   foto_katalog?: string | null;
 }
+
+const DATA_MESIN_PATH = "/data-mesin";
 
 // Interface Props untuk komponen ini agar bisa menerima "mode"
 interface DataMesinManagerProps {
@@ -56,15 +55,16 @@ const EXPORT_COLUMNS_MESIN: ExportColumn[] = [
 
 const DataMesinManager = ({ mode = 'pemeliharaan' }: DataMesinManagerProps) => {
   const canManageMesin = usePermission("manage_pemeliharaan_mesin");
+  const canManageDataMesin = usePermission("manage_data_mesin");
   const canManageOperasional = usePermission("manage_operasional_mesin");
   // State untuk menyimpan objek mesin yang sedang dipilih untuk dibuka detailnya
   const [selectedMesin, setSelectedMesin] = useState<MesinItemType | null>(null);
   const [mesinList, setMesinList] = useState<MesinItemType[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [formModalOpen, setFormModalOpen] = useState(false);
+  // Mesin nonaktif disembunyikan dari katalog pencatatan, kecuali user memilih menampilkannya
+  const [tampilkanNonaktif, setTampilkanNonaktif] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Fungsi untuk mengambil data mesin dari API Laravel
@@ -92,9 +92,10 @@ const DataMesinManager = ({ mode = 'pemeliharaan' }: DataMesinManagerProps) => {
   // Logika pencarian
   const filteredMesin = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
-    if (!keyword) return mesinList;
+    const terlihat = tampilkanNonaktif ? mesinList : mesinList.filter((item) => item.status !== "Tidak Aktif");
+    if (!keyword) return terlihat;
 
-    return mesinList.filter((item) => {
+    return terlihat.filter((item) => {
       return (
         (item.nama_mesin || "").toLowerCase().includes(keyword) ||
         (item.kode_mesin || "").toLowerCase().includes(keyword) ||
@@ -102,7 +103,8 @@ const DataMesinManager = ({ mode = 'pemeliharaan' }: DataMesinManagerProps) => {
         (item.status || "").toLowerCase().includes(keyword)
       );
     });
-  }, [mesinList, searchTerm]);
+  }, [mesinList, searchTerm, tampilkanNonaktif]);
+  const adaNonaktif = mesinList.some((item) => item.status === "Tidak Aktif");
 
   // Handler Export Katalog
   const handleExportPDF = () =>
@@ -131,13 +133,6 @@ const DataMesinManager = ({ mode = 'pemeliharaan' }: DataMesinManagerProps) => {
 
   return (
     <div className="datamesin-page">
-      {successMessage && (
-        <Alert variant="success" className="d-flex align-items-center gap-2 py-2 small" dismissible onClose={() => setSuccessMessage(null)}>
-          <IconCircleCheck size={18} />
-          {successMessage}
-        </Alert>
-      )}
-
       {error && <Alert variant="danger" className="py-2 small" dismissible onClose={() => setError(null)}>{error}</Alert>}
 
       <Row>
@@ -152,19 +147,16 @@ const DataMesinManager = ({ mode = 'pemeliharaan' }: DataMesinManagerProps) => {
                   ? 'Pilih mesin untuk mencatat log aktivitas harian.' 
                   : 'Daftar mesin produksi beserta dokumen IK dan riwayat pemeliharaan.'}
               </p>
-              {/* Data mesin dikelola satu pintu dari halaman Pemeliharaan */}
-              {mode === 'operasional' && (
-                <p className="text-secondary small mb-0 mt-1">
-                  Daftar mesin dikelola melalui menu <strong>Pemeliharaan → Catatan Pemeliharaan Mesin</strong>.
-                </p>
-              )}
+              {/* Data mesin dikelola satu pintu dari halaman Data Mesin */}
+              <p className="text-secondary small mb-0 mt-1">
+                Daftar mesin dikelola melalui menu <strong>Data Mesin</strong>.
+              </p>
             </div>
             <div>
-              {/* Tombol Tambah Mesin hanya relevan di mode pemeliharaan (opsional, disesuaikan) */}
-              {canManageMesin && mode === 'pemeliharaan' && (
-                <Button variant="primary" size="sm" className="d-flex align-items-center gap-1 py-2 px-3" onClick={() => setFormModalOpen(true)}>
-                  <IconPlus size={16} /> Tambah Mesin Baru
-                </Button>
+              {canManageDataMesin && (
+                <Link href={DATA_MESIN_PATH} className="btn btn-outline-primary btn-sm d-flex align-items-center gap-1 py-2 px-3">
+                  <IconDatabase size={16} /> Kelola Data Mesin
+                </Link>
               )}
             </div>
           </Flex>
@@ -191,6 +183,16 @@ const DataMesinManager = ({ mode = 'pemeliharaan' }: DataMesinManagerProps) => {
               </InputGroup>
             </Col>
             <Col xs={12} md={7} lg={8} className="d-flex justify-content-md-end gap-2 flex-wrap align-items-center mt-2 mt-md-0">
+              {adaNonaktif && (
+                <Form.Check
+                  type="switch"
+                  id="tampilkan-mesin-nonaktif"
+                  label="Tampilkan mesin nonaktif"
+                  className="small text-secondary me-2 mb-0"
+                  checked={tampilkanNonaktif}
+                  onChange={(e) => setTampilkanNonaktif(e.target.checked)}
+                />
+              )}
               <div className="d-flex align-items-center">
                 <span className="me-2 small text-secondary d-none d-lg-inline" style={{ fontSize: "0.7rem" }}>Katalog:</span>
                 <Button variant="outline-danger" size="sm" className="py-1 px-2 mx-1" style={{ fontSize: "0.75rem" }} onClick={handleExportPDF}>PDF</Button>
@@ -209,24 +211,15 @@ const DataMesinManager = ({ mode = 'pemeliharaan' }: DataMesinManagerProps) => {
             <div className="datatools-empty text-center py-5 bg-white rounded border">
               <div className="datatools-empty-icon mb-2 text-muted"><IconBox size={40} /></div>
               <h6 className="mb-1">Belum ada data mesin produksi</h6>
-              {mode === 'operasional' ? (
-                <>
-                  <p className="text-secondary small mb-3">Belum ada mesin. Hubungi pengelola Pemeliharaan untuk menambahkan mesin.</p>
-                  {canManageMesin && (
-                    <Link href={PEMELIHARAAN_MESIN_PATH} className="btn btn-primary btn-sm">
-                      Buka Catatan Pemeliharaan Mesin
-                    </Link>
-                  )}
-                </>
-              ) : (
-                <>
-                  <p className="text-secondary small mb-3">Mulai dengan menambahkan data mesin pertama.</p>
-                  {canManageMesin && (
-                    <Button variant="primary" size="sm" className="d-inline-flex align-items-center gap-1" onClick={() => setFormModalOpen(true)}>
-                      <IconPlus size={16} /> Tambah Mesin Baru
-                    </Button>
-                  )}
-                </>
+              <p className="text-secondary small mb-3">
+                {canManageDataMesin
+                  ? 'Tambahkan mesin terlebih dahulu melalui menu Data Mesin.'
+                  : 'Belum ada mesin. Hubungi pengelola Data Mesin untuk menambahkan mesin.'}
+              </p>
+              {canManageDataMesin && (
+                <Link href={DATA_MESIN_PATH} className="btn btn-primary btn-sm">
+                  Buka Data Mesin
+                </Link>
               )}
             </div>
           ) : filteredMesin.length === 0 ? (
@@ -283,7 +276,8 @@ const DataMesinManager = ({ mode = 'pemeliharaan' }: DataMesinManagerProps) => {
                         <span 
                           className={`badge rounded-start-2 rounded-end-0 shadow-sm ${
                             mesin.status === 'Aktif' ? 'bg-success' : 
-                            mesin.status === 'Maintenance' ? 'bg-warning text-dark' : 'bg-danger'
+                            mesin.status === 'Maintenance' ? 'bg-warning text-dark' :
+                            mesin.status === 'Tidak Aktif' ? 'bg-secondary' : 'bg-danger'
                           }`}
                           style={{ fontSize: '0.65rem' }}
                         >
@@ -324,18 +318,6 @@ const DataMesinManager = ({ mode = 'pemeliharaan' }: DataMesinManagerProps) => {
         </CardBody>
       </Card>
 
-      {canManageMesin && formModalOpen && (
-        <MesinFormModal
-          show={formModalOpen}
-          onHide={() => setFormModalOpen(false)}
-          onSuccess={() => {
-            setSuccessMessage("Data mesin berhasil ditambahkan!");
-            loadMesin();
-            setFormModalOpen(false);
-            setTimeout(() => setSuccessMessage(null), 3000);
-          }}
-        />
-      )}
     </div>
   );
 };

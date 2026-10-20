@@ -109,7 +109,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('peminta', PemintaController::class)->only(['index', 'show']);
     });
 
-    Route::middleware('permission:view_inventaris|view_pemeliharaan_mesin|view_operasional_mesin')->group(function () {
+    Route::middleware('permission:view_inventaris|view_pemeliharaan_mesin|view_operasional_mesin|view_data_mesin')->group(function () {
         Route::apiResource('mesin-produksi', MesinProduksiController::class)->only(['index', 'show']);
     });
 
@@ -128,7 +128,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('consumable-masuk', ConsumableMasukController::class)->except(['index', 'show']);
     });
 
-    Route::middleware('permission:manage_pemeliharaan_mesin')->group(function () {
+    // Master data mesin dikelola dari halaman Data Mesin
+    Route::middleware('permission:manage_data_mesin')->group(function () {
         Route::patch('/mesin-produksi/{id}/toggle-status', [MesinProduksiController::class, 'toggleStatus']);
         Route::apiResource('mesin-produksi', MesinProduksiController::class)->except(['index', 'show']);
     });

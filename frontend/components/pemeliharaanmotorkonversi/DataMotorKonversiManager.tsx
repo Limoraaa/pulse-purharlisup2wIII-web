@@ -37,8 +37,10 @@ interface MotorKonversiItemType {
   merek: string;
   warna: string;
   lokasi_penempatan: string;
-  status: 'Aktif' | 'Maintenance' | 'Rusak' | string;
+  status: 'Aktif' | 'Maintenance' | 'Rusak' | 'Tidak Aktif' | string;
   foto_katalog?: string | null;
+  // Jumlah log pemeliharaan; motor yang sudah punya riwayat hanya bisa dinonaktifkan
+  jumlah_riwayat?: number;
 }
 
 // Definisi Kolom Export Data Motor
@@ -59,6 +61,8 @@ const DataMotorKonversiManager = () => {
 
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  // Motor nonaktif disembunyikan dari katalog, kecuali user memilih menampilkannya
+  const [tampilkanNonaktif, setTampilkanNonaktif] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,8 +74,10 @@ const DataMotorKonversiManager = () => {
       const res = await api<{ data: MotorKonversiItemType[] } | MotorKonversiItemType[]>("/motor-konversi", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = Array.isArray(res) ? res : ('data' in res ? res.data : []);
-      setMotorList(data || []);
+      const data = (Array.isArray(res) ? res : ('data' in res ? res.data : [])) || [];
+      setMotorList(data);
+      // Segarkan juga motor yang sedang dibuka detailnya (setelah edit/nonaktifkan)
+      setSelectedMotor((prev) => (prev ? data.find((m) => m.id === prev.id) ?? null : null));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal memuat data motor konversi");
     } finally {
@@ -85,9 +91,10 @@ const DataMotorKonversiManager = () => {
 
   const filteredMotor = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
-    if (!keyword) return motorList;
+    const terlihat = tampilkanNonaktif ? motorList : motorList.filter((item) => item.status !== "Tidak Aktif");
+    if (!keyword) return terlihat;
 
-    return motorList.filter((item) => {
+    return terlihat.filter((item) => {
       return (
         (item.nama_motor || "").toLowerCase().includes(keyword) ||
         (item.nomor_polisi || "").toLowerCase().includes(keyword) ||
@@ -96,7 +103,8 @@ const DataMotorKonversiManager = () => {
         (item.status || "").toLowerCase().includes(keyword)
       );
     });
-  }, [motorList, searchTerm]);
+  }, [motorList, searchTerm, tampilkanNonaktif]);
+  const adaNonaktif = motorList.some((item) => item.status === "Tidak Aktif");
 
   // Handler Export Katalog
   const handleExportPDF = () =>
@@ -117,7 +125,24 @@ const DataMotorKonversiManager = () => {
           status: selectedMotor.status,
           foto_katalog: selectedMotor.foto_katalog || null,
         }} 
+        dataEdit={{
+          id: selectedMotor.id,
+          kode_motor: selectedMotor.kode_motor,
+          nomor_polisi: selectedMotor.nomor_polisi,
+          nama_motor: selectedMotor.nama_motor,
+          merek: selectedMotor.merek,
+          warna: selectedMotor.warna,
+          lokasi_penempatan: selectedMotor.lokasi_penempatan,
+          status: selectedMotor.status,
+          foto_katalog: selectedMotor.foto_katalog || null,
+        }}
+        jumlahRiwayat={selectedMotor.jumlah_riwayat ?? 0}
         canManage={canManageMotor}
+        onChanged={loadMotor}
+        onDeleted={() => {
+          setSelectedMotor(null);
+          loadMotor();
+        }}
         onBack={() => setSelectedMotor(null)} 
       />
     );
@@ -174,6 +199,16 @@ const DataMotorKonversiManager = () => {
             </Col>
             <Col xs={12} md={7} lg={8} className="d-flex justify-content-md-end gap-2 flex-wrap align-items-center mt-2 mt-md-0">
               {/* Grup Export Data Motor (Katalog) */}
+              {adaNonaktif && (
+                <Form.Check
+                  type="switch"
+                  id="tampilkan-motor-nonaktif"
+                  label="Tampilkan motor nonaktif"
+                  className="small text-secondary me-2 mb-0"
+                  checked={tampilkanNonaktif}
+                  onChange={(e) => setTampilkanNonaktif(e.target.checked)}
+                />
+              )}
               <div className="d-flex align-items-center">
                 <span className="me-2 small text-secondary d-none d-lg-inline" style={{ fontSize: "0.7rem" }}>Katalog:</span>
                 <Button variant="outline-danger" size="sm" className="py-1 px-2 mx-1" style={{ fontSize: "0.75rem" }} onClick={handleExportPDF}>PDF</Button>
@@ -248,7 +283,8 @@ const DataMotorKonversiManager = () => {
                         <span 
                           className={`badge rounded-start-2 rounded-end-0 shadow-sm ${
                             motor.status === 'Aktif' ? 'bg-success' : 
-                            motor.status === 'Maintenance' ? 'bg-warning text-dark' : 'bg-danger'
+                            motor.status === 'Maintenance' ? 'bg-warning text-dark' :
+                            motor.status === 'Tidak Aktif' ? 'bg-secondary' : 'bg-danger'
                           }`}
                           style={{ fontSize: '0.65rem' }}
                         >

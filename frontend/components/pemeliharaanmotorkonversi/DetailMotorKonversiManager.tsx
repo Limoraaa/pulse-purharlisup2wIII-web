@@ -11,10 +11,16 @@ import {
   IconMapPin as IconMap,
   IconClipboardCheck,
   IconCircleCheck,
-  IconDownload
+  IconDownload,
+  IconEdit,
+  IconPlayerPause,
+  IconPlayerPlay,
+  IconTrash,
 } from '@tabler/icons-react';
 import Image from 'next/image';
 import api from 'lib/api';
+import { useFeedback } from 'components/common/FeedbackProvider';
+import { MotorKonversiFormModal, MotorEditData } from './MotorKonversiFormModal';
 import { exportToExcel, exportToPDF, ExportColumn } from 'components/ruangtools/riwayat/common/exportUtils';
 
 // Import Modal pendukung (Pastikan Anda mengadaptasi file ini juga nantinya untuk Motor)
@@ -34,7 +40,12 @@ interface MotorProps {
     lokasi_ruang?: string;
     foto_katalog?: string | null;
   };
+  // Data lengkap untuk form edit motor
+  dataEdit?: MotorEditData;
+  jumlahRiwayat?: number;
   canManage?: boolean;
+  onChanged?: () => void;
+  onDeleted?: () => void;
   onBack: () => void;
 }
 
@@ -63,7 +74,18 @@ const STATUS_BADGE = {
   rusak: { label: "Rusak", bg: "danger" },
 } as const;
 
-export default function DetailMotorKonversiManager({ motor, canManage = false, onBack }: MotorProps) {
+export default function DetailMotorKonversiManager({
+  motor,
+  dataEdit,
+  jumlahRiwayat = 0,
+  canManage = false,
+  onChanged,
+  onDeleted,
+  onBack,
+}: MotorProps) {
+  const { notify, confirm } = useFeedback();
+  const [showEdit, setShowEdit] = useState(false);
+  const [memproses, setMemproses] = useState(false);
   const motorId = motor?.id;
   const motorNama = motor?.nama_motor || motor?.nama || 'Tanpa Nama';
   const motorKode = motor?.kode_motor || motor?.kode || '-';
@@ -117,6 +139,49 @@ export default function DetailMotorKonversiManager({ motor, canManage = false, o
     }
   }, [activeTab, loadLogs]);
 
+  const handleToggleStatus = async () => {
+    const nonaktifkan = motorStatus !== 'Tidak Aktif';
+    const setuju = await confirm({
+      title: nonaktifkan ? 'Nonaktifkan Motor' : 'Aktifkan Motor',
+      message: nonaktifkan
+        ? `Motor "${motorNama}" tidak akan muncul lagi di katalog untuk pencatatan baru. Riwayatnya tetap tersimpan dan motor bisa diaktifkan kembali kapan saja.`
+        : `Aktifkan kembali motor "${motorNama}"? Status motor akan menjadi Aktif.`,
+      confirmLabel: nonaktifkan ? 'Ya, nonaktifkan' : 'Ya, aktifkan',
+      variant: nonaktifkan ? 'warning' : 'primary',
+    });
+    if (!setuju) return;
+
+    setMemproses(true);
+    try {
+      const res = await api<{ message: string }>(`/motor-konversi/${motorId}/toggle-status`, { method: 'PATCH' });
+      notify(res.message || 'Status motor berhasil diubah', 'success');
+      onChanged?.();
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Gagal mengubah status motor');
+    } finally {
+      setMemproses(false);
+    }
+  };
+
+  const handleHapus = async () => {
+    const setuju = await confirm({
+      title: 'Hapus Motor Permanen',
+      message: `Hapus motor "${motorNama}" (${motorKode}) secara permanen? Tindakan ini tidak dapat dibatalkan.`,
+      confirmLabel: 'Ya, hapus',
+    });
+    if (!setuju) return;
+
+    setMemproses(true);
+    try {
+      await api(`/motor-konversi/${motorId}`, { method: 'DELETE' });
+      notify('Data motor berhasil dihapus', 'success');
+      onDeleted?.();
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Gagal menghapus data motor');
+      setMemproses(false);
+    }
+  };
+
   const exportFileName = `kartu-gantung-${motorKode.replace(/\s+/g, "-")}`;
 
   const handleExportLogPDF = () => {
@@ -138,8 +203,8 @@ export default function DetailMotorKonversiManager({ motor, canManage = false, o
         </Alert>
       )}
 
-      {/* Header Navigator Tombol Kembali */}
-      <div className="mb-3">
+      {/* Header Navigator Tombol Kembali + aksi kelola motor */}
+      <div className="mb-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
         <Button 
           variant="outline-secondary" 
           size="sm" 
@@ -148,6 +213,35 @@ export default function DetailMotorKonversiManager({ motor, canManage = false, o
         >
           <IconArrowLeft size={16} /> Kembali ke Katalog Motor
         </Button>
+        {canManage && dataEdit && (
+          <div className="d-flex flex-wrap gap-2">
+            <Button size="sm" variant="outline-primary" className="d-flex align-items-center gap-1" onClick={() => setShowEdit(true)} disabled={memproses}>
+              <IconEdit size={16} /> Edit
+            </Button>
+            <Button
+              size="sm"
+              variant={motorStatus === 'Tidak Aktif' ? 'outline-success' : 'outline-warning'}
+              className="d-flex align-items-center gap-1"
+              onClick={handleToggleStatus}
+              disabled={memproses}
+            >
+              {motorStatus === 'Tidak Aktif' ? <IconPlayerPlay size={16} /> : <IconPlayerPause size={16} />}
+              {motorStatus === 'Tidak Aktif' ? 'Aktifkan' : 'Nonaktifkan'}
+            </Button>
+            {/* Motor yang sudah punya log pemeliharaan hanya bisa dinonaktifkan agar riwayatnya tidak ikut terhapus */}
+            <span title={jumlahRiwayat > 0 ? 'Motor yang sudah punya riwayat tidak bisa dihapus, gunakan Nonaktifkan' : 'Hapus permanen'}>
+              <Button
+                size="sm"
+                variant="outline-danger"
+                className="d-flex align-items-center gap-1"
+                onClick={handleHapus}
+                disabled={memproses || jumlahRiwayat > 0}
+              >
+                <IconTrash size={16} /> Hapus
+              </Button>
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Hero Section: Profil Detail Motor */}
@@ -183,7 +277,7 @@ export default function DetailMotorKonversiManager({ motor, canManage = false, o
                 <div className="d-flex align-items-center justify-content-center justify-content-md-start gap-3 mt-1 flex-wrap">
                   <h2 className="h2 fw-bold text-body mb-0">{motorNama}</h2>
                   <Badge 
-                    bg={motorStatus === 'Aktif' ? 'success' : motorStatus === 'Maintenance' ? 'warning' : 'danger'}
+                    bg={motorStatus === 'Aktif' ? 'success' : motorStatus === 'Maintenance' ? 'warning' : motorStatus === 'Tidak Aktif' ? 'secondary' : 'danger'}
                     className="px-3 py-1 shadow-sm"
                     style={{ fontSize: '0.75rem', fontWeight: '600' }}
                   >
@@ -402,6 +496,18 @@ export default function DetailMotorKonversiManager({ motor, canManage = false, o
             }}
           />
         </>
+      )}
+
+      {canManage && dataEdit && (
+        <MotorKonversiFormModal
+          show={showEdit}
+          onHide={() => setShowEdit(false)}
+          motor={dataEdit}
+          onSuccess={() => {
+            notify('Data motor berhasil diperbarui', 'success');
+            onChanged?.();
+          }}
+        />
       )}
     </div>
   );

@@ -128,7 +128,8 @@ export default function MappingPengerjaanManager() {
     try {
       const res: any = await api('/mesin-produksi', { method: 'GET' });
       const rawData = res?.data ?? res ?? [];
-      const list = Array.isArray(rawData) ? rawData : [];
+      // Mesin nonaktif tidak dijadwalkan lagi
+      const list = (Array.isArray(rawData) ? rawData : []).filter((m: any) => m.status !== 'Tidak Aktif');
       setDaftarMesin(list);
       if (list.length > 0) setSelectedMesinId(list[0].id.toString());
     } catch (error) {
