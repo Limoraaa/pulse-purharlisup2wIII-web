@@ -5,8 +5,6 @@ import {
   IconArrowLeft, 
   IconBox, 
   IconHistory,      
-  IconFileText, 
-  IconAlertTriangle, 
   IconMapPin,
   IconCalendarEvent,
   IconClipboardList,
@@ -216,9 +214,7 @@ export default function DetailMotorKonversiManager({ motor, canManage = false, o
         <div className="bg-body-tertiary border-bottom px-3 py-3 rounded-top">
           <ul className="nav nav-pills gap-2 m-0 justify-content-center justify-content-md-start">
             {[
-              { id: 'log_pemeliharaan', label: 'Log Pemeliharaan', icon: IconHistory }, 
-              { id: 'ik', label: 'Instruksi Kerja (IK)', icon: IconFileText },
-              { id: 'hirarc', label: 'HIRARC', icon: IconAlertTriangle },
+              { id: 'log_pemeliharaan', label: 'Log Pemeliharaan', icon: IconHistory },
             ].map((tab) => {
               const IconComponent = tab.icon;
               const isActive = activeTab === tab.id;
@@ -368,23 +364,6 @@ export default function DetailMotorKonversiManager({ motor, canManage = false, o
             </div>
           )}
 
-          {/* TAB: INSTRUKSI KERJA */}
-          {activeTab === 'ik' && (
-            <div className="text-center py-5 text-muted">
-              <IconFileText size={36} className="mb-2 opacity-50" />
-              <h6 className="mb-1">Dokumen Instruksi Kerja (IK)</h6>
-              <p className="small text-secondary mb-0">Menampilkan file panduan instruksi kerja untuk {motorNama}.</p>
-            </div>
-          )}
-
-          {/* TAB: HIRARC */}
-          {activeTab === 'hirarc' && (
-            <div className="text-center py-5 text-muted">
-              <IconAlertTriangle size={36} className="mb-2 opacity-50 text-warning" />
-              <h6 className="mb-1">Dokumen HIRARC</h6>
-              <p className="small text-secondary mb-0">Analisis potensi bahaya dan risiko keselamatan kerja motor {motorNama}.</p>
-            </div>
-          )}
         </CardBody>
       </Card>
 
