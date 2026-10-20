@@ -187,7 +187,7 @@ export default function PartMappingEditor({ show, onHide, mesinId, mesinNama, on
   };
 
   return (
-    <Modal show={show} onHide={onHide} centered size="lg" backdrop="static">
+    <Modal show={show} onHide={onHide} centered size="lg" backdrop="static" scrollable>
       <Modal.Header closeButton>
         <Modal.Title className="fs-6 fw-bold d-flex align-items-center gap-2">
           <IconMapPin size={18} /> Peta Part &amp; Checklist — {mesinNama}
@@ -226,13 +226,14 @@ export default function PartMappingEditor({ show, onHide, mesinId, mesinNama, on
                     ? "Klik pada gambar untuk memindahkan posisi part yang sedang diedit."
                     : "Klik pada gambar untuk menandai posisi part baru, atau klik titik merah untuk mengedit part."}
                 </p>
+                <div className="text-center">
                 <div style={{ position: "relative", display: "inline-block", maxWidth: "100%" }}>
                   <img
                     ref={imgRef}
                     src={gambarUrl}
                     alt={mesinNama}
                     onClick={handleImageClick}
-                    style={{ maxWidth: "100%", cursor: "crosshair", display: "block" }}
+                    style={{ maxWidth: "100%", maxHeight: "60vh", cursor: "crosshair", display: "block" }}
                   />
                   {parts.map((p) => (
                     <button
@@ -275,6 +276,7 @@ export default function PartMappingEditor({ show, onHide, mesinId, mesinNama, on
                       }}
                     />
                   )}
+                </div>
                 </div>
 
                 {pendingPoint && (
