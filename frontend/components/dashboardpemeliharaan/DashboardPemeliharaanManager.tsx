@@ -17,6 +17,9 @@ import {
   IconAdjustmentsAlt,
   IconCertificate,
   IconReportMoney,
+  IconActivity,
+  IconCalendarTime,
+  IconDatabase,
 } from "@tabler/icons-react";
 import {
   ResponsiveContainer,
@@ -25,6 +28,7 @@ import {
   XAxis,
   YAxis,
   Tooltip,
+  Legend,
   CartesianGrid,
 } from "recharts";
 
@@ -47,10 +51,15 @@ import {
 // Sesuaikan kedua route ini dengan route halaman di aplikasimu
 const RENCANA_PATH = "/pemeliharaan/rencana";
 const LAPORAN_ANGGARAN_PATH = "/pemeliharaan/laporan-anggaran";
+const DATA_MESIN_PATH = "/data-mesin";
+const AKTIVITAS_MESIN_PATH = "/operasional/data-mesin";
+const PLOTTING_JADWAL_PATH = "/operasional/mapping-pengerjaan";
 
 // ---------- Tipe respons /pemeliharaan/dashboard-stats ----------
 interface AktivitasItem {
-  id: number;
+  id: string | number;
+  // Gabungan log pemeliharaan (Pemeliharaan) & log aktivitas harian (Operasional)
+  jenis?: "pemeliharaan" | "aktivitas";
   nama_mesin: string;
   deskripsi: string;
   tanggal: string | null;
@@ -69,6 +78,8 @@ interface KalibrasiReminder {
 
 interface TrenItem {
   tanggal: string;
+  pemeliharaan: number;
+  aktivitas: number;
   total: number;
 }
 
@@ -76,6 +87,7 @@ interface DashboardStats {
   total_mesin: number;
   mesin_perbaikan: number;
   pemeliharaan_rutin: number; 
+  total_log_aktivitas?: number;
   aktivitas_terbaru: AktivitasItem[];
   tren?: TrenItem[];
   kalibrasi_mendekat?: KalibrasiReminder[]; 
@@ -186,6 +198,8 @@ const StatusPill = ({ status }: { status: StatusPekerjaan }) => (
 const DashboardPemeliharaanManager = () => {
   const canViewMesin = usePermission("view_pemeliharaan_mesin");
   const canProcess = usePermission("process_pemeliharaan_mesin");
+  const canViewOperasional = usePermission("view_operasional_mesin");
+  const canViewDataMesin = usePermission("view_data_mesin");
 
   const today = useMemo(() => new Date(), []);
   const currentYear = today.getFullYear();
@@ -202,7 +216,8 @@ const DashboardPemeliharaanManager = () => {
     () =>
       tren.map((t) => ({
         tanggal: new Date(t.tanggal).toLocaleDateString("id-ID", { day: "2-digit", month: "short" }),
-        total: t.total,
+        pemeliharaan: t.pemeliharaan ?? t.total,
+        aktivitas: t.aktivitas ?? 0,
       })),
     [tren]
   );
@@ -319,13 +334,22 @@ const DashboardPemeliharaanManager = () => {
               Ringkasan jadwal, log aktivitas, kalibrasi, anggaran, dan kondisi mesin produksi.
             </p>
           </div>
-          {canViewMesin && (
-            <div className="mt-3 mt-md-0">
-              <Link href={PEMELIHARAAN_MESIN_PATH}>
-                <Button variant="primary" className="d-flex align-items-center gap-2">
-                  <IconPlus size={18} /> Catat Log Pemeliharaan
-                </Button>
-              </Link>
+          {(canViewOperasional || canViewMesin) && (
+            <div className="mt-3 mt-md-0 d-flex flex-wrap gap-2">
+              {canViewOperasional && (
+                <Link href={AKTIVITAS_MESIN_PATH}>
+                  <Button variant="outline-primary" className="d-flex align-items-center gap-2">
+                    <IconPlus size={18} /> Catat Log Aktivitas
+                  </Button>
+                </Link>
+              )}
+              {canViewMesin && (
+                <Link href={PEMELIHARAAN_MESIN_PATH}>
+                  <Button variant="primary" className="d-flex align-items-center gap-2">
+                    <IconPlus size={18} /> Catat Log Pemeliharaan
+                  </Button>
+                </Link>
+              )}
             </div>
           )}
         </Flex>
@@ -357,7 +381,7 @@ const DashboardPemeliharaanManager = () => {
   const aktivitas = summary?.aktivitas_terbaru ?? [];
   const kalibrasi = summary?.kalibrasi_mendekat ?? [];
   
-  const mesinHref = canViewMesin ? PEMELIHARAAN_MESIN_PATH : null;
+  const mesinHref = canViewDataMesin ? DATA_MESIN_PATH : canViewMesin ? PEMELIHARAAN_MESIN_PATH : null;
   const rencanaHref = canViewMesin ? RENCANA_PATH : null;
   const anggaranHref = canViewMesin ? LAPORAN_ANGGARAN_PATH : null;
 
@@ -383,7 +407,7 @@ const DashboardPemeliharaanManager = () => {
           <LinkIf href={mesinHref}>
             <StatCard
               icon={<IconAlertTriangle size={26} />}
-              title="Mesin Dalam Perbaikan"
+              title="Mesin Maintenance / Rusak"
               value={summary?.mesin_perbaikan ?? 0}
               variant="danger"
             />
@@ -542,19 +566,33 @@ const DashboardPemeliharaanManager = () => {
                       <stop offset="5%" stopColor="#006492" stopOpacity={0.4} />
                       <stop offset="95%" stopColor="#006492" stopOpacity={0} />
                     </linearGradient>
+                    <linearGradient id="colorAktivitas" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#F59E0B" stopOpacity={0} />
+                    </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
                   <XAxis dataKey="tanggal" fontSize={12} stroke="#a0a0a0" minTickGap={24} />
                   <YAxis allowDecimals={false} fontSize={12} stroke="#a0a0a0" />
                   <Tooltip />
+                  <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} />
                   <Area
                     type="monotone"
-                    dataKey="total"
-                    name="Jumlah log"
+                    dataKey="pemeliharaan"
+                    name="Log pemeliharaan"
                     stroke="#006492"
                     strokeWidth={2}
                     fillOpacity={1}
                     fill="url(#colorTotal)"
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="aktivitas"
+                    name="Log aktivitas"
+                    stroke="#F59E0B"
+                    strokeWidth={2}
+                    fillOpacity={1}
+                    fill="url(#colorAktivitas)"
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -703,24 +741,34 @@ const DashboardPemeliharaanManager = () => {
               <div className="d-flex justify-content-between align-items-center mb-3">
                 <h5 className="mb-0">Log Aktivitas & Pemeliharaan Terbaru</h5>
                 <span className="text-secondary small">
-                  {summary?.pemeliharaan_rutin ?? 0} log tercatat
+                  {summary?.pemeliharaan_rutin ?? 0} log pemeliharaan &middot; {summary?.total_log_aktivitas ?? 0} log aktivitas
                 </span>
               </div>
               {aktivitas.length === 0 ? (
                 <p className="text-secondary small mb-0">Belum ada log mesin yang tercatat.</p>
               ) : (
-                <div style={{ maxHeight: 320, overflowY: "auto", paddingRight: "5px" }}>
+                <div style={{ maxHeight: 520, overflowY: "auto", paddingRight: "5px" }}>
                   <ul className="list-unstyled mb-0 dash-list">
                     {aktivitas.map((item) => (
                       <li key={item.id} className="px-3 py-3 rounded border-bottom bg-white hover-bg-light transition">
                         <div className="d-flex justify-content-between align-items-center gap-2">
                           <div>
-                            <div className="fw-semibold text-dark fs-6">{item.nama_mesin}</div>
+                            <div className="d-flex align-items-center gap-2 flex-wrap">
+                              <span className="fw-semibold text-dark fs-6">{item.nama_mesin}</span>
+                              <Badge
+                                bg={item.jenis === "aktivitas" ? "warning-subtle" : "primary-subtle"}
+                                text={item.jenis === "aktivitas" ? "warning-emphasis" : "primary-emphasis"}
+                                style={{ fontSize: "0.65rem" }}
+                              >
+                                {item.jenis === "aktivitas" ? "Aktivitas" : "Pemeliharaan"}
+                              </Badge>
+                            </div>
                             <div className="small text-secondary mt-1">{item.deskripsi}</div>
                             <div className="text-muted mt-1" style={{ fontSize: "0.75rem" }}>
                               {item.tanggal ? formatWaktu(item.tanggal) : "-"}
                             </div>
                           </div>
+                          {item.jenis !== "aktivitas" && (
                           <Badge
                             bg={item.status === "rusak" ? "danger" : item.status === "perlu_perhatian" ? "warning" : "success"}
                             text={item.status === "perlu_perhatian" ? "dark" : undefined}
@@ -735,6 +783,7 @@ const DashboardPemeliharaanManager = () => {
                               ? "Baik"
                               : "Selesai / Tercatat"}
                           </Badge>
+                          )}
                         </div>
                       </li>
                     ))}
@@ -749,32 +798,50 @@ const DashboardPemeliharaanManager = () => {
           <Card className="card-lg h-100 shadow-sm border-0">
             <CardBody>
               <h5 className="mb-3">Akses Modul Manajemen Mesin</h5>
-              
+
+              <Shortcut
+                href={DATA_MESIN_PATH}
+                enabled={canViewDataMesin}
+                icon={<IconDatabase size={20} />}
+                title="Data Mesin"
+                desc="Tambah, edit, dan nonaktifkan mesin"
+                tone="primary"
+              />
+
+              <Shortcut
+                href={AKTIVITAS_MESIN_PATH}
+                enabled={canViewOperasional}
+                icon={<IconActivity size={20} />}
+                title="Catatan Aktivitas Mesin"
+                desc="Log aktivitas operasional harian"
+                tone="warning"
+              />
+
+              <Shortcut
+                href={PLOTTING_JADWAL_PATH}
+                enabled={canViewOperasional}
+                icon={<IconCalendarTime size={20} />}
+                title="Plotting Jadwal Operasional"
+                desc="Kalender jadwal pengerjaan per mesin"
+                tone="info"
+              />
+
               <Shortcut
                 href={PEMELIHARAAN_MESIN_PATH}
                 enabled={canViewMesin}
                 icon={<IconTool size={20} />}
-                title="Katalog & Log Mesin"
-                desc="Lihat spesifikasi, aktivitas, dan riwayat"
+                title="Catatan Pemeliharaan Mesin"
+                desc="Log pemeliharaan, IK, dan checklist visual"
                 tone="primary"
               />
-              
+
               <Shortcut
                 href={RENCANA_PATH}
                 enabled={canViewMesin}
                 icon={<IconCalendarEvent size={20} />}
                 title="Rencana Pemeliharaan"
-                desc="Manajemen jadwal mingguan mesin (M/C)"
+                desc="Jadwal mingguan pemeliharaan mesin"
                 tone="warning"
-              />
-
-              <Shortcut
-                href={LAPORAN_ANGGARAN_PATH}
-                enabled={canViewMesin}
-                icon={<IconReportMoney size={20} />}
-                title="Laporan Anggaran PRK"
-                desc="Disburse, rencana pekerjaan, dan pembayaran vendor"
-                tone="success"
               />
 
               <Shortcut
@@ -784,6 +851,15 @@ const DashboardPemeliharaanManager = () => {
                 title="Sertifikasi & Kalibrasi"
                 desc="Riwayat kelayakan dan jadwal kalibrasi"
                 tone="info"
+              />
+
+              <Shortcut
+                href={LAPORAN_ANGGARAN_PATH}
+                enabled={canViewMesin}
+                icon={<IconReportMoney size={20} />}
+                title="Laporan Anggaran PRK"
+                desc="Disburse, rencana pekerjaan, dan pembayaran vendor"
+                tone="success"
               />
 
             </CardBody>
