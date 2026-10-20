@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { Button, Form, Table, Alert, Badge, Spinner, Modal } from "react-bootstrap";
-import { IconMapPin, IconTrash } from "@tabler/icons-react";
+import { IconMapPin, IconPencil, IconTrash } from "@tabler/icons-react";
 import api from "lib/api";
 import type { MachinePart, PartMappingPayload } from "./PartMappingType";
 
@@ -30,6 +30,8 @@ export default function PartMappingEditor({ show, onHide, mesinId, mesinNama, on
   const [checklistItems, setChecklistItems] = useState<string[]>([]);
   const [newItemText, setNewItemText] = useState("");
   const [formError, setFormError] = useState("");
+  // Part yang sedang diedit (null = form untuk part baru)
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   // Muat mapping yang sudah ada untuk mesin ini
   useEffect(() => {
@@ -39,6 +41,9 @@ export default function PartMappingEditor({ show, onHide, mesinId, mesinNama, on
     (async () => {
       setLoading(true);
       setError(null);
+      // Mulai bersih setiap editor dibuka
+      setEditingId(null);
+      setPendingPoint(null);
       try {
         const token = localStorage.getItem("token");
         const res = await api<PartMappingPayload>(`/mesin-produksi/${mesinId}/part-mapping`, {
@@ -91,6 +96,7 @@ export default function PartMappingEditor({ show, onHide, mesinId, mesinNama, on
     const rect = imgRef.current!.getBoundingClientRect();
     const xPercent = ((e.clientX - rect.left) / rect.width) * 100;
     const yPercent = ((e.clientY - rect.top) / rect.height) * 100;
+    // Saat mengedit, klik gambar memindahkan posisi titik part tersebut
     setPendingPoint({ x: xPercent, y: yPercent });
     setFormError("");
   };
@@ -106,10 +112,21 @@ export default function PartMappingEditor({ show, onHide, mesinId, mesinNama, on
   };
 
   const resetPartForm = () => {
+    setEditingId(null);
     setPendingPoint(null);
     setPartNumber("");
     setPartName("");
     setChecklistItems([]);
+    setNewItemText("");
+    setFormError("");
+  };
+
+  const handleEditPart = (part: MachinePart) => {
+    setEditingId(part.id);
+    setPendingPoint({ x: part.xPercent, y: part.yPercent });
+    setPartNumber(part.partNumber);
+    setPartName(part.partName);
+    setChecklistItems(part.checklistItems);
     setNewItemText("");
     setFormError("");
   };
@@ -124,20 +141,27 @@ export default function PartMappingEditor({ show, onHide, mesinId, mesinNama, on
       setFormError("Tambahkan minimal satu poin checklist untuk part ini.");
       return;
     }
-    const newPart: MachinePart = {
-      id: crypto.randomUUID(),
+    // Poin yang masih diketik tapi belum ditekan "Tambah" ikut disimpan
+    const items = newItemText.trim() ? [...checklistItems, newItemText.trim()] : checklistItems;
+    const dataPart = {
       partNumber: partNumber.trim(),
       partName: partName.trim(),
-      checklistItems,
+      checklistItems: items,
       xPercent: pendingPoint.x,
       yPercent: pendingPoint.y,
     };
-    setParts((prev) => [...prev, newPart]);
+    if (editingId) {
+      // id dipertahankan agar riwayat checklist yang sudah tersimpan tetap terhubung ke part ini
+      setParts((prev) => prev.map((p) => (p.id === editingId ? { ...p, ...dataPart } : p)));
+    } else {
+      setParts((prev) => [...prev, { id: crypto.randomUUID(), ...dataPart }]);
+    }
     resetPartForm();
   };
 
   const handleRemovePart = (id: string) => {
     setParts((prev) => prev.filter((p) => p.id !== id));
+    if (editingId === id) resetPartForm();
   };
 
   const handleSaveMapping = async () => {
@@ -197,7 +221,11 @@ export default function PartMappingEditor({ show, onHide, mesinId, mesinNama, on
               <div className="text-muted small">Unggah gambar mesin dulu untuk mulai memetakan part.</div>
             ) : (
               <>
-                <p className="text-muted small mb-2">Klik pada gambar untuk menandai posisi part.</p>
+                <p className="text-muted small mb-2">
+                  {editingId
+                    ? "Klik pada gambar untuk memindahkan posisi part yang sedang diedit."
+                    : "Klik pada gambar untuk menandai posisi part baru, atau klik titik merah untuk mengedit part."}
+                </p>
                 <div style={{ position: "relative", display: "inline-block", maxWidth: "100%" }}>
                   <img
                     ref={imgRef}
@@ -210,8 +238,8 @@ export default function PartMappingEditor({ show, onHide, mesinId, mesinNama, on
                     <button
                       key={p.id}
                       type="button"
-                      title={`${p.partNumber} - ${p.partName} (klik untuk hapus)`}
-                      onClick={() => handleRemovePart(p.id)}
+                      title={`${p.partNumber} - ${p.partName} (klik untuk edit)`}
+                      onClick={() => handleEditPart(p)}
                       style={{
                         position: "absolute",
                         left: `${p.xPercent}%`,
@@ -221,7 +249,7 @@ export default function PartMappingEditor({ show, onHide, mesinId, mesinNama, on
                         height: 26,
                         borderRadius: "50%",
                         border: "2px solid #fff",
-                        background: "#dc3545",
+                        background: p.id === editingId ? "#6c757d" : "#dc3545",
                         color: "#fff",
                         fontSize: 12,
                         fontWeight: 600,
@@ -251,7 +279,7 @@ export default function PartMappingEditor({ show, onHide, mesinId, mesinNama, on
 
                 {pendingPoint && (
                   <div className="border rounded p-3 mt-3">
-                    <h6 className="fs-6">Detail part baru</h6>
+                    <h6 className="fs-6">{editingId ? `Edit part ${partNumber}` : "Detail part baru"}</h6>
                     {formError && <Alert variant="danger" className="py-2 small">{formError}</Alert>}
 
                     <Form.Group className="mb-2">
@@ -298,7 +326,7 @@ export default function PartMappingEditor({ show, onHide, mesinId, mesinNama, on
 
                     <div className="d-flex gap-2 mt-2">
                       <Button size="sm" onClick={handleAddPart}>
-                        Simpan titik part
+                        {editingId ? "Simpan perubahan part" : "Simpan titik part"}
                       </Button>
                       <Button size="sm" variant="outline-secondary" onClick={resetPartForm}>
                         Batal
@@ -318,14 +346,28 @@ export default function PartMappingEditor({ show, onHide, mesinId, mesinNama, on
                   </thead>
                   <tbody>
                     {parts.map((p) => (
-                      <tr key={p.id}>
+                      <tr key={p.id} className={p.id === editingId ? "table-active" : undefined}>
                         <td>{p.partNumber}</td>
                         <td>{p.partName}</td>
                         <td>
-                          <Badge bg="secondary">{p.checklistItems.length} poin</Badge>
+                          <Badge bg="secondary" className="mb-1">{p.checklistItems.length} poin</Badge>
+                          <ul className="mb-0 ps-3 small text-secondary">
+                            {p.checklistItems.map((item, idx) => (
+                              <li key={idx}>{item}</li>
+                            ))}
+                          </ul>
                         </td>
-                        <td>
-                          <Button size="sm" variant="outline-danger" onClick={() => handleRemovePart(p.id)}>
+                        <td className="text-nowrap">
+                          <Button
+                            size="sm"
+                            variant="outline-primary"
+                            className="me-1"
+                            title="Edit part & poin checklist"
+                            onClick={() => handleEditPart(p)}
+                          >
+                            <IconPencil size={12} />
+                          </Button>
+                          <Button size="sm" variant="outline-danger" title="Hapus part" onClick={() => handleRemovePart(p.id)}>
                             <IconTrash size={12} />
                           </Button>
                         </td>
@@ -339,6 +381,7 @@ export default function PartMappingEditor({ show, onHide, mesinId, mesinNama, on
         )}
       </Modal.Body>
       <Modal.Footer>
+        <span className="text-muted small me-auto">Perubahan baru tersimpan setelah klik &quot;Simpan mapping&quot;.</span>
         <Button variant="outline-secondary" onClick={onHide} disabled={saving}>
           Batal
         </Button>
