@@ -81,6 +81,13 @@ export default function PermissionMatrix() {
       modules: [
         { key: 'view_dashboard_pemeliharaan', label: 'Dashboard Mesin', hint: 'Ringkasan pemeliharaan dan kondisi mesin', type: 'switch' },
         {
+          key: 'view_data_mesin',
+          label: 'Data Mesin',
+          hint: 'Tambah, edit, nonaktifkan, dan hapus mesin',
+          type: 'dropdown',
+          managePerms: ['manage_data_mesin'],
+        },
+        {
           key: 'view_operasional_mesin',
           label: 'Operasional',
           hint: 'Plotting Jadwal Operasional, Catatan Aktivitas Mesin',

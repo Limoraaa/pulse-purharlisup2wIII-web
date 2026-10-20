@@ -180,7 +180,10 @@ const KalibrasiFormModal: React.FC<KalibrasiFormModalProps> = ({
                   disabled={!!mesinIdDefault} // Kunci jika sudah spesifik 1 mesin
                 >
                   <option value="">-- Pilih Mesin --</option>
-                  {mesinList?.map((m: any) => (
+                  {/* Mesin nonaktif disembunyikan, kecuali mesin yang sedang terpilih (edit data lama) */}
+                  {mesinList
+                    ?.filter((m: any) => m.status !== "Tidak Aktif" || String(m.id) === String(formData.mesin_produksi_id))
+                    .map((m: any) => (
                     <option key={m.id} value={m.id}>
                       [{m.kode_mesin}] {m.nama_mesin}
                     </option>

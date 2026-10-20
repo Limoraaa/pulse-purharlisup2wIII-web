@@ -14,7 +14,16 @@ class MesinProduksiController extends Controller
     // Tampilkan semua data master mesin
     public function index()
     {
-        $mesin = MesinProduksi::orderBy('created_at', 'desc')->get();
+        $mesin = MesinProduksi::withCount(MesinProduksi::RELASI_RIWAYAT)
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($item) {
+                // Dipakai halaman Data Mesin untuk menentukan boleh dihapus atau hanya dinonaktifkan
+                $item->jumlah_riwayat = collect(MesinProduksi::RELASI_RIWAYAT)
+                    ->sum(fn ($relasi) => $item->{Str::snake($relasi) . '_count'});
+                return $item;
+            });
+
         return response()->json(['message' => 'Sukses', 'data' => $mesin], 200);
     }
 
@@ -62,17 +71,29 @@ class MesinProduksiController extends Controller
     {
         $mesin = MesinProduksi::findOrFail($id);
 
+        // Dikirim sebagai POST + _method=PUT dari frontend agar file foto ikut terbaca
         $validated = $request->validate([
             'kode_mesin' => 'required|unique:mesin_produksi,kode_mesin,' . $id,
             'nama_mesin' => 'required|string',
             'lokasi_ruang' => 'required|string',
-            'status' => 'sometimes|string|in:Aktif,Tidak Aktif',
+            'status' => 'sometimes|string|in:Aktif,Tidak Aktif,Maintenance,Rusak',
+            'foto_katalog' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'hapus_foto' => 'sometimes|boolean',
         ], [
             'kode_mesin.required' => 'Kode mesin wajib diisi.',
             'kode_mesin.unique'   => 'Kode mesin ":input" sudah digunakan mesin lain.',
         ]);
 
-        $mesin->update($validated);
+        $data = collect($validated)->except(['foto_katalog', 'hapus_foto'])->all();
+
+        if ($request->hasFile('foto_katalog') || $request->boolean('hapus_foto')) {
+            $this->hapusFileFoto($mesin->foto_katalog);
+            $data['foto_katalog'] = $request->hasFile('foto_katalog')
+                ? asset('storage/' . $request->file('foto_katalog')->store('katalog-mesin', 'public'))
+                : null;
+        }
+
+        $mesin->update($data);
 
         return response()->json(['message' => 'Data mesin berhasil diperbarui', 'data' => $mesin], 200);
     }
@@ -81,9 +102,26 @@ class MesinProduksiController extends Controller
     public function destroy($id)
     {
         $mesin = MesinProduksi::findOrFail($id);
+
+        // Menghapus mesin ikut menghapus seluruh riwayatnya (cascade), jadi hanya boleh untuk mesin tanpa riwayat
+        $jumlahRiwayat = $mesin->jumlahRiwayat();
+        if ($jumlahRiwayat > 0) {
+            return response()->json([
+                'message' => "Mesin ini sudah memiliki {$jumlahRiwayat} catatan riwayat dan tidak bisa dihapus. Gunakan Nonaktifkan.",
+            ], 422);
+        }
+
+        $this->hapusFileFoto($mesin->foto_katalog);
         $mesin->delete();
 
         return response()->json(['message' => 'Data mesin berhasil dihapus'], 200);
+    }
+
+    private function hapusFileFoto(?string $url): void
+    {
+        if ($url) {
+            Storage::disk('public')->delete(ltrim(Str::after($url, '/storage/'), '/'));
+        }
     }
 
     // ---- METHOD TOGGLE STATUS ----
@@ -92,7 +130,8 @@ class MesinProduksiController extends Controller
         try {
             $mesin = MesinProduksi::findOrFail($id);
 
-            $mesin->status = ($mesin->status === 'Aktif') ? 'Tidak Aktif' : 'Aktif';
+            // Nonaktifkan dari status apa pun (Aktif/Maintenance/Rusak); aktifkan kembali menjadi Aktif
+            $mesin->status = ($mesin->status === 'Tidak Aktif') ? 'Aktif' : 'Tidak Aktif';
             $mesin->save();
 
             return response()->json([

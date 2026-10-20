@@ -2,6 +2,7 @@
 import { v4 as uuid } from "uuid";
 import {
   IconLayoutDashboard,
+  IconDatabase,
   IconBoxSeam,
   IconArrowsExchange,
   IconHistory,
@@ -137,6 +138,12 @@ export const DashboardMenu: MenuItemType[] = [
     title: "Dashboard Mesin",
     link: "/pemeliharaan/dashboard",
     icon: <IconLayoutDashboard size={20} strokeWidth={1.5} />,
+  },
+  {
+    id: uuid(),
+    title: "Data Mesin",
+    link: "/data-mesin",
+    icon: <IconDatabase size={20} strokeWidth={1.5} />,
   },
   {
     id: uuid(),

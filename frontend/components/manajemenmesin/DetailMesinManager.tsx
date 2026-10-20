@@ -448,7 +448,7 @@ export default function DetailMesinManager({
                 <div className="d-flex align-items-center justify-content-center justify-content-md-start gap-3 mt-1 flex-wrap">
                   <h2 className="h2 fw-bold text-body mb-0">{mesinNama}</h2>
                   <Badge 
-                    bg={mesinStatus === 'Aktif' ? 'success' : mesinStatus === 'Maintenance' ? 'warning' : 'danger'}
+                    bg={mesinStatus === 'Aktif' ? 'success' : mesinStatus === 'Maintenance' ? 'warning' : mesinStatus === 'Tidak Aktif' ? 'secondary' : 'danger'}
                     className="px-3 py-1 shadow-sm"
                     style={{ fontSize: '0.75rem', fontWeight: '600' }}
                   >

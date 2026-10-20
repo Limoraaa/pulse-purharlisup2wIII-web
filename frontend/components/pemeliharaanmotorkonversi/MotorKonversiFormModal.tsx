@@ -5,13 +5,28 @@ import { IconPlus, IconScooter, IconPhoto, IconTrash } from "@tabler/icons-react
 import Image from "next/image";
 import api from "lib/api";
 
+export interface MotorEditData {
+  id: number | string;
+  kode_motor: string;
+  nomor_polisi: string;
+  nama_motor: string;
+  merek?: string | null;
+  warna: string;
+  lokasi_penempatan: string;
+  status: string;
+  foto_katalog?: string | null;
+}
+
 interface MotorKonversiFormModalProps {
   show: boolean;
   onHide: () => void;
   onSuccess: () => void;
+  // Diisi saat mode edit; kosong/null untuk tambah motor baru
+  motor?: MotorEditData | null;
 }
 
-export function MotorKonversiFormModal({ show, onHide, onSuccess }: MotorKonversiFormModalProps) {
+export function MotorKonversiFormModal({ show, onHide, onSuccess, motor }: MotorKonversiFormModalProps) {
+  const isEdit = !!motor;
   const [kodeMotor, setKodeMotor] = useState("");
   const [namaMotor, setNamaMotor] = useState("");
   const [merek, setMerek] = useState("");
@@ -23,6 +38,8 @@ export function MotorKonversiFormModal({ show, onHide, onSuccess }: MotorKonvers
   // State untuk Foto Katalog & Preview
   const [fotoFile, setFotoFile] = useState<File | null>(null);
   const [fotoPreview, setFotoPreview] = useState<string | null>(null);
+  // Edit: foto lama dihapus tanpa diganti
+  const [hapusFoto, setHapusFoto] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formError, setFormError] = useState<string | null>(null);
@@ -37,12 +54,14 @@ export function MotorKonversiFormModal({ show, onHide, onSuccess }: MotorKonvers
       }
       setFotoFile(file);
       setFotoPreview(URL.createObjectURL(file));
+      setHapusFoto(false);
       setFormError(null);
     }
   };
 
   const handleRemovePhoto = () => {
     setFotoFile(null);
+    setHapusFoto(isEdit && !!motor?.foto_katalog);
     if (fotoPreview) {
       URL.revokeObjectURL(fotoPreview);
       setFotoPreview(null);
@@ -50,6 +69,22 @@ export function MotorKonversiFormModal({ show, onHide, onSuccess }: MotorKonvers
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
+  };
+
+  // Isi form dengan data motor saat mode edit setiap modal dibuka
+  const handleEnter = () => {
+    if (!motor) return;
+    setKodeMotor(motor.kode_motor ?? "");
+    setNamaMotor(motor.nama_motor ?? "");
+    setMerek(motor.merek ?? "");
+    setWarna(motor.warna ?? "");
+    setLokasiPenempatan(motor.lokasi_penempatan ?? "");
+    setNomorPolisi(motor.nomor_polisi ?? "");
+    setStatusMotor(motor.status ?? "Aktif");
+    setFotoFile(null);
+    setFotoPreview(motor.foto_katalog ?? null);
+    setHapusFoto(false);
+    setFormError(null);
   };
 
   const resetForm = () => {
@@ -85,8 +120,11 @@ export function MotorKonversiFormModal({ show, onHide, onSuccess }: MotorKonvers
       if (fotoFile) {
         formData.append("foto_katalog", fotoFile);
       }
+      if (hapusFoto) formData.append("hapus_foto", "1");
+      // PHP tidak membaca file pada request PUT, jadi edit dikirim sebagai POST + _method=PUT
+      if (isEdit) formData.append("_method", "PUT");
 
-      await api("/motor-konversi", {
+      await api(isEdit ? `/motor-konversi/${motor!.id}` : "/motor-konversi", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -106,12 +144,12 @@ export function MotorKonversiFormModal({ show, onHide, onSuccess }: MotorKonvers
   };
 
   return (
-    <Modal show={show} onHide={onHide} centered size="lg" backdrop="static">
+    <Modal show={show} onHide={onHide} onEnter={handleEnter} centered size="lg" backdrop="static">
       <Form onSubmit={handleSubmit}>
         <Modal.Header closeButton className="py-2 px-3 bg-body-tertiary">
           <Modal.Title className="fs-6 fw-bold d-flex align-items-center gap-2 text-body">
             <IconScooter size={18} className="text-primary" />
-            Tambah Data Motor Konversi
+            {isEdit ? "Edit Data Motor Konversi" : "Tambah Data Motor Konversi"}
           </Modal.Title>
         </Modal.Header>
         
@@ -283,6 +321,8 @@ export function MotorKonversiFormModal({ show, onHide, onSuccess }: MotorKonvers
   <option value="Aktif">Aktif</option>
   <option value="Maintenance">Maintenance</option>
   <option value="Rusak">Rusak</option>
+  {/* Status "Tidak Aktif" diatur lewat tombol Nonaktifkan; tetap ditampilkan saat mengedit motor nonaktif */}
+  {motor?.status === "Tidak Aktif" && <option value="Tidak Aktif">Tidak Aktif</option>}
 </Form.Select>
               </Form.Group>
             </Col>
@@ -295,7 +335,7 @@ export function MotorKonversiFormModal({ show, onHide, onSuccess }: MotorKonvers
           </Button>
           <Button variant="primary" size="sm" type="submit" disabled={isSubmitting} className="d-flex align-items-center gap-1 fw-semibold px-3">
             {isSubmitting ? <Spinner animation="border" size="sm" /> : <IconPlus size={16} />}
-            Simpan Motor
+            {isEdit ? "Simpan Perubahan" : "Simpan Motor"}
           </Button>
         </Modal.Footer>
       </Form>
