@@ -21,6 +21,7 @@ import {
   IconMapPin,
 } from "@tabler/icons-react";
 import Image from "next/image";
+import Link from "next/link";
 
 import Flex from "components/common/Flex";
 import DetailMesinManager from "./DetailMesinManager";
@@ -28,6 +29,7 @@ import MesinFormModal from "./MesinFormModal";
 import api from "lib/api";
 import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
 import { usePermission } from "hooks/usePermissions";
+import { PEMELIHARAAN_MESIN_PATH } from "./rencanapemeliharaanmesin/RencanaHelpers";
 
 // Interface untuk data mesin dari API
 interface MesinItemType {
@@ -150,6 +152,12 @@ const DataMesinManager = ({ mode = 'pemeliharaan' }: DataMesinManagerProps) => {
                   ? 'Pilih mesin untuk mencatat log aktivitas harian.' 
                   : 'Daftar mesin produksi beserta dokumen IK dan riwayat pemeliharaan.'}
               </p>
+              {/* Data mesin dikelola satu pintu dari halaman Pemeliharaan */}
+              {mode === 'operasional' && (
+                <p className="text-secondary small mb-0 mt-1">
+                  Daftar mesin dikelola melalui menu <strong>Pemeliharaan → Catatan Pemeliharaan Mesin</strong>.
+                </p>
+              )}
             </div>
             <div>
               {/* Tombol Tambah Mesin hanya relevan di mode pemeliharaan (opsional, disesuaikan) */}
@@ -201,11 +209,24 @@ const DataMesinManager = ({ mode = 'pemeliharaan' }: DataMesinManagerProps) => {
             <div className="datatools-empty text-center py-5 bg-white rounded border">
               <div className="datatools-empty-icon mb-2 text-muted"><IconBox size={40} /></div>
               <h6 className="mb-1">Belum ada data mesin produksi</h6>
-              <p className="text-secondary small mb-3">Mulai dengan menambahkan data mesin pertama.</p>
-              {canManageMesin && (
-                <Button variant="primary" size="sm" className="d-inline-flex align-items-center gap-1" onClick={() => setFormModalOpen(true)}>
-                  <IconPlus size={16} /> Tambah Mesin Baru
-                </Button>
+              {mode === 'operasional' ? (
+                <>
+                  <p className="text-secondary small mb-3">Belum ada mesin. Hubungi pengelola Pemeliharaan untuk menambahkan mesin.</p>
+                  {canManageMesin && (
+                    <Link href={PEMELIHARAAN_MESIN_PATH} className="btn btn-primary btn-sm">
+                      Buka Catatan Pemeliharaan Mesin
+                    </Link>
+                  )}
+                </>
+              ) : (
+                <>
+                  <p className="text-secondary small mb-3">Mulai dengan menambahkan data mesin pertama.</p>
+                  {canManageMesin && (
+                    <Button variant="primary" size="sm" className="d-inline-flex align-items-center gap-1" onClick={() => setFormModalOpen(true)}>
+                      <IconPlus size={16} /> Tambah Mesin Baru
+                    </Button>
+                  )}
+                </>
               )}
             </div>
           ) : filteredMesin.length === 0 ? (
