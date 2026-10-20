@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\KalibrasiMesin;
+use App\Models\LogAktivitasMesin;
 use App\Models\LogPemeliharaanMesin;
 use App\Models\MesinProduksi;
 use App\Models\RencanaPemeliharaanMesin;
@@ -47,37 +49,83 @@ class LogPemeliharaanMesinController extends Controller
     public function getDashboardStats()
     {
         try {
-            $totalMesin = MesinProduksi::count();
+            // Mesin nonaktif (pensiun) tidak dihitung sebagai mesin terdaftar
+            $totalMesin = MesinProduksi::where('status', '!=', 'Tidak Aktif')->count();
+            $mesinPerbaikan = MesinProduksi::whereIn('status', ['Maintenance', 'Rusak'])->count();
             $totalLogPemeliharaan = LogPemeliharaanMesin::count();
-            $mesinPerbaikan = MesinProduksi::where('status', 'Maintenance')->count();
+            $totalLogAktivitas = LogAktivitasMesin::count();
 
             $hari = min(max((int) request('hari', 30), 1), 365);
             $mulai = now()->subDays($hari - 1)->startOfDay();
 
-            $perHari = LogPemeliharaanMesin::where('waktu_pelaksana', '>=', $mulai)
-                ->selectRaw('DATE(waktu_pelaksana) as tanggal, COUNT(*) as total')
-                ->groupBy('tanggal')
-                ->pluck('total', 'tanggal');
+            // Tren harian log pemeliharaan & log aktivitas (alias "tgl" agar tidak bentrok dengan kolom "tanggal")
+            $perHariPemeliharaan = LogPemeliharaanMesin::where('waktu_pelaksana', '>=', $mulai)
+                ->selectRaw('DATE(waktu_pelaksana) as tgl, COUNT(*) as total')
+                ->groupBy('tgl')
+                ->pluck('total', 'tgl');
+            $perHariAktivitas = LogAktivitasMesin::where('tanggal', '>=', $mulai->toDateString())
+                ->selectRaw('DATE(tanggal) as tgl, COUNT(*) as total')
+                ->groupBy('tgl')
+                ->pluck('total', 'tgl');
 
-            $tren = collect(range(0, $hari - 1))->map(function ($i) use ($mulai, $perHari) {
+            $tren = collect(range(0, $hari - 1))->map(function ($i) use ($mulai, $perHariPemeliharaan, $perHariAktivitas) {
                 $tgl = $mulai->copy()->addDays($i)->toDateString();
-                return ['tanggal' => $tgl, 'total' => (int) ($perHari[$tgl] ?? 0)];
+                $pemeliharaan = (int) ($perHariPemeliharaan[$tgl] ?? 0);
+                $aktivitas = (int) ($perHariAktivitas[$tgl] ?? 0);
+                return ['tanggal' => $tgl, 'pemeliharaan' => $pemeliharaan, 'aktivitas' => $aktivitas, 'total' => $pemeliharaan + $aktivitas];
             });
 
-            $aktivitasTerbaru = LogPemeliharaanMesin::orderBy('waktu_pelaksana', 'desc')
-                ->take(5)
+            // Log terbaru: gabungan log pemeliharaan & log aktivitas, urut paling baru
+            $logPemeliharaan = LogPemeliharaanMesin::with('mesinProduksi:id,nama_mesin')
+                ->orderBy('waktu_pelaksana', 'desc')
+                ->take(8)
                 ->get()
-                ->map(function ($item) {
-                    $mesin = MesinProduksi::find($item->mesin_produksi_id);
+                ->map(fn ($item) => [
+                    'id' => 'pemeliharaan-' . $item->id,
+                    'jenis' => 'pemeliharaan',
+                    'nama_mesin' => $item->mesinProduksi?->nama_mesin ?? 'Mesin #' . $item->mesin_produksi_id,
+                    'deskripsi' => $item->uraian_pemeliharaan,
+                    'tanggal' => $item->waktu_pelaksana ? Carbon::parse($item->waktu_pelaksana)->toIso8601String() : null,
+                    'status' => $item->status,
+                ]);
+            $logAktivitas = LogAktivitasMesin::with('mesinProduksi:id,nama_mesin')
+                ->orderBy('tanggal', 'desc')
+                ->orderBy('waktu_mulai', 'desc')
+                ->take(8)
+                ->get()
+                ->map(fn ($item) => [
+                    'id' => 'aktivitas-' . $item->id,
+                    'jenis' => 'aktivitas',
+                    'nama_mesin' => $item->mesinProduksi?->nama_mesin ?? 'Mesin #' . $item->mesin_produksi_id,
+                    'deskripsi' => $item->uraian_pekerjaan,
+                    'tanggal' => Carbon::parse(Carbon::parse($item->tanggal)->toDateString() . ' ' . $item->waktu_mulai)->toIso8601String(),
+                    'status' => null,
+                ]);
+            $aktivitasTerbaru = $logPemeliharaan->concat($logAktivitas)
+                ->sortByDesc('tanggal')
+                ->take(8)
+                ->values();
 
-                    return [
-                        'id' => $item->id,
-                        'nama_mesin' => $mesin ? $mesin->nama_mesin : 'Mesin #' . $item->mesin_produksi_id,
-                        'deskripsi' => $item->uraian_pemeliharaan,
-                        'tanggal' => $item->waktu_pelaksana,
-                        'status' => $item->status,
-                    ];
-                });
+            // Reminder kalibrasi: kalibrasi terakhir tiap mesin aktif yang jatuh temponya sudah lewat / <= 30 hari lagi
+            $hariIni = now()->startOfDay();
+            $batas = now()->addDays(30)->endOfDay();
+            $kalibrasiMendekat = KalibrasiMesin::with('mesin:id,kode_mesin,nama_mesin,status')
+                ->orderBy('tanggal_kalibrasi', 'desc')
+                ->orderBy('id', 'desc')
+                ->get()
+                ->unique('mesin_produksi_id')
+                ->filter(fn ($k) => $k->mesin && $k->mesin->status !== 'Tidak Aktif'
+                    && Carbon::parse($k->tanggal_jatuh_tempo)->lte($batas))
+                ->sortBy('tanggal_jatuh_tempo')
+                ->map(fn ($k) => [
+                    'id' => $k->id,
+                    'mesin_id' => $k->mesin_produksi_id,
+                    'kode_mesin' => $k->mesin->kode_mesin,
+                    'nama_mesin' => $k->mesin->nama_mesin,
+                    'jatuh_tempo' => Carbon::parse($k->tanggal_jatuh_tempo)->toDateString(),
+                    'status' => Carbon::parse($k->tanggal_jatuh_tempo)->lt($hariIni) ? 'terlewat' : 'mendekat',
+                ])
+                ->values();
 
             return response()->json([
                 'success' => true,
@@ -85,7 +133,9 @@ class LogPemeliharaanMesinController extends Controller
                     'total_mesin' => $totalMesin,
                     'mesin_perbaikan' => $mesinPerbaikan,
                     'pemeliharaan_rutin' => $totalLogPemeliharaan,
+                    'total_log_aktivitas' => $totalLogAktivitas,
                     'aktivitas_terbaru' => $aktivitasTerbaru,
+                    'kalibrasi_mendekat' => $kalibrasiMendekat,
                     'tren' => $tren,
                 ]
             ]);
