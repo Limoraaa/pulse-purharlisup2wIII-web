@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Modal, Form, Button, Row, Col } from 'react-bootstrap';
 
 import { getPemintaListForConsumable, updateOrderConsumable } from '/services/orderConsumableService';
+import { useFeedback } from "components/common/FeedbackProvider";
 
 interface OrderConsumableEditModalProps {
   isOpen: boolean;
@@ -19,6 +20,7 @@ const STATUS_OPTIONS = [
 ];
 
 export default function OrderConsumableEditModal({ isOpen, onClose, onSuccess, orderData }: OrderConsumableEditModalProps) {
+  const { notify } = useFeedback();
   const [peminjamList, setPeminjamList] = useState<any[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState<any>({
@@ -90,7 +92,7 @@ export default function OrderConsumableEditModal({ isOpen, onClose, onSuccess, o
       onSuccess();
       onClose();
     } catch {
-      alert('Gagal memperbarui data order consumable.');
+      notify('Gagal memperbarui data order consumable.');
     } finally {
       setIsSubmitting(false);
     }

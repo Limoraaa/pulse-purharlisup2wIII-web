@@ -28,6 +28,7 @@ interface MotorProps {
     nama_motor?: string;
     kode?: string;
     kode_motor?: string;
+    nomor_polisi?: string;
     status: string;
     lokasi?: string;
     lokasi_ruang?: string;
@@ -66,6 +67,7 @@ export default function DetailMotorKonversiManager({ motor, canManage = false, o
   const motorId = motor?.id;
   const motorNama = motor?.nama_motor || motor?.nama || 'Tanpa Nama';
   const motorKode = motor?.kode_motor || motor?.kode || '-';
+  const motorPlat = motor?.nomor_polisi;
   const motorLokasi = motor?.lokasi_ruang || motor?.lokasi || '-';
   const motorStatus = motor?.status || 'Aktif';
   const motorFoto = motor?.foto_katalog;
@@ -177,7 +179,7 @@ export default function DetailMotorKonversiManager({ motor, canManage = false, o
 
             <Col xs={12} md={8} lg={9}>
               <div className="mb-2 text-center text-md-start">
-                <span className="text-muted small fw-bold tracking-wider" style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>KODE: {motorKode}</span>
+                <span className="text-muted small fw-bold tracking-wider" style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>KODE: {motorKode}{motorPlat ? ` · PLAT: ${motorPlat}` : ''}</span>
                 <div className="d-flex align-items-center justify-content-center justify-content-md-start gap-3 mt-1 flex-wrap">
                   <h2 className="h2 fw-bold text-body mb-0">{motorNama}</h2>
                   <Badge 
@@ -198,9 +200,16 @@ export default function DetailMotorKonversiManager({ motor, canManage = false, o
                 <Col xs={12}>
                   <div className="p-3 bg-body-tertiary rounded border h-100 text-center text-md-start">
                     <div className="d-flex align-items-center justify-content-center justify-content-md-start text-muted small mb-1" style={{ fontSize: '0.75rem' }}>
-                      <IconCalendarEvent size={16} className="me-2 text-success" /> Servis / Pemeliharaan Berikutnya
+                      <IconCalendarEvent size={16} className="me-2 text-success" /> Pemeliharaan Terakhir
                     </div>
-                    <h6 className="fw-bold text-body mb-0 fs-5 mt-1">Belum Terjadwal</h6>
+                    {/* Motor belum punya rencana pemeliharaan, jadi yang ditampilkan log terakhir (data sudah urut terbaru) */}
+                    <h6 className="fw-bold text-body mb-0 fs-5 mt-1">
+                      {loadingLogs
+                        ? 'Memuat...'
+                        : logs[0]
+                          ? new Date(logs[0].waktu_pelaksana).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+                          : 'Belum ada catatan'}
+                    </h6>
                   </div>
                 </Col>
               </Row>

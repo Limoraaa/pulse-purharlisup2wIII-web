@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Form, Button, Row, Col } from 'react-bootstrap';
 import { getPemintaListForTools, updateOrderTools } from '/services/orderToolsService';
+import { useFeedback } from "components/common/FeedbackProvider";
 
 interface OrderToolsEditModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ const STATUS_OPTIONS = [
 ];
 
 export default function OrderToolsEditModal({ isOpen, onClose, onSuccess, orderData }: OrderToolsEditModalProps) {
+  const { notify } = useFeedback();
   const [peminjamList, setPeminjamList] = useState<any[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState<any>({
@@ -89,7 +91,7 @@ export default function OrderToolsEditModal({ isOpen, onClose, onSuccess, orderD
       onSuccess();
       onClose();
     } catch {
-      alert('Gagal memperbarui data order.');
+      notify('Gagal memperbarui data order.');
     } finally {
       setIsSubmitting(false);
     }

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Modal, Form, Button, Row, Col } from 'react-bootstrap';
 import { IconTrash, IconPlus } from '@tabler/icons-react';
 import { getPemintaListForTools, getToolsList, createOrderTools } from '/services/orderToolsService';
+import { useFeedback } from "components/common/FeedbackProvider";
 
 interface OrderToolsFormModalProps {
   isOpen: boolean;
@@ -35,6 +36,7 @@ const getEmptyItem = (): OrderItem => ({
 });
 
 export default function OrderToolsFormModal({ isOpen, onClose, onSuccess }: OrderToolsFormModalProps) {
+  const { notify } = useFeedback();
   const [peminjamList, setPeminjamList] = useState<any[]>([]);
   const [toolsList, setToolsList] = useState<any[]>([]);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -137,7 +139,7 @@ export default function OrderToolsFormModal({ isOpen, onClose, onSuccess }: Orde
       onSuccess();
       onClose();
     } catch {
-      alert('Gagal menyimpan data order. Pastikan semua field terisi dengan benar.');
+      notify('Gagal menyimpan data order. Pastikan semua field terisi dengan benar.');
     } finally {
       setIsSubmitting(false);
     }

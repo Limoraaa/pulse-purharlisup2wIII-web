@@ -31,6 +31,7 @@ import { usePermission } from "hooks/usePermissions";
 
 interface MotorKonversiItemType {
   id: number | string;
+  kode_motor: string;
   nomor_polisi: string;
   nama_motor: string;
   merek: string;
@@ -110,7 +111,8 @@ const DataMotorKonversiManager = () => {
         motor={{
           id: selectedMotor.id,
           nama_motor: selectedMotor.nama_motor,
-          kode_motor: selectedMotor.nomor_polisi,
+          kode_motor: selectedMotor.kode_motor,
+          nomor_polisi: selectedMotor.nomor_polisi,
           lokasi_ruang: selectedMotor.lokasi_penempatan,
           status: selectedMotor.status,
           foto_katalog: selectedMotor.foto_katalog || null,

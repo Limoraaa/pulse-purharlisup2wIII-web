@@ -19,14 +19,20 @@ class MotorKonversiController extends Controller
     // Tambah data motor konversi baru
     public function store(Request $request)
     {
+        // kode_motor & nomor_polisi unik di database, jadi dicek di sini agar pesan errornya jelas
         $request->validate([
-            'kode_motor' => 'nullable|string', 
+            'kode_motor' => 'required|string|unique:motor_konversi,kode_motor',
             'nomor_polisi' => 'required|unique:motor_konversi,nomor_polisi',
             'nama_motor' => 'required|string',
             'merek' => 'nullable|string',
             'warna' => 'required|string',
             'lokasi_penempatan' => 'required|string',
             'foto_katalog' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120', 
+        ], [
+            'kode_motor.required'   => 'Kode motor wajib diisi.',
+            'kode_motor.unique'     => 'Kode motor ":input" sudah digunakan motor lain.',
+            'nomor_polisi.required' => 'Plat nomor wajib diisi.',
+            'nomor_polisi.unique'   => 'Plat nomor ":input" sudah terdaftar.',
         ]);
 
         $fotoPath = null;
@@ -64,7 +70,7 @@ class MotorKonversiController extends Controller
         $motor = MotorKonversi::findOrFail($id);
 
         $request->validate([
-            'kode_motor' => 'nullable|string',
+            'kode_motor' => 'required|string|unique:motor_konversi,kode_motor,' . $id,
             'nomor_polisi' => 'required|unique:motor_konversi,nomor_polisi,' . $id,
             'nama_motor' => 'required|string',
             'merek' => 'nullable|string',
@@ -72,6 +78,11 @@ class MotorKonversiController extends Controller
             'lokasi_penempatan' => 'required|string',
             'status' => 'sometimes|string|in:Aktif,Tidak Aktif,Maintenance,Rusak',
             'foto_katalog' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
+        ], [
+            'kode_motor.required'   => 'Kode motor wajib diisi.',
+            'kode_motor.unique'     => 'Kode motor ":input" sudah digunakan motor lain.',
+            'nomor_polisi.required' => 'Plat nomor wajib diisi.',
+            'nomor_polisi.unique'   => 'Plat nomor ":input" sudah terdaftar.',
         ]);
 
         $dataToUpdate = $request->except(['foto_katalog']);

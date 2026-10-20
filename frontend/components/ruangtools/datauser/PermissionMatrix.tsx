@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Form, Spinner, Button, Card, Row, Col, Alert, Badge, Modal } from 'react-bootstrap';
 import { IconDeviceFloppy, IconShieldLock, IconCircleCheck, IconTrash, IconPencil, IconCheck, IconX } from '@tabler/icons-react';
 import api from '/lib/api';
+import { useFeedback } from "components/common/FeedbackProvider";
 
 interface RoleMatrix {
   id: number;
@@ -40,6 +41,7 @@ interface ModuleConfig {
 }
 
 export default function PermissionMatrix() {
+  const { notify } = useFeedback();
   const [roles, setRoles] = useState<RoleMatrix[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -339,7 +341,7 @@ const startEditName = (role: RoleMatrix) => {
       setTimeout(() => setSuccessMessage(null), 4000);
     } catch (error) {
       console.error('Gagal menyimpan matriks', error);
-      alert('Terjadi kesalahan saat menyimpan data.');
+      notify('Terjadi kesalahan saat menyimpan data.');
     } finally {
       setSaving(false);
     }

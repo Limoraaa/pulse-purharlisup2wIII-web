@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import useSWR from 'swr';
 import { Button, Spinner, Alert, Modal, Form } from 'react-bootstrap';
-import { IconEye, IconFileTypePdf, IconLock, IconRefresh, IconTrash, IconUpload } from '@tabler/icons-react';
+import { IconEye, IconFileTypePdf, IconRefresh, IconTrash, IconUpload } from '@tabler/icons-react';
 import api from 'lib/api';
 import PdfViewerModal from './PdfViewerModal';
 
@@ -79,9 +79,6 @@ export default function DokumenMesinPanel({ jenis, mesinId, canManage, icon: Ico
           </h6>
           <div className="small text-secondary">{keterangan}</div>
         </div>
-        <span className="badge rounded-pill bg-secondary-subtle text-secondary-emphasis d-inline-flex align-items-center gap-1">
-          <IconLock size={12} /> Dokumen rahasia · tidak dapat diunduh
-        </span>
       </div>
 
       {aksiError && (

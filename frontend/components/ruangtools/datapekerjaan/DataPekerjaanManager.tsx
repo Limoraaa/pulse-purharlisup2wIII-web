@@ -8,10 +8,12 @@ import PekerjaanFormModal from './PekerjaanFormModal';
 import DeleteConfirmModal from './DeleteConfirmModal';
 import apiFetch from "lib/api";
 import { usePermission } from "hooks/usePermissions";
+import { useFeedback } from "components/common/FeedbackProvider";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
 export default function DataPekerjaanManager() {
+  const { notify } = useFeedback();
   const canManage = usePermission("manage_master_data");
   const [data, setData] = useState<Pekerjaan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -102,7 +104,7 @@ export default function DataPekerjaanManager() {
         fetchData(); // Refresh tabel
         setIsFormOpen(false);
       } else {
-        alert(json.message || "Gagal menyimpan data");
+        notify(json.message || "Gagal menyimpan data");
       }
     } catch (error) {
       console.error("Error submitting data:", error);
