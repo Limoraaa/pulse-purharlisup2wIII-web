@@ -5,6 +5,7 @@ import { IconClipboardCheck } from "@tabler/icons-react";
 import api from "lib/api";
 import { toYMD } from 'components/ruangtools/common/dateUtils';
 import type { ChecklistStatus, MachinePart, PartMappingPayload } from "./PartMappingType";
+import { useFeedback } from "components/common/FeedbackProvider";
 
 interface Props {
   show: boolean;
@@ -43,6 +44,7 @@ function worstOf(statuses: Record<string, ChecklistStatus>): ChecklistStatus {
 }
 
 export default function PartMappingChecklistModalMotor({ show, onHide, mesinId, mesinNama, onSubmitted }: Props) {
+  const { confirm: confirmDialog } = useFeedback();
   const [loadingMapping, setLoadingMapping] = useState(true);
   const [gambarUrl, setGambarUrl] = useState<string | null>(null);
   const [parts, setParts] = useState<MachinePart[]>([]);
@@ -80,7 +82,7 @@ export default function PartMappingChecklistModalMotor({ show, onHide, mesinId, 
           setGambarUrl(res?.gambarUrl ?? null);
           setParts(res?.parts ?? []);
         }
-      } catch (err) {
+      } catch {
         if (!cancelled) {
           setLoadError("Mapping part untuk motor ini belum tersedia. Minta admin memetakan part terlebih dahulu.");
         }
@@ -131,8 +133,16 @@ export default function PartMappingChecklistModalMotor({ show, onHide, mesinId, 
     setSelectedPart(null);
   };
 
-  const handleCloseMain = () => {
-    if (checkedCount > 0 && !window.confirm("Hasil pemeriksaan belum disimpan dan akan hilang. Tutup?")) {
+  const handleCloseMain = async () => {
+    if (
+      checkedCount > 0 &&
+      !(await confirmDialog({
+        title: "Tutup Checklist?",
+        message: "Hasil pemeriksaan belum disimpan dan akan hilang.",
+        confirmLabel: "Ya, tutup",
+        variant: "warning",
+      }))
+    ) {
       return;
     }
     onHide();
@@ -147,12 +157,7 @@ export default function PartMappingChecklistModalMotor({ show, onHide, mesinId, 
       setSubmitError("Periksa minimal satu part sebelum menyimpan kegiatan.");
       return;
     }
-    if (
-      checkedCount < parts.length &&
-      !window.confirm(`${parts.length - checkedCount} part belum diperiksa. Tetap simpan kegiatan ini?`)
-    ) {
-      return;
-    }
+
 
     setSubmitting(true);
     setSubmitError("");
@@ -169,38 +174,14 @@ export default function PartMappingChecklistModalMotor({ show, onHide, mesinId, 
           catatan: results[p.id].catatan || undefined,
         }));
 
-      // --- TAMBAHAN BARU: Menghitung status keseluruhan untuk disimpan ke log ---
-      let overallStatus = "baik";
-      hasil.forEach((p) => {
-        p.items.forEach((item) => {
-          if (ORDER[item.status as keyof typeof ORDER] > ORDER[overallStatus as keyof typeof ORDER]) {
-            overallStatus = item.status;
-          }
-        });
-      });
-
-      const labelOf = (s: string) => STATUS_OPTIONS.find((o) => o.value === s)?.label ?? s;
-      const namaPart = hasil.map((p) => p.partName).join(", ");
-      const uraianOtomatis = `Pemeliharaan preventif (${hasil.length} dari ${parts.length} part): ${namaPart}`;
-      const keteranganOtomatis = hasil
-        .map((p) => {
-          const items = p.items.map((i) => `${i.item} (${labelOf(i.status)})`).join(", ");
-          return `${p.partName}: ${items}${p.catatan ? ` — Temuan: ${p.catatan}` : ""}`;
-        })
-        .join(" | ");
-
       // PERBAIKAN: Tambahkan uraian_pemeliharaan, status, dan jumlah_part_diperiksa
       await api("/log-pemeliharaan-motor", {
         method: "POST",
         body: JSON.stringify({
-          motor_konversi_id: mesinId, 
-          uraian_pemeliharaan: uraianOtomatis,
-          keterangan: keteranganOtomatis,
+          motor_konversi_id: mesinId,
           waktu_pelaksana: toYMD(new Date()), // tanggal lokal (bukan UTC)
           paraf: teknisi.trim(),
-          status: overallStatus,                               // <-- Badge status (Baik/Perlu Perhatian/Rusak)
-          jumlah_part_diperiksa: hasil.length,                 // <-- Angka part yang dicek
-          jumlah_part_total: parts.length,                     // <-- Angka total part di gambar
+          jumlah_part_total: parts.length,
           hasil_checklist: hasil,
         }),
       });
@@ -283,6 +264,7 @@ export default function PartMappingChecklistModalMotor({ show, onHide, mesinId, 
           <Modal.Footer className="d-flex justify-content-between">
             <span className="small text-muted">
               Diperiksa: <strong>{checkedCount}</strong> dari {parts.length} part
+              {checkedCount === 0 && " · periksa minimal 1 part"}
             </span>
             <div className="d-flex gap-2">
               <Button variant="outline-secondary" onClick={handleCloseMain} disabled={submitting}>

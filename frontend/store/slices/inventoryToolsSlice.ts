@@ -116,6 +116,7 @@ export const checkoutPeminjamanThunk = createAsyncThunk(
         cartItems,
         loanForm.peminjamId,
         loanForm.areaKerja,
+        loanForm.namaPekerjaan,
         dicatatOleh,
         loanForm.spesifikasi,
         loanForm.keterangan

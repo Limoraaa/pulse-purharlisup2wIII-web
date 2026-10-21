@@ -24,6 +24,11 @@ use App\Http\Controllers\Api\LogPemeliharaanMesinController;
 use App\Http\Controllers\Api\LogAktivitasMesinController;
 use App\Http\Controllers\Api\MotorKonversiController;
 use App\Http\Controllers\Api\LogPemeliharaanMotorKonversiController;
+use App\Http\Controllers\Api\RencanaPemeliharaanMesinController;
+use App\Http\Controllers\Api\KalibrasiMesinController;
+use App\Http\Controllers\Api\MappingPengerjaanMesinController;
+use App\Http\Controllers\Api\LaporanAnggaranController;
+use App\Http\Controllers\Api\DokumenMesinController;
 
 // ==========================================
 // 1. ROUTE PUBLIK (Tanpa Auth)
@@ -104,7 +109,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('peminta', PemintaController::class)->only(['index', 'show']);
     });
 
-    Route::middleware('permission:view_inventaris|view_pemeliharaan_mesin')->group(function () {
+    Route::middleware('permission:view_inventaris|view_pemeliharaan_mesin|view_operasional_mesin|view_data_mesin')->group(function () {
         Route::apiResource('mesin-produksi', MesinProduksiController::class)->only(['index', 'show']);
     });
 
@@ -123,7 +128,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('consumable-masuk', ConsumableMasukController::class)->except(['index', 'show']);
     });
 
-    Route::middleware('permission:manage_pemeliharaan_mesin')->group(function () {
+    // Master data mesin dikelola dari halaman Data Mesin
+    Route::middleware('permission:manage_data_mesin')->group(function () {
         Route::patch('/mesin-produksi/{id}/toggle-status', [MesinProduksiController::class, 'toggleStatus']);
         Route::apiResource('mesin-produksi', MesinProduksiController::class)->except(['index', 'show']);
     });
@@ -209,6 +215,24 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
     // ==========================================
+// LAPORAN ANGGARAN (berdiri sendiri)
+// ==========================================
+    // Ikut hak akses Pemeliharaan Mesin: "Lihat saja" = view, "Kelola penuh" = manage
+    Route::middleware('permission:view_pemeliharaan_mesin')->group(function () {
+        Route::get('/laporan-anggaran', [LaporanAnggaranController::class, 'index']);
+    });
+
+    Route::middleware('permission:manage_pemeliharaan_mesin')->group(function () {
+        Route::post('/laporan-anggaran/disburse', [LaporanAnggaranController::class, 'storeDisburse']);
+        Route::put('/laporan-anggaran/disburse/{id}', [LaporanAnggaranController::class, 'updateDisburse']);
+        Route::delete('/laporan-anggaran/disburse/{id}', [LaporanAnggaranController::class, 'destroyDisburse']);
+
+        Route::post('/laporan-anggaran/pekerjaan', [LaporanAnggaranController::class, 'storePekerjaan']);
+        Route::put('/laporan-anggaran/pekerjaan/{id}', [LaporanAnggaranController::class, 'updatePekerjaan']);
+        Route::delete('/laporan-anggaran/pekerjaan/{id}', [LaporanAnggaranController::class, 'destroyPekerjaan']);
+    });
+
+    // ==========================================
     // DOMAIN: PEMELIHARAAN MESIN
     // ==========================================
     Route::middleware('permission:view_dashboard_pemeliharaan')->group(function () {
@@ -222,25 +246,79 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/log-pemeliharaan/mesin/{mesin_id}', [LogPemeliharaanMesinController::class, 'getByMesin']);
 
         Route::get('/log-pemeliharaan/{id}', [LogPemeliharaanMesinController::class, 'show']);
-
-        Route::get('/log-aktivitas', [LogAktivitasMesinController::class, 'index']);
-
-        // Lakukan hal yang sama untuk log aktivitas jika polanya mirip
-        Route::get('/log-aktivitas/mesin/{mesin_id}', [LogAktivitasMesinController::class, 'getByMesin']);
-
-        Route::get('/log-aktivitas/{id}', [LogAktivitasMesinController::class, 'show']);
     });
 
     Route::middleware('permission:process_pemeliharaan_mesin')->group(function () {
         Route::post('/log-pemeliharaan', [LogPemeliharaanMesinController::class, 'store']);
         Route::put('/log-pemeliharaan/{id}', [LogPemeliharaanMesinController::class, 'update']);
         Route::delete('/log-pemeliharaan/{id}', [LogPemeliharaanMesinController::class, 'destroy']);
+    });
 
+    // ------------------------------------------
+    // OPERASIONAL MESIN (Catatan Aktivitas & Plotting Jadwal)
+    // "Lihat saja" = view_operasional_mesin, "Kelola penuh" = manage_operasional_mesin
+    // ------------------------------------------
+    Route::middleware('permission:view_operasional_mesin')->group(function () {
+        Route::get('/log-aktivitas', [LogAktivitasMesinController::class, 'index']);
+        // Rute spesifik "mesin/{mesin_id}" harus di atas rute dinamis "{id}"
+        Route::get('/log-aktivitas/mesin/{mesin_id}', [LogAktivitasMesinController::class, 'getByMesin']);
+        Route::get('/log-aktivitas/{id}', [LogAktivitasMesinController::class, 'show']);
+
+        Route::get('/mapping-pengerjaan', [MappingPengerjaanMesinController::class, 'index']);
+    });
+
+    Route::middleware('permission:manage_operasional_mesin')->group(function () {
         Route::post('/log-aktivitas', [LogAktivitasMesinController::class, 'store']);
         Route::put('/log-aktivitas/{id}', [LogAktivitasMesinController::class, 'update']);
         Route::delete('/log-aktivitas/{id}', [LogAktivitasMesinController::class, 'destroy']);
+
+        Route::post('/mapping-pengerjaan', [MappingPengerjaanMesinController::class, 'store']);
+        Route::put('/mapping-pengerjaan/{id}', [MappingPengerjaanMesinController::class, 'update']);
+        Route::delete('/mapping-pengerjaan/{id}', [MappingPengerjaanMesinController::class, 'destroy']);
     });
 
+    // ------------------------------------------
+    // DOKUMEN MESIN (IK Operasional, IK Pemeliharaan, HIRARC)
+    // Hak akses detail per jenis dokumen dicek di DokumenMesinController
+    // ------------------------------------------
+    Route::middleware('permission:view_operasional_mesin|view_pemeliharaan_mesin')->group(function () {
+        Route::get('/dokumen-mesin', [DokumenMesinController::class, 'show']);
+        Route::get('/dokumen-mesin/{id}/file', [DokumenMesinController::class, 'file']);
+        Route::post('/dokumen-mesin', [DokumenMesinController::class, 'store']);
+        Route::delete('/dokumen-mesin/{id}', [DokumenMesinController::class, 'destroy']);
+    });
+
+    // ------------------------------------------
+    // KALIBRASI MESIN
+    // ------------------------------------------
+    Route::middleware('permission:view_pemeliharaan_mesin')->group(function () {
+        Route::get('/pemeliharaan/kalibrasi', [KalibrasiMesinController::class, 'index']);
+        Route::get('/pemeliharaan/kalibrasi/mesin/{mesin_id}', [KalibrasiMesinController::class, 'getByMesin']);
+        Route::get('/pemeliharaan/kalibrasi/{id}', [KalibrasiMesinController::class, 'show']);
+    });
+ 
+    Route::middleware('permission:manage_pemeliharaan_mesin')->group(function () {
+        Route::post('/pemeliharaan/kalibrasi', [KalibrasiMesinController::class, 'store']);
+        Route::put('/pemeliharaan/kalibrasi/{id}', [KalibrasiMesinController::class, 'update']);
+        Route::delete('/pemeliharaan/kalibrasi/{id}', [KalibrasiMesinController::class, 'destroy']);
+    });
+
+    
+    // ------------------------------------------
+    // RENCANA PEMELIHARAAN MESIN (jadwal mingguan per tahun)
+    // ------------------------------------------
+    Route::middleware('permission:view_pemeliharaan_mesin')->group(function () {
+        Route::get('/rencana-pemeliharaan', [RencanaPemeliharaanMesinController::class, 'index']);
+    });
+ 
+    Route::middleware('permission:manage_pemeliharaan_mesin')->group(function () {
+        Route::post('/rencana-pemeliharaan', [RencanaPemeliharaanMesinController::class, 'store']);
+        Route::put('/rencana-pemeliharaan/{id}', [RencanaPemeliharaanMesinController::class, 'update']);
+        Route::delete('/rencana-pemeliharaan/{id}', [RencanaPemeliharaanMesinController::class, 'destroy']);
+    });
+
+    
+    
 
     // ==========================================
     // DOMAIN: PEMELIHARAAN MOTOR KONVERSI

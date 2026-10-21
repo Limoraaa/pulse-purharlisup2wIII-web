@@ -231,7 +231,7 @@ const DashboardManager = () => {
             <Link href="/inventaris/data-peminjam" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
               <StatCard
                 icon={<IconUsers size={26} />}
-                title="Total Peminta"
+                title="Total Peminjam"
                 value={summary?.total_peminta ?? 0}
                 variant="success"
               />
@@ -240,7 +240,7 @@ const DashboardManager = () => {
             <div style={{ display: "block" }}>
               <StatCard
                 icon={<IconUsers size={26} />}
-                title="Total Peminta"
+                title="Total Peminjam"
                 value={summary?.total_peminta ?? 0}
                 variant="success"
               />

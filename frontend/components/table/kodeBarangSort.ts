@@ -3,6 +3,8 @@ import type { Row, RowData } from "@tanstack/react-table";
 // Flag opt-in agar chevron bawaan TanstackTable tidak double dengan
 // ikon custom KodeBarangSortHeader. Dipakai hanya di kolom Kode Barang.
 declare module "@tanstack/react-table" {
+  // TData & TValue wajib ditulis agar cocok dengan deklarasi asli tanstack (declaration merging)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface ColumnMeta<TData extends RowData, TValue> {
     hideDefaultSortIcon?: boolean;
   }

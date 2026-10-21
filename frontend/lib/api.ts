@@ -85,3 +85,24 @@ async function apiFetch<T = unknown>(
 }
 
 export default apiFetch;
+/**
+ * Mengambil file biner (misalnya PDF) dari API dengan token login.
+ * Dipakai untuk dokumen rahasia yang tidak boleh punya URL publik.
+ */
+export async function apiFetchBinary(endpoint: string): Promise<ArrayBuffer> {
+  const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+  const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
+  const res = await fetch(`${baseUrl}${cleanEndpoint}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({} as ApiErrorResponse));
+    throw new Error(data.message || `Request gagal: ${res.status}`);
+  }
+
+  return res.arrayBuffer();
+}

@@ -21,7 +21,12 @@ class LogPemeliharaanMotorKonversi extends Model
         // Tambahkan 3 field di bawah ini untuk mengizinkan data Checklist Visual masuk:
         'status',
         'jumlah_part_diperiksa',
-        'jumlah_part_total'
+        'jumlah_part_total',
+        'hasil_checklist',
+    ];
+
+    protected $casts = [
+        'hasil_checklist' => 'array',
     ];
 
     public function motorKonversi()

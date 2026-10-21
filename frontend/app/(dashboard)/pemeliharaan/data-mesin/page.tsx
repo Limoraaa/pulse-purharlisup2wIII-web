@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import DataMesinManager from "components/pemeliharaanmesin/DataMesinManager";
+import DataMesinManager from "components/manajemenmesin/DataMesinManager";
 
 export const metadata: Metadata = {
   title: "Data Mesin Produksi | PULSE PUSHARLIS",
@@ -7,7 +7,8 @@ export const metadata: Metadata = {
 };
 
 const DataMesinPage = () => {
-  return <DataMesinManager />;
+  // WAJIB ADA mode="pemeliharaan" (Atau dibiarkan kosong tidak apa-apa karena defaultnya ini)
+  return <DataMesinManager mode="pemeliharaan" />;
 };
 
 export default DataMesinPage;

@@ -1,23 +1,28 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
-import { Row, Col, Card, CardBody, Button, Badge, Table, Spinner, Alert } from 'react-bootstrap';
+import { Row, Col, Card, CardBody, Button, Badge, Table, Spinner, Alert, Dropdown } from 'react-bootstrap';
 import { 
   IconArrowLeft, 
   IconBox, 
   IconHistory,      
-  IconFileText, 
-  IconAlertTriangle, 
   IconMapPin,
   IconCalendarEvent,
   IconClipboardList,
   IconMapPin as IconMap,
   IconClipboardCheck,
-  IconCircleCheck
+  IconCircleCheck,
+  IconDownload,
+  IconEdit,
+  IconPlayerPause,
+  IconPlayerPlay,
+  IconTrash,
 } from '@tabler/icons-react';
 import Image from 'next/image';
 import api from 'lib/api';
-import ExpandableText from 'components/common/ExpandableText';
 import { formatTanggal } from 'components/ruangtools/common/dateUtils';
+import { useFeedback } from 'components/common/FeedbackProvider';
+import { MotorKonversiFormModal, MotorEditData } from './MotorKonversiFormModal';
+import { exportToExcel, exportToPDF, ExportColumn } from 'components/ruangtools/riwayat/common/exportUtils';
 
 // Import Modal pendukung (Pastikan Anda mengadaptasi file ini juga nantinya untuk Motor)
 import PartMappingEditorMotor from './PartMappingEditor'; // Sesuaikan path jika namanya diubah
@@ -30,12 +35,18 @@ interface MotorProps {
     nama_motor?: string;
     kode?: string;
     kode_motor?: string;
+    nomor_polisi?: string;
     status: string;
     lokasi?: string;
     lokasi_ruang?: string;
     foto_katalog?: string | null;
   };
+  // Data lengkap untuk form edit motor
+  dataEdit?: MotorEditData;
+  jumlahRiwayat?: number;
   canManage?: boolean;
+  onChanged?: () => void;
+  onDeleted?: () => void;
   onBack: () => void;
 }
 
@@ -50,16 +61,36 @@ interface LogItemType {
   jumlah_part_total?: number | null;
 }
 
+const EXPORT_COLUMNS_LOG: ExportColumn[] = [
+  { header: "No", key: "no" },
+  { header: "Uraian Pemeliharaan", key: "uraian_pemeliharaan" },
+  { header: "Waktu Pelaksana", key: "waktu_pelaksana" },
+  { header: "Keterangan", key: "keterangan" },
+  { header: "Teknisi", key: "paraf" },
+];
+
 const STATUS_BADGE = {
   baik: { label: "Baik", bg: "success" },
   perlu_perhatian: { label: "Perlu perhatian", bg: "warning" },
   rusak: { label: "Rusak", bg: "danger" },
 } as const;
 
-export default function DetailMotorKonversiManager({ motor, canManage = false, onBack }: MotorProps) {
+export default function DetailMotorKonversiManager({
+  motor,
+  dataEdit,
+  jumlahRiwayat = 0,
+  canManage = false,
+  onChanged,
+  onDeleted,
+  onBack,
+}: MotorProps) {
+  const { notify, confirm } = useFeedback();
+  const [showEdit, setShowEdit] = useState(false);
+  const [memproses, setMemproses] = useState(false);
   const motorId = motor?.id;
   const motorNama = motor?.nama_motor || motor?.nama || 'Tanpa Nama';
   const motorKode = motor?.kode_motor || motor?.kode || '-';
+  const motorPlat = motor?.nomor_polisi;
   const motorLokasi = motor?.lokasi_ruang || motor?.lokasi || '-';
   const motorStatus = motor?.status || 'Aktif';
   const motorFoto = motor?.foto_katalog;
@@ -69,6 +100,16 @@ export default function DetailMotorKonversiManager({ motor, canManage = false, o
 
   const [logs, setLogs] = useState<LogItemType[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
+  const [expandedLogs, setExpandedLogs] = useState<Set<number>>(new Set());
+
+  const toggleLog = (id: number) => {
+    setExpandedLogs((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const [showMappingEditor, setShowMappingEditor] = useState(false);
   const [showChecklistModal, setShowChecklistModal] = useState(false);
@@ -99,6 +140,61 @@ export default function DetailMotorKonversiManager({ motor, canManage = false, o
     }
   }, [activeTab, loadLogs]);
 
+  const handleToggleStatus = async () => {
+    const nonaktifkan = motorStatus !== 'Tidak Aktif';
+    const setuju = await confirm({
+      title: nonaktifkan ? 'Nonaktifkan Motor' : 'Aktifkan Motor',
+      message: nonaktifkan
+        ? `Motor "${motorNama}" tidak akan muncul lagi di katalog untuk pencatatan baru. Riwayatnya tetap tersimpan dan motor bisa diaktifkan kembali kapan saja.`
+        : `Aktifkan kembali motor "${motorNama}"? Status motor akan menjadi Aktif.`,
+      confirmLabel: nonaktifkan ? 'Ya, nonaktifkan' : 'Ya, aktifkan',
+      variant: nonaktifkan ? 'warning' : 'primary',
+    });
+    if (!setuju) return;
+
+    setMemproses(true);
+    try {
+      const res = await api<{ message: string }>(`/motor-konversi/${motorId}/toggle-status`, { method: 'PATCH' });
+      notify(res.message || 'Status motor berhasil diubah', 'success');
+      onChanged?.();
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Gagal mengubah status motor');
+    } finally {
+      setMemproses(false);
+    }
+  };
+
+  const handleHapus = async () => {
+    const setuju = await confirm({
+      title: 'Hapus Motor Permanen',
+      message: `Hapus motor "${motorNama}" (${motorKode}) secara permanen? Tindakan ini tidak dapat dibatalkan.`,
+      confirmLabel: 'Ya, hapus',
+    });
+    if (!setuju) return;
+
+    setMemproses(true);
+    try {
+      await api(`/motor-konversi/${motorId}`, { method: 'DELETE' });
+      notify('Data motor berhasil dihapus', 'success');
+      onDeleted?.();
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Gagal menghapus data motor');
+      setMemproses(false);
+    }
+  };
+
+  const exportFileName = `kartu-gantung-${motorKode.replace(/\s+/g, "-")}`;
+
+  const handleExportLogPDF = () => {
+    const dataWithIndex = logs.map((log, index) => ({ no: index + 1, ...log }));
+    exportToPDF(dataWithIndex as unknown as Record<string, unknown>[], EXPORT_COLUMNS_LOG, exportFileName, `Kartu Gantung - ${motorNama}`);
+  };
+
+  const handleExportLogExcel = () => {
+    const dataWithIndex = logs.map((log, index) => ({ no: index + 1, ...log }));
+    exportToExcel(dataWithIndex as unknown as Record<string, unknown>[], EXPORT_COLUMNS_LOG, exportFileName);
+  };
+
   return (
     <div className="detail-motor-page">
       {successMessage && (
@@ -108,8 +204,8 @@ export default function DetailMotorKonversiManager({ motor, canManage = false, o
         </Alert>
       )}
 
-      {/* Header Navigator Tombol Kembali */}
-      <div className="mb-3">
+      {/* Header Navigator Tombol Kembali + aksi kelola motor */}
+      <div className="mb-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
         <Button 
           variant="outline-secondary" 
           size="sm" 
@@ -118,6 +214,35 @@ export default function DetailMotorKonversiManager({ motor, canManage = false, o
         >
           <IconArrowLeft size={16} /> Kembali ke Katalog Motor
         </Button>
+        {canManage && dataEdit && (
+          <div className="d-flex flex-wrap gap-2">
+            <Button size="sm" variant="outline-primary" className="d-flex align-items-center gap-1" onClick={() => setShowEdit(true)} disabled={memproses}>
+              <IconEdit size={16} /> Edit
+            </Button>
+            <Button
+              size="sm"
+              variant={motorStatus === 'Tidak Aktif' ? 'outline-success' : 'outline-warning'}
+              className="d-flex align-items-center gap-1"
+              onClick={handleToggleStatus}
+              disabled={memproses}
+            >
+              {motorStatus === 'Tidak Aktif' ? <IconPlayerPlay size={16} /> : <IconPlayerPause size={16} />}
+              {motorStatus === 'Tidak Aktif' ? 'Aktifkan' : 'Nonaktifkan'}
+            </Button>
+            {/* Motor yang sudah punya log pemeliharaan hanya bisa dinonaktifkan agar riwayatnya tidak ikut terhapus */}
+            <span title={jumlahRiwayat > 0 ? 'Motor yang sudah punya riwayat tidak bisa dihapus, gunakan Nonaktifkan' : 'Hapus permanen'}>
+              <Button
+                size="sm"
+                variant="outline-danger"
+                className="d-flex align-items-center gap-1"
+                onClick={handleHapus}
+                disabled={memproses || jumlahRiwayat > 0}
+              >
+                <IconTrash size={16} /> Hapus
+              </Button>
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Hero Section: Profil Detail Motor */}
@@ -149,11 +274,11 @@ export default function DetailMotorKonversiManager({ motor, canManage = false, o
 
             <Col xs={12} md={8} lg={9}>
               <div className="mb-2 text-center text-md-start">
-                <span className="text-muted small fw-bold tracking-wider" style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>KODE: {motorKode}</span>
+                <span className="text-muted small fw-bold tracking-wider" style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>KODE: {motorKode}{motorPlat ? ` · PLAT: ${motorPlat}` : ''}</span>
                 <div className="d-flex align-items-center justify-content-center justify-content-md-start gap-3 mt-1 flex-wrap">
                   <h2 className="h2 fw-bold text-body mb-0">{motorNama}</h2>
                   <Badge 
-                    bg={motorStatus === 'Aktif' ? 'success' : motorStatus === 'Maintenance' ? 'warning' : 'danger'}
+                    bg={motorStatus === 'Aktif' ? 'success' : motorStatus === 'Maintenance' ? 'warning' : motorStatus === 'Tidak Aktif' ? 'secondary' : 'danger'}
                     className="px-3 py-1 shadow-sm"
                     style={{ fontSize: '0.75rem', fontWeight: '600' }}
                   >
@@ -170,9 +295,16 @@ export default function DetailMotorKonversiManager({ motor, canManage = false, o
                 <Col xs={12}>
                   <div className="p-3 bg-body-tertiary rounded border h-100 text-center text-md-start">
                     <div className="d-flex align-items-center justify-content-center justify-content-md-start text-muted small mb-1" style={{ fontSize: '0.75rem' }}>
-                      <IconCalendarEvent size={16} className="me-2 text-success" /> Servis / Pemeliharaan Berikutnya
+                      <IconCalendarEvent size={16} className="me-2 text-success" /> Pemeliharaan Terakhir
                     </div>
-                    <h6 className="fw-bold text-body mb-0 fs-5 mt-1">Belum Terjadwal</h6>
+                    {/* Motor belum punya rencana pemeliharaan, jadi yang ditampilkan log terakhir (data sudah urut terbaru) */}
+                    <h6 className="fw-bold text-body mb-0 fs-5 mt-1">
+                      {loadingLogs
+                        ? 'Memuat...'
+                        : logs[0]
+                          ? new Date(logs[0].waktu_pelaksana).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+                          : 'Belum ada catatan'}
+                    </h6>
                   </div>
                 </Col>
               </Row>
@@ -186,9 +318,7 @@ export default function DetailMotorKonversiManager({ motor, canManage = false, o
         <div className="bg-body-tertiary border-bottom px-3 py-3 rounded-top">
           <ul className="nav nav-pills gap-2 m-0 justify-content-center justify-content-md-start">
             {[
-              { id: 'log_pemeliharaan', label: 'Log Pemeliharaan', icon: IconHistory }, 
-              { id: 'ik', label: 'Instruksi Kerja (IK)', icon: IconFileText },
-              { id: 'hirarc', label: 'HIRARC', icon: IconAlertTriangle },
+              { id: 'log_pemeliharaan', label: 'Log Pemeliharaan', icon: IconHistory },
             ].map((tab) => {
               const IconComponent = tab.icon;
               const isActive = activeTab === tab.id;
@@ -223,6 +353,15 @@ export default function DetailMotorKonversiManager({ motor, canManage = false, o
                   <IconClipboardList size={18} /> Riwayat Log Pemeliharaan
                 </h5>
                 <div className="d-flex gap-2 flex-wrap w-100 w-md-auto justify-content-center">
+                  <Dropdown>
+                    <Dropdown.Toggle variant="outline-secondary" size="sm" className="d-flex align-items-center gap-1 shadow-sm" style={{ fontSize: '0.75rem' }}>
+                      <IconDownload size={14} /> Export
+                    </Dropdown.Toggle>
+                    <Dropdown.Menu className="shadow border-0" style={{ fontSize: '0.8rem' }}>
+                      <Dropdown.Item onClick={handleExportLogPDF}>Export sebagai PDF</Dropdown.Item>
+                      <Dropdown.Item onClick={handleExportLogExcel}>Export sebagai Excel</Dropdown.Item>
+                    </Dropdown.Menu>
+                  </Dropdown>
                   {canManage && (
                     <Button variant="outline-primary" size="sm" onClick={() => setShowMappingEditor(true)} className="d-flex align-items-center gap-1 shadow-sm" style={{ fontSize: '0.75rem' }}>
                       <IconMap size={14} /> Peta Komponen
@@ -289,7 +428,35 @@ export default function DetailMotorKonversiManager({ motor, canManage = false, o
                               ) : "-"}
                             </td>
                             <td>
-                              <ExpandableText text={log.keterangan} lines={2} />
+                              {(() => {
+                                const ket = log.keterangan || "-";
+                                const expanded = expandedLogs.has(log.id);
+                                const panjang = ket.length > 80;
+                                return (
+                                  <>
+                                    {expanded ? (
+                                      ket.split(" | ").map((bagian, i) => (
+                                        <div key={i} className="mb-1">{bagian}</div>
+                                      ))
+                                    ) : (
+                                      <div style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                        {ket}
+                                      </div>
+                                    )}
+                                    {panjang && (
+                                      <Button
+                                        variant="link"
+                                        size="sm"
+                                        className="p-0"
+                                        style={{ fontSize: '0.75rem' }}
+                                        onClick={() => toggleLog(log.id)}
+                                      >
+                                        {expanded ? "Sembunyikan" : "Selengkapnya"}
+                                      </Button>
+                                    )}
+                                  </>
+                                );
+                              })()}
                             </td>
                           </tr>
                         );
@@ -301,23 +468,6 @@ export default function DetailMotorKonversiManager({ motor, canManage = false, o
             </div>
           )}
 
-          {/* TAB: INSTRUKSI KERJA */}
-          {activeTab === 'ik' && (
-            <div className="text-center py-5 text-muted">
-              <IconFileText size={36} className="mb-2 opacity-50" />
-              <h6 className="mb-1">Dokumen Instruksi Kerja (IK)</h6>
-              <p className="small text-secondary mb-0">Menampilkan file panduan instruksi kerja untuk {motorNama}.</p>
-            </div>
-          )}
-
-          {/* TAB: HIRARC */}
-          {activeTab === 'hirarc' && (
-            <div className="text-center py-5 text-muted">
-              <IconAlertTriangle size={36} className="mb-2 opacity-50 text-warning" />
-              <h6 className="mb-1">Dokumen HIRARC</h6>
-              <p className="small text-secondary mb-0">Analisis potensi bahaya dan risiko keselamatan kerja motor {motorNama}.</p>
-            </div>
-          )}
         </CardBody>
       </Card>
 
@@ -347,6 +497,18 @@ export default function DetailMotorKonversiManager({ motor, canManage = false, o
             }}
           />
         </>
+      )}
+
+      {canManage && dataEdit && (
+        <MotorKonversiFormModal
+          show={showEdit}
+          onHide={() => setShowEdit(false)}
+          motor={dataEdit}
+          onSuccess={() => {
+            notify('Data motor berhasil diperbarui', 'success');
+            onChanged?.();
+          }}
+        />
       )}
     </div>
   );

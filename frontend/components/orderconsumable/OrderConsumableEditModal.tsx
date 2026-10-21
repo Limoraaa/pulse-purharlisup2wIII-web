@@ -1,8 +1,9 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { Modal, Form, Button, Row, Col, InputGroup } from 'react-bootstrap';
+import { Modal, Form, Button, Row, Col } from 'react-bootstrap';
 
 import { getPemintaListForConsumable, updateOrderConsumable } from '/services/orderConsumableService';
+import { useFeedback } from "components/common/FeedbackProvider";
 
 interface OrderConsumableEditModalProps {
   isOpen: boolean;
@@ -19,6 +20,7 @@ const STATUS_OPTIONS = [
 ];
 
 export default function OrderConsumableEditModal({ isOpen, onClose, onSuccess, orderData }: OrderConsumableEditModalProps) {
+  const { notify } = useFeedback();
   const [peminjamList, setPeminjamList] = useState<any[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState<any>({
@@ -89,8 +91,8 @@ export default function OrderConsumableEditModal({ isOpen, onClose, onSuccess, o
       await updateOrderConsumable(orderData.id, payload);
       onSuccess();
       onClose();
-    } catch (error) {
-      alert('Gagal memperbarui data order consumable.');
+    } catch {
+      notify('Gagal memperbarui data order consumable.');
     } finally {
       setIsSubmitting(false);
     }

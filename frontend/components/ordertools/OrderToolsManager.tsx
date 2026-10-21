@@ -13,6 +13,7 @@ import { usePermission } from "hooks/usePermissions";
 
 // IMPORT UTILITY EXPORT BAWAAN
 import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
+import { useFeedback } from "components/common/FeedbackProvider";
 
 interface OrderData {
   id: number;
@@ -55,6 +56,7 @@ const EXPORT_COLUMNS_ORDER: ExportColumn[] = [
 ];
 
 export default function OrderToolsManager() {
+  const { notify } = useFeedback();
   const canCreate = usePermission("create_order");
   const canProcess = usePermission(["process_order", "manage_order"]);
   const [orders, setOrders] = useState<OrderData[]>([]);
@@ -99,7 +101,7 @@ export default function OrderToolsManager() {
       fetchOrders();
       setTimeout(() => setSuccessMessage(null), 4000);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Gagal mengupdate status");
+      notify(err instanceof Error ? err.message : "Gagal mengupdate status");
     }
   };
 
@@ -121,7 +123,7 @@ export default function OrderToolsManager() {
       fetchOrders();
       setTimeout(() => setSuccessMessage(null), 4000);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Gagal menghapus data order");
+      notify(err instanceof Error ? err.message : "Gagal menghapus data order");
     } finally {
       setIsDeleting(false);
       setDeleteId(null);
@@ -142,9 +144,6 @@ export default function OrderToolsManager() {
     });
   }, [orders, searchTerm]);
 
-  const formatRupiah = (angka: number) => {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka || 0);
-  };
 
   const formatDateTime = (dateString?: string | null) => {
     if (!dateString) return "-";

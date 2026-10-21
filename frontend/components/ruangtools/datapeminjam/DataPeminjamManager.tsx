@@ -40,6 +40,7 @@ import {
   updateRolePeminta,
 } from "services/pemintaService";
 import { usePermission } from "hooks/usePermissions";
+import { useFeedback } from "components/common/FeedbackProvider";
 
 function sortByNama(items: PeminjamType[]): PeminjamType[] {
   return [...items].sort((a, b) => {
@@ -56,11 +57,12 @@ function sortByNama(items: PeminjamType[]): PeminjamType[] {
 const EXPORT_COLUMNS: ExportColumn[] = [
   { header: "Nama", key: "nama" },
   { header: "Divisi", key: "divisi" },
-  { header: "RFID UID", key: "rfid_uid" },
+  { header: "RFID UID", key: "id" },
   { header: "Status", key: "statusLabel" },
 ];
 
 const PeminjamManager = () => {
+  const { notify } = useFeedback();
   const canManage = usePermission("manage_master_data");
   const [peminjamList, setPeminjamList] = useState<PeminjamType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -150,14 +152,22 @@ const PeminjamManager = () => {
     setFormError(null);
     try {
       if (activeItem) {
-        const updated = await updatePeminta(activeItem.id, values);
+        const oldId = activeItem.id;
+        const updated = await updatePeminta(oldId, values);
         setPeminjamList((prev) =>
-          sortByNama(prev.map((p) => (p.id === updated.id ? updated : p)))
+          sortByNama(prev.map((p) => (p.id === oldId ? updated : p)))
+        );
+        setSuccessMessage(
+          updated.id !== oldId
+            ? `Data ${updated.nama} berhasil diperbarui. ID kartu RFID diganti menjadi ${updated.id}.`
+            : `Data ${updated.nama} berhasil diperbarui.`
         );
       } else {
         const created = await createPeminta(values);
         setPeminjamList((prev) => sortByNama([created, ...prev]));
+        setSuccessMessage(`${created.nama} berhasil ditambahkan.`);
       }
+      setTimeout(() => setSuccessMessage(null), 5000);
       setFormModalOpen(false);
       setActiveItem(null);
     } catch (err) {
@@ -181,7 +191,7 @@ const PeminjamManager = () => {
       setTimeout(() => setSuccessMessage(null), 5000);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Gagal menonaktifkan data";
-      alert(message);
+      notify(message);
     } finally {
       setDeleting(false);
     }
@@ -199,7 +209,7 @@ const PeminjamManager = () => {
       setTimeout(() => setSuccessMessage(null), 5000);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Gagal mengaktifkan data";
-      alert(message);
+      notify(message);
     } finally {
       setTogglingId(null);
     }
@@ -240,7 +250,7 @@ const PeminjamManager = () => {
       setTimeout(() => setSuccessMessage(null), 5000);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Gagal mengubah role";
-      alert(message);
+      notify(message);
     }
   };
 
