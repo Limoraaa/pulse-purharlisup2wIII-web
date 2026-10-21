@@ -16,6 +16,8 @@ import {
 } from '@tabler/icons-react';
 import Image from 'next/image';
 import api from 'lib/api';
+import ExpandableText from 'components/common/ExpandableText';
+import { formatTanggal } from 'components/ruangtools/common/dateUtils';
 
 // Import Modal pendukung (Pastikan Anda mengadaptasi file ini juga nantinya untuk Motor)
 import PartMappingEditorMotor from './PartMappingEditor'; // Sesuaikan path jika namanya diubah
@@ -272,7 +274,7 @@ export default function DetailMotorKonversiManager({ motor, canManage = false, o
                                 {log.uraian_pemeliharaan}
                               </div>
                             </td>
-                            <td className="text-center text-nowrap">{log.waktu_pelaksana}</td>
+                            <td className="text-center text-nowrap">{formatTanggal(log.waktu_pelaksana)}</td>
                             <td className="text-center fw-semibold text-secondary text-nowrap">{log.paraf}</td>
                             <td className="text-center text-nowrap fw-medium">
                               {log.jumlah_part_diperiksa != null
@@ -287,9 +289,7 @@ export default function DetailMotorKonversiManager({ motor, canManage = false, o
                               ) : "-"}
                             </td>
                             <td>
-                              <div style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={log.keterangan || ""}>
-                                {log.keterangan || "-"}
-                              </div>
+                              <ExpandableText text={log.keterangan} lines={2} />
                             </td>
                           </tr>
                         );
