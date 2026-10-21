@@ -9,6 +9,7 @@ import {
   IconActivity, 
   IconFileText, 
   IconAlertTriangle, 
+  IconPackages,
   IconMapPin,
   IconCalendarEvent,
   IconClipboardList,
@@ -35,6 +36,7 @@ import PartMappingEditor from './pemeliharaanmesin/PartMappingEditor'; // Sesuai
 import PartMappingChecklistModal from './pemeliharaanmesin/PartMappingCheckListModal'; // Sesuaikan path jika berbeda
 import RencanaMesinCard, { rencanaMesinKey } from 'components/manajemenmesin/rencanapemeliharaanmesin/RencanaMesinCard';
 import DokumenMesinPanel from './dokumenmesin/DokumenMesinPanel';
+import KebutuhanMesinPanel from './kebutuhanmesin/KebutuhanMesinPanel';
 import KalibrasiFormModal from 'components/manajemenmesin/kalibrasimesin/KalibrasiFormModal'; // Pastikan path ini benar
 import { ACTION_META, AksiCode, formatJadwal, getStatusTampil } from 'components/manajemenmesin/rencanapemeliharaanmesin/RencanaHelpers';
 import { fetchRencanaMesin } from 'services/rencanaPemeliharaanService';
@@ -570,6 +572,18 @@ export default function DetailMesinManager({
               </ul>
             </div>
 
+            {/* Kebutuhan alat & consumable: hanya di halaman Pemeliharaan */}
+            {mode === 'pemeliharaan' && (
+              <div className="d-flex align-items-center ps-4 border-start">
+                <span className="text-muted small fw-bold me-3" style={{fontSize: '0.7rem', letterSpacing: '0.5px'}}>KEBUTUHAN:</span>
+                <ul className="nav nav-pills gap-2 m-0 flex-nowrap">
+                  {[
+                    { id: 'kebutuhan', label: 'Alat & Consumable', icon: IconPackages },
+                  ].map(renderTabButton)}
+                </ul>
+              </div>
+            )}
+
           </div>
         </div>
 
@@ -1002,6 +1016,10 @@ export default function DetailMesinManager({
               title="HIRARC"
               keterangan="Analisis potensi bahaya dan risiko K3. Satu dokumen berlaku untuk semua mesin."
             />
+          )}
+
+          {activeTab === 'kebutuhan' && mode === 'pemeliharaan' && mesinId && (
+            <KebutuhanMesinPanel mesinId={mesinId} canManage={canManage} />
           )}
         </CardBody>
       </Card>
