@@ -26,7 +26,7 @@ import Flex from "components/common/Flex";
 import DetailMotorKonversiManager from "./DetailMotorKonversiManager";
 import { MotorKonversiFormModal } from "./MotorKonversiFormModal";
 import api from "lib/api";
-import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
+import { exportToExcel, exportToPDF, ExportColumn, ringkasStatus } from "components/ruangtools/riwayat/common/exportUtils";
 import { usePermission } from "hooks/usePermissions";
 
 interface MotorKonversiItemType {
@@ -107,10 +107,14 @@ const DataMotorKonversiManager = () => {
   const adaNonaktif = motorList.some((item) => item.status === "Tidak Aktif");
 
   // Handler Export Katalog
+  const exportInfo = () => ({
+    kiri: [{ label: "Cakupan", value: tampilkanNonaktif ? "Termasuk motor nonaktif" : "Motor aktif" }],
+    kanan: [{ label: "Ringkasan Status", value: ringkasStatus(filteredMotor as unknown as Record<string, unknown>[], "status") }],
+  });
   const handleExportPDF = () =>
-    exportToPDF(filteredMotor as unknown as Record<string, unknown>[], EXPORT_COLUMNS_MOTOR, "data-motor-konversi", "Data Motor Konversi");
+    exportToPDF(filteredMotor as unknown as Record<string, unknown>[], EXPORT_COLUMNS_MOTOR, "data-motor-konversi", "Data Motor Konversi", exportInfo());
   const handleExportExcel = () =>
-    exportToExcel(filteredMotor as unknown as Record<string, unknown>[], EXPORT_COLUMNS_MOTOR, "data-motor-konversi");
+    exportToExcel(filteredMotor as unknown as Record<string, unknown>[], EXPORT_COLUMNS_MOTOR, "data-motor-konversi", "Data Motor Konversi", exportInfo());
 
   // Render komponen detail jika ada motor yang dipilih
   if (selectedMotor) {

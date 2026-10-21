@@ -35,7 +35,7 @@ import {
   dateInFilter,
   parseRowDate,
 } from "components/ruangtools/common/dateUtils";
-import { exportToExcel, exportToPDF, ExportColumn, getFilteredExportFileName } from "components/ruangtools/riwayat/common/exportUtils";
+import { exportToExcel, exportToPDF, ExportColumn, getFilteredExportFileName, infoFilter } from "components/ruangtools/riwayat/common/exportUtils";
 import { getToolMasukColumns } from "components/ruangtools/toolsmasuk/ColumnDefination";
 import ToolMasukFormModal from "components/ruangtools/toolsmasuk/ToolMasukFormModal";
 import DeleteConfirmModal from "components/ruangtools/toolsmasuk/DeleteConfirmModal";
@@ -136,8 +136,9 @@ const ToolMasukManager = () => {
     nama_pencatat: getNamaPencatat(item),
   })), [filteredMasukList]);
   const getExportName = () => getFilteredExportFileName("Tools_Masuk", namaFilter);
-  const handleExportPdf = () => exportToPDF(exportRows, EXPORT_COLUMNS, getExportName(), "Tools Masuk");
-  const handleExportExcel = () => exportToExcel(exportRows, EXPORT_COLUMNS, getExportName(), "Tools Masuk");
+  const exportInfo = () => ({ kiri: infoFilter(tanggalFilter, namaFilter, "Pencatat") });
+  const handleExportPdf = () => exportToPDF(exportRows, EXPORT_COLUMNS, getExportName(), "Tools Masuk", exportInfo());
+  const handleExportExcel = () => exportToExcel(exportRows, EXPORT_COLUMNS, getExportName(), "Tools Masuk", exportInfo());
 
   const loadTools = async () => {
     setLoadingTools(true);

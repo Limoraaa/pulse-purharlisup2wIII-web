@@ -9,7 +9,7 @@ import api from "lib/api";
 import TanstackTable from "components/table/TanstackTable";
 import { usePermission } from "hooks/usePermissions";
 import { useFeedback } from "components/common/FeedbackProvider";
-import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
+import { exportToExcel, exportToPDF, ExportColumn, ringkasStatus } from "components/ruangtools/riwayat/common/exportUtils";
 import MesinFormModal, { MesinFormData } from "../MesinFormModal";
 
 interface MesinItem extends MesinFormData {
@@ -59,6 +59,11 @@ export default function DataMasterMesinManager() {
           [m.kode_mesin, m.nama_mesin, m.lokasi_ruang].some((v) => (v || "").toLowerCase().includes(keyword)))
     );
   }, [mesinList, searchTerm, statusFilter]);
+
+  const exportInfo = () => ({
+    kiri: [{ label: "Filter Status", value: statusFilter === "semua" ? "Semua status" : statusFilter }],
+    kanan: [{ label: "Ringkasan Status", value: ringkasStatus(filtered as unknown as Record<string, unknown>[], "status") }],
+  });
 
   const bukaTambah = () => {
     setMesinEdit(null);
@@ -239,14 +244,14 @@ export default function DataMasterMesinManager() {
               <Button
                 variant="outline-danger"
                 size="sm"
-                onClick={() => exportToPDF(filtered as unknown as Record<string, unknown>[], EXPORT_COLUMNS, "data-mesin-produksi", "Data Mesin Produksi")}
+                onClick={() => exportToPDF(filtered as unknown as Record<string, unknown>[], EXPORT_COLUMNS, "data-master-mesin", "Data Master Mesin", exportInfo())}
               >
                 PDF
               </Button>
               <Button
                 variant="outline-success"
                 size="sm"
-                onClick={() => exportToExcel(filtered as unknown as Record<string, unknown>[], EXPORT_COLUMNS, "data-mesin-produksi")}
+                onClick={() => exportToExcel(filtered as unknown as Record<string, unknown>[], EXPORT_COLUMNS, "data-master-mesin", "Data Master Mesin", exportInfo())}
               >
                 Excel
               </Button>

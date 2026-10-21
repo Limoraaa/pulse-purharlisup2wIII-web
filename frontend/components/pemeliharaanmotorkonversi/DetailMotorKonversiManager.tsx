@@ -22,7 +22,7 @@ import api from 'lib/api';
 import { formatTanggal } from 'components/ruangtools/common/dateUtils';
 import { useFeedback } from 'components/common/FeedbackProvider';
 import { MotorKonversiFormModal, MotorEditData } from './MotorKonversiFormModal';
-import { exportToExcel, exportToPDF, ExportColumn } from 'components/ruangtools/riwayat/common/exportUtils';
+import { exportToExcel, exportToPDF, ExportColumn, ringkasStatus } from 'components/ruangtools/riwayat/common/exportUtils';
 
 // Import Modal pendukung (Pastikan Anda mengadaptasi file ini juga nantinya untuk Motor)
 import PartMappingEditorMotor from './PartMappingEditor'; // Sesuaikan path jika namanya diubah
@@ -185,14 +185,22 @@ export default function DetailMotorKonversiManager({
 
   const exportFileName = `kartu-gantung-${motorKode.replace(/\s+/g, "-")}`;
 
+  const exportLogInfo = () => ({
+    kiri: [
+      { label: "Motor", value: `${motorKode} - ${motorNama}` },
+      { label: "Lokasi", value: motorLokasi },
+    ],
+    kanan: [{ label: "Ringkasan Status", value: ringkasStatus(logs as unknown as Record<string, unknown>[], "status", (v) => ({ baik: "Baik", perlu_perhatian: "Perlu perhatian", rusak: "Rusak" } as Record<string, string>)[v] ?? "Tanpa status") }],
+  });
+
   const handleExportLogPDF = () => {
     const dataWithIndex = logs.map((log, index) => ({ no: index + 1, ...log }));
-    exportToPDF(dataWithIndex as unknown as Record<string, unknown>[], EXPORT_COLUMNS_LOG, exportFileName, `Kartu Gantung - ${motorNama}`);
+    exportToPDF(dataWithIndex as unknown as Record<string, unknown>[], EXPORT_COLUMNS_LOG, exportFileName, "Kartu Gantung Pemeliharaan Motor Konversi", exportLogInfo());
   };
 
   const handleExportLogExcel = () => {
     const dataWithIndex = logs.map((log, index) => ({ no: index + 1, ...log }));
-    exportToExcel(dataWithIndex as unknown as Record<string, unknown>[], EXPORT_COLUMNS_LOG, exportFileName);
+    exportToExcel(dataWithIndex as unknown as Record<string, unknown>[], EXPORT_COLUMNS_LOG, exportFileName, "Kartu Gantung Pemeliharaan Motor Konversi", exportLogInfo());
   };
 
   return (

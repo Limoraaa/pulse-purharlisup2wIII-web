@@ -35,7 +35,7 @@ import {
   dateInFilter,
   parseRowDate,
 } from "components/ruangtools/common/dateUtils";
-import { exportToExcel, exportToPDF, ExportColumn, getFilteredExportFileName } from "components/ruangtools/riwayat/common/exportUtils";
+import { exportToExcel, exportToPDF, ExportColumn, getFilteredExportFileName, infoFilter } from "components/ruangtools/riwayat/common/exportUtils";
 
 const PeminjamanAktifManager = () => {
   const [items, setItems] = useState<PeminjamanAktifItemType[]>([]);
@@ -74,8 +74,9 @@ const PeminjamanAktifManager = () => {
   const namaOptions = useMemo(() => Array.from(new Set(items.map((item) => item.namaPeminjam))).sort(), [items]);
   const exportRows = useMemo(() => filteredItems.map((item) => ({ ...item })), [filteredItems]);
   const getExportName = () => getFilteredExportFileName("Peminjaman_Aktif", namaFilter);
-  const handleExportPdf = () => exportToPDF(exportRows, EXPORT_COLUMNS, getExportName(), "Peminjaman Aktif");
-  const handleExportExcel = () => exportToExcel(exportRows, EXPORT_COLUMNS, getExportName(), "Peminjaman Aktif");
+  const exportInfo = () => ({ kiri: infoFilter(tanggalFilter, namaFilter, "Peminjam") });
+  const handleExportPdf = () => exportToPDF(exportRows, EXPORT_COLUMNS, getExportName(), "Peminjaman Aktif", exportInfo());
+  const handleExportExcel = () => exportToExcel(exportRows, EXPORT_COLUMNS, getExportName(), "Peminjaman Aktif", exportInfo());
 
   const loadData = async () => {
     setLoading(true);

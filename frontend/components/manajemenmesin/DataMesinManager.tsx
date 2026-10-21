@@ -25,7 +25,7 @@ import Link from "next/link";
 import Flex from "components/common/Flex";
 import DetailMesinManager from "./DetailMesinManager";
 import api from "lib/api";
-import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
+import { exportToExcel, exportToPDF, ExportColumn, ringkasStatus } from "components/ruangtools/riwayat/common/exportUtils";
 import { usePermission } from "hooks/usePermissions";
 
 // Interface untuk data mesin dari API
@@ -132,10 +132,17 @@ const DataMesinManager = ({ mode = 'pemeliharaan' }: DataMesinManagerProps) => {
   const adaNonaktif = mesinList.some((item) => item.status === "Tidak Aktif");
 
   // Handler Export Katalog
+  const exportInfo = () => ({
+    kiri: [
+      { label: "Modul", value: mode === "operasional" ? "Operasional Mesin" : "Pemeliharaan Mesin" },
+      { label: "Cakupan", value: tampilkanNonaktif ? "Termasuk mesin nonaktif" : "Mesin aktif" },
+    ],
+    kanan: [{ label: "Ringkasan Status", value: ringkasStatus(filteredMesin as unknown as Record<string, unknown>[], "status") }],
+  });
   const handleExportPDF = () =>
-    exportToPDF(filteredMesin as unknown as Record<string, unknown>[], EXPORT_COLUMNS_MESIN, "data-mesin-produksi", "Data Mesin Produksi");
+    exportToPDF(filteredMesin as unknown as Record<string, unknown>[], EXPORT_COLUMNS_MESIN, "data-mesin-produksi", "Data Mesin Produksi", exportInfo());
   const handleExportExcel = () =>
-    exportToExcel(filteredMesin as unknown as Record<string, unknown>[], EXPORT_COLUMNS_MESIN, "data-mesin-produksi");
+    exportToExcel(filteredMesin as unknown as Record<string, unknown>[], EXPORT_COLUMNS_MESIN, "data-mesin-produksi", "Data Mesin Produksi", exportInfo());
 
   // Jika ada mesin yang dipilih, langsung render komponen DetailMesinManager dan alirkan props 'mode'
   if (selectedMesin) {

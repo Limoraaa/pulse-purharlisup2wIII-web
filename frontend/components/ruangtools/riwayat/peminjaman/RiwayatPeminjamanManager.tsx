@@ -26,7 +26,7 @@ import {
 } from "components/ruangtools/common/dateUtils";
 import { getRiwayatPeminjamanColumns } from "components/ruangtools/riwayat/peminjaman/ColumnDefination";
 import DetailTransaksiModal from "components/ruangtools/riwayat/peminjaman/DetailTransaksiModal";
-import { exportToExcel, exportToPDF, ExportColumn, getFilteredExportFileName } from "components/ruangtools/riwayat/common/exportUtils";
+import { exportToExcel, exportToPDF, ExportColumn, getFilteredExportFileName, infoFilter } from "components/ruangtools/riwayat/common/exportUtils";
 
 import { getRiwayatPeminjaman } from "services/peminjamanService";
 
@@ -140,10 +140,11 @@ const RiwayatPeminjamanManager = () => {
     setDetailModalOpen(true);
   };
 
+  const exportInfo = () => ({ kiri: infoFilter(tanggalFilter, namaFilter, "Nama Peminjam") });
   const handleExportPDF = () =>
-    exportToPDF(filteredList, EXPORT_COLUMNS, getFilteredExportFileName("Riwayat_Peminjaman_Tools", namaFilter), "Riwayat Peminjaman Tools");
+    exportToPDF(filteredList, EXPORT_COLUMNS, getFilteredExportFileName("Riwayat_Peminjaman_Tools", namaFilter), "Riwayat Peminjaman Tools", exportInfo());
   const handleExportExcel = () =>
-    exportToExcel(filteredList, EXPORT_COLUMNS, getFilteredExportFileName("Riwayat_Peminjaman_Tools", namaFilter));
+    exportToExcel(filteredList, EXPORT_COLUMNS, getFilteredExportFileName("Riwayat_Peminjaman_Tools", namaFilter), "Riwayat Peminjaman Tools", exportInfo());
 
   const columns = getRiwayatPeminjamanColumns({
     onDetail: openDetailModal,

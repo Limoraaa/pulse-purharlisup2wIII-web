@@ -24,12 +24,7 @@ import {
   dateInFilter,
   parseRowDate,
 } from "components/ruangtools/common/dateUtils";
-import {
-  exportToExcel,
-  exportToPDF,
-  ExportColumn,
-  getFilteredExportFileName,
-} from "components/ruangtools/riwayat/common/exportUtils";
+import { exportToExcel, exportToPDF, ExportColumn, getFilteredExportFileName, infoFilter } from "components/ruangtools/riwayat/common/exportUtils";
 import { getLaporanKerusakanColumns } from "components/ruangtools/laporan/kerusakan/ColumnDefination";
 import DetailLaporanModal from "components/ruangtools/laporan/kerusakan/DetailLaporanModal";
 import ConfirmActionModal from "components/ruangtools/laporan/kerusakan/ConfirmActionModal";
@@ -220,10 +215,11 @@ const LaporanKerusakanManager = () => {
     setDetailModalOpen(true);
   };
 
+  const exportInfo = () => ({ kiri: infoFilter(tanggalFilter, namaFilter, "Nama Peminjam") });
   const handleExportPDF = () =>
-    exportToPDF(filteredList, EXPORT_COLUMNS, getFilteredExportFileName("Laporan_Kerusakan_Alat", namaFilter), "Laporan Kerusakan Alat");
+    exportToPDF(filteredList, EXPORT_COLUMNS, getFilteredExportFileName("Laporan_Kerusakan_Alat", namaFilter), "Laporan Kerusakan Alat", exportInfo());
   const handleExportExcel = () =>
-    exportToExcel(filteredList, EXPORT_COLUMNS, getFilteredExportFileName("Laporan_Kerusakan_Alat", namaFilter));
+    exportToExcel(filteredList, EXPORT_COLUMNS, getFilteredExportFileName("Laporan_Kerusakan_Alat", namaFilter), "Laporan Kerusakan Alat", exportInfo());
 
   const columns = getLaporanKerusakanColumns({
   canProcess,
