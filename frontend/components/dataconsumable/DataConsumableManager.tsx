@@ -12,9 +12,8 @@ import {
   Alert,
   InputGroup,
   Form,
-  Toast,
-  ToastContainer,
 } from "react-bootstrap";
+import { useFeedback } from "components/common/FeedbackProvider";
 import {
   IconPlus,
   IconCircleCheck,
@@ -117,14 +116,8 @@ const DataConsumableManager = () => {
   const [isSubmittingCart, setIsSubmittingCart] = useState(false);
   const [outError, setOutError] = useState<string | null>(null);
 
-  // ---- Toast pengganti alert() bawaan browser ----
-  const [toast, setToast] = useState<{ show: boolean; message: string; variant: "success" | "danger" | "warning" }>({
-    show: false,
-    message: "",
-    variant: "danger",
-  });
-  const showToast = (message: string, variant: "success" | "danger" | "warning" = "danger") =>
-    setToast({ show: true, message, variant });
+  // ---- Notifikasi (popup bersama dari FeedbackProvider) ----
+  const { notify: showToast } = useFeedback();
 
   // ---- Timer untuk Debounce API ----
   const debounceTimers = useRef<Map<string | number, NodeJS.Timeout>>(new Map());
@@ -322,7 +315,7 @@ const DataConsumableManager = () => {
 
     window.addEventListener('keydown', handleGlobalScan);
     return () => window.removeEventListener('keydown', handleGlobalScan);
-  }, [consumables, tools, cart, loadCart]);
+  }, [consumables, tools, cart, loadCart, showToast]);
 
   const filteredConsumables = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
@@ -490,7 +483,7 @@ const DataConsumableManager = () => {
     } finally {
       pendingAddRef.current.delete(item.id);
     }
-  }, [loadCart]);
+  }, [loadCart, showToast]);
 
   const handleAnimationEnd = (id: string) => {
     setFlyAnimations((prev) => prev.filter((a) => a.id !== id));
@@ -867,19 +860,6 @@ const columns = useMemo(
       />
       <AddToCartFlyEffect animations={flyAnimations} onAnimationEnd={handleAnimationEnd} />
 
-      <ToastContainer position="top-end" className="p-3" style={{ zIndex: 9999 }}>
-        <Toast
-          show={toast.show}
-          onClose={() => setToast((t) => ({ ...t, show: false }))}
-          delay={3000}
-          autohide
-          bg={toast.variant}
-        >
-          <Toast.Body className={toast.variant === "warning" ? "" : "text-white"}>
-            {toast.message}
-          </Toast.Body>
-        </Toast>
-      </ToastContainer>
 
       {/* MODAL CHECKOUT KELUAR UNIVERSAL */}
       <LoanFormModal
