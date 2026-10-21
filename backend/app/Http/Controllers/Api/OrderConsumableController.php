@@ -35,7 +35,7 @@ class OrderConsumableController extends Controller
     {
         $validated = $request->validate([
             'peminta_id'        => 'required|exists:peminta,id',
-            'consumable_id'     => 'nullable|string', // Disesuaikan dari tool_id
+            'consumable_id'     => 'nullable|uuid|exists:consumables,id', // UUID dari Data Consumable
             'kode_barang'       => 'nullable|string',
             'nama_barang'       => 'required|string',
             'merek'             => 'nullable|string',
@@ -60,7 +60,7 @@ class OrderConsumableController extends Controller
 
         $validated = $request->validate([
             'peminta_id'        => 'sometimes|required|exists:peminta,id',
-            'consumable_id'     => 'nullable|string', // Disesuaikan dari tool_id
+            'consumable_id'     => 'nullable|uuid|exists:consumables,id', // UUID dari Data Consumable
             'kode_barang'       => 'nullable|string',
             'nama_barang'       => 'sometimes|required|string',
             'merek'             => 'nullable|string',

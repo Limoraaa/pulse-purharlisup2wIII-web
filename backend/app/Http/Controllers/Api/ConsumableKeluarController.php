@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class ConsumableKeluarController extends Controller
 {
@@ -53,6 +54,10 @@ class ConsumableKeluarController extends Controller
 
         if (!$tool && !$consumable) {
             return response()->json(['message' => 'Item tidak ditemukan di data Tools maupun Consumable.'], 404);
+        }
+
+        if (($tool && !$tool->is_active) || ($consumable && !$consumable->is_active)) {
+            return response()->json(['message' => 'Item ini sudah dinonaktifkan dan tidak bisa dipinjam/diambil.'], 422);
         }
 
         $isTool = (bool) $tool;
@@ -199,12 +204,17 @@ class ConsumableKeluarController extends Controller
     public function prosesCartConsumable(Request $request)
     {
         $request->validate([
-            'peminta_id'     => 'required|string|exists:peminta,id',
-            'dicatat_oleh'   => 'required|uuid|exists:users,id',
+            'peminta_id'     => ['required', 'string', Rule::exists('peminta', 'id')->where('aktif', true)],
+            'dicatat_oleh'   => 'nullable|uuid|exists:users,id',
             'nama_pekerjaan' => 'required|string|max:255',
             'pekerjaan_area' => 'nullable|string|max:255',
             'keterangan'     => 'nullable|string',
+        ], [
+            'peminta_id.exists' => 'Peminjam tidak terdaftar atau sudah dinonaktifkan.',
         ]);
+
+        // Pencatat transaksi = akun yang sedang login
+        $request->merge(['dicatat_oleh' => $request->user()->id]);
 
         $staticUserId = self::STATIC_USER_ID;
         $authUserId = $request->user('sanctum')?->id;
@@ -228,6 +238,9 @@ class ConsumableKeluarController extends Controller
             $consumable = Consumable::find($item->consumable_id);
             if (!$consumable) {
                 return response()->json(['message' => 'Salah satu bahan di keranjang sudah tidak ada'], 422);
+            }
+            if (!$consumable->is_active) {
+                return response()->json(['message' => "Bahan {$consumable->nama} sudah dinonaktifkan, hapus dari keranjang terlebih dahulu."], 422);
             }
             if ($item->qty > $consumable->stok_tersedia) {
                 return response()->json([
@@ -328,7 +341,15 @@ class ConsumableKeluarController extends Controller
         $consumableKeluar = ConsumableKeluar::find($id);
         if (! $consumableKeluar) return response()->json(['message' => 'Data pengeluaran tidak ditemukan'], 404);
 
-        $consumableKeluar->delete();
-        return response()->json(['message' => 'Data pengeluaran berhasil dihapus']);
+        // Pengeluaran dibatalkan -> stok bahan dikembalikan
+        DB::transaction(function () use ($consumableKeluar) {
+            $consumable = Consumable::lockForUpdate()->find($consumableKeluar->consumable_id);
+            if ($consumable) {
+                $consumable->increment('stok_tersedia', $consumableKeluar->jumlah_keluar);
+            }
+            $consumableKeluar->delete();
+        });
+
+        return response()->json(['message' => 'Data pengeluaran berhasil dihapus, stok dikembalikan']);
     }
 }
