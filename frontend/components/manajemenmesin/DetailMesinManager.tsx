@@ -36,7 +36,7 @@ import PartMappingChecklistModal from './pemeliharaanmesin/PartMappingCheckListM
 import RencanaMesinCard, { rencanaMesinKey } from 'components/manajemenmesin/rencanapemeliharaanmesin/RencanaMesinCard';
 import DokumenMesinPanel from './dokumenmesin/DokumenMesinPanel';
 import KalibrasiFormModal from 'components/manajemenmesin/kalibrasimesin/KalibrasiFormModal'; // Pastikan path ini benar
-import { ACTION_META, formatJadwal, getStatusTampil } from 'components/manajemenmesin/rencanapemeliharaanmesin/RencanaHelpers';
+import { ACTION_META, AksiCode, formatJadwal, getStatusTampil } from 'components/manajemenmesin/rencanapemeliharaanmesin/RencanaHelpers';
 import { fetchRencanaMesin } from 'services/rencanaPemeliharaanService';
 import { useFeedback } from "components/common/FeedbackProvider";
 
@@ -73,6 +73,7 @@ interface LogItemType {
   status?: "baik" | "perlu_perhatian" | "rusak" | null;
   jumlah_part_diperiksa?: number | null;
   jumlah_part_total?: number | null;
+  aksi?: AksiCode | null;
 }
 
 interface LogAktivitasType {
@@ -735,24 +736,25 @@ export default function DetailMesinManager({
                   <thead className="table-light text-center">
                     <tr>
                       <th style={{ width: "5%" }}>No</th>
-                      <th className="text-start" style={{ width: "25%" }}>Uraian Pemeliharaan</th>
+                      <th className="text-start" style={{ width: "23%" }}>Uraian Pemeliharaan</th>
                       <th style={{ width: "12%" }}>Waktu Pelaksana</th>
-                      <th style={{ width: "13%" }}>Teknisi</th>
-                      <th style={{ width: "10%" }}>Part Diperiksa</th>
+                      <th style={{ width: "7%" }}>Tindakan</th>
+                      <th style={{ width: "12%" }}>Teknisi</th>
+                      <th style={{ width: "9%" }}>Part Diperiksa</th>
                       <th style={{ width: "10%" }}>Status</th>
-                      <th className="text-start" style={{ width: "25%" }}>Keterangan</th>
+                      <th className="text-start" style={{ width: "22%" }}>Keterangan</th>
                     </tr>
                   </thead>
                   <tbody>
                     {loadingLogs ? (
                       <tr>
-                        <td colSpan={7} className="text-center py-4 text-muted">
+                        <td colSpan={8} className="text-center py-4 text-muted">
                           <Spinner animation="border" size="sm" className="me-2" /> Memuat riwayat log pemeliharaan...
                         </td>
                       </tr>
                     ) : logs.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="text-center py-5 text-secondary">
+                        <td colSpan={8} className="text-center py-5 text-secondary">
                           <IconHistory size={32} className="mb-2 opacity-50" /><br/>
                           Belum ada catatan log pemeliharaan untuk mesin ini.
                         </td>
@@ -769,6 +771,23 @@ export default function DetailMesinManager({
                               </div>
                             </td>
                             <td className="text-center text-nowrap">{formatTanggal(log.waktu_pelaksana)}</td>
+                            <td className="text-center">
+                              {log.aksi && ACTION_META[log.aksi] ? (
+                                <span
+                                  className="d-inline-flex align-items-center justify-content-center rounded fw-bold"
+                                  style={{
+                                    width: 24,
+                                    height: 24,
+                                    fontSize: 12,
+                                    background: ACTION_META[log.aksi].color,
+                                    color: ACTION_META[log.aksi].textColor,
+                                  }}
+                                  title={`${log.aksi} - ${ACTION_META[log.aksi].label}`}
+                                >
+                                  {log.aksi}
+                                </span>
+                              ) : "-"}
+                            </td>
                             <td className="text-center fw-semibold text-secondary">{log.paraf}</td>
                             <td className="text-center text-nowrap fw-medium">
                               {log.jumlah_part_diperiksa != null
