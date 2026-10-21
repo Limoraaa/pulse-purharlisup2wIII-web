@@ -12,7 +12,7 @@ import OrderConsumableEditModal from './OrderConsumableEditModal';
 import { getOrderConsumables, updateOrderConsumableStatus, deleteOrderConsumable } from '/services/orderConsumableService';
 import { usePermission } from "hooks/usePermissions";
 
-import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
+import { exportToExcel, exportToPDF, ExportColumn, ringkasStatus } from "components/ruangtools/riwayat/common/exportUtils";
 import { useFeedback } from "components/common/FeedbackProvider";
 
 interface OrderData {
@@ -165,7 +165,11 @@ export default function OrderConsumableManager() {
       dataToExport as unknown as Record<string, unknown>[],
       EXPORT_COLUMNS_ORDER,
       "data-order-consumable",
-      "Laporan Order Consumable"
+      "Laporan Order Consumable",
+      {
+        kiri: [{ label: "Filter Status", value: statusFilter === "semua" ? "Semua" : statusFilter }],
+        kanan: [{ label: "Ringkasan Status", value: ringkasStatus(dataToExport as unknown as Record<string, unknown>[], "status_pembelian") }],
+      }
     );
   };
 
@@ -182,7 +186,12 @@ export default function OrderConsumableManager() {
     exportToExcel(
       dataToExport as unknown as Record<string, unknown>[],
       EXPORT_COLUMNS_ORDER,
-      "data-order-consumable"
+      "data-order-consumable",
+      "Laporan Order Consumable",
+      {
+        kiri: [{ label: "Filter Status", value: statusFilter === "semua" ? "Semua" : statusFilter }],
+        kanan: [{ label: "Ringkasan Status", value: ringkasStatus(dataToExport as unknown as Record<string, unknown>[], "status_pembelian") }],
+      }
     );
   };
 

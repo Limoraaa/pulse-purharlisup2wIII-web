@@ -36,7 +36,7 @@ import {
   dateInFilter,
   parseRowDate,
 } from "components/ruangtools/common/dateUtils";
-import { exportToExcel, exportToPDF, ExportColumn, getFilteredExportFileName } from "components/ruangtools/riwayat/common/exportUtils";
+import { exportToExcel, exportToPDF, ExportColumn, getFilteredExportFileName, infoFilter } from "components/ruangtools/riwayat/common/exportUtils";
 import { getConsumableMasukColumns } from "components/ruangtools/consumablemasuk/ColumnDefination";
 import ConsumableMasukFormModal from "components/ruangtools/consumablemasuk/ConsumableMasukFormModal";
 import DeleteConfirmModal from "components/ruangtools/consumablemasuk/DeleteConfirmModal";
@@ -143,8 +143,9 @@ const ConsumableMasukManager = () => {
   })), [filteredMasukList]);
   
   const getExportName = () => getFilteredExportFileName("Consumable_Masuk", namaFilter);
-  const handleExportPdf = () => exportToPDF(exportRows, EXPORT_COLUMNS, getExportName(), "Consumable Masuk");
-  const handleExportExcel = () => exportToExcel(exportRows, EXPORT_COLUMNS, getExportName(), "Consumable Masuk");
+  const exportInfo = () => ({ kiri: infoFilter(tanggalFilter, namaFilter, "Pencatat") });
+  const handleExportPdf = () => exportToPDF(exportRows, EXPORT_COLUMNS, getExportName(), "Consumable Masuk", exportInfo());
+  const handleExportExcel = () => exportToExcel(exportRows, EXPORT_COLUMNS, getExportName(), "Consumable Masuk", exportInfo());
 
   const loadConsumables = async () => {
     setLoadingConsumables(true);

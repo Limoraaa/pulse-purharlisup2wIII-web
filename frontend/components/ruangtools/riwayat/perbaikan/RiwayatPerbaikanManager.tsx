@@ -24,12 +24,7 @@ import {
   dateInFilter,
   parseRowDate,
 } from "components/ruangtools/common/dateUtils";
-import {
-  exportToExcel,
-  exportToPDF,
-  ExportColumn,
-  getFilteredExportFileName,
-} from "components/ruangtools/riwayat/common/exportUtils";
+import { exportToExcel, exportToPDF, ExportColumn, getFilteredExportFileName, infoFilter } from "components/ruangtools/riwayat/common/exportUtils";
 import { getRiwayatPerbaikanColumns } from "components/ruangtools/riwayat/perbaikan/ColumnDefination";
 import DetailLaporanModal from "components/ruangtools/laporan/kerusakan/DetailLaporanModal";
 
@@ -115,10 +110,11 @@ const RiwayatPerbaikanManager = () => {
     setDetailModalOpen(true);
   };
 
+  const exportInfo = () => ({ kiri: infoFilter(tanggalFilter, namaFilter, "Nama Peminjam") });
   const handleExportPDF = () =>
-    exportToPDF(filteredList, EXPORT_COLUMNS, getFilteredExportFileName("Riwayat_Perbaikan_Alat", namaFilter), "Riwayat Perbaikan Alat");
+    exportToPDF(filteredList, EXPORT_COLUMNS, getFilteredExportFileName("Riwayat_Perbaikan_Alat", namaFilter), "Riwayat Perbaikan Alat", exportInfo());
   const handleExportExcel = () =>
-    exportToExcel(filteredList, EXPORT_COLUMNS, getFilteredExportFileName("Riwayat_Perbaikan_Alat", namaFilter));
+    exportToExcel(filteredList, EXPORT_COLUMNS, getFilteredExportFileName("Riwayat_Perbaikan_Alat", namaFilter), "Riwayat Perbaikan Alat", exportInfo());
 
   const columns = getRiwayatPerbaikanColumns({
     onDetail: openDetailModal,

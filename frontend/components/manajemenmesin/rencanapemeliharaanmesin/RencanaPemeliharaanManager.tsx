@@ -35,14 +35,17 @@ import { ColumnDef } from "@tanstack/react-table";
 // Library untuk Custom Export Matrix (PDF & Styled Excel)
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-// Menggunakan xlsx-js-style agar support warna, border, dan alignment
-import XLSX from "xlsx-js-style";
+import ExcelJS from "exceljs";
 
 import { usePermission } from "hooks/usePermissions";
 import {
+  addExcelKop,
+  downloadWorkbook,
+  drawPdfKop,
   exportToExcel,
   exportToPDF,
   ExportColumn,
+  ringkasStatus,
 } from "components/ruangtools/riwayat/common/exportUtils";
 import TanstackTable from "components/table/TanstackTable";
 import Flex from "components/common/Flex";
@@ -402,19 +405,37 @@ const RencanaPemeliharaanManager = () => {
       rab: formatRupiah(p.rab),
     }));
 
+  const judulExport = `Rencana Pemeliharaan Mesin Tahun ${tahun}`;
+
+  const exportInfo = () => ({
+    kiri: [
+      { label: "Tahun", value: tahun },
+      { label: "Mesin", value: searchTerm.trim() ? `Pencarian "${searchTerm.trim()}"` : "Semua mesin" },
+    ],
+    kanan: [
+      {
+        label: "Ringkasan Status",
+        value: ringkasStatus(buildExportDataList() as unknown as Record<string, unknown>[], "status"),
+      },
+    ],
+  });
+
   const handleExportPDFList = () =>
     exportToPDF(
       buildExportDataList() as unknown as Record<string, unknown>[],
       EXPORT_COLUMNS_LIST,
       `rencana-pemeliharaan-list-${tahun}`,
-      `Rencana Pemeliharaan Mesin (List) - Tahun ${tahun}`
+      judulExport,
+      exportInfo()
     );
 
   const handleExportExcelList = () =>
     exportToExcel(
       buildExportDataList() as unknown as Record<string, unknown>[],
       EXPORT_COLUMNS_LIST,
-      `rencana-pemeliharaan-list-${tahun}`
+      `rencana-pemeliharaan-list-${tahun}`,
+      judulExport,
+      exportInfo()
     );
 
   // ================= HELPER EXPORT MATRIX =================
@@ -464,15 +485,10 @@ const RencanaPemeliharaanManager = () => {
   ];
 
   // ================= 2. EXPORT PDF FORMAT MATRIX (PERSIS UI) =================
-  const handleExportPDFMatrix = () => {
+  const handleExportPDFMatrix = async () => {
     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
 
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.text(`RENCANA PEMELIHARAAN MESIN - TAHUN ${tahun}`, 10, 12);
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "normal");
-    doc.text("Kelola dan pantau jadwal preventive maintenance mesin (Matriks Tahunan W1 - W4)", 10, 17);
+    const startY = await drawPdfKop(doc, judulExport, filteredPlans.length, exportInfo(), 8);
 
     const headRow1: any[] = [
       { content: "KODE & NAMA MESIN", rowSpan: 2, styles: { valign: "middle", halign: "left" } },
@@ -574,7 +590,7 @@ const RencanaPemeliharaanManager = () => {
     });
 
     autoTable(doc, {
-      startY: 21,
+      startY,
       head: [headRow1, headRow2],
       body: bodyRows,
       theme: "grid",
@@ -660,7 +676,7 @@ const RencanaPemeliharaanManager = () => {
   };
 
   // ================= 3. EXPORT EXCEL FORMAT MATRIX (FULL UI/UX STYLING) =================
-  const handleExportExcelMatrix = () => {
+  const handleExportExcelMatrix = async () => {
     const borderThin = {
       top: { style: "thin", color: { rgb: "DEE2E6" } },
       bottom: { style: "thin", color: { rgb: "DEE2E6" } },
@@ -682,31 +698,7 @@ const RencanaPemeliharaanManager = () => {
       border: borderThin,
     };
 
-    // Baris 0: Judul Laporan di Excel
-    const titleRow: any[] = [
-      {
-        v: `RENCANA PEMELIHARAAN MESIN - TAHUN ${tahun}`,
-        t: "s",
-        s: {
-          font: { name: "Arial", sz: 14, bold: true, color: { rgb: "212529" } },
-          alignment: { vertical: "center" },
-        },
-      },
-    ];
-
-    // Baris 1: Subjudul
-    const subTitleRow: any[] = [
-      {
-        v: `Kelola dan pantau jadwal preventive maintenance mesin | Total Rencana: ${stats.total} | Selesai: ${stats.selesai} | Terlewat: ${stats.terlewat}`,
-        t: "s",
-        s: {
-          font: { name: "Arial", sz: 10, italic: true, color: { rgb: "6C757D" } },
-          alignment: { vertical: "center" },
-        },
-      },
-    ];
-
-    // Baris 3: Header Tabel Utama (Kode & Nama Mesin + Baris + 12 Bulan + RAB)
+    // Baris 0: Header Tabel Utama (Kode & Nama Mesin + Baris + 12 Bulan + RAB)
     const headRow1: any[] = [
       {
         v: "KODE & NAMA MESIN",
@@ -733,7 +725,7 @@ const RencanaPemeliharaanManager = () => {
       s: { ...headerStyle, alignment: { horizontal: "right", vertical: "center" } },
     });
 
-    // Baris 4: Sub-Header Minggu (W1 - W4)
+    // Baris 1: Sub-Header Minggu (W1 - W4)
     const headRow2: any[] = [
       { v: "", t: "s", s: headerStyle },
       { v: "", t: "s", s: headerStyle },
@@ -812,14 +804,11 @@ const RencanaPemeliharaanManager = () => {
     // ke bawah (satu badge per baris) seperti di web.
     const dataRows: any[][] = [];
     const rowHeights: any[] = [
-      { hpt: 24 }, // Title
-      { hpt: 18 }, // Subtitle
-      { hpt: 10 }, // Spacer
       { hpt: 22 }, // Header Bulan
       { hpt: 18 }, // Header W1-W4
     ];
     const blocks: { start: number; nR: number; nZ: number }[] = [];
-    let cursor = 5; // baris data pertama (index 5)
+    let cursor = 2; // baris data pertama (index 2, tepat di bawah header)
 
     filteredRows.forEach(({ mesin, plans }) => {
       const totalRab = plans.reduce((sum, p) => sum + p.rab, 0);
@@ -983,35 +972,28 @@ const RencanaPemeliharaanManager = () => {
       },
     ];
 
-    const worksheetData = [
-      titleRow,
-      subTitleRow,
-      [], // Baris Kosong (Row index 2)
-      headRow1, // Row index 3
-      headRow2, // Row index 4
-      ...dataRows, // Mulai Row index 5
+    const worksheetData: any[][] = [
+      headRow1, // Row index 0
+      headRow2, // Row index 1
+      ...dataRows, // Mulai Row index 2
       [],
       legendActionRow,
       legendStatusRow,
     ];
 
-    const ws = XLSX.utils.aoa_to_sheet(worksheetData);
-
     // Merge Cells: Judul, Header Kode/Nama Mesin, Header Baris, 12 Bulan (4 kolom per bulan), RAB
     // Total kolom: 1 (mesin) + 1 (baris) + 48 (minggu) + 1 (RAB) = 51 -> RAB di kolom 50
     const merges: any[] = [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: 20 } }, // Merge Judul
-      { s: { r: 1, c: 0 }, e: { r: 1, c: 20 } }, // Merge Subjudul
-      { s: { r: 3, c: 0 }, e: { r: 4, c: 0 } }, // Merge Header Kode & Nama Mesin
-      { s: { r: 3, c: 1 }, e: { r: 4, c: 1 } }, // Merge Header Baris
-      { s: { r: 3, c: 50 }, e: { r: 4, c: 50 } }, // Merge Header RAB (RP)
+      { s: { r: 0, c: 0 }, e: { r: 1, c: 0 } }, // Merge Header Kode & Nama Mesin
+      { s: { r: 0, c: 1 }, e: { r: 1, c: 1 } }, // Merge Header Baris
+      { s: { r: 0, c: 50 }, e: { r: 1, c: 50 } }, // Merge Header RAB (RP)
     ];
 
     MONTHS_SHORT.forEach((_, mIdx) => {
       const startCol = 2 + mIdx * 4;
       merges.push({
-        s: { r: 3, c: startCol },
-        e: { r: 3, c: startCol + 3 },
+        s: { r: 0, c: startCol },
+        e: { r: 0, c: startCol + 3 },
       });
     });
 
@@ -1024,7 +1006,6 @@ const RencanaPemeliharaanManager = () => {
       if (nZ > 1) merges.push({ s: { r: start + nR, c: 1 }, e: { r: end, c: 1 } });
     });
 
-    ws["!merges"] = merges;
 
     // Lebar Kolom Proporsional seperti UI (Kolom W1-W4 dibuat kotak kecil)
     const colWidths: any[] = [{ wch: 30 }, { wch: 11 }]; // Kolom 0: Mesin, Kolom 1: Baris
@@ -1032,15 +1013,66 @@ const RencanaPemeliharaanManager = () => {
       colWidths.push({ wch: 4.5 }); // 48 Kolom Minggu dibuat kotak compact
     }
     colWidths.push({ wch: 18 }); // Kolom 50: RAB (Rp)
-    ws["!cols"] = colWidths;
 
     // Tinggi baris: header + tiap sub-baris data + legenda
     rowHeights.push({ hpt: 12 }, { hpt: 22 }, { hpt: 22 });
-    ws["!rows"] = rowHeights;
 
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, `Matrix ${tahun}`);
-    XLSX.writeFile(wb, `rencana-pemeliharaan-matrix-${tahun}.xlsx`);
+    // Tulis ke ExcelJS (mendukung logo pada kop). Style di atas memakai format
+    // xlsx-js-style, jadi dikonversi dulu ke format ExcelJS.
+    const toArgb = (rgb?: string) => (rgb ? { argb: `FF${rgb}` } : undefined);
+    const applyStyle = (cell: ExcelJS.Cell, st: any) => {
+      if (!st) return;
+      if (st.font) {
+        cell.font = {
+          name: st.font.name,
+          size: st.font.sz,
+          bold: st.font.bold,
+          italic: st.font.italic,
+          color: toArgb(st.font.color?.rgb),
+        };
+      }
+      if (st.fill?.fgColor?.rgb) {
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: toArgb(st.fill.fgColor.rgb)! };
+      }
+      if (st.alignment) {
+        cell.alignment = {
+          horizontal: st.alignment.horizontal,
+          vertical: st.alignment.vertical === "center" ? "middle" : st.alignment.vertical,
+          wrapText: st.alignment.wrapText,
+        };
+      }
+      if (st.border) {
+        const border: Partial<ExcelJS.Borders> = {};
+        (["top", "bottom", "left", "right"] as const).forEach((side) => {
+          const b = st.border[side];
+          if (b) border[side] = { style: b.style, color: toArgb(b.color?.rgb) };
+        });
+        cell.border = border;
+      }
+    };
+
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet(`Matrix ${tahun}`);
+    colWidths.forEach((w, i) => {
+      sheet.getColumn(i + 1).width = w.wch;
+    });
+
+    const offset = await addExcelKop(workbook, sheet, judulExport, filteredPlans.length, colWidths.length, exportInfo());
+
+    worksheetData.forEach((row, r) => {
+      row.forEach((c, ci) => {
+        if (!c) return;
+        const cell = sheet.getCell(offset + r, ci + 1);
+        cell.value = c.v;
+        applyStyle(cell, c.s);
+      });
+    });
+    rowHeights.forEach((h, r) => {
+      if (h?.hpt) sheet.getRow(offset + r).height = h.hpt;
+    });
+    merges.forEach((m) => sheet.mergeCells(offset + m.s.r, m.s.c + 1, offset + m.e.r, m.e.c + 1));
+
+    await downloadWorkbook(workbook, `rencana-pemeliharaan-matrix-${tahun}`);
   };
 
   // ================= KOLOM TABEL LIST =================

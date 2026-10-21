@@ -27,7 +27,7 @@ import Image from 'next/image';
 import api from 'lib/api';
 import { formatTanggal } from 'components/ruangtools/common/dateUtils';
 import { usePermission } from 'hooks/usePermissions';
-import { exportToExcel, exportToPDF, ExportColumn } from 'components/ruangtools/riwayat/common/exportUtils';
+import { exportToExcel, exportToPDF, ExportColumn, ringkasStatus } from 'components/ruangtools/riwayat/common/exportUtils';
 import type { RencanaItem } from 'types/RencanaPemeliharaanTypes';
 
 // Import Modal pendukung
@@ -253,24 +253,39 @@ export default function DetailMesinManager({
     }
   }, [activeTab, loadLogs, loadAktivitas]);
 
+  const infoMesin = [
+    { label: "Mesin", value: `${mesinKode} - ${mesinNama}` },
+    { label: "Lokasi", value: mesinLokasi },
+  ];
+
+  const exportLogInfo = () => ({
+    kiri: infoMesin,
+    kanan: [{ label: "Ringkasan Status", value: ringkasStatus(logs as unknown as Record<string, unknown>[], "status", (v) => ({ baik: "Baik", perlu_perhatian: "Perlu perhatian", rusak: "Rusak" } as Record<string, string>)[v] ?? "Tanpa status") }],
+  });
+
+  const exportAktivitasInfo = () => ({
+    kiri: infoMesin,
+    kanan: [{ label: "Total Jumlah", value: logAktivitas.reduce((sum, item) => sum + (Number(item.jumlah) || 0), 0) }],
+  });
+
   const handleExportLogPDF = () => {
     const dataWithIndex = logs.map((log, index) => ({ no: index + 1, ...log }));
-    exportToPDF(dataWithIndex as unknown as Record<string, unknown>[], EXPORT_COLUMNS_LOG, `kartu-gantung-${mesinKode}`, `Kartu Gantung - ${mesinNama}`);
+    exportToPDF(dataWithIndex as unknown as Record<string, unknown>[], EXPORT_COLUMNS_LOG, `kartu-gantung-${mesinKode}`, "Kartu Gantung Pemeliharaan Mesin", exportLogInfo());
   };
 
   const handleExportLogExcel = () => {
     const dataWithIndex = logs.map((log, index) => ({ no: index + 1, ...log }));
-    exportToExcel(dataWithIndex as unknown as Record<string, unknown>[], EXPORT_COLUMNS_LOG, `kartu-gantung-${mesinKode}`);
+    exportToExcel(dataWithIndex as unknown as Record<string, unknown>[], EXPORT_COLUMNS_LOG, `kartu-gantung-${mesinKode}`, "Kartu Gantung Pemeliharaan Mesin", exportLogInfo());
   };
 
   const handleExportAktivitasPDF = () => {
     const dataWithIndex = logAktivitas.map((item, index) => ({ no: index + 1, ...item }));
-    exportToPDF(dataWithIndex as unknown as Record<string, unknown>[], EXPORT_COLUMNS_AKTIVITAS, `log-aktivitas-${mesinKode}`, `Log Aktivitas - ${mesinNama}`);
+    exportToPDF(dataWithIndex as unknown as Record<string, unknown>[], EXPORT_COLUMNS_AKTIVITAS, `log-aktivitas-${mesinKode}`, "Log Aktivitas Mesin", exportAktivitasInfo());
   };
 
   const handleExportAktivitasExcel = () => {
     const dataWithIndex = logAktivitas.map((item, index) => ({ no: index + 1, ...item }));
-    exportToExcel(dataWithIndex as unknown as Record<string, unknown>[], EXPORT_COLUMNS_AKTIVITAS, `log-aktivitas-${mesinKode}`);
+    exportToExcel(dataWithIndex as unknown as Record<string, unknown>[], EXPORT_COLUMNS_AKTIVITAS, `log-aktivitas-${mesinKode}`, "Log Aktivitas Mesin", exportAktivitasInfo());
   };
 
   const handleOpenAddAktivitas = () => {

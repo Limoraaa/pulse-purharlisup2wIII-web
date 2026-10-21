@@ -29,7 +29,7 @@ import { getPeminjamColumns } from "components/ruangtools/datapeminjam/ColumnDef
 import PeminjamFormModal, { PeminjamFormValues } from "components/ruangtools/datapeminjam/PeminjamFormModal";
 import DeleteConfirmModal from "components/ruangtools/datapeminjam/DeleteConfirmModal";
 // reuse fungsi export yang sudah ada dari fitur Riwayat / Laporan Kerusakan
-import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
+import { exportToExcel, exportToPDF, ExportColumn, ringkasStatus } from "components/ruangtools/riwayat/common/exportUtils";
 
 import {
   getPeminta,
@@ -225,19 +225,27 @@ const PeminjamManager = () => {
       statusLabel: item.aktif ? "Aktif" : "Nonaktif",
     }));
 
+  const exportInfo = () => ({
+    kiri: [{ label: "Modul", value: "Ruang Tools" }],
+    kanan: [{ label: "Ringkasan Status", value: ringkasStatus(buildExportData() as unknown as Record<string, unknown>[], "statusLabel") }],
+  });
+
   const handleExportPDF = () =>
     exportToPDF(
       buildExportData() as unknown as Record<string, unknown>[],
       EXPORT_COLUMNS,
       "data-peminjam",
-      "Data Peminjam"
+      "Data Peminjam",
+      exportInfo()
     );
 
   const handleExportExcel = () =>
     exportToExcel(
       buildExportData() as unknown as Record<string, unknown>[],
       EXPORT_COLUMNS,
-      "data-peminjam"
+      "data-peminjam",
+      "Data Peminjam",
+      exportInfo()
     );
   // ---- Ganti Role (Inventory Man / Pekerja) ----
   const handleGantiRole = async (item: PeminjamType, roleBaru: "user" | "inventory man") => { 

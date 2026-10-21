@@ -12,7 +12,7 @@ import { getOrderTools, updateOrderToolsStatus, deleteOrderTools } from '/servic
 import { usePermission } from "hooks/usePermissions";
 
 // IMPORT UTILITY EXPORT BAWAAN
-import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
+import { exportToExcel, exportToPDF, ExportColumn, ringkasStatus } from "components/ruangtools/riwayat/common/exportUtils";
 import { useFeedback } from "components/common/FeedbackProvider";
 
 interface OrderData {
@@ -166,7 +166,11 @@ export default function OrderToolsManager() {
       dataToExport as unknown as Record<string, unknown>[],
       EXPORT_COLUMNS_ORDER,
       "data-order-tools",
-      "Laporan Order Tools"
+      "Laporan Order Tools",
+      {
+        kiri: [{ label: "Filter Status", value: statusFilter === "semua" ? "Semua" : statusFilter }],
+        kanan: [{ label: "Ringkasan Status", value: ringkasStatus(dataToExport as unknown as Record<string, unknown>[], "status_pembelian") }],
+      }
     );
   };
 
@@ -183,7 +187,12 @@ export default function OrderToolsManager() {
     exportToExcel(
       dataToExport as unknown as Record<string, unknown>[],
       EXPORT_COLUMNS_ORDER,
-      "data-order-tools"
+      "data-order-tools",
+      "Laporan Order Tools",
+      {
+        kiri: [{ label: "Filter Status", value: statusFilter === "semua" ? "Semua" : statusFilter }],
+        kanan: [{ label: "Ringkasan Status", value: ringkasStatus(dataToExport as unknown as Record<string, unknown>[], "status_pembelian") }],
+      }
     );
   };
 

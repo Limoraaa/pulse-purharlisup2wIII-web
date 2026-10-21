@@ -1,6 +1,6 @@
 "use client";
 // import node module libraries
-import { exportToExcel, exportToPDF, ExportColumn } from "components/ruangtools/riwayat/common/exportUtils";
+import { exportToExcel, exportToPDF, ExportColumn, ringkasStatus } from "components/ruangtools/riwayat/common/exportUtils";
 import { AntreanItemResponse } from "services/peminjamanService";
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import {
@@ -390,12 +390,17 @@ const DataToolsManager = () => {
     setDetailModalOpen(true);
   };
 
+  const exportInfo = () => ({
+    kiri: [{ label: "Modul", value: "Ruang Tools" }],
+    kanan: [{ label: "Ringkasan Kondisi", value: ringkasStatus(filteredTools as unknown as Record<string, unknown>[], "kondisi") }],
+  });
+
   const handleExportPDF = () => {
     const dataWithTersedia = filteredTools.map((t) => ({
       ...t,
       tersedia: t.stok - t.dipinjam,
     }));
-    exportToPDF(dataWithTersedia as unknown as Record<string, unknown>[], EXPORT_COLUMNS, "data-tools", "Data Tools");
+    exportToPDF(dataWithTersedia as unknown as Record<string, unknown>[], EXPORT_COLUMNS, "data-tools", "Data Tools", exportInfo());
   };
 
   const handleExportExcel = () => {
@@ -403,7 +408,7 @@ const DataToolsManager = () => {
       ...t,
       tersedia: t.stok - t.dipinjam,
     }));
-    exportToExcel(dataWithTersedia as unknown as Record<string, unknown>[], EXPORT_COLUMNS, "data-tools");
+    exportToExcel(dataWithTersedia as unknown as Record<string, unknown>[], EXPORT_COLUMNS, "data-tools", "Data Tools", exportInfo());
   };
 
   const openDeleteModal = (tool: ToolItemType) => {

@@ -397,10 +397,14 @@ const DataConsumableManager = () => {
     setDeleteModalOpen(true);
   }, [consumables]);
 
+  const exportInfo = () => ({
+    kiri: [{ label: "Modul", value: "Ruang Tools" }],
+    kanan: [{ label: "Stok Habis", value: `${filteredConsumables.filter((c) => Number(c.stok_tersedia) <= 0).length} item` }],
+  });
   const handleExportPDF = () =>
-    exportToPDF(filteredConsumables as unknown as Record<string, unknown>[], EXPORT_COLUMNS, "data-consumable", "Data Consumable");
+    exportToPDF(filteredConsumables as unknown as Record<string, unknown>[], EXPORT_COLUMNS, "data-consumable", "Data Consumable", exportInfo());
   const handleExportExcel = () =>
-    exportToExcel(filteredConsumables as unknown as Record<string, unknown>[], EXPORT_COLUMNS, "data-consumable");
+    exportToExcel(filteredConsumables as unknown as Record<string, unknown>[], EXPORT_COLUMNS, "data-consumable", "Data Consumable", exportInfo());
 
   const handleFormSubmit = async (values: ConsumableFormValues) => {
     setFormError(null);

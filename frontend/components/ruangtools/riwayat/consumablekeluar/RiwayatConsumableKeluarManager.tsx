@@ -31,7 +31,7 @@ import KeteranganModal from "components/ruangtools/riwayat/common/KeteranganModa
 import { getRiwayatConsumableKeluarColumns } from "components/ruangtools/riwayat/consumablekeluar/ColumnDefination";
 import DetailTransaksiModal from "components/ruangtools/riwayat/consumablekeluar/DetailTransaksiModal";
 import EditRiwayatModal from "components/ruangtools/riwayat/consumablekeluar/EditRiwayatModal";
-import { exportToExcel, exportToPDF, ExportColumn, getFilteredExportFileName } from "components/ruangtools/riwayat/common/exportUtils";
+import { exportToExcel, exportToPDF, ExportColumn, getFilteredExportFileName, infoFilter } from "components/ruangtools/riwayat/common/exportUtils";
 
 import { getRiwayatConsumableKeluar } from "services/consumableKeluarService";
 
@@ -169,10 +169,11 @@ const RiwayatConsumableKeluarManager = () => {
     setActiveItem(null);
   };
 
+  const exportInfo = () => ({ kiri: infoFilter(tanggalFilter, namaFilter, "Nama Peminta") });
   const handleExportPDF = () =>
-    exportToPDF(exportRows, EXPORT_COLUMNS, getFilteredExportFileName("Riwayat_Consumable_Keluar", namaFilter), "Riwayat Consumable Keluar");
+    exportToPDF(exportRows, EXPORT_COLUMNS, getFilteredExportFileName("Riwayat_Consumable_Keluar", namaFilter), "Riwayat Consumable Keluar", exportInfo());
   const handleExportExcel = () =>
-    exportToExcel(exportRows, EXPORT_COLUMNS, getFilteredExportFileName("Riwayat_Consumable_Keluar", namaFilter));
+    exportToExcel(exportRows, EXPORT_COLUMNS, getFilteredExportFileName("Riwayat_Consumable_Keluar", namaFilter), "Riwayat Consumable Keluar", exportInfo());
 
   const columns = getRiwayatConsumableKeluarColumns({
   onDetail: openDetailModal,
