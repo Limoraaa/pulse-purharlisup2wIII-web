@@ -4,8 +4,10 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { Form, Spinner, Button, Modal, Alert } from 'react-bootstrap';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
-import interactionPlugin from '@fullcalendar/interaction';
+import interactionPlugin, { DateClickArg } from '@fullcalendar/interaction';
+import type { DayCellContentArg } from '@fullcalendar/core';
 import idLocale from '@fullcalendar/core/locales/id';
+import Link from 'next/link';
 import api from '/lib/api';
 import { usePermission } from 'hooks/usePermissions';
 
@@ -58,6 +60,31 @@ interface Job {
   keterangan: string;
 }
 
+// Realisasi dari menu Catatan Aktivitas Mesin (hanya ditampilkan, tidak diubah di sini)
+interface Aktivitas {
+  id: string;
+  tanggal: string; // YYYY-MM-DD
+  operator: string;
+  uraian: string;
+  mulai: string; // HH:MM
+  selesai: string; // HH:MM
+  jumlah: number;
+  pemeriksa: string;
+}
+
+interface AktivitasApi {
+  id: number | string;
+  tanggal?: string;
+  operator_pelaksana?: string;
+  uraian_pekerjaan?: string;
+  waktu_mulai?: string;
+  waktu_selesai?: string;
+  jumlah?: number | string;
+  pemeriksa?: string;
+}
+
+const AKTIVITAS_WARNA = { soft: '#e6f6ec', fg: '#1e7b3c' };
+
 // ---------- Helper tanggal (string YYYY-MM-DD, bebas masalah zona waktu) ----------
 const ymd = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -99,6 +126,9 @@ export default function MappingPengerjaanManager() {
   const [daftarMesin, setDaftarMesin] = useState<Mesin[]>([]);
   const [selectedMesinId, setSelectedMesinId] = useState<string>('');
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [aktivitas, setAktivitas] = useState<Aktivitas[]>([]);
+  // Tanggal yang diklik -> popup Detail Tanggal (jadwal + log aktivitas)
+  const [detailDate, setDetailDate] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -164,12 +194,39 @@ export default function MappingPengerjaanManager() {
     }
   };
 
+  // Log aktivitas mesin yang sama, dihubungkan ke kalender berdasarkan tanggal
+  const fetchAktivitas = async (mesinId: string) => {
+    if (!mesinId) return;
+    try {
+      const res = await api<{ data?: AktivitasApi[] } | AktivitasApi[]>(`/log-aktivitas/mesin/${mesinId}`, { method: 'GET' });
+      const rawData = Array.isArray(res) ? res : res?.data ?? [];
+      const list: Aktivitas[] = rawData.map((item) => ({
+        id: String(item.id),
+        tanggal: toDateStr(item.tanggal),
+        operator: item.operator_pelaksana ?? '-',
+        uraian: item.uraian_pekerjaan ?? '',
+        mulai: String(item.waktu_mulai ?? '').slice(0, 5),
+        selesai: String(item.waktu_selesai ?? '').slice(0, 5),
+        jumlah: Number(item.jumlah) || 0,
+        pemeriksa: item.pemeriksa ?? '-',
+      }));
+      setAktivitas(list);
+    } catch (error) {
+      console.error('Gagal memuat log aktivitas', error);
+      setAktivitas([]);
+      setFetchError(error instanceof Error ? error.message : 'Log aktivitas gagal dimuat.');
+    }
+  };
+
   useEffect(() => {
     fetchMesin();
   }, []);
 
   useEffect(() => {
-    if (selectedMesinId) fetchJobs(selectedMesinId);
+    if (selectedMesinId) {
+      fetchJobs(selectedMesinId);
+      fetchAktivitas(selectedMesinId);
+    }
   }, [selectedMesinId]);
 
   // ---------- Turunan data ----------
@@ -221,6 +278,27 @@ export default function MappingPengerjaanManager() {
     [jobs, today, colorMap]
   );
 
+  const aktivitasByDate = useMemo(() => {
+    const map: Record<string, Aktivitas[]> = {};
+    aktivitas.forEach((a) => {
+      if (!a.tanggal) return;
+      (map[a.tanggal] ??= []).push(a);
+    });
+    Object.values(map).forEach((list) => list.sort((a, b) => a.mulai.localeCompare(b.mulai)));
+    return map;
+  }, [aktivitas]);
+
+  const aktivitasBulanIni = useMemo(
+    () => aktivitas.filter((a) => month.start && a.tanggal >= month.start && a.tanggal < month.end).length,
+    [aktivitas, month]
+  );
+
+  const detailJobs = useMemo(
+    () => (detailDate ? jobs.filter((j) => j.mulai <= detailDate && j.selesai >= detailDate) : []),
+    [jobs, detailDate]
+  );
+  const detailAktivitas = detailDate ? aktivitasByDate[detailDate] ?? [] : [];
+
   const yearOptions = useMemo(() => {
     const now = new Date().getFullYear();
     const ys = new Set<number>([month.year]);
@@ -268,6 +346,23 @@ export default function MappingPengerjaanManager() {
       mulai: toDateStr(info.startStr),
       selesai: addDays(toDateStr(info.endStr), -1), // end eksklusif -> inklusif
     });
+  };
+
+  // Klik satu tanggal -> Detail Tanggal (drag beberapa tanggal tetap untuk menambah jadwal)
+  const handleDateClick = (info: DateClickArg) => {
+    if (!selectedMesinId) return;
+    setDetailDate(toDateStr(info.dateStr));
+  };
+
+  const tambahDariDetail = () => {
+    const tgl = detailDate as string;
+    setDetailDate(null);
+    openModal('create', { mulai: tgl, selesai: tgl });
+  };
+
+  const bukaJadwalDariDetail = (j: Job) => {
+    setDetailDate(null);
+    openModal('edit', j);
   };
 
   const handleEventClick = (info: any) => {
@@ -362,8 +457,8 @@ export default function MappingPengerjaanManager() {
           <h3 className="fw-bold text-dark mb-1">Mapping Pengerjaan Mesin</h3>
           <p className="text-muted mb-0 small">
             {canManage
-              ? 'Blok tanggal di kalender untuk menambah jadwal. Klik, geser, atau tarik tepi jadwal untuk mengubahnya.'
-              : 'Klik jadwal untuk melihat detail pengerjaan.'}
+              ? 'Klik tanggal untuk melihat jadwal & log aktivitas. Blok beberapa tanggal untuk menambah jadwal; geser atau tarik tepi jadwal untuk mengubahnya.'
+              : 'Klik tanggal untuk melihat jadwal & log aktivitas, atau klik jadwal untuk melihat detailnya.'}
           </p>
         </div>
         <div className="d-flex flex-wrap align-items-end gap-2">
@@ -459,6 +554,10 @@ export default function MappingPengerjaanManager() {
                   <strong className="ms-1">{counts[k]}</strong>
                 </span>
               ))}
+              <span className="badge rounded-pill d-inline-flex align-items-center gap-2 px-3 py-2 fw-semibold" style={{ background: AKTIVITAS_WARNA.soft, color: AKTIVITAS_WARNA.fg }}>
+                ✓ Log aktivitas
+                <strong className="ms-1">{aktivitasBulanIni}</strong>
+              </span>
             </div>
 
             {loading && (
@@ -476,7 +575,9 @@ export default function MappingPengerjaanManager() {
                 headerToolbar={false}
                 datesSet={handleDatesSet}
                 selectable={canManage}
+                selectMinDistance={5}
                 editable={canManage}
+                dateClick={handleDateClick}
                 eventResizableFromStart
                 select={handleDateSelect}
                 eventClick={handleEventClick}
@@ -488,6 +589,23 @@ export default function MappingPengerjaanManager() {
                 eventClassNames={['rounded-1', 'border-0', 'mx-1', 'mt-1']}
                 moreLinkClassNames={['small', 'fw-semibold']}
                 height="auto"
+                dayCellContent={(arg: DayCellContentArg) => {
+                  const n = aktivitasByDate[ymd(arg.date)]?.length ?? 0;
+                  return (
+                    <span className="d-inline-flex align-items-center gap-1">
+                      {n > 0 && (
+                        <span
+                          className="badge rounded-pill fw-semibold"
+                          style={{ background: AKTIVITAS_WARNA.soft, color: AKTIVITAS_WARNA.fg, fontSize: '0.68rem' }}
+                          title={`${n} log aktivitas`}
+                        >
+                          ✓ {n}
+                        </span>
+                      )}
+                      {arg.dayNumberText}
+                    </span>
+                  );
+                }}
                 eventContent={(arg: any) => (
                   <div
                     className="px-2 text-truncate"
@@ -507,7 +625,7 @@ export default function MappingPengerjaanManager() {
         <div className="col-12 col-xl-4">
           <div className="card border-0 shadow-sm rounded-4 p-3 p-md-4">
             <h6 className="fw-bold mb-1">Agenda {month.title}</h6>
-            <p className="text-muted small mb-3">{namaMesinTerpilih ? `Mesin ${namaMesinTerpilih}` : 'Belum ada mesin dipilih'}</p>
+            <p className="text-muted small mb-3">{namaMesinTerpilih ?? 'Belum ada mesin dipilih'}</p>
 
             {agenda.length === 0 ? (
               <div className="border rounded-3 p-4 text-center bg-light">
@@ -563,6 +681,98 @@ export default function MappingPengerjaanManager() {
           </div>
         </div>
       </div>
+
+      {/* Detail Tanggal: jadwal (rencana) + log aktivitas (realisasi) pada tanggal yang diklik */}
+      <Modal show={!!detailDate} onHide={() => setDetailDate(null)} centered size="lg" contentClassName="border-0 rounded-4">
+        <Modal.Header closeButton className="border-0 pb-0">
+          <div>
+            <Modal.Title className="fw-bold fs-5">
+              Detail {detailDate ? fmt(detailDate, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : ''}
+            </Modal.Title>
+            <div className="text-muted small">{namaMesinTerpilih ?? ''}</div>
+          </div>
+        </Modal.Header>
+        <Modal.Body>
+          <div className="text-uppercase text-muted fw-bold small mb-2" style={{ letterSpacing: '0.5px', fontSize: '0.72rem' }}>
+            Jadwal pada tanggal ini ({detailJobs.length})
+          </div>
+          {detailJobs.length === 0 ? (
+            <div className="border rounded-3 p-3 text-muted small bg-light mb-4">Tidak ada jadwal pengerjaan pada tanggal ini.</div>
+          ) : (
+            <div className="d-flex flex-column gap-2 mb-4">
+              {detailJobs.map((j) => {
+                const st = statusOf(j.mulai, j.selesai, today);
+                return (
+                  <div
+                    key={j.id}
+                    role="button"
+                    tabIndex={0}
+                    className="border rounded-3 p-3 bg-white"
+                    style={{ borderLeft: `5px solid ${PALETTE[colorMap[j.id] ?? 0].bg}`, cursor: 'pointer' }}
+                    onClick={() => bukaJadwalDariDetail(j)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        bukaJadwalDariDetail(j);
+                      }
+                    }}
+                  >
+                    <div className="d-flex justify-content-between align-items-start gap-2">
+                      <span className="fw-semibold text-dark">{j.nama}</span>
+                      <span className="badge rounded-pill" style={{ background: STATUS[st].soft, color: STATUS[st].softFg }}>
+                        {STATUS[st].label}
+                      </span>
+                    </div>
+                    <div className="text-muted small mt-1">
+                      {fmtRange(j.mulai, j.selesai)} ({durasiHari(j.mulai, j.selesai)} hari)
+                      {j.keterangan ? ` · ${j.keterangan}` : ''}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <div className="text-uppercase text-muted fw-bold small mb-2" style={{ letterSpacing: '0.5px', fontSize: '0.72rem' }}>
+            Log aktivitas ({detailAktivitas.length})
+          </div>
+          {detailAktivitas.length === 0 ? (
+            <div className="border rounded-3 p-3 text-muted small bg-light">Belum ada log aktivitas yang dicatat pada tanggal ini.</div>
+          ) : (
+            <div className="d-flex flex-column gap-2">
+              {detailAktivitas.map((a) => (
+                <div key={a.id} className="border rounded-3 p-3" style={{ borderLeft: `5px solid ${AKTIVITAS_WARNA.fg}` }}>
+                  <div className="d-flex flex-wrap justify-content-between gap-2">
+                    <span className="fw-semibold text-dark">
+                      {a.mulai}–{a.selesai} · {a.operator}
+                    </span>
+                    <span className="badge rounded-pill" style={{ background: AKTIVITAS_WARNA.soft, color: AKTIVITAS_WARNA.fg }}>
+                      Jumlah {a.jumlah}
+                    </span>
+                  </div>
+                  <div className="small mt-1">{a.uraian}</div>
+                  <div className="text-muted small mt-1">Pemeriksa: {a.pemeriksa}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer className="border-0 pt-0 justify-content-between">
+          <Link href={`/operasional/data-mesin?mesin=${selectedMesinId}`} className="btn btn-outline-secondary">
+            Lihat di Catatan Aktivitas
+          </Link>
+          <div className="d-flex gap-2">
+            <Button variant="light" type="button" onClick={() => setDetailDate(null)}>
+              Tutup
+            </Button>
+            {canManage && (
+              <Button variant="primary" type="button" onClick={tambahDariDetail}>
+                + Tambah jadwal di tanggal ini
+              </Button>
+            )}
+          </div>
+        </Modal.Footer>
+      </Modal>
 
       {/* Modal tambah / kelola */}
       <Modal show={isModalOpen} onHide={closeModal} centered contentClassName="border-0 rounded-4">
