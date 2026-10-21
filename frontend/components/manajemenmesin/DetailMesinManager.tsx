@@ -578,7 +578,7 @@ export default function DetailMesinManager({
                 <span className="text-muted small fw-bold me-3" style={{fontSize: '0.7rem', letterSpacing: '0.5px'}}>KEBUTUHAN:</span>
                 <ul className="nav nav-pills gap-2 m-0 flex-nowrap">
                   {[
-                    { id: 'kebutuhan', label: 'Alat & Consumable', icon: IconPackages },
+                    { id: 'kebutuhan', label: 'Kebutuhan Pemeliharaan', icon: IconPackages },
                   ].map(renderTabButton)}
                 </ul>
               </div>

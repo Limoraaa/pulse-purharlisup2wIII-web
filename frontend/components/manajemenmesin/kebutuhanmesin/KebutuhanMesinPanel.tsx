@@ -74,7 +74,7 @@ export default function KebutuhanMesinPanel({ mesinId, canManage }: Props) {
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <div>
           <h6 className="fw-bold mb-0 d-flex align-items-center gap-2">
-            <IconPackages size={18} className="text-primary" /> Kebutuhan Alat &amp; Consumable
+            <IconPackages size={18} className="text-primary" /> Kebutuhan Pemeliharaan Alat &amp; Consumable
           </h6>
           <div className="small text-secondary">
             Daftar alat dan consumable yang dibutuhkan untuk pemeliharaan mesin ini.
