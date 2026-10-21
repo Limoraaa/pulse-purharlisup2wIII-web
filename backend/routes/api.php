@@ -29,6 +29,7 @@ use App\Http\Controllers\Api\KalibrasiMesinController;
 use App\Http\Controllers\Api\MappingPengerjaanMesinController;
 use App\Http\Controllers\Api\LaporanAnggaranController;
 use App\Http\Controllers\Api\DokumenMesinController;
+use App\Http\Controllers\Api\KebutuhanMesinController;
 
 // ==========================================
 // 1. ROUTE PUBLIK (Tanpa Auth)
@@ -292,6 +293,19 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/dokumen-mesin/{id}/file', [DokumenMesinController::class, 'file']);
         Route::post('/dokumen-mesin', [DokumenMesinController::class, 'store']);
         Route::delete('/dokumen-mesin/{id}', [DokumenMesinController::class, 'destroy']);
+    });
+
+    // ------------------------------------------
+    // KEBUTUHAN ALAT & CONSUMABLE PEMELIHARAAN MESIN (catatan, tidak terhubung ke gudang)
+    // ------------------------------------------
+    Route::middleware('permission:view_pemeliharaan_mesin')->group(function () {
+        Route::get('/kebutuhan-mesin', [KebutuhanMesinController::class, 'index']);
+    });
+
+    Route::middleware('permission:manage_pemeliharaan_mesin')->group(function () {
+        Route::post('/kebutuhan-mesin', [KebutuhanMesinController::class, 'store']);
+        Route::put('/kebutuhan-mesin/{id}', [KebutuhanMesinController::class, 'update']);
+        Route::delete('/kebutuhan-mesin/{id}', [KebutuhanMesinController::class, 'destroy']);
     });
 
     // ------------------------------------------
