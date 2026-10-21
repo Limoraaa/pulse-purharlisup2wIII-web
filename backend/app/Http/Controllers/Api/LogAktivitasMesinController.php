@@ -11,17 +11,27 @@ class LogAktivitasMesinController extends Controller
     // Mengambil semua log aktivitas atau berdasarkan mesin_id
     public function index(Request $request)
     {
+        // Menarik relasi 'mesin' untuk kebutuhan tabel global
         $query = LogAktivitasMesin::with('mesin');
+        
         if ($request->has('mesin_id')) {
             $query->where('mesin_produksi_id', $request->mesin_id);
         }
-        return response()->json($query->latest()->get());
+        
+        // Dibungkus menggunakan key 'data' agar konsisten dengan standar frontend
+        return response()->json([
+            'data' => $query->latest()->get()
+        ]);
     }
 
     public function getByMesin($mesin_id)
     {
         $logs = LogAktivitasMesin::where('mesin_produksi_id', $mesin_id)->latest()->get();
-        return response()->json($logs);
+        
+        // Dibungkus menggunakan key 'data'
+        return response()->json([
+            'data' => $logs
+        ]);
     }
 
     public function store(Request $request)

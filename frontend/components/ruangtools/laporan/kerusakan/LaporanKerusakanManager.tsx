@@ -36,6 +36,7 @@ import ConfirmActionModal from "components/ruangtools/laporan/kerusakan/ConfirmA
 
 import { getLaporanKerusakan, repairLaporanKerusakan, tandaiPermanenLaporanKerusakan } from "services/laporanKerusakanService";
 import { usePermission } from "hooks/usePermissions";
+import { useFeedback } from "components/common/FeedbackProvider";
 
 const EXPORT_COLUMNS: ExportColumn[] = [
   { header: "Tgl & Jam Pengembalian", key: "tanggal_pengembalian" },
@@ -59,6 +60,7 @@ const EXPORT_COLUMNS: ExportColumn[] = [
   };
 
 const LaporanKerusakanManager = () => {
+  const { notify } = useFeedback();
   const canProcess = usePermission(["process_kerusakan_alat", "manage_kerusakan_alat"]);
   const [laporanList, setLaporanList] = useState<LaporanKerusakanType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -126,7 +128,7 @@ const LaporanKerusakanManager = () => {
         setTimeout(() => setSuccessMessage(null), 5000);
         setConfirmModal(null);
       } catch (err) {
-        alert(
+        notify(
           err instanceof Error
             ? err.message
             : type === "repair"

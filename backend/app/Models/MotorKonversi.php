@@ -29,8 +29,9 @@ class MotorKonversi extends Model
         return $this->hasMany(LogPemeliharaanMotorKonversi::class, 'motor_konversi_id');
     }
 
-    public function logAktivitas()
+    // Motor yang sudah punya riwayat hanya boleh dinonaktifkan, bukan dihapus
+    public function jumlahRiwayat(): int
     {
-        return $this->hasMany(LogAktivitasMotorKonversi::class, 'motor_konversi_id');
+        return $this->logPemeliharaan()->count();
     }
 }

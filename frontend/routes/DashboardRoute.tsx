@@ -2,6 +2,7 @@
 import { v4 as uuid } from "uuid";
 import {
   IconLayoutDashboard,
+  IconDatabase,
   IconBoxSeam,
   IconArrowsExchange,
   IconHistory,
@@ -10,6 +11,7 @@ import {
   IconMotorbike,
   IconReportAnalytics,
   IconUsers,
+  IconCalendarEvent,
 } from "@tabler/icons-react";
 
 //import custom type
@@ -122,26 +124,73 @@ export const DashboardMenu: MenuItemType[] = [
     link: "/laporan",
     icon: <IconReportAnalytics size={20} strokeWidth={1.5} />,
   },
+  
   // ==========================================
-  // MENU PEMELIHARAAN MESIN
+  // MENU MANAJEMEN MESIN PRODUKSI
   // ==========================================
   {
     id: uuid(),
-    title: "Pemeliharaan Mesin",
+    title: "Manajemen Mesin Produksi",
     grouptitle: true,
   },
   {
     id: uuid(),
-    title: "Dashboard Pemeliharaan",
+    title: "Dashboard Mesin",
     link: "/pemeliharaan/dashboard",
     icon: <IconLayoutDashboard size={20} strokeWidth={1.5} />,
   },
   {
     id: uuid(),
-    title: "Pemeliharaan Mesin",
-    link: "/pemeliharaan/data-mesin",
-    icon: <IconTools size={20} strokeWidth={1.5} />,
+    title: "Data Mesin",
+    link: "/data-mesin",
+    icon: <IconDatabase size={20} strokeWidth={1.5} />,
   },
+  {
+    id: uuid(),
+    title: "Operasional",
+    icon: <IconCalendarEvent size={20} strokeWidth={1.5} />,
+    children: [
+      {
+        id: uuid(),
+        name: "Plotting Jadwal Operasional",
+        link: "/operasional/mapping-pengerjaan",
+      },
+      {
+        id: uuid(),
+        name: "Catatan Aktivitas Mesin",
+        link: "/operasional/data-mesin",
+      }
+    ],
+  },
+  {
+    id: uuid(),
+    title: "Pemeliharaan",
+    icon: <IconTools size={20} strokeWidth={1.5} />,
+    children: [
+      {
+        id: uuid(),
+        name: "Catatan Kalibrasi Mesin",
+        link: "/pemeliharaan/kalibrasi",
+      },
+      {
+        id: uuid(),
+        name: "Rencana Pemeliharaan",
+        link: "/pemeliharaan/rencana",
+      },
+      {
+        id: uuid(),
+        name: "Catatan Pemeliharaan Mesin",
+        link: "/pemeliharaan/data-mesin",
+      },
+      // --- MENU BARU DITAMBAHKAN DI SINI ---
+      {
+        id: uuid(),
+        name: "Laporan Anggaran & Vendor",
+        link: "/pemeliharaan/laporan-anggaran",
+      },
+    ],
+  },
+
   // ==========================================
   // MENU PEMELIHARAAN MOTOR KONVERSI
   // ==========================================

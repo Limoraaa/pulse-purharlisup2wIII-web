@@ -12,21 +12,28 @@ class MotorKonversiController extends Controller
     // Tampilkan semua data master motor konversi
     public function index()
     {
-        $motor = MotorKonversi::orderBy('created_at', 'desc')->get();
+        // jumlah_riwayat dipakai frontend untuk menentukan boleh dihapus atau hanya dinonaktifkan
+        $motor = MotorKonversi::withCount('logPemeliharaan as jumlah_riwayat')->orderBy('created_at', 'desc')->get();
         return response()->json(['message' => 'Sukses', 'data' => $motor], 200);
     }
 
     // Tambah data motor konversi baru
     public function store(Request $request)
     {
+        // kode_motor & nomor_polisi unik di database, jadi dicek di sini agar pesan errornya jelas
         $request->validate([
-            'kode_motor' => 'nullable|string', 
+            'kode_motor' => 'required|string|unique:motor_konversi,kode_motor',
             'nomor_polisi' => 'required|unique:motor_konversi,nomor_polisi',
             'nama_motor' => 'required|string',
             'merek' => 'nullable|string',
             'warna' => 'required|string',
             'lokasi_penempatan' => 'required|string',
             'foto_katalog' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120', 
+        ], [
+            'kode_motor.required'   => 'Kode motor wajib diisi.',
+            'kode_motor.unique'     => 'Kode motor ":input" sudah digunakan motor lain.',
+            'nomor_polisi.required' => 'Plat nomor wajib diisi.',
+            'nomor_polisi.unique'   => 'Plat nomor ":input" sudah terdaftar.',
         ]);
 
         $fotoPath = null;
@@ -64,7 +71,7 @@ class MotorKonversiController extends Controller
         $motor = MotorKonversi::findOrFail($id);
 
         $request->validate([
-            'kode_motor' => 'nullable|string',
+            'kode_motor' => 'required|string|unique:motor_konversi,kode_motor,' . $id,
             'nomor_polisi' => 'required|unique:motor_konversi,nomor_polisi,' . $id,
             'nama_motor' => 'required|string',
             'merek' => 'nullable|string',
@@ -72,18 +79,25 @@ class MotorKonversiController extends Controller
             'lokasi_penempatan' => 'required|string',
             'status' => 'sometimes|string|in:Aktif,Tidak Aktif,Maintenance,Rusak',
             'foto_katalog' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
+            'hapus_foto' => 'sometimes|boolean',
+        ], [
+            'kode_motor.required'   => 'Kode motor wajib diisi.',
+            'kode_motor.unique'     => 'Kode motor ":input" sudah digunakan motor lain.',
+            'nomor_polisi.required' => 'Plat nomor wajib diisi.',
+            'nomor_polisi.unique'   => 'Plat nomor ":input" sudah terdaftar.',
         ]);
 
-        $dataToUpdate = $request->except(['foto_katalog']);
+        $dataToUpdate = $request->only(['kode_motor', 'nomor_polisi', 'nama_motor', 'merek', 'warna', 'lokasi_penempatan', 'status']);
 
-        if ($request->hasFile('foto_katalog')) {
+        if ($request->hasFile('foto_katalog') || $request->boolean('hapus_foto')) {
             if ($motor->foto_katalog) {
                 $oldPath = str_replace(asset('storage/') . '/', '', $motor->foto_katalog);
                 Storage::disk('public')->delete($oldPath);
             }
 
-            $path = $request->file('foto_katalog')->store('katalog_motor', 'public');
-            $dataToUpdate['foto_katalog'] = asset('storage/' . $path);
+            $dataToUpdate['foto_katalog'] = $request->hasFile('foto_katalog')
+                ? asset('storage/' . $request->file('foto_katalog')->store('katalog_motor', 'public'))
+                : null;
         }
 
         $motor->update($dataToUpdate);
@@ -95,6 +109,14 @@ class MotorKonversiController extends Controller
     public function destroy($id)
     {
         $motor = MotorKonversi::findOrFail($id);
+
+        // Menghapus motor ikut menghapus seluruh log pemeliharaannya, jadi hanya boleh untuk motor tanpa riwayat
+        $jumlahRiwayat = $motor->jumlahRiwayat();
+        if ($jumlahRiwayat > 0) {
+            return response()->json([
+                'message' => "Motor ini sudah memiliki {$jumlahRiwayat} catatan pemeliharaan dan tidak bisa dihapus. Gunakan Nonaktifkan.",
+            ], 422);
+        }
 
         if ($motor->foto_katalog) {
             $oldPath = str_replace(asset('storage/') . '/', '', $motor->foto_katalog);
@@ -118,7 +140,8 @@ class MotorKonversiController extends Controller
         try {
             $motor = MotorKonversi::findOrFail($id);
 
-            $motor->status = ($motor->status === 'Aktif') ? 'Tidak Aktif' : 'Aktif';
+            // Nonaktifkan dari status apa pun (Aktif/Maintenance/Rusak); aktifkan kembali menjadi Aktif
+            $motor->status = ($motor->status === 'Tidak Aktif') ? 'Aktif' : 'Tidak Aktif';
             $motor->save();
 
             return response()->json([

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Form, Spinner, Button, Card, Row, Col, Alert, Badge, Modal } from 'react-bootstrap';
 import { IconDeviceFloppy, IconShieldLock, IconCircleCheck, IconTrash, IconPencil, IconCheck, IconX } from '@tabler/icons-react';
 import api from '/lib/api';
+import { useFeedback } from "components/common/FeedbackProvider";
 
 interface RoleMatrix {
   id: number;
@@ -25,14 +26,22 @@ const AVAILABLE_COLORS = [
 // 'switch' = modul cuma punya 1 permission (on/off biasa).
 // 'dropdown' = modul punya level "Lihat saja" vs "Kelola penuh".
 // managePerms = permission tambahan yang ikut aktif kalau pilih "Kelola penuh".
+// Lebar kolom matriks (px). Kolom role dibuat tetap agar dropdown tidak terpotong saat role bertambah.
+const MODULE_COL_WIDTH = 260;
+const ROLE_COL_WIDTH = 165;
+// Warna latar header bagian, senada dengan judul grup di sidebar
+const SECTION_BG = '#E8F4F8';
+
 interface ModuleConfig {
   key: string;
   label: string;
+  hint?: string;
   type: 'switch' | 'dropdown';
   managePerms?: string[];
 }
 
 export default function PermissionMatrix() {
+  const { notify } = useFeedback();
   const [roles, setRoles] = useState<RoleMatrix[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -53,43 +62,64 @@ export default function PermissionMatrix() {
   const [savingName, setSavingName] = useState(false);
   const [editNameError, setEditNameError] = useState<string | null>(null);
 
-  // Daftar menu navbar sesuai urutan di sidebar aplikasi Anda
-  const navbars: ModuleConfig[] = [
-    { key: 'view_dashboard', label: 'Dashboard', type: 'switch' },
-    { key: 'view_inventaris', label: 'Inventaris', type: 'dropdown', managePerms: ['manage_inventaris', 'manage_master_data'] },
-    { key: 'view_transaksi', label: 'Transaksi', type: 'dropdown', managePerms: ['process_transaksi', 'manage_transaksi'] },
-    { key: 'view_riwayat', label: 'Riwayat', type: 'switch' },
-    { key: 'view_order', label: 'Pengajuan Order', type: 'dropdown', managePerms: ['create_order', 'process_order', 'manage_order'] },
-    { key: 'view_kerusakan_alat', label: 'Laporan Kerusakan Alat', type: 'dropdown', managePerms: ['create_kerusakan_alat', 'process_kerusakan_alat', 'manage_kerusakan_alat'] },
-  ];
- const pemeliharaanMesinNavbars: ModuleConfig[] = [
+  // Daftar modul dikelompokkan persis seperti bagian di sidebar.
+  // hint = halaman yang ikut diatur oleh modul tersebut (ditampilkan kecil di bawah nama modul).
+  const sections: { title: string; modules: ModuleConfig[] }[] = [
     {
-      key: 'view_dashboard_pemeliharaan',
-      label: 'Dashboard Pemeliharaan',
-      type: 'switch',
+      title: 'Operasional Alat',
+      modules: [
+        { key: 'view_dashboard', label: 'Dashboard', hint: 'Ringkasan operasional alat', type: 'switch' },
+        { key: 'view_inventaris', label: 'Inventaris', hint: 'Data Tools, Data Consumable, Data Peminjam, Data Pekerjaan', type: 'dropdown', managePerms: ['manage_inventaris', 'manage_master_data'] },
+        { key: 'view_transaksi', label: 'Transaksi', hint: 'Peminjaman Aktif, Pengembalian Alat, Consumable Masuk, Tools Masuk', type: 'dropdown', managePerms: ['process_transaksi', 'manage_transaksi'] },
+        { key: 'view_riwayat', label: 'Riwayat', hint: 'Peminjaman Tools, Consumable Keluar, Riwayat Perbaikan', type: 'switch' },
+        { key: 'view_order', label: 'Pengajuan Order', hint: 'Order Consumable, Order Tools', type: 'dropdown', managePerms: ['create_order', 'process_order', 'manage_order'] },
+        { key: 'view_kerusakan_alat', label: 'Laporan Kerusakan Alat', hint: 'Pelaporan dan penanganan kerusakan alat', type: 'dropdown', managePerms: ['create_kerusakan_alat', 'process_kerusakan_alat', 'manage_kerusakan_alat'] },
+      ],
     },
     {
-      key: 'view_pemeliharaan_mesin',
-      label: 'Pemeliharaan Mesin',
-      type: 'dropdown',
-      managePerms: ['process_pemeliharaan_mesin', 'manage_pemeliharaan_mesin'],
+      title: 'Manajemen Mesin Produksi',
+      modules: [
+        { key: 'view_dashboard_pemeliharaan', label: 'Dashboard Mesin', hint: 'Ringkasan pemeliharaan dan kondisi mesin', type: 'switch' },
+        {
+          key: 'view_data_mesin',
+          label: 'Data Mesin',
+          hint: 'Tambah, edit, nonaktifkan, dan hapus mesin',
+          type: 'dropdown',
+          managePerms: ['manage_data_mesin'],
+        },
+        {
+          key: 'view_operasional_mesin',
+          label: 'Operasional',
+          hint: 'Plotting Jadwal Operasional, Catatan Aktivitas Mesin',
+          type: 'dropdown',
+          managePerms: ['manage_operasional_mesin'],
+        },
+        {
+          key: 'view_pemeliharaan_mesin',
+          label: 'Pemeliharaan',
+          hint: 'Kalibrasi, Rencana Pemeliharaan, Catatan Pemeliharaan, Laporan Anggaran & Vendor',
+          type: 'dropdown',
+          managePerms: ['process_pemeliharaan_mesin', 'manage_pemeliharaan_mesin'],
+        },
+      ],
     },
-  ];
-  const pemeliharaanMotorKonversiNavbars: ModuleConfig[] = [
     {
-      key: 'view_dashboard_pemeliharaan_motor_konversi',
-      label: 'Dashboard Pemeliharaan',
-      type: 'switch',
+      title: 'Pemeliharaan Motor Konversi',
+      modules: [
+        { key: 'view_dashboard_pemeliharaan_motor_konversi', label: 'Dashboard Pemeliharaan', hint: 'Ringkasan pemeliharaan motor konversi', type: 'switch' },
+        {
+          key: 'view_pemeliharaan_motor_konversi',
+          label: 'Pemeliharaan Motor Konversi',
+          hint: 'Data motor konversi dan catatan pemeliharaannya',
+          type: 'dropdown',
+          managePerms: ['process_pemeliharaan_motor_konversi', 'manage_pemeliharaan_motor_konversi'],
+        },
+      ],
     },
     {
-      key: 'view_pemeliharaan_motor_konversi',
-      label: 'Pemeliharaan Motor Konversi',
-      type: 'dropdown',
-      managePerms: ['process_pemeliharaan_motor_konversi', 'manage_pemeliharaan_motor_konversi'],
+      title: 'Administrasi',
+      modules: [{ key: 'view_users', label: 'Manajemen User', hint: 'Daftar Pengguna', type: 'dropdown', managePerms: ['manage_users'] }],
     },
-  ];
-  const administrasiNavbars: ModuleConfig[] = [
-    { key: 'view_users', label: 'Manajemen User', type: 'dropdown', managePerms: ['manage_users'] },
   ];
 
   // Teks yang ditampilkan di badge boleh beda dari nama role asli di database.
@@ -298,7 +328,7 @@ const startEditName = (role: RoleMatrix) => {
         value={level}
         disabled={isSuperAdmin}
         onChange={(e) => handleDropdownChange(role.id, nav, e.target.value as 'none' | 'view' | 'manage')}
-        style={{ cursor: isSuperAdmin ? 'not-allowed' : 'pointer', minWidth: '150px', margin: '0 auto' }}
+        style={{ cursor: isSuperAdmin ? 'not-allowed' : 'pointer', width: '100%' }}
       >
         <option value="none">Tidak ada akses</option>
         <option value="view">Lihat saja</option>
@@ -318,7 +348,7 @@ const startEditName = (role: RoleMatrix) => {
       setTimeout(() => setSuccessMessage(null), 4000);
     } catch (error) {
       console.error('Gagal menyimpan matriks', error);
-      alert('Terjadi kesalahan saat menyimpan data.');
+      notify('Terjadi kesalahan saat menyimpan data.');
     } finally {
       setSaving(false);
     }
@@ -385,181 +415,83 @@ const startEditName = (role: RoleMatrix) => {
         </Col>
       </Row>
 
-      {/* Kontainer Card Utama (Persis seperti tampilan tabel pada Daftar Pengguna) */}
-      <div className="text-uppercase text-secondary fs-7 fw-semibold mb-2 mt-1">
-        Operasional Alat
+      {/* Satu tabel untuk semua modul: baris = modul (dikelompokkan seperti sidebar), kolom = role.
+          Lebar kolom role tetap, jadi kalau role banyak tabel bisa digeser ke samping. */}
+      <div className="d-flex flex-wrap gap-3 text-secondary small mb-3">
+        <span><strong className="text-dark">Lihat saja</strong>: hanya bisa melihat data</span>
+        <span><strong className="text-dark">Kelola penuh</strong>: bisa tambah, ubah, dan hapus</span>
+        <span>Super Admin selalu memiliki akses penuh</span>
+        {roles.length > 5 && <span className="ms-md-auto fst-italic">Geser tabel ke kanan untuk melihat role lainnya →</span>}
       </div>
-      <Card className="card-lg mb-6 border shadow-sm">
-        <div className="table-responsive">
-          <table className="table table-hover align-middle mb-0 text-nowrap">
-            <thead className="table-light text-uppercase fs-7 text-secondary border-bottom">
-              <tr>
-                <th className="py-3 px-4 fw-semibold" style={{ width: '220px' }}>
-                  Role Pengguna
-                </th>
-                {navbars.map((nav) => (
-                  <th key={nav.key} className="py-3 px-3 text-center fw-semibold">
-                    {nav.label}
+      <Card className="card-lg mb-6 border shadow-sm overflow-hidden">
+        {/* maxHeight membuat scrollbar horizontal selalu terlihat tanpa harus scroll ke bawah tabel */}
+        <div className="table-responsive" style={{ maxHeight: '75vh' }}>
+          <table
+            className="table align-middle mb-0"
+            style={{ tableLayout: 'fixed', width: MODULE_COL_WIDTH + roles.length * ROLE_COL_WIDTH, minWidth: '100%' }}
+          >
+            <colgroup>
+              <col style={{ width: MODULE_COL_WIDTH }} />
+              {roles.map((role) => (
+                <col key={role.id} style={{ width: ROLE_COL_WIDTH }} />
+              ))}
+            </colgroup>
+            {sections.map((section) => (
+              <tbody key={section.title}>
+                {/* Header tiap bagian: nama bagian + nama role, supaya role selalu terlihat di atas modulnya */}
+                <tr>
+                  <th
+                    className="py-3 px-4 text-uppercase small fw-bold"
+                    style={{
+                      position: 'sticky',
+                      left: 0,
+                      zIndex: 2,
+                      backgroundColor: SECTION_BG,
+                      boxShadow: 'inset 4px 0 0 #FDB913',
+                      color: '#0A6C8F',
+                      letterSpacing: '0.6px',
+                    }}
+                  >
+                    {section.title}
                   </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {roles.map((role) => {
-                const isSuperAdmin = role.name === 'Super Admin';
-                const badgeVariant = role.color ?? 'secondary';
-
-                return (
-                  <tr key={role.id}>
-                    <td className="py-3 px-4">
-                      <Badge bg={`${badgeVariant}-subtle`} text={`${badgeVariant}-emphasis` as any}>
-                        {roleDisplayLabel[role.name] ?? role.name}
-                      </Badge>
+                  {roles.map((role) => {
+                    const badgeVariant = role.color ?? 'secondary';
+                    return (
+                      <th key={role.id} className="py-3 px-2 text-center" style={{ backgroundColor: SECTION_BG }}>
+                        <Badge
+                          bg={`${badgeVariant}-subtle`}
+                          text={`${badgeVariant}-emphasis` as any}
+                          className="text-wrap"
+                          style={{ lineHeight: 1.3 }}
+                        >
+                          {roleDisplayLabel[role.name] ?? role.name}
+                        </Badge>
+                      </th>
+                    );
+                  })}
+                </tr>
+                {section.modules.map((nav) => (
+                  <tr key={nav.key}>
+                    <td
+                      className="py-3 px-4"
+                      style={{ position: 'sticky', left: 0, zIndex: 1, backgroundColor: 'var(--bs-card-bg, #fff)' }}
+                    >
+                      <div className="fw-semibold text-dark">{nav.label}</div>
+                      {nav.hint && <div className="text-secondary small text-wrap">{nav.hint}</div>}
                     </td>
-                    {navbars.map((nav) => (
-                      <td key={nav.key} className="py-3 px-3 text-center">
-                        {renderModuleCell(role, nav, isSuperAdmin)}
+                    {roles.map((role) => (
+                      <td key={role.id} className="py-3 px-2 text-center">
+                        {renderModuleCell(role, nav, role.name === 'Super Admin')}
                       </td>
                     ))}
                   </tr>
-                );
-              })}
-            </tbody>
-                    </table>
-        </div>
-      </Card>
-
-      {/* Section terpisah: domain Pemeliharaan Mesin, di luar Operasional Alat */}
-      <div className="text-uppercase text-secondary fs-7 fw-semibold mb-2 mt-1">
-        Pemeliharaan Mesin
-      </div>
-      <Card className="card-lg mb-6 border shadow-sm">
-        <div className="table-responsive">
-          <table className="table table-hover align-middle mb-0 text-nowrap">
-            <thead className="table-light text-uppercase fs-7 text-secondary border-bottom">
-              <tr>
-                <th className="py-3 px-4 fw-semibold" style={{ width: '220px' }}>
-                  Role Pengguna
-                </th>
-                {pemeliharaanMesinNavbars.map((nav) => (
-                  <th key={nav.key} className="py-3 px-3 text-center fw-semibold">
-                    {nav.label}
-                  </th>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
-              {roles.map((role) => {
-                const isSuperAdmin = role.name === 'Super Admin';
-                const badgeVariant = role.color ?? 'secondary';
-
-                return (
-                  <tr key={role.id}>
-                    <td className="py-3 px-4">
-                      <Badge bg={`${badgeVariant}-subtle`} text={`${badgeVariant}-emphasis` as any}>
-                        {roleDisplayLabel[role.name] ?? role.name}
-                      </Badge>
-                    </td>
-                    {pemeliharaanMesinNavbars.map((nav) => (
-                      <td key={nav.key} className="py-3 px-3 text-center">
-                        {renderModuleCell(role, nav, isSuperAdmin)}
-                      </td>
-                    ))}
-                  </tr>
-                );
-              })}
-            </tbody>
+              </tbody>
+            ))}
           </table>
         </div>
       </Card>
 
-      {/* Section terpisah: domain Pemeliharaan Motor Konversi */}
-      <div className="text-uppercase text-secondary fs-7 fw-semibold mb-2 mt-1">
-        Pemeliharaan Motor Konversi
-      </div>
-      <Card className="card-lg mb-6 border shadow-sm">
-        <div className="table-responsive">
-          <table className="table table-hover align-middle mb-0 text-nowrap">
-            <thead className="table-light text-uppercase fs-7 text-secondary border-bottom">
-              <tr>
-                <th className="py-3 px-4 fw-semibold" style={{ width: '220px' }}>
-                  Role Pengguna
-                </th>
-                {pemeliharaanMotorKonversiNavbars.map((nav) => (
-                  <th key={nav.key} className="py-3 px-3 text-center fw-semibold">
-                    {nav.label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {roles.map((role) => {
-                const isSuperAdmin = role.name === 'Super Admin';
-                const badgeVariant = role.color ?? 'secondary';
-
-                return (
-                  <tr key={role.id}>
-                    <td className="py-3 px-4">
-                      <Badge bg={`${badgeVariant}-subtle`} text={`${badgeVariant}-emphasis` as any}>
-                        {roleDisplayLabel[role.name] ?? role.name}
-                      </Badge>
-                    </td>
-                    {pemeliharaanMotorKonversiNavbars.map((nav) => (
-                      <td key={nav.key} className="py-3 px-3 text-center">
-                        {renderModuleCell(role, nav, isSuperAdmin)}
-                      </td>
-                    ))}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-
-      {/* Section terpisah: domain Administrasi (akun & hak akses) */}
-      <div className="text-uppercase text-secondary fs-7 fw-semibold mb-2 mt-1">
-        Administrasi
-      </div>
-      <Card className="card-lg mb-6 border shadow-sm">
-        <div className="table-responsive">
-          <table className="table table-hover align-middle mb-0 text-nowrap">
-            <thead className="table-light text-uppercase fs-7 text-secondary border-bottom">
-              <tr>
-                <th className="py-3 px-4 fw-semibold" style={{ width: '220px' }}>
-                  Role Pengguna
-                </th>
-                {administrasiNavbars.map((nav) => (
-                  <th key={nav.key} className="py-3 px-3 text-center fw-semibold">
-                    {nav.label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {roles.map((role) => {
-                const isSuperAdmin = role.name === 'Super Admin';
-                const badgeVariant = role.color ?? 'secondary';
-
-                return (
-                  <tr key={role.id}>
-                    <td className="py-3 px-4">
-                      <Badge bg={`${badgeVariant}-subtle`} text={`${badgeVariant}-emphasis` as any}>
-                        {roleDisplayLabel[role.name] ?? role.name}
-                      </Badge>
-                    </td>
-                    {administrasiNavbars.map((nav) => (
-                      <td key={nav.key} className="py-3 px-3 text-center">
-                        {renderModuleCell(role, nav, isSuperAdmin)}
-                      </td>
-                    ))}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </Card>
       {/* Modal Tambah Role */}
       <Modal show={showAddRoleModal} onHide={() => { setShowAddRoleModal(false); setAddRoleError(null); setNewRoleName(''); }} centered>
         <Modal.Header closeButton>

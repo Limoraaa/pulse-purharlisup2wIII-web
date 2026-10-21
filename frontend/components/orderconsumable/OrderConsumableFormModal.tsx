@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { Modal, Form, Button, Row, Col, InputGroup } from 'react-bootstrap';
+import { Modal, Form, Button, Row, Col } from 'react-bootstrap';
 import { IconTrash, IconPlus } from '@tabler/icons-react';
 
 import { 
@@ -8,6 +8,7 @@ import {
   getConsumableList, 
   createOrderConsumable 
 } from '/services/orderConsumableService';
+import { useFeedback } from "components/common/FeedbackProvider";
 
 interface OrderConsumableFormModalProps {
   isOpen: boolean;
@@ -40,6 +41,7 @@ const getEmptyItem = (): OrderItem => ({
 });
 
 export default function OrderConsumableFormModal({ isOpen, onClose, onSuccess }: OrderConsumableFormModalProps) {
+  const { notify } = useFeedback();
   const [peminjamList, setPeminjamList] = useState<any[]>([]);
   const [consumableList, setConsumableList] = useState<any[]>([]);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -141,8 +143,8 @@ export default function OrderConsumableFormModal({ isOpen, onClose, onSuccess }:
 
       onSuccess();
       onClose();
-    } catch (error) {
-      alert('Gagal menyimpan data order. Pastikan semua field terisi dengan benar.');
+    } catch {
+      notify('Gagal menyimpan data order. Pastikan semua field terisi dengan benar.');
     } finally {
       setIsSubmitting(false);
     }

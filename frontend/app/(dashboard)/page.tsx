@@ -22,14 +22,14 @@ const HomePage = () => {
           // Redirect ke halaman lain yang pasti bisa diakses, urut dari prioritas
           if (perms.includes("view_inventaris")) router.replace("/inventaris/data-tools");
           else if (perms.includes("view_transaksi")) router.replace("/transaksi/peminjaman-aktif");
-          else if (perms.includes("view_riwayat")) router.replace("/riwayat");
+          else if (perms.includes("view_riwayat")) router.replace("/riwayat/peminjaman-tools");
           else if (perms.includes("view_pemeliharaan_mesin")) router.replace("/pemeliharaan/data-mesin");
           else if (perms.includes("view_users")) router.replace("/data-user");
           else router.replace("/signin");
           return;
         }
         setChecked(true);
-      } catch (error) {
+      } catch {
         router.replace("/signin");
       }
     };

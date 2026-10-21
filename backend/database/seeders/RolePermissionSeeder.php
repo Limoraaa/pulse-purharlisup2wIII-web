@@ -44,6 +44,10 @@ class RolePermissionSeeder extends Seeder
 // --- PEMELIHARAAN MESIN (domain terpisah) ---
             'view_dashboard_pemeliharaan',
             'view_pemeliharaan_mesin', 'create_pemeliharaan_mesin', 'process_pemeliharaan_mesin', 'manage_pemeliharaan_mesin',
+            // Operasional Mesin (Plotting Jadwal & Catatan Aktivitas Mesin)
+            'view_operasional_mesin', 'manage_operasional_mesin',
+            // Data Mesin (master data: tambah, edit, nonaktifkan, hapus mesin)
+            'view_data_mesin', 'manage_data_mesin',
 
             // --- PEMELIHARAAN MOTOR KONVERSI (domain terpisah) ---
             'view_dashboard_pemeliharaan_motor_konversi',
@@ -77,6 +81,8 @@ class RolePermissionSeeder extends Seeder
             'manage_master_data',
             'view_dashboard_pemeliharaan',
             'view_pemeliharaan_mesin', 'create_pemeliharaan_mesin', 'process_pemeliharaan_mesin', 'manage_pemeliharaan_mesin',
+            'view_operasional_mesin', 'manage_operasional_mesin',
+            'view_data_mesin', 'manage_data_mesin',
             'view_dashboard_pemeliharaan_motor_konversi',
             'view_pemeliharaan_motor_konversi', 'process_pemeliharaan_motor_konversi', 'manage_pemeliharaan_motor_konversi',
             'view_users', 'manage_users',
@@ -102,6 +108,8 @@ class RolePermissionSeeder extends Seeder
         // TIDAK ADA akses Operasional Alat maupun Administrasi ---
         $rolePekerjaLapangan->givePermissionTo([
             'view_pemeliharaan_mesin', 'process_pemeliharaan_mesin', 'manage_pemeliharaan_mesin',
+            'view_operasional_mesin', 'manage_operasional_mesin',
+            'view_data_mesin', 'manage_data_mesin',
         ]);
 
         // --- PEGAWAI MAINTENANCE MESIN: kelola penuh SELURUH domain Pemeliharaan Mesin
@@ -109,6 +117,8 @@ class RolePermissionSeeder extends Seeder
         $rolePegawaiMaintenance->givePermissionTo([
             'view_dashboard_pemeliharaan',
             'view_pemeliharaan_mesin', 'process_pemeliharaan_mesin', 'manage_pemeliharaan_mesin',
+            'view_operasional_mesin', 'manage_operasional_mesin',
+            'view_data_mesin', 'manage_data_mesin',
         ]);
 
         // Catatan: Super Admin tidak perlu di-assign permission satu-satu.

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\API;
+namespace App\Http\Controllers\Api;
 
 use App\Models\Peminta;
 use App\Http\Controllers\Controller;
@@ -43,7 +43,7 @@ class PemintaController extends Controller
             'nama'   => 'required|string|max:255',
             'divisi' => 'required|string|max:255',
             // --- VALIDASI ROLE BARU (INVENTORY MAN) ---
-            'role'   => 'nullable|string|in:user,inventory man', 
+            'role'   => 'nullable|string|in:user,inventory man',
         ]);
 
         if ($validator->fails()) {
@@ -51,7 +51,7 @@ class PemintaController extends Controller
         }
 
         $data = $validator->validated();
-        
+
         // Default role jika tidak diisi dari frontend adalah 'user'
         if (empty($data['role'])) {
             $data['role'] = 'user';
@@ -83,7 +83,14 @@ class PemintaController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $peminta->update($validator->validated());
+        $data = $validator->validated();
+
+        // Jangan pernah menimpa ID dengan nilai kosong
+        if (empty($data['id'])) {
+            unset($data['id']);
+        }
+
+        $peminta->update($data);
 
         return response()->json($peminta);
     }

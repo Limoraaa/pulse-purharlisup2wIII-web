@@ -22,8 +22,10 @@ import PengembalianChecklist, {
   PengembalianBatchItem,
   PengembalianGroupItem,
 } from "components/ruangtools/pengembalian/PengembalianChecklist";
+import { useFeedback } from "components/common/FeedbackProvider";
 
 const PengembalianManager = () => {
+  const { notify } = useFeedback();
   const canProcess = usePermission(["process_transaksi", "manage_transaksi"]);
   const [items, setItems] = useState<PeminjamanAktifItemType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -200,7 +202,7 @@ const PengembalianManager = () => {
       handleBackToScan();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Gagal memproses pengembalian";
-      alert(message);
+      notify(message);
     } finally {
       setSubmitting(false);
     }

@@ -1,0 +1,46 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+
+class RencanaPemeliharaanMesin extends Model
+{
+    protected $table = 'rencana_pemeliharaan_mesin';
+
+    protected $fillable = [
+        'mesin_id',
+        'tahun',
+        'bulan',
+        'minggu',
+        'aksi',
+        'status',
+        'rab',
+        'keterangan','jenis_pelaksana', 'nama_vendor', 'no_po', 'biaya_aktual'
+    ];
+
+    // Default di level model, jaga-jaga kalau default kolom di migration berbeda.
+    protected $attributes = [
+        'status' => 'Terjadwal',
+    ];
+
+    protected $casts = [
+        'tahun'  => 'integer',
+        'bulan'  => 'integer',
+        'minggu' => 'integer',
+        'rab'    => 'integer',
+    ];
+
+    public function mesin(): BelongsTo
+    {
+        return $this->belongsTo(MesinProduksi::class, 'mesin_id');
+    }
+
+    // Log pemeliharaan (Checklist Visual) yang menyelesaikan rencana ini.
+    public function log(): HasOne
+    {
+        return $this->hasOne(LogPemeliharaanMesin::class, 'rencana_id');
+    }
+}
