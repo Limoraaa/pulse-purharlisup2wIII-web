@@ -88,3 +88,18 @@ export function dateInFilter(d: Date, value: DateFilterValue): boolean {
   const end = new Date(`${value.end}T23:59:59.999`).getTime();
   return t >= start && t <= end;
 }
+
+// Format kolom tanggal (DATE) dari backend menjadi "21 Okt 2026".
+// Hanya bagian YYYY-MM-DD yang dipakai agar tanggal tidak bergeser karena
+// zona waktu (backend mengirim "2026-10-21T00:00:00.000000Z").
+export function formatTanggal(raw?: string | null): string {
+  if (!raw) return '-';
+  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const date = match
+    ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+    : parseRowDate(raw);
+  if (!date) return raw;
+  return date
+    .toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
+    .replace(/\./g, '');
+}

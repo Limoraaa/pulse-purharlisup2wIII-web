@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Modal, Form, Button, ButtonGroup, Alert, Spinner } from "react-bootstrap";
 import { IconClipboardCheck } from "@tabler/icons-react";
 import api from "lib/api";
+import { toYMD } from 'components/ruangtools/common/dateUtils';
 import type { ChecklistStatus, MachinePart, PartMappingPayload } from "./PartMappingType";
 
 interface Props {
@@ -195,7 +196,7 @@ export default function PartMappingChecklistModalMotor({ show, onHide, mesinId, 
           motor_konversi_id: mesinId, 
           uraian_pemeliharaan: uraianOtomatis,
           keterangan: keteranganOtomatis,
-          waktu_pelaksana: new Date().toISOString().split("T")[0],
+          waktu_pelaksana: toYMD(new Date()), // tanggal lokal (bukan UTC)
           paraf: teknisi.trim(),
           status: overallStatus,                               // <-- Badge status (Baik/Perlu Perhatian/Rusak)
           jumlah_part_diperiksa: hasil.length,                 // <-- Angka part yang dicek

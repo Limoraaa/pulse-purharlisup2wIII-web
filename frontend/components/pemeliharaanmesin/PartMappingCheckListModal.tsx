@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Modal, Form, Button, ButtonGroup, Alert, Spinner } from "react-bootstrap";
 import { IconClipboardCheck } from "@tabler/icons-react";
 import api from "lib/api";
+import { toYMD } from 'components/ruangtools/common/dateUtils';
 import type { ChecklistStatus, MachinePart, PartMappingPayload } from "./PartMappingType";
 
 interface Props {
@@ -171,7 +172,7 @@ export default function PartMappingChecklistModal({ show, onHide, mesinId, mesin
         method: "POST",
         body: JSON.stringify({
           mesin_produksi_id: mesinId,
-          waktu_pelaksana: new Date().toISOString().split("T")[0],
+          waktu_pelaksana: toYMD(new Date()), // tanggal lokal (bukan UTC)
           paraf: teknisi.trim(),
           jumlah_part_total: parts.length,
           hasil_checklist: hasil,

@@ -21,6 +21,8 @@ import {
 } from '@tabler/icons-react';
 import Image from 'next/image';
 import api from 'lib/api';
+import ExpandableText from 'components/common/ExpandableText';
+import { formatTanggal } from 'components/ruangtools/common/dateUtils';
 import { exportToExcel, exportToPDF, ExportColumn } from 'components/ruangtools/riwayat/common/exportUtils';
 
 // Import Modal pendukung
@@ -458,7 +460,7 @@ export default function DetailMesinManager({ mesin, canManage = false, onBack }:
                                 {log.uraian_pemeliharaan}
                               </div>
                             </td>
-                            <td className="text-center text-nowrap">{log.waktu_pelaksana}</td>
+                            <td className="text-center text-nowrap">{formatTanggal(log.waktu_pelaksana)}</td>
                             <td className="text-center fw-semibold text-secondary">{log.paraf}</td>
                             <td className="text-center text-nowrap fw-medium">
                               {log.jumlah_part_diperiksa != null
@@ -473,9 +475,7 @@ export default function DetailMesinManager({ mesin, canManage = false, onBack }:
                               ) : "-"}
                             </td>
                             <td>
-                              <div style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={log.keterangan || ""}>
-                                {log.keterangan || "-"}
-                              </div>
+                              <ExpandableText text={log.keterangan} lines={3} />
                             </td>
                           </tr>
                         );
