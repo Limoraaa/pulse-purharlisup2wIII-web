@@ -122,7 +122,7 @@ export default function OrderConsumableFormModal({ isOpen, onClose, onSuccess }:
 
         const payload = {
           peminta_id: pemintaId,
-          consumable_id: item.consumable_id ? Number(item.consumable_id) : null,
+          consumable_id: item.consumable_id || null, // UUID, jangan diubah ke angka
           kode_barang: item.kode_barang || null,
           nama_barang: item.nama_barang,
           merek: item.merek || null,

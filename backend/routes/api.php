@@ -35,18 +35,6 @@ use App\Http\Controllers\Api\DokumenMesinController;
 // ==========================================
 Route::post('/login', [AuthController::class, 'login']);
 
-Route::post('/peminjaman/scan', [PeminjamanController::class, 'scan']);
-Route::get('/peminjaman/antrean', [PeminjamanController::class, 'antrean']);
-Route::patch('/peminjaman/cart/{id}', [PeminjamanController::class, 'updateCartItem']);
-Route::delete('/peminjaman/cart/{id}', [PeminjamanController::class, 'removeCartItem']);
-
-Route::post('/consumable-keluar/scan', [ConsumableKeluarController::class, 'scan']);
-Route::get('/consumable-keluar/antrean', [ConsumableKeluarController::class, 'antrean']);
-Route::patch('/consumable-keluar/cart/{id}', [ConsumableKeluarController::class, 'updateCartItem']);
-Route::delete('/consumable-keluar/antrean/{consumable_id}', [ConsumableKeluarController::class, 'hapusAntrean']);
-Route::post('/consumable-keluar/proses', [ConsumableKeluarController::class, 'prosesCartConsumable']);
-
-
 // ==========================================
 // 2. ROUTE TERLINDUNG (WAJIB LOGIN & CEK HAK AKSES)
 // ==========================================
@@ -150,6 +138,24 @@ Route::middleware('auth:sanctum')->group(function () {
     // ------------------------------------------
     // D. MODUL TRANSAKSI & RIWAYAT
     // ------------------------------------------
+    // Keranjang (scan barcode dari halaman Data Tools / Data Consumable).
+    // Didaftarkan sebelum apiResource agar /antrean tidak dianggap sebagai {id}.
+    Route::middleware('permission:view_inventaris|view_transaksi|process_transaksi')->group(function () {
+        Route::get('/peminjaman/antrean', [PeminjamanController::class, 'antrean']);
+        Route::get('/consumable-keluar/antrean', [ConsumableKeluarController::class, 'antrean']);
+    });
+
+    Route::middleware('permission:process_transaksi')->group(function () {
+        Route::post('/peminjaman/scan', [PeminjamanController::class, 'scan']);
+        Route::patch('/peminjaman/cart/{id}', [PeminjamanController::class, 'updateCartItem']);
+        Route::delete('/peminjaman/cart/{id}', [PeminjamanController::class, 'removeCartItem']);
+
+        Route::post('/consumable-keluar/scan', [ConsumableKeluarController::class, 'scan']);
+        Route::patch('/consumable-keluar/cart/{id}', [ConsumableKeluarController::class, 'updateCartItem']);
+        Route::delete('/consumable-keluar/antrean/{consumable_id}', [ConsumableKeluarController::class, 'hapusAntrean']);
+        Route::post('/consumable-keluar/proses', [ConsumableKeluarController::class, 'prosesCartConsumable']);
+    });
+
     Route::middleware('permission:view_riwayat')->group(function () {
         Route::get('/peminjaman/belum-kembali', [PeminjamanController::class, 'belumKembali']);
     });
