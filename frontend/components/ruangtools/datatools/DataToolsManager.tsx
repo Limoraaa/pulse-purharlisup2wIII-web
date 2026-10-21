@@ -13,9 +13,8 @@ import {
   Alert,
   InputGroup,
   Form,
-  Toast,
-  ToastContainer,
 } from "react-bootstrap";
+import { useFeedback } from "components/common/FeedbackProvider";
 import {
   IconPlus,
   IconCircleCheck,
@@ -145,14 +144,8 @@ const DataToolsManager = () => {
   const [submittingLoan, setSubmittingLoan] = useState(false);
   const [loanError, setLoanError] = useState<string | null>(null);
 
-  // ---- Toast pengganti alert() bawaan browser ----
-  const [toast, setToast] = useState<{ show: boolean; message: string; variant: "success" | "danger" | "warning" }>({
-    show: false,
-    message: "",
-    variant: "danger",
-  });
-  const showToast = (message: string, variant: "success" | "danger" | "warning" = "danger") =>
-    setToast({ show: true, message, variant });
+  // ---- Notifikasi (popup bersama dari FeedbackProvider) ----
+  const { notify: showToast } = useFeedback();
 
   // ---- Timer untuk Debounce API ----
   const debounceTimers = useRef<Map<string | number, NodeJS.Timeout>>(new Map());
@@ -356,7 +349,7 @@ const DataToolsManager = () => {
 
     window.addEventListener('keydown', handleGlobalScan);
     return () => window.removeEventListener('keydown', handleGlobalScan);
-  }, [tools, consumables, cart, mutate]);
+  }, [tools, consumables, cart, mutate, showToast]);
 
   // ================= CRUD TOOLS =================
   const openAddModal = () => {
@@ -454,7 +447,7 @@ const DataToolsManager = () => {
     } finally {
       pendingAddRef.current.delete(tool.id);
     }
-  }, [mutate]);
+  }, [mutate, showToast]);
   
   const handleAnimationEnd = (id: string) => {
     setFlyAnimations((prev) => prev.filter((a) => a.id !== id));
@@ -794,19 +787,6 @@ const DataToolsManager = () => {
       <CartOffcanvas show={cartOpen} onClose={() => setCartOpen(false)} items={cart} onUpdateQty={handleUpdateQty} onRemove={handleRemoveFromCart} onProceed={handleProceedToLoanForm} />
       <AddToCartFlyEffect animations={flyAnimations} onAnimationEnd={handleAnimationEnd} />
 
-      <ToastContainer position="top-end" className="p-3" style={{ zIndex: 9999 }}>
-        <Toast
-          show={toast.show}
-          onClose={() => setToast((t) => ({ ...t, show: false }))}
-          delay={3000}
-          autohide
-          bg={toast.variant}
-        >
-          <Toast.Body className={toast.variant === "warning" ? "" : "text-white"}>
-            {toast.message}
-          </Toast.Body>
-        </Toast>
-      </ToastContainer>
 
       <LoanFormModal show={loanFormOpen} onClose={() => setLoanFormOpen(false)} onSubmit={handleLoanSubmit} cartItems={cart} submitting={submittingLoan} />
     </div>
