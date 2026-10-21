@@ -182,6 +182,7 @@ class LogPemeliharaanMotorKonversiController extends Controller
             'hasil_checklist.*.items' => 'required|array|min:1',
             'hasil_checklist.*.items.*.item' => 'required|string',
             'hasil_checklist.*.items.*.status' => 'required|in:baik,perlu_perhatian,rusak',
+            'hasil_checklist.*.items.*.catatan' => 'nullable|string',
             'hasil_checklist.*.catatan' => 'nullable|string',
             'jumlah_part_total' => 'nullable|integer|min:0',
         ]);
@@ -238,7 +239,8 @@ class LogPemeliharaanMotorKonversiController extends Controller
 
         foreach ($hasil as $part) {
             $items = array_map(
-                fn ($it) => "{$it['item']} ({$label[$it['status']]})",
+                fn ($it) => "{$it['item']} ({$label[$it['status']]}"
+                    . (!empty($it['catatan']) ? ": {$it['catatan']}" : '') . ')',
                 $part['items']
             );
             $baris[] = "{$part['partName']}: " . implode('; ', $items);

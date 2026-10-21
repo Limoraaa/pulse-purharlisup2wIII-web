@@ -21,7 +21,7 @@ interface Props {
 // Hasil pemeriksaan satu part, ditampung di layar sampai teknisi menyimpan kegiatan.
 interface PartResult {
   statuses: Record<string, ChecklistStatus>;
-  catatan: string;
+  catatan: Record<string, string>; // catatan temuan per item (hanya item yang bukan "Baik")
 }
 
 // Tindakan pemeliharaan yang dikerjakan. Dipakai server untuk mengisi baris Realisasi di Rencana.
@@ -89,7 +89,7 @@ export default function PartMappingChecklistModal({
   // Form pemeriksaan satu part
   const [selectedPart, setSelectedPart] = useState<MachinePart | null>(null);
   const [draftStatuses, setDraftStatuses] = useState<Record<string, ChecklistStatus>>({});
-  const [draftCatatan, setDraftCatatan] = useState("");
+  const [draftCatatan, setDraftCatatan] = useState<Record<string, string>>({});
   const [partError, setPartError] = useState("");
 
   // Dikerjakan dari rencana: tindakan ikut rencana, tidak perlu dipilih lagi.
@@ -139,33 +139,34 @@ export default function PartMappingChecklistModal({
     const existing = results[p.id];
     if (existing) {
       setDraftStatuses({ ...existing.statuses });
-      setDraftCatatan(existing.catatan);
+      setDraftCatatan({ ...existing.catatan });
     } else {
       const initial: Record<string, ChecklistStatus> = {};
       p.checklistItems.forEach((item) => {
         initial[item] = "baik";
       });
       setDraftStatuses(initial);
-      setDraftCatatan("");
+      setDraftCatatan({});
     }
     setPartError("");
     setSelectedPart(p);
   };
 
-  const draftHasFinding = Object.values(draftStatuses).some((s) => s !== "baik");
-
   const handleSavePart = () => {
     if (!selectedPart) return;
-    if (draftHasFinding && !draftCatatan.trim()) {
-      setPartError('Ada item yang bukan "Baik" — catatan temuan wajib diisi.');
+    const temuan = selectedPart.checklistItems.filter((item) => draftStatuses[item] !== "baik");
+    const tanpaCatatan = temuan.filter((item) => !draftCatatan[item]?.trim());
+    if (tanpaCatatan.length > 0) {
+      setPartError(`Catatan temuan wajib diisi untuk: ${tanpaCatatan.join(", ")}.`);
       return;
     }
+    const catatan: Record<string, string> = {};
+    temuan.forEach((item) => {
+      catatan[item] = draftCatatan[item].trim();
+    });
     setResults((prev) => ({
       ...prev,
-      [selectedPart.id]: {
-        statuses: draftStatuses,
-        catatan: draftHasFinding ? draftCatatan.trim() : "",
-      },
+      [selectedPart.id]: { statuses: draftStatuses, catatan },
     }));
     setSelectedPart(null);
   };
@@ -215,8 +216,8 @@ export default function PartMappingChecklistModal({
           items: p.checklistItems.map((item) => ({
             item,
             status: results[p.id].statuses[item] ?? "baik",
+            catatan: results[p.id].catatan[item] || undefined,
           })),
-          catatan: results[p.id].catatan || undefined,
         }));
 
       await api("/log-pemeliharaan", {
@@ -379,21 +380,20 @@ export default function PartMappingChecklistModal({
                   </Button>
                 ))}
               </ButtonGroup>
+              {/* Catatan terpisah untuk tiap item yang bukan "Baik" */}
+              {draftStatuses[item] !== "baik" && (
+                <Form.Control
+                  as="textarea"
+                  rows={2}
+                  size="sm"
+                  className="mt-2"
+                  value={draftCatatan[item] ?? ""}
+                  onChange={(e) => setDraftCatatan((prev) => ({ ...prev, [item]: e.target.value }))}
+                  placeholder={`Catatan temuan untuk "${item}"...`}
+                />
+              )}
             </div>
           ))}
-
-          {draftHasFinding && (
-            <Form.Group className="mt-3">
-              <Form.Label className="small fw-semibold">Catatan temuan</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={3}
-                value={draftCatatan}
-                onChange={(e) => setDraftCatatan(e.target.value)}
-                placeholder="Jelaskan temuan/kejanggalan yang ditemukan..."
-              />
-            </Form.Group>
-          )}
         </Modal.Body>
         <Modal.Footer>
           <Button variant="outline-secondary" onClick={() => setSelectedPart(null)}>
