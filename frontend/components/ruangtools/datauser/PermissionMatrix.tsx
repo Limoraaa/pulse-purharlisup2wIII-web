@@ -26,6 +26,8 @@ const AVAILABLE_COLORS = [
 // 'switch' = modul cuma punya 1 permission (on/off biasa).
 // 'dropdown' = modul punya level "Lihat saja" vs "Kelola penuh".
 // managePerms = permission tambahan yang ikut aktif kalau pilih "Kelola penuh".
+// catatPerms  = (opsional) level "Isi catatan": hanya halaman catatan & tambah catatan,
+//               tanpa permission lihat (view) sehingga menu lain di modul tidak muncul.
 // Lebar kolom matriks (px). Kolom role dibuat tetap agar dropdown tidak terpotong saat role bertambah.
 const MODULE_COL_WIDTH = 260;
 const ROLE_COL_WIDTH = 165;
@@ -38,7 +40,10 @@ interface ModuleConfig {
   hint?: string;
   type: 'switch' | 'dropdown';
   managePerms?: string[];
+  catatPerms?: string[];
 }
+
+type ModuleLevel = 'none' | 'view' | 'catat' | 'manage';
 
 export default function PermissionMatrix() {
   const { notify } = useFeedback();
@@ -90,16 +95,18 @@ export default function PermissionMatrix() {
         {
           key: 'view_operasional_mesin',
           label: 'Operasional',
-          hint: 'Plotting Jadwal Operasional, Catatan Aktivitas Mesin',
+          hint: 'Plotting Jadwal Operasional, Catatan Aktivitas Mesin. "Isi catatan": hanya Catatan Aktivitas (tambah saja)',
           type: 'dropdown',
-          managePerms: ['manage_operasional_mesin'],
+          managePerms: ['process_operasional_mesin', 'manage_operasional_mesin'],
+          catatPerms: ['process_operasional_mesin'],
         },
         {
           key: 'view_pemeliharaan_mesin',
           label: 'Pemeliharaan',
-          hint: 'Kalibrasi, Rencana Pemeliharaan, Catatan Pemeliharaan, Laporan Anggaran & Vendor',
+          hint: 'Kalibrasi, Rencana Pemeliharaan, Catatan Pemeliharaan, Laporan Anggaran & Vendor. "Isi catatan": hanya Catatan Pemeliharaan (tambah saja)',
           type: 'dropdown',
           managePerms: ['process_pemeliharaan_mesin', 'manage_pemeliharaan_mesin'],
+          catatPerms: ['process_pemeliharaan_mesin'],
         },
       ],
     },
@@ -273,23 +280,30 @@ const startEditName = (role: RoleMatrix) => {
     );
   };
 
-  // Menentukan level akses modul saat ini: 'none' | 'view' | 'manage'
-  const getModuleLevel = (role: RoleMatrix, nav: ModuleConfig): 'none' | 'view' | 'manage' => {
-    if (nav.managePerms && nav.managePerms.some((p) => role.permissions.includes(p))) return 'manage';
+  // Menentukan level akses modul saat ini: 'none' | 'view' | 'catat' | 'manage'
+  const getModuleLevel = (role: RoleMatrix, nav: ModuleConfig): ModuleLevel => {
+    const catatPerms = nav.catatPerms || [];
+    // Permission khusus "Kelola penuh" (di luar permission level Isi catatan)
+    const khususKelola = (nav.managePerms || []).filter((p) => !catatPerms.includes(p));
+    if (khususKelola.some((p) => role.permissions.includes(p))) return 'manage';
     if (role.permissions.includes(nav.key)) return 'view';
+    if (catatPerms.some((p) => role.permissions.includes(p))) return 'catat';
     return 'none';
   };
 
-  const handleDropdownChange = (roleId: number, nav: ModuleConfig, level: 'none' | 'view' | 'manage') => {
+  const handleDropdownChange = (roleId: number, nav: ModuleConfig, level: ModuleLevel) => {
     setRoles((prevRoles) =>
       prevRoles.map((role) => {
         if (role.id !== roleId) return role;
 
         const managePerms = nav.managePerms || [];
-        let newPerms = role.permissions.filter((p) => p !== nav.key && !managePerms.includes(p));
+        const catatPerms = nav.catatPerms || [];
+        let newPerms = role.permissions.filter((p) => p !== nav.key && !managePerms.includes(p) && !catatPerms.includes(p));
 
         if (level === 'view') {
           newPerms = [...newPerms, nav.key];
+        } else if (level === 'catat') {
+          newPerms = [...newPerms, ...catatPerms];
         } else if (level === 'manage') {
           newPerms = [...newPerms, nav.key, ...managePerms];
         }
@@ -327,11 +341,12 @@ const startEditName = (role: RoleMatrix) => {
         size="sm"
         value={level}
         disabled={isSuperAdmin}
-        onChange={(e) => handleDropdownChange(role.id, nav, e.target.value as 'none' | 'view' | 'manage')}
+        onChange={(e) => handleDropdownChange(role.id, nav, e.target.value as ModuleLevel)}
         style={{ cursor: isSuperAdmin ? 'not-allowed' : 'pointer', width: '100%' }}
       >
         <option value="none">Tidak ada akses</option>
         <option value="view">Lihat saja</option>
+        {nav.catatPerms && <option value="catat">Isi catatan</option>}
         <option value="manage">Kelola penuh</option>
       </Form.Select>
     );
@@ -419,6 +434,7 @@ const startEditName = (role: RoleMatrix) => {
           Lebar kolom role tetap, jadi kalau role banyak tabel bisa digeser ke samping. */}
       <div className="d-flex flex-wrap gap-3 text-secondary small mb-3">
         <span><strong className="text-dark">Lihat saja</strong>: hanya bisa melihat data</span>
+        <span><strong className="text-dark">Isi catatan</strong>: hanya halaman catatan, bisa menambah catatan (untuk pekerja &amp; vendor)</span>
         <span><strong className="text-dark">Kelola penuh</strong>: bisa tambah, ubah, dan hapus</span>
         <span>Super Admin selalu memiliki akses penuh</span>
         {roles.length > 5 && <span className="ms-md-auto fst-italic">Geser tabel ke kanan untuk melihat role lainnya →</span>}

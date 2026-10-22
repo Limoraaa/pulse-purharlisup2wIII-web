@@ -98,7 +98,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('peminta', PemintaController::class)->only(['index', 'show']);
     });
 
-    Route::middleware('permission:view_inventaris|view_pemeliharaan_mesin|view_operasional_mesin|view_data_mesin')->group(function () {
+    // process_* = level "Isi catatan" (pekerja/vendor): butuh daftar mesin untuk halaman catatan
+    Route::middleware('permission:view_inventaris|view_pemeliharaan_mesin|view_operasional_mesin|view_data_mesin|process_operasional_mesin|process_pemeliharaan_mesin')->group(function () {
         Route::apiResource('mesin-produksi', MesinProduksiController::class)->only(['index', 'show']);
     });
 
@@ -246,7 +247,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/pemeliharaan/dashboard-stats', [LogPemeliharaanMesinController::class, 'getDashboardStats']);
     });
 
-    Route::middleware('permission:view_pemeliharaan_mesin')->group(function () {
+    // Level "Isi catatan" (process_pemeliharaan_mesin) ikut bisa membaca catatan pemeliharaan
+    Route::middleware('permission:view_pemeliharaan_mesin|process_pemeliharaan_mesin')->group(function () {
         Route::get('/log-pemeliharaan', [LogPemeliharaanMesinController::class, 'index']);
 
         // Pindahkan rute spesifik "mesin/{mesin_id}" ke atas SEBELUM rute dinamis "{id}"
@@ -255,27 +257,37 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/log-pemeliharaan/{id}', [LogPemeliharaanMesinController::class, 'show']);
     });
 
-    Route::middleware('permission:process_pemeliharaan_mesin')->group(function () {
+    // Tambah catatan: "Isi catatan" & "Kelola penuh"; ubah/hapus hanya "Kelola penuh"
+    Route::middleware('permission:process_pemeliharaan_mesin|manage_pemeliharaan_mesin')->group(function () {
         Route::post('/log-pemeliharaan', [LogPemeliharaanMesinController::class, 'store']);
+    });
+
+    Route::middleware('permission:manage_pemeliharaan_mesin')->group(function () {
         Route::put('/log-pemeliharaan/{id}', [LogPemeliharaanMesinController::class, 'update']);
         Route::delete('/log-pemeliharaan/{id}', [LogPemeliharaanMesinController::class, 'destroy']);
     });
 
     // ------------------------------------------
     // OPERASIONAL MESIN (Catatan Aktivitas & Plotting Jadwal)
-    // "Lihat saja" = view_operasional_mesin, "Kelola penuh" = manage_operasional_mesin
+    // "Lihat saja" = view_operasional_mesin, "Isi catatan" = process_operasional_mesin
+    // (hanya Catatan Aktivitas, tambah saja), "Kelola penuh" = manage_operasional_mesin
     // ------------------------------------------
-    Route::middleware('permission:view_operasional_mesin')->group(function () {
+    Route::middleware('permission:view_operasional_mesin|process_operasional_mesin')->group(function () {
         Route::get('/log-aktivitas', [LogAktivitasMesinController::class, 'index']);
         // Rute spesifik "mesin/{mesin_id}" harus di atas rute dinamis "{id}"
         Route::get('/log-aktivitas/mesin/{mesin_id}', [LogAktivitasMesinController::class, 'getByMesin']);
         Route::get('/log-aktivitas/{id}', [LogAktivitasMesinController::class, 'show']);
+    });
 
+    Route::middleware('permission:view_operasional_mesin')->group(function () {
         Route::get('/mapping-pengerjaan', [MappingPengerjaanMesinController::class, 'index']);
     });
 
-    Route::middleware('permission:manage_operasional_mesin')->group(function () {
+    Route::middleware('permission:process_operasional_mesin|manage_operasional_mesin')->group(function () {
         Route::post('/log-aktivitas', [LogAktivitasMesinController::class, 'store']);
+    });
+
+    Route::middleware('permission:manage_operasional_mesin')->group(function () {
         Route::put('/log-aktivitas/{id}', [LogAktivitasMesinController::class, 'update']);
         Route::delete('/log-aktivitas/{id}', [LogAktivitasMesinController::class, 'destroy']);
 
@@ -288,7 +300,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // DOKUMEN MESIN (IK Operasional, IK Pemeliharaan, HIRARC)
     // Hak akses detail per jenis dokumen dicek di DokumenMesinController
     // ------------------------------------------
-    Route::middleware('permission:view_operasional_mesin|view_pemeliharaan_mesin')->group(function () {
+    Route::middleware('permission:view_operasional_mesin|view_pemeliharaan_mesin|process_operasional_mesin|process_pemeliharaan_mesin')->group(function () {
         Route::get('/dokumen-mesin', [DokumenMesinController::class, 'show']);
         Route::get('/dokumen-mesin/{id}/file', [DokumenMesinController::class, 'file']);
         Route::post('/dokumen-mesin', [DokumenMesinController::class, 'store']);
@@ -298,7 +310,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // ------------------------------------------
     // KEBUTUHAN ALAT & CONSUMABLE PEMELIHARAAN MESIN (catatan, tidak terhubung ke gudang)
     // ------------------------------------------
-    Route::middleware('permission:view_pemeliharaan_mesin')->group(function () {
+    Route::middleware('permission:view_pemeliharaan_mesin|process_pemeliharaan_mesin')->group(function () {
         Route::get('/kebutuhan-mesin', [KebutuhanMesinController::class, 'index']);
     });
 
@@ -313,6 +325,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // ------------------------------------------
     Route::middleware('permission:view_pemeliharaan_mesin')->group(function () {
         Route::get('/pemeliharaan/kalibrasi', [KalibrasiMesinController::class, 'index']);
+    });
+
+    // Tab Kalibrasi di halaman detail mesin juga terbaca oleh level "Isi catatan"
+    Route::middleware('permission:view_pemeliharaan_mesin|process_pemeliharaan_mesin')->group(function () {
         Route::get('/pemeliharaan/kalibrasi/mesin/{mesin_id}', [KalibrasiMesinController::class, 'getByMesin']);
         Route::get('/pemeliharaan/kalibrasi/{id}', [KalibrasiMesinController::class, 'show']);
     });
@@ -327,7 +343,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // ------------------------------------------
     // RENCANA PEMELIHARAAN MESIN (jadwal mingguan per tahun)
     // ------------------------------------------
-    Route::middleware('permission:view_pemeliharaan_mesin')->group(function () {
+    // Level "Isi catatan" butuh daftar rencana per mesin untuk tombol "Kerjakan" di halaman catatan
+    Route::middleware('permission:view_pemeliharaan_mesin|process_pemeliharaan_mesin')->group(function () {
         Route::get('/rencana-pemeliharaan', [RencanaPemeliharaanMesinController::class, 'index']);
     });
  
@@ -392,7 +409,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/roles/{id}/permissions', [RolePermissionController::class, 'updateRolePermissions']);
     });
 
-   Route::middleware('permission:view_inventaris|view_pemeliharaan_mesin')->group(function () {
+   Route::middleware('permission:view_inventaris|view_pemeliharaan_mesin|process_pemeliharaan_mesin')->group(function () {
     Route::get('/mesin-produksi/{id}/part-mapping', [MesinProduksiController::class, 'getPartMapping']);
     });
 

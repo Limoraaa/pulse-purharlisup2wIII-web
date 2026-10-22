@@ -23,7 +23,8 @@ const HomePage = () => {
           if (perms.includes("view_inventaris")) router.replace("/inventaris/data-tools");
           else if (perms.includes("view_transaksi")) router.replace("/transaksi/peminjaman-aktif");
           else if (perms.includes("view_riwayat")) router.replace("/riwayat/peminjaman-tools");
-          else if (perms.includes("view_pemeliharaan_mesin")) router.replace("/pemeliharaan/data-mesin");
+          else if (perms.includes("view_pemeliharaan_mesin") || perms.includes("process_pemeliharaan_mesin")) router.replace("/pemeliharaan/data-mesin");
+          else if (perms.includes("view_operasional_mesin") || perms.includes("process_operasional_mesin")) router.replace("/operasional/data-mesin");
           else if (perms.includes("view_users")) router.replace("/data-user");
           else router.replace("/signin");
           return;

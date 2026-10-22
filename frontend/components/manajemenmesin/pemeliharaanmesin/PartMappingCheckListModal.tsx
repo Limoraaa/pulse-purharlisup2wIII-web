@@ -7,6 +7,7 @@ import AngkaStepper, { angkaKeTeks, teksKeAngka } from "components/common/AngkaS
 import { JENIS_OLI, SATUAN_OLI, formatJumlahOli, labelOli } from "./PartMappingType";
 import type { ChecklistStatus, MachinePart, PartMappingPayload, TindakanOli } from "./PartMappingType";
 import { useFeedback } from "components/common/FeedbackProvider";
+import { useRoles } from "hooks/usePermissions";
 
 type AksiCode = "C" | "L" | "P" | "M" | "K";
 type JenisPelaksana = "Internal" | "Vendor";
@@ -137,7 +138,9 @@ export default function PartMappingChecklistModal({
   const [teknisi, setTeknisi] = useState("");
   const [aksi, setAksi] = useState<AksiCode | "">("");
   // Nilai awal pelaksana dari rencana (string, agar stabil sebagai dependensi effect)
-  const jenisPelaksanaAwal: JenisPelaksana = pelaksanaRencana?.jenis ?? "Internal";
+  // Akun Vendor: pelaksana otomatis Vendor dengan nama vendor = nama akun (bila rencana tidak menentukan)
+  const akunVendor = useRoles().includes("Vendor");
+  const jenisPelaksanaAwal: JenisPelaksana = pelaksanaRencana?.jenis ?? (akunVendor ? "Vendor" : "Internal");
   const namaVendorAwal = pelaksanaRencana?.namaVendor ?? "";
   const [jenisPelaksana, setJenisPelaksana] = useState<JenisPelaksana>("Internal");
   const [namaVendor, setNamaVendor] = useState("");
@@ -169,7 +172,7 @@ export default function PartMappingChecklistModal({
     setAksi("");
     setTeknisi(localStorage.getItem("userName") || "");
     setJenisPelaksana(jenisPelaksanaAwal);
-    setNamaVendor(namaVendorAwal);
+    setNamaVendor(namaVendorAwal || (akunVendor ? localStorage.getItem("userName") || "" : ""));
 
     (async () => {
       setLoadingMapping(true);
@@ -192,7 +195,7 @@ export default function PartMappingChecklistModal({
     return () => {
       cancelled = true;
     };
-  }, [show, mesinId, jenisPelaksanaAwal, namaVendorAwal]);
+  }, [show, mesinId, jenisPelaksanaAwal, namaVendorAwal, akunVendor]);
 
   const checkedCount = Object.keys(results).length;
 

@@ -19,10 +19,11 @@ class DokumenMesinController extends Controller
 
     // Hak akses per jenis dokumen: [permission lihat (salah satu cukup), permission kelola]
     private const AKSES = [
-        'ik_operasional'  => [['view_operasional_mesin'], 'manage_operasional_mesin'],
-        'ik_pemeliharaan' => [['view_pemeliharaan_mesin'], 'manage_pemeliharaan_mesin'],
+        // process_* = level "Isi catatan" (pekerja/vendor): boleh membaca, tidak boleh mengunggah/menghapus
+        'ik_operasional'  => [['view_operasional_mesin', 'process_operasional_mesin'], 'manage_operasional_mesin'],
+        'ik_pemeliharaan' => [['view_pemeliharaan_mesin', 'process_pemeliharaan_mesin'], 'manage_pemeliharaan_mesin'],
         // HIRARC tampil di halaman Operasional maupun Pemeliharaan
-        'hirarc'          => [['view_operasional_mesin', 'view_pemeliharaan_mesin'], 'manage_pemeliharaan_mesin'],
+        'hirarc'          => [['view_operasional_mesin', 'view_pemeliharaan_mesin', 'process_operasional_mesin', 'process_pemeliharaan_mesin'], 'manage_pemeliharaan_mesin'],
     ];
 
     // Metadata dokumen aktif untuk satu jenis (dan satu mesin, kecuali HIRARC)

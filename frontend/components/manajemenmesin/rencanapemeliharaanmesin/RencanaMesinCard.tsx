@@ -23,11 +23,13 @@ interface Props {
   mesinId: string | number;
   canProcess: boolean;
   onKerjakan: (rencana: RencanaItem) => void;
+  // Opsional: batasi rencana yang boleh dikerjakan (mis. kalibrasi hanya untuk pengelola)
+  bolehKerjakan?: (rencana: RencanaItem) => boolean;
 }
 
 const MAX_TAMPIL = 6;
 
-const RencanaMesinCard = ({ mesinId, canProcess, onKerjakan }: Props) => {
+const RencanaMesinCard = ({ mesinId, canProcess, onKerjakan, bolehKerjakan }: Props) => {
   const today = useMemo(() => new Date(), []);
 
   const { data, error, isLoading } = useSWR(rencanaMesinKey(mesinId), () =>
@@ -112,7 +114,7 @@ const RencanaMesinCard = ({ mesinId, canProcess, onKerjakan }: Props) => {
                     <Badge pill bg={STATUS_VARIANT[status]}>
                       {status}
                     </Badge>
-                    {canProcess && !isCompleted && (
+                    {canProcess && !isCompleted && (bolehKerjakan?.(r) ?? true) && (
                       <Button
                         size="sm"
                         variant="primary"
