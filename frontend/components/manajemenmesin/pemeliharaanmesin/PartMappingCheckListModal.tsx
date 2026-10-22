@@ -39,11 +39,12 @@ interface OliDraft {
   kode: string;
 }
 
-const TINDAKAN_OLI: { value: TindakanOli; label: string }[] = [
-  { value: "tidak", label: "Tidak ada" },
-  { value: "tambah", label: "Tambah (top-up)" },
-  { value: "ganti", label: "Ganti oli" },
+const TINDAKAN_OLI: { value: TindakanOli; label: string; hint: string }[] = [
+  { value: "tidak", label: "Tidak ada", hint: "Oli hanya dicek, tidak ditambah atau diganti." },
+  { value: "tambah", label: "Tambah (top-up)", hint: "Oli lama tetap di mesin, hanya ditambah karena berkurang." },
+  { value: "ganti", label: "Ganti oli", hint: "Oli lama dikuras habis, lalu diisi oli baru." },
 ];
+const JENIS_LAINNYA = "__lainnya__";
 
 const oliAwal = (p: MachinePart): OliDraft | undefined =>
   p.oli
@@ -491,6 +492,9 @@ export default function PartMappingChecklistModal({
                     </Button>
                   ))}
                 </ButtonGroup>
+                <div className="text-muted mt-1" style={{ fontSize: 12 }}>
+                  {TINDAKAN_OLI.find((t) => t.value === draftOli.tindakan)?.hint}
+                </div>
               </div>
 
               {draftOli.tindakan !== "tidak" && (
@@ -530,17 +534,37 @@ export default function PartMappingChecklistModal({
               />
               {draftOli.oliLain && (
                 <Row className="g-2 mt-1">
-                  <Col xs={4}>
-                    <Form.Control size="sm" value={draftOli.merek} onChange={(e) => setDraftOli({ ...draftOli, merek: e.target.value })} placeholder="Merek" aria-label="Merek oli lain" />
+                  <Col sm={4}>
+                    <Form.Label className="small mb-1">Merek</Form.Label>
+                    <Form.Control size="sm" value={draftOli.merek} onChange={(e) => setDraftOli({ ...draftOli, merek: e.target.value })} placeholder="Contoh: Shell" aria-label="Merek oli lain" />
                   </Col>
-                  <Col xs={4}>
-                    <Form.Control size="sm" list="jenis-oli-opsi" value={draftOli.jenis} onChange={(e) => setDraftOli({ ...draftOli, jenis: e.target.value })} placeholder="Jenis" aria-label="Jenis oli lain" />
-                    <datalist id="jenis-oli-opsi">
-                      {JENIS_OLI.map((j) => <option key={j} value={j} />)}
-                    </datalist>
+                  <Col sm={4}>
+                    <Form.Label className="small mb-1">Jenis oli</Form.Label>
+                    {/* Dropdown seperti di Peta Part; "Lainnya…" untuk jenis di luar daftar */}
+                    <Form.Select
+                      size="sm"
+                      aria-label="Jenis oli lain"
+                      value={JENIS_OLI.includes(draftOli.jenis) ? draftOli.jenis : draftOli.jenis ? JENIS_LAINNYA : ""}
+                      onChange={(e) => setDraftOli({ ...draftOli, jenis: e.target.value === JENIS_LAINNYA ? " " : e.target.value })}
+                    >
+                      <option value="">Pilih jenis...</option>
+                      {JENIS_OLI.map((j) => <option key={j} value={j}>{j}</option>)}
+                      <option value={JENIS_LAINNYA}>Lainnya…</option>
+                    </Form.Select>
+                    {draftOli.jenis && !JENIS_OLI.includes(draftOli.jenis) && (
+                      <Form.Control
+                        size="sm"
+                        className="mt-1"
+                        value={draftOli.jenis.trimStart()}
+                        onChange={(e) => setDraftOli({ ...draftOli, jenis: e.target.value || " " })}
+                        placeholder="Tulis jenis oli"
+                        aria-label="Jenis oli lain (ketik)"
+                      />
+                    )}
                   </Col>
-                  <Col xs={4}>
-                    <Form.Control size="sm" value={draftOli.kode} onChange={(e) => setDraftOli({ ...draftOli, kode: e.target.value })} placeholder="Kode, mis. AB7" aria-label="Kode oli lain" />
+                  <Col sm={4}>
+                    <Form.Label className="small mb-1">Kode oli</Form.Label>
+                    <Form.Control size="sm" value={draftOli.kode} onChange={(e) => setDraftOli({ ...draftOli, kode: e.target.value })} placeholder="Contoh: AB7" aria-label="Kode oli lain" />
                   </Col>
                 </Row>
               )}

@@ -271,12 +271,12 @@ export default function DetailMesinManager({
   });
 
   const handleExportLogPDF = () => {
-    const dataWithIndex = logs.map((log, index) => ({ no: index + 1, ...log }));
+    const dataWithIndex = logs.map((log, index) => ({ no: index + 1, ...log, waktu_pelaksana: formatTanggal(log.waktu_pelaksana) }));
     exportToPDF(dataWithIndex as unknown as Record<string, unknown>[], EXPORT_COLUMNS_LOG, `kartu-gantung-${mesinKode}`, "Kartu Gantung Pemeliharaan Mesin", exportLogInfo());
   };
 
   const handleExportLogExcel = () => {
-    const dataWithIndex = logs.map((log, index) => ({ no: index + 1, ...log }));
+    const dataWithIndex = logs.map((log, index) => ({ no: index + 1, ...log, waktu_pelaksana: formatTanggal(log.waktu_pelaksana) }));
     exportToExcel(dataWithIndex as unknown as Record<string, unknown>[], EXPORT_COLUMNS_LOG, `kartu-gantung-${mesinKode}`, "Kartu Gantung Pemeliharaan Mesin", exportLogInfo());
   };
 
