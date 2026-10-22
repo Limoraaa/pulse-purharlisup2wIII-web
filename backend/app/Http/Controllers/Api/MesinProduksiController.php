@@ -185,6 +185,15 @@ class MesinProduksiController extends Controller
             'parts.*.checklistItems.*' => 'required|string',
             'parts.*.xPercent' => 'required|numeric|min:0|max:100',
             'parts.*.yPercent' => 'required|numeric|min:0|max:100',
+            // Oli/pelumas standar part (opsional)
+            'parts.*.oli' => 'nullable|array',
+            'parts.*.oli.merek' => 'required_with:parts.*.oli|string|max:100',
+            'parts.*.oli.jenis' => 'required_with:parts.*.oli|string|max:100',
+            'parts.*.oli.kode' => 'required_with:parts.*.oli|string|max:100',
+            'parts.*.oli.kapasitas' => 'nullable|numeric|gt:0',
+            'parts.*.oli.satuan' => 'nullable|string|max:20',
+        ], [
+            'parts.*.oli.*.required_with' => 'Merek, jenis, dan kode oli wajib diisi untuk part yang memakai oli.',
         ]);
 
         $mesin->gambar_url = $validated['gambarUrl'] ?? $mesin->gambar_url;
