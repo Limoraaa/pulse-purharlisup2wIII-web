@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\PunyaFotoStorage;
 
 class MesinProduksi extends Model
 {
-    use HasFactory;
+    use HasFactory, PunyaFotoStorage;
 
     protected $table = 'mesin_produksi';
 

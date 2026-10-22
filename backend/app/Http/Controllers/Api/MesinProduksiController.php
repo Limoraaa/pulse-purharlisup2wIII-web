@@ -112,6 +112,7 @@ class MesinProduksiController extends Controller
         }
 
         $this->hapusFileFoto($mesin->foto_katalog);
+        $this->hapusFileFoto($mesin->gambar_url); // gambar peta part
         $mesin->delete();
 
         return response()->json(['message' => 'Data mesin berhasil dihapus'], 200);
@@ -119,8 +120,9 @@ class MesinProduksiController extends Controller
 
     private function hapusFileFoto(?string $url): void
     {
-        if ($url) {
-            Storage::disk('public')->delete(ltrim(Str::after($url, '/storage/'), '/'));
+        // Hanya file di folder storage; gambar statis frontend tidak disentuh
+        if ($url && str_contains($url, '/storage/')) {
+            Storage::disk('public')->delete(MesinProduksi::kePathStorage($url));
         }
     }
 
@@ -160,12 +162,9 @@ class MesinProduksiController extends Controller
     {
         $mesin = MesinProduksi::findOrFail($id);
 
-        $gambarUrl = $mesin->gambar_url
-            ? asset('storage/' . ltrim(Str::after($mesin->gambar_url, '/storage/'), '/'))
-            : null;
-
+        // URL lengkap disusun otomatis oleh model (lihat Concerns\PunyaFotoStorage)
         return response()->json([
-            'gambarUrl' => $gambarUrl,
+            'gambarUrl' => $mesin->gambar_url,
             'parts' => $mesin->part_mapping ?? [],
         ]);
     }

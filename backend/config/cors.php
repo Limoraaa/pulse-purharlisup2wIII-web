@@ -19,7 +19,12 @@ return [
 
     'allowed_methods' => ['*'],
 
-   'allowed_origins' => ['http://localhost:3000', 'http://127.0.0.1:3000'],
+    // Alamat frontend yang boleh memanggil API, dipisah koma.
+    // Lokal: bawaan localhost:3000. Server: isi FRONTEND_URL di .env, mis. "https://namadomain.com".
+    'allowed_origins' => array_values(array_filter(array_map(
+        fn ($url) => rtrim(trim($url), '/'),
+        explode(',', env('FRONTEND_URL', 'http://localhost:3000,http://127.0.0.1:3000'))
+    ))),
 
     'allowed_origins_patterns' => [],
 
