@@ -13,7 +13,7 @@ return new class extends Migration
             $table->string('kode_mesin')->unique();
             $table->string('nama_mesin');
             $table->string('lokasi_ruang');
-            $table->enum('status', ['Aktif', 'Maintenance', 'Rusak'])->default('Aktif');
+            $table->enum('status', ['Aktif', 'Maintenance', 'Rusak', 'Tidak Aktif'])->default('Aktif');
             
             // Kolom tambahan untuk foto dan fitur mapping
             $table->string('foto_katalog')->nullable()->comment('Foto profil mesin untuk tampilan katalog');

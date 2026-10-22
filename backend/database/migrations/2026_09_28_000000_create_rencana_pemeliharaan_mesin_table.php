@@ -21,7 +21,11 @@ return new class extends Migration
             $table->unsignedTinyInteger('minggu');  // 1-4
             $table->string('aksi', 1);              // C, L, P, M, K
             $table->string('status', 20)->default('Rencana'); // Rencana | Selesai
+            $table->enum('jenis_pelaksana', ['Internal', 'Vendor'])->default('Internal');
+            $table->string('nama_vendor')->nullable();
+            $table->string('no_po')->nullable();
             $table->unsignedBigInteger('rab')->default(0);
+            $table->integer('biaya_aktual')->nullable();
             $table->text('keterangan')->nullable();
             $table->timestamps();
 

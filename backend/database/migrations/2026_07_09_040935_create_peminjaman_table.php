@@ -14,6 +14,7 @@ return new class extends Migration
             $table->timestamp('tanggal');
             $table->foreignUuid('tool_id')->constrained('tools');
             $table->string('peminta_id');
+            $table->foreign('peminta_id')->references('id')->on('peminta')->onUpdate('cascade');
             $table->integer('jumlah');
             $table->string('area_pekerjaan')->nullable();
             $table->string('nama_pekerjaan')->nullable();

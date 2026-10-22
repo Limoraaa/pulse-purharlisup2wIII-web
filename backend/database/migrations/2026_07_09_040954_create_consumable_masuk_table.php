@@ -16,7 +16,8 @@ return new class extends Migration
             $table->integer('jumlah_masuk');
             $table->string('satuan')->nullable(); // Kolom satuan ditambahkan di sini
             $table->text('keterangan')->nullable();
-            $table->string('dicatat_oleh');
+            $table->string('dicatat_oleh'); // ID kartu Inventory Man (tabel peminta)
+            $table->foreign('dicatat_oleh')->references('id')->on('peminta')->onUpdate('cascade');
             $table->timestamps();
         });
     }
