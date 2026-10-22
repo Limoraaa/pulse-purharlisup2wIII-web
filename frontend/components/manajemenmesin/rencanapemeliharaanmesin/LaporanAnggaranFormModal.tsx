@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Modal, Form, Button, Alert } from 'react-bootstrap';
+import InputRupiah from 'components/common/InputRupiah';
 
 // ---------- Tipe & konstanta yang dipakai halaman Laporan Anggaran ----------
 export type StatusPekerjaan = 'belum_dikerjakan' | 'sedang_dikerjakan' | 'sudah_dikerjakan';
@@ -181,7 +182,7 @@ export default function LaporanAnggaranFormModal({ show, onHide, tahun, jenis, d
 
               <div className="col-md-6">
                 <Form.Label className="small fw-semibold">Biaya rencana (Rp)</Form.Label>
-                <Form.Control type="number" min={0} required value={biaya} onChange={(e) => setBiaya(e.target.value)} />
+                <InputRupiah required value={biaya === '' ? null : Number(biaya)} onChange={(v) => setBiaya(v === null ? '' : String(v))} ariaLabel="Biaya rencana" />
               </div>
               <div className="col-md-6">
                 <Form.Label className="small fw-semibold">Status</Form.Label>
@@ -211,7 +212,7 @@ export default function LaporanAnggaranFormModal({ show, onHide, tahun, jenis, d
               </div>
               <div className="col-md-6">
                 <Form.Label className="small fw-semibold">Biaya dibayarkan (Rp)</Form.Label>
-                <Form.Control type="number" min={0} value={biayaAktual} onChange={(e) => setBiayaAktual(e.target.value)} />
+                <InputRupiah value={biayaAktual === '' ? null : Number(biayaAktual)} onChange={(v) => setBiayaAktual(v === null ? '' : String(v))} ariaLabel="Biaya dibayarkan" />
                 <Form.Text className="text-muted">Isi jika sudah dibayar. Pekerjaan akan masuk ke tabel &quot;dibayarkan&quot;.</Form.Text>
               </div>
             </div>
@@ -239,7 +240,7 @@ export default function LaporanAnggaranFormModal({ show, onHide, tahun, jenis, d
               </Form.Group>
               <Form.Group>
                 <Form.Label className="small fw-semibold">Nominal (Rp)</Form.Label>
-                <Form.Control type="number" min={0} required value={nominal} onChange={(e) => setNominal(e.target.value)} />
+                <InputRupiah required value={nominal === '' ? null : Number(nominal)} onChange={(v) => setNominal(v === null ? '' : String(v))} ariaLabel="Nominal" />
               </Form.Group>
             </>
           )}

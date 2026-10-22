@@ -40,6 +40,8 @@ class LogPemeliharaanMesinController extends Controller
                 'status' => $item->status,
                 'jumlah_part_diperiksa' => $item->jumlah_part_diperiksa,
                 'jumlah_part_total' => $item->jumlah_part_total,
+                'jenis_pelaksana' => $item->jenis_pelaksana,
+                'nama_vendor' => $item->nama_vendor,
             ];
         });
 
@@ -188,7 +190,11 @@ class LogPemeliharaanMesinController extends Controller
             'hasil_checklist.*.oli.jenis' => 'nullable|string|max:100',
             'hasil_checklist.*.oli.kode' => 'nullable|string|max:100',
             'jumlah_part_total' => 'nullable|integer|min:0',
+            // Pelaksana: internal PLN atau vendor (nama vendor wajib bila vendor)
+            'jenis_pelaksana' => 'nullable|in:Internal,Vendor',
+            'nama_vendor' => 'nullable|required_if:jenis_pelaksana,Vendor|string|max:255',
         ], [
+            'nama_vendor.required_if' => 'Nama vendor wajib diisi bila dikerjakan oleh vendor.',
             'hasil_checklist.*.oli.jumlah.required_if' => 'Jumlah oli wajib diisi bila oli ditambah atau diganti.',
         ]);
 
@@ -197,6 +203,8 @@ class LogPemeliharaanMesinController extends Controller
             'waktu_pelaksana' => $validated['waktu_pelaksana'],
             'paraf' => $validated['paraf'],
             'aksi' => $validated['aksi'],
+            'jenis_pelaksana' => $validated['jenis_pelaksana'] ?? 'Internal',
+            'nama_vendor' => ($validated['jenis_pelaksana'] ?? 'Internal') === 'Vendor' ? $validated['nama_vendor'] : null,
         ];
 
         if (!empty($validated['hasil_checklist'])) {
