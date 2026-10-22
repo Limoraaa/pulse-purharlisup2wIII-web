@@ -45,7 +45,8 @@ class RolePermissionSeeder extends Seeder
             'view_dashboard_pemeliharaan',
             'view_pemeliharaan_mesin', 'create_pemeliharaan_mesin', 'process_pemeliharaan_mesin', 'manage_pemeliharaan_mesin',
             // Operasional Mesin (Plotting Jadwal & Catatan Aktivitas Mesin)
-            'view_operasional_mesin', 'manage_operasional_mesin',
+            // process_operasional_mesin = level "Isi catatan" (tambah catatan aktivitas saja)
+            'view_operasional_mesin', 'process_operasional_mesin', 'manage_operasional_mesin',
             // Data Mesin (master data: tambah, edit, nonaktifkan, hapus mesin)
             'view_data_mesin', 'manage_data_mesin',
 
@@ -66,6 +67,7 @@ class RolePermissionSeeder extends Seeder
         $roleStaff = Role::firstOrCreate(['name' => 'Staff Tools'], ['color' => 'success']);
         $rolePekerjaLapangan = Role::firstOrCreate(['name' => 'Pekerja Lapangan'], ['color' => 'info']);
         $rolePegawaiMaintenance = Role::firstOrCreate(['name' => 'Pegawai Maintenance Mesin'], ['color' => 'success']);
+        $roleVendor = Role::firstOrCreate(['name' => 'Vendor'], ['color' => 'secondary']);
         $roleSuperAdmin = Role::firstOrCreate(['name' => 'Super Admin'], ['color' => 'warning']);
 
         // 3. Beri default permission sesuai matriks
@@ -81,7 +83,7 @@ class RolePermissionSeeder extends Seeder
             'manage_master_data',
             'view_dashboard_pemeliharaan',
             'view_pemeliharaan_mesin', 'create_pemeliharaan_mesin', 'process_pemeliharaan_mesin', 'manage_pemeliharaan_mesin',
-            'view_operasional_mesin', 'manage_operasional_mesin',
+            'view_operasional_mesin', 'process_operasional_mesin', 'manage_operasional_mesin',
             'view_data_mesin', 'manage_data_mesin',
             'view_dashboard_pemeliharaan_motor_konversi',
             'view_pemeliharaan_motor_konversi', 'process_pemeliharaan_motor_konversi', 'manage_pemeliharaan_motor_konversi',
@@ -104,20 +106,20 @@ class RolePermissionSeeder extends Seeder
             'create_pemeliharaan', 'edit_pemeliharaan'
         ]);
 
-        // --- PEKERJA LAPANGAN: kelola penuh Pemeliharaan Mesin, TANPA Dashboard Pemeliharaan,
-        // TIDAK ADA akses Operasional Alat maupun Administrasi ---
-        $rolePekerjaLapangan->givePermissionTo([
-            'view_pemeliharaan_mesin', 'process_pemeliharaan_mesin', 'manage_pemeliharaan_mesin',
-            'view_operasional_mesin', 'manage_operasional_mesin',
-            'view_data_mesin', 'manage_data_mesin',
-        ]);
+        // --- PEKERJA LAPANGAN & VENDOR: level "Isi catatan" ---
+        // Hanya menu Catatan Aktivitas Mesin & Catatan Pemeliharaan Mesin; bisa menambah catatan,
+        // IK/HIRARC/kebutuhan/kalibrasi/peta part hanya dilihat. syncPermissions dipakai agar
+        // izin lama yang lebih luas ikut dicabut saat seeder dijalankan ulang.
+        $izinPencatat = ['process_operasional_mesin', 'process_pemeliharaan_mesin'];
+        $rolePekerjaLapangan->syncPermissions($izinPencatat);
+        $roleVendor->syncPermissions($izinPencatat);
 
         // --- PEGAWAI MAINTENANCE MESIN: kelola penuh SELURUH domain Pemeliharaan Mesin
         // (termasuk Dashboard Pemeliharaan), TIDAK ADA akses modul lain ---
         $rolePegawaiMaintenance->givePermissionTo([
             'view_dashboard_pemeliharaan',
             'view_pemeliharaan_mesin', 'process_pemeliharaan_mesin', 'manage_pemeliharaan_mesin',
-            'view_operasional_mesin', 'manage_operasional_mesin',
+            'view_operasional_mesin', 'process_operasional_mesin', 'manage_operasional_mesin',
             'view_data_mesin', 'manage_data_mesin',
         ]);
 

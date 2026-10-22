@@ -209,7 +209,9 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
 
   // --- KAMUS MAPPING MENU KE PERMISSION ---
   // Mencocokkan nama judul di sidebar (kiri) dengan nama permission di database (kanan)
-  const permissionMap: Record<string, string> = {
+  // Nilai bisa satu permission atau daftar permission (cukup punya salah satu).
+  // process_* = level "Isi catatan" (pekerja/vendor) yang hanya melihat halaman catatan.
+  const permissionMap: Record<string, string | string[]> = {
     "Dashboard": "view_dashboard",
     "Inventaris": "view_inventaris",
     "Transaksi": "view_transaksi",
@@ -217,24 +219,40 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
     "Pengajuan Order": "view_order",
     "Laporan Kerusakan Alat": "view_kerusakan_alat",
     "Dashboard Pemeliharaan": "view_dashboard_pemeliharaan",
-    "Pemeliharaan": "view_pemeliharaan_mesin",
-    "Operasional": "view_operasional_mesin",
+    "Pemeliharaan": ["view_pemeliharaan_mesin", "process_pemeliharaan_mesin"],
+    "Operasional": ["view_operasional_mesin", "process_operasional_mesin"],
     "Manajemen User": "view_users",
   };
 
   // Pemetaan berdasarkan link (lebih akurat, karena judul menu ada yang kembar)
-  const linkPermissionMap: Record<string, string> = {
+  const linkPermissionMap: Record<string, string | string[]> = {
     "/pemeliharaan/dashboard": "view_dashboard_pemeliharaan",
     "/data-mesin": "view_data_mesin",
-    "/pemeliharaan/data-mesin": "view_pemeliharaan_mesin",
+    "/operasional/mapping-pengerjaan": "view_operasional_mesin",
+    "/operasional/data-mesin": ["view_operasional_mesin", "process_operasional_mesin"],
+    "/pemeliharaan/kalibrasi": "view_pemeliharaan_mesin",
     "/pemeliharaan/rencana": "view_pemeliharaan_mesin",
+    "/pemeliharaan/data-mesin": ["view_pemeliharaan_mesin", "process_pemeliharaan_mesin"],
+    "/pemeliharaan/laporan-anggaran": "view_pemeliharaan_mesin",
     "/pemeliharaan/dashboard-motor-konversi": "view_dashboard_pemeliharaan_motor_konversi",
     "/pemeliharaan/data-motor-konversi": "view_pemeliharaan_motor_konversi",
   };
 
-  const getRequiredPerm = (menu: MenuItemType): string | undefined => {
-    if (menu.link && linkPermissionMap[menu.link]) return linkPermissionMap[menu.link];
-    return permissionMap[menu.title || menu.name || ""];
+  const getRequiredPerm = (menu: MenuItemType): string[] | undefined => {
+    const perm =
+      menu.link && linkPermissionMap[menu.link] ? linkPermissionMap[menu.link] : permissionMap[menu.title || menu.name || ""];
+    if (!perm) return undefined;
+    return Array.isArray(perm) ? perm : [perm];
+  };
+
+  // Menu tampil bila user punya salah satu permission-nya; menu bersub tampil bila
+  // minimal satu submenunya boleh dilihat (submenu disaring per link).
+  const bolehLihat = (menu: MenuItemType): boolean => {
+    if (userRole === "Super Admin") return true;
+    const perms = getRequiredPerm(menu);
+    if (perms && !perms.some((p) => userPermissions.includes(p))) return false;
+    if (menu.children) return menu.children.some((child) => bolehLihat(child as MenuItemType));
+    return true;
   };
 
   const handleLogout = () => {
@@ -300,11 +318,8 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
           {DashboardMenu.map(function (menu, index) {
 
             // --- LOGIKA CEK HAK AKSES MENU ---
-            const requiredPerm = getRequiredPerm(menu);
-            // Jika menu ini terdaftar di kamus mapping, DAN user bukan Super Admin,
-            // DAN user tidak punya permission tersebut di databasenya,
-            // maka menu ini DISEMBUNYIKAN (return null).
-            if (requiredPerm && userRole !== "Super Admin" && !userPermissions.includes(requiredPerm)) {
+            // Menu (atau seluruh submenunya) yang tidak boleh dilihat role ini DISEMBUNYIKAN.
+            if (!menu.grouptitle && !bolehLihat(menu)) {
               return null;
             }
             // ----------------------------------
@@ -318,10 +333,7 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
               const sectionEnd = nextGroupOffset === -1 ? DashboardMenu.length : index + 1 + nextGroupOffset;
               const sectionChildren = DashboardMenu.slice(index + 1, sectionEnd);
 
-              const hasVisibleChild = sectionChildren.some((childMenu) => {
-                const childPerm = getRequiredPerm(childMenu);
-                return !(childPerm && userRole !== "Super Admin" && !userPermissions.includes(childPerm));
-              });
+              const hasVisibleChild = sectionChildren.some((childMenu) => bolehLihat(childMenu));
 
               if (!hasVisibleChild) return null;
 
@@ -376,7 +388,7 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
                           ...subListStyle,
                           ...(isCollapsed ? { display: "none" } : {}),
                         }}>
-                        {menu.children.map(function (
+                        {menu.children.filter((child) => bolehLihat(child as MenuItemType)).map(function (
                           menuLevel1Item,
                           menuLevel1Index
                         ) {

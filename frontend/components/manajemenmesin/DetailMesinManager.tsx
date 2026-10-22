@@ -164,6 +164,10 @@ export default function DetailMesinManager({
 
   // HIRARC berlaku untuk semua mesin dan hanya dikelola oleh pengelola Pemeliharaan
   const canManageHirarc = usePermission('manage_pemeliharaan_mesin');
+  // Level "Isi catatan" (pekerja/vendor) maupun "Kelola penuh" boleh menambah catatan aktivitas
+  const canCatatAktivitas = usePermission(['process_operasional_mesin', 'manage_operasional_mesin']);
+  // Kalibrasi hanya dicatat pengelola Pemeliharaan; pekerja/vendor cukup melihat
+  const bolehKerjakanRencana = (r: RencanaItem) => !isRencanaKalibrasi(r) || canManageHirarc;
 
   const [activeTab, setActiveTab] = useState(mode === 'operasional' ? 'log_aktivitas' : 'log_pemeliharaan');
 
@@ -412,7 +416,7 @@ export default function DetailMesinManager({
       notify("Jadwal tidak ditemukan atau sudah selesai dikerjakan.", "warning");
       return;
     }
-    if (!canProcess) {
+    if (!canProcess || !bolehKerjakanRencana(r)) {
       notify("Anda tidak memiliki akses untuk mengerjakan jadwal pemeliharaan.", "warning");
       return;
     }
@@ -614,7 +618,7 @@ export default function DetailMesinManager({
                     </Dropdown.Menu>
                   </Dropdown>
 
-                  {canManage && (
+                  {canCatatAktivitas && (
                     <Button 
                       variant="primary" 
                       size="sm" 
@@ -727,6 +731,7 @@ export default function DetailMesinManager({
                   mesinId={mesinId}
                   canProcess={canProcess}
                   onKerjakan={handleKerjakanRencana}
+                  bolehKerjakan={bolehKerjakanRencana}
                 />
               )}
 
@@ -750,7 +755,7 @@ export default function DetailMesinManager({
                       <IconMap size={14} /> Peta Part
                     </Button>
                   )}
-                  {canManage && (
+                  {canProcess && (
                     <Button
                       variant="primary"
                       size="sm"
@@ -894,6 +899,7 @@ export default function DetailMesinManager({
                   mesinId={mesinId}
                   canProcess={canProcess}
                   onKerjakan={handleKerjakanRencana}
+                  bolehKerjakan={bolehKerjakanRencana}
                 />
               )}
 

@@ -17,6 +17,7 @@ class UserSeeder extends Seeder
             'admin',
             'lapangan',
             'maintenance',
+            'vendor',
         ])->delete();
 
         // 1. Buat user Staff Tools
@@ -73,5 +74,16 @@ class UserSeeder extends Seeder
             'must_change_password' => false,
         ]);
         $pegawaiMaintenance->assignRole('Pegawai Maintenance Mesin');
+
+        // 6. Buat user Vendor (pihak ketiga); nama akun dipakai sebagai nama vendor di checklist
+        $vendor = User::create([
+            'full_name' => 'PT Vendor Testing',
+            'username' => 'vendor',
+            'email' => 'vendor@test.com',
+            'password' => Hash::make('password123'),
+            'role' => 'Vendor',
+            'must_change_password' => false,
+        ]);
+        $vendor->assignRole('Vendor');
     }
 }
