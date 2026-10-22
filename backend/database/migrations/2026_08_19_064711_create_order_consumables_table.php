@@ -13,10 +13,10 @@ return new class extends Migration
             
             // Relasi ke Peminta
             $table->string('peminta_id', 50); 
-            $table->foreign('peminta_id')->references('id')->on('peminta')->onDelete('cascade');
+            $table->foreign('peminta_id')->references('id')->on('peminta')->onUpdate('cascade')->onDelete('cascade');
             
-            // Relasi ke Consumable (Nullable jika usulan barang baru)
-            $table->unsignedBigInteger('consumable_id')->nullable();
+            // Relasi ke Consumable (UUID, nullable jika usulan barang baru)
+            $table->uuid('consumable_id')->nullable();
             
             // --- FIELD YANG DISESUAIKAN DENGAN FORM BARU ---
             $table->string('kode_barang')->nullable();

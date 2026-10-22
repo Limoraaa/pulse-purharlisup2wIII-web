@@ -14,6 +14,7 @@ return new class extends Migration
             $table->timestamp('tanggal');
             $table->foreignUuid('consumable_id')->constrained('consumables');
             $table->string('peminta_id');
+            $table->foreign('peminta_id')->references('id')->on('peminta')->onUpdate('cascade');
             $table->integer('jumlah_keluar');
             $table->string('satuan')->nullable(); // Kolom satuan disesuaikan
             $table->string('pekerjaan_area')->nullable();

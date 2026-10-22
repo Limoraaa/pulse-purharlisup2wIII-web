@@ -10,11 +10,12 @@ return new class extends Migration
     {
         Schema::create('temporary_cart', function (Blueprint $table) {
             $table->uuid('id')->primary();
+            $table->uuid('user_id')->nullable();
 
             // Nullable karena satu baris cart hanya dipakai untuk salah satu:
-            // tools_id ATAU consumable_id (consumable_id ditambahkan lewat
-            // migration terpisah: add_consumable_id_to_temporary_cart_table).
+            // tools_id ATAU consumable_id.
             $table->uuid('tools_id')->nullable();
+            $table->uuid('consumable_id')->nullable();
 
             $table->integer('qty')->default(1);
 

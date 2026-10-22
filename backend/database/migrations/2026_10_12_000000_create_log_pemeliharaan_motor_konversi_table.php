@@ -8,10 +8,6 @@ return new class extends Migration
 {
     public function up()
     {
-        // 1. Paksa hapus tabel yang nyangkut/error terlebih dahulu
-        Schema::dropIfExists('log_pemeliharaan_motor_konversi');
-
-        // 2. Baru buat ulang dari nol dengan bersih
         Schema::create('log_pemeliharaan_motor_konversi', function (Blueprint $table) {
             $table->id();
             $table->bigInteger('motor_konversi_id');
@@ -23,6 +19,7 @@ return new class extends Migration
             $table->string('status')->nullable();
             $table->integer('jumlah_part_diperiksa')->nullable();
             $table->integer('jumlah_part_total')->nullable();
+            $table->json('hasil_checklist')->nullable();
 
             $table->timestamps();
 

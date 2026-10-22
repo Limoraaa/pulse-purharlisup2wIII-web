@@ -17,6 +17,12 @@ return new class extends Migration
                   ->constrained('mesin_produksi')
                   ->onDelete('cascade');
 
+            // Rencana yang dikerjakan lewat log ini (kosong bila bukan dari rencana)
+            $table->foreignId('rencana_id')
+                  ->nullable()
+                  ->constrained('rencana_pemeliharaan_mesin')
+                  ->nullOnDelete();
+
             // Tindakan: C / L / P / M / K, dipakai untuk mencocokkan log ke plotting rencana
             $table->string('aksi', 1)->nullable();
 
@@ -24,6 +30,12 @@ return new class extends Migration
             $table->date('waktu_pelaksana');
             $table->text('keterangan')->nullable();
             $table->string('paraf');
+
+            // Hasil checklist visual peta part
+            $table->json('hasil_checklist')->nullable();
+            $table->string('status')->nullable();
+            $table->integer('jumlah_part_diperiksa')->nullable();
+            $table->integer('jumlah_part_total')->nullable();
             $table->timestamps();
         });
     }

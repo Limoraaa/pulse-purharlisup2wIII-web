@@ -19,7 +19,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('tool_id')->references('id')->on('tools');
-            $table->foreign('dicatat_oleh')->references('id')->on('peminta');
+            $table->foreign('dicatat_oleh')->references('id')->on('peminta')->onUpdate('cascade');
         });
     }
 

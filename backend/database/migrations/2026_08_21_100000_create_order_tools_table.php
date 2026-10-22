@@ -13,7 +13,7 @@ return new class extends Migration
 
             // Relasi ke Peminta (sama seperti order_consumables)
             $table->string('peminta_id', 50);
-            $table->foreign('peminta_id')->references('id')->on('peminta')->onDelete('cascade');
+            $table->foreign('peminta_id')->references('id')->on('peminta')->onUpdate('cascade')->onDelete('cascade');
 
             // Relasi ke Tools (nullable jika usulan barang baru di luar katalog)
             $table->uuid('tool_id')->nullable();

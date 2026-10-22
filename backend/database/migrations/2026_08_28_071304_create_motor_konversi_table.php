@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('lokasi_penempatan');
             
             // Enum status disamakan dengan mesin_produksi
-            $table->enum('status', ['Aktif', 'Maintenance', 'Rusak'])->default('Aktif');
+            $table->enum('status', ['Aktif', 'Maintenance', 'Rusak', 'Tidak Aktif'])->default('Aktif');
             
             // Kolom tambahan untuk foto dan fitur mapping (identik dengan mesin_produksi)
             $table->string('foto_katalog')->nullable()->comment('Foto profil motor untuk tampilan katalog');
