@@ -100,7 +100,7 @@ const SignIn = () => {
           <div className="login-form-inner">
             <div className="text-center mb-4">
               <Image
-                src={getAssetPath("/images/png/PLN-logo.png")}
+                src={getAssetPath("/images/png/PLN-Pusharlis-UP2W3.png")}
                 alt="PT PLN (PERSERO) PUSHARLIS UP2WIII"
                 className="login-logo"
               />

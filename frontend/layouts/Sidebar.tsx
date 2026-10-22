@@ -283,7 +283,7 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
               href='/'
               className='d-none d-md-flex align-items-center pln-brand'>
               <Image
-                src={getAssetPath("/images/png/PLN-logo.png")}
+                src={getAssetPath("/images/png/PLN-Pusharlis-UP2W3.png")}
                 alt='PT PLN (Persero)'
                 className='pln-logo'
               />

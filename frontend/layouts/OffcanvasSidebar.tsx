@@ -27,7 +27,7 @@ const OffcanvasSidebar = () => {
       <OffcanvasHeader closeButton>
         <Link href="/" className="d-flex align-items-center gap-2 pln-brand">
           <Image
-            src={getAssetPath("/images/png/PLN-logo.png")}
+            src={getAssetPath("/images/png/PLN-Pusharlis-UP2W3.png")}
             alt="PT PLN (Persero)"
             className="pln-logo"
           />
