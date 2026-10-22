@@ -59,6 +59,11 @@ class MesinProduksi extends Model
         return $this->hasMany(DokumenMesin::class, 'mesin_produksi_id');
     }
 
+    public function kebutuhan()
+    {
+        return $this->hasMany(KebutuhanMesin::class, 'mesin_produksi_id');
+    }
+
     // Total catatan riwayat; mesin yang sudah punya riwayat hanya boleh dinonaktifkan, bukan dihapus
     public function jumlahRiwayat(): int
     {

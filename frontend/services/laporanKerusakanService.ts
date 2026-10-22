@@ -1,12 +1,15 @@
 import apiFetch from "lib/api";
 import { LaporanKerusakanType } from "types/LaporanKerusakanTypes";
+import { NAMA_BULAN_ID } from "components/ruangtools/common/dateUtils";
 
+// "21 Okt 2026, 18:48" (WIB). Nama bulan memakai singkatan Indonesia agar sama
+// dengan halaman lain; parseRowDate tetap bisa membacanya untuk filter tanggal.
 function formatTanggalJam(isoString: string): string {
   const d = new Date(isoString);
   const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone: "Asia/Jakarta",
     day: "2-digit",
-    month: "short",
+    month: "numeric",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
@@ -14,7 +17,8 @@ function formatTanggalJam(isoString: string): string {
   }).formatToParts(d);
 
   const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
-  return `${get("day")} ${get("month")} ${get("year")}, ${get("hour")}:${get("minute")}`;
+  const bulan = NAMA_BULAN_ID[Number(get("month")) - 1]?.slice(0, 3) ?? "";
+  return `${get("day")} ${bulan} ${get("year")}, ${get("hour")}:${get("minute")}`;
 }
 
 interface LaporanKerusakanApiResponse {
