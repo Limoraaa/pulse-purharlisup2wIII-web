@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Modal, Form, Button, Alert, Row, Col, Spinner } from "react-bootstrap";
+import InputRupiah from "components/common/InputRupiah";
 import {
   AksiRencana,
   MesinOption,
@@ -294,12 +295,11 @@ const RencanaFormModal = ({
 
           <Form.Group className="mb-3">
             <Form.Label>RAB (Rp)</Form.Label>
-            <Form.Control
-              type="number"
-              min={0}
-              value={form.rab}
-              onChange={(e) => set("rab", Number(e.target.value) || 0)}
+            <InputRupiah
+              value={form.rab || null}
+              onChange={(v) => set("rab", v ?? 0)}
               disabled={readOnly}
+              ariaLabel="RAB"
             />
           </Form.Group>
 

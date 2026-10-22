@@ -41,6 +41,9 @@ const mapRencana = (r: any): RencanaItem => ({
   tahunRealisasi: toNumOrNull(r.tahun_realisasi),
   bulanRealisasi: toNumOrNull(r.bulan_realisasi),
   mingguRealisasi: toNumOrNull(r.minggu_realisasi),
+  jenis_pelaksana: r.jenis_pelaksana === "Vendor" ? "Vendor" : "Internal",
+  nama_vendor: r.nama_vendor ?? null,
+  no_po: r.no_po ?? null,
 });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -63,6 +66,7 @@ const toPayload = (v: RencanaFormValues) => ({
   aksi: v.aksi,
   rab: v.rab,
   keterangan: v.keterangan,
+  jenis_pelaksana: v.jenis_pelaksana ?? "Internal",
 });
 
 // GET /rencana-pemeliharaan?tahun=2026

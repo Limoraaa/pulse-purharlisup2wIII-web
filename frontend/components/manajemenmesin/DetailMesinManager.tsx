@@ -68,6 +68,8 @@ interface MesinProps {
 
 interface LogItemType {
   id: number;
+  jenis_pelaksana?: "Internal" | "Vendor" | null;
+  nama_vendor?: string | null;
   uraian_pemeliharaan: string;
   waktu_pelaksana: string;
   keterangan: string;
@@ -89,12 +91,17 @@ interface LogAktivitasType {
   pemeriksa: string;
 }
 
+// "Internal PLN" atau "Vendor - PT Mitra Teknik" untuk kolom export
+const labelPelaksana = (log: { jenis_pelaksana?: string | null; nama_vendor?: string | null }) =>
+  log.jenis_pelaksana === "Vendor" ? `Vendor - ${log.nama_vendor || "-"}` : "Internal PLN";
+
 const EXPORT_COLUMNS_LOG: ExportColumn[] = [
   { header: "No", key: "no" },
   { header: "Uraian Pemeliharaan", key: "uraian_pemeliharaan" },
   { header: "Waktu Pelaksana", key: "waktu_pelaksana" },
   { header: "Keterangan", key: "keterangan" },
   { header: "Teknisi", key: "paraf" },
+  { header: "Pelaksana", key: "pelaksana" },
 ];
 
 const EXPORT_COLUMNS_AKTIVITAS: ExportColumn[] = [
@@ -271,12 +278,12 @@ export default function DetailMesinManager({
   });
 
   const handleExportLogPDF = () => {
-    const dataWithIndex = logs.map((log, index) => ({ no: index + 1, ...log, waktu_pelaksana: formatTanggal(log.waktu_pelaksana) }));
+    const dataWithIndex = logs.map((log, index) => ({ no: index + 1, ...log, waktu_pelaksana: formatTanggal(log.waktu_pelaksana), pelaksana: labelPelaksana(log) }));
     exportToPDF(dataWithIndex as unknown as Record<string, unknown>[], EXPORT_COLUMNS_LOG, `kartu-gantung-${mesinKode}`, "Kartu Gantung Pemeliharaan Mesin", exportLogInfo());
   };
 
   const handleExportLogExcel = () => {
-    const dataWithIndex = logs.map((log, index) => ({ no: index + 1, ...log, waktu_pelaksana: formatTanggal(log.waktu_pelaksana) }));
+    const dataWithIndex = logs.map((log, index) => ({ no: index + 1, ...log, waktu_pelaksana: formatTanggal(log.waktu_pelaksana), pelaksana: labelPelaksana(log) }));
     exportToExcel(dataWithIndex as unknown as Record<string, unknown>[], EXPORT_COLUMNS_LOG, `kartu-gantung-${mesinKode}`, "Kartu Gantung Pemeliharaan Mesin", exportLogInfo());
   };
 
@@ -817,7 +824,14 @@ export default function DetailMesinManager({
                                 </span>
                               ) : "-"}
                             </td>
-                            <td className="text-center fw-semibold text-secondary">{log.paraf}</td>
+                            <td className="text-center fw-semibold text-secondary">
+                              {log.paraf}
+                              {log.jenis_pelaksana === "Vendor" && (
+                                <div className="fw-normal small text-primary" title="Dikerjakan oleh vendor (pihak ketiga)">
+                                  Vendor: {log.nama_vendor || "-"}
+                                </div>
+                              )}
+                            </td>
                             <td className="text-center text-nowrap fw-medium">
                               {log.jumlah_part_diperiksa != null
                                 ? `${log.jumlah_part_diperiksa} / ${log.jumlah_part_total ?? log.jumlah_part_diperiksa}`
@@ -1119,6 +1133,11 @@ export default function DetailMesinManager({
             rencanaId={rencanaAktif?.id}
             // Tindakan mengikuti jadwal yang dikerjakan, jadi user tidak perlu memilih ulang
             aksiRencana={rencanaAktif && !isRencanaKalibrasi(rencanaAktif) ? rencanaAktif.aksi : null}
+            pelaksanaRencana={
+              rencanaAktif
+                ? { jenis: rencanaAktif.jenis_pelaksana ?? "Internal", namaVendor: rencanaAktif.nama_vendor }
+                : null
+            }
             onSubmitted={() => {
               setShowChecklistModal(false);
               setRencanaAktif(null);

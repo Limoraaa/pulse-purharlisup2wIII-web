@@ -9,6 +9,7 @@ import type { ChecklistStatus, MachinePart, PartMappingPayload, TindakanOli } fr
 import { useFeedback } from "components/common/FeedbackProvider";
 
 type AksiCode = "C" | "L" | "P" | "M" | "K";
+type JenisPelaksana = "Internal" | "Vendor";
 
 interface Props {
   show: boolean;
@@ -17,6 +18,8 @@ interface Props {
   mesinNama: string;
   rencanaId?: number | string | null; // rencana yang sedang dikerjakan (opsional)
   aksiRencana?: AksiCode | null; // tindakan dari rencana tsb; selalu dikirim ke server bersama rencana_id
+  // Pelaksana dari rencana (Internal PLN / Vendor), dipakai sebagai isian awal
+  pelaksanaRencana?: { jenis: JenisPelaksana; namaVendor?: string | null } | null;
   onSubmitted?: () => void; // dipanggil setelah kegiatan berhasil disimpan
 }
 
@@ -120,6 +123,7 @@ export default function PartMappingChecklistModal({
   mesinNama,
   rencanaId,
   aksiRencana,
+  pelaksanaRencana,
   onSubmitted,
 }: Props) {
   const { confirm: confirmDialog } = useFeedback();
@@ -132,6 +136,11 @@ export default function PartMappingChecklistModal({
   const [results, setResults] = useState<Record<string, PartResult>>({});
   const [teknisi, setTeknisi] = useState("");
   const [aksi, setAksi] = useState<AksiCode | "">("");
+  // Nilai awal pelaksana dari rencana (string, agar stabil sebagai dependensi effect)
+  const jenisPelaksanaAwal: JenisPelaksana = pelaksanaRencana?.jenis ?? "Internal";
+  const namaVendorAwal = pelaksanaRencana?.namaVendor ?? "";
+  const [jenisPelaksana, setJenisPelaksana] = useState<JenisPelaksana>("Internal");
+  const [namaVendor, setNamaVendor] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
 
@@ -159,6 +168,8 @@ export default function PartMappingChecklistModal({
     setSubmitError("");
     setAksi("");
     setTeknisi(localStorage.getItem("userName") || "");
+    setJenisPelaksana(jenisPelaksanaAwal);
+    setNamaVendor(namaVendorAwal);
 
     (async () => {
       setLoadingMapping(true);
@@ -181,7 +192,7 @@ export default function PartMappingChecklistModal({
     return () => {
       cancelled = true;
     };
-  }, [show, mesinId]);
+  }, [show, mesinId, jenisPelaksanaAwal, namaVendorAwal]);
 
   const checkedCount = Object.keys(results).length;
 
@@ -267,6 +278,10 @@ export default function PartMappingChecklistModal({
       setSubmitError("Periksa minimal satu part sebelum menyimpan kegiatan.");
       return;
     }
+    if (jenisPelaksana === "Vendor" && !namaVendor.trim()) {
+      setSubmitError("Nama vendor wajib diisi bila dikerjakan oleh vendor.");
+      return;
+    }
 
     setSubmitting(true);
     setSubmitError("");
@@ -292,6 +307,8 @@ export default function PartMappingChecklistModal({
           paraf: teknisi.trim(),
           jumlah_part_total: parts.length,
           hasil_checklist: hasil,
+          jenis_pelaksana: jenisPelaksana,
+          nama_vendor: jenisPelaksana === "Vendor" ? namaVendor.trim() : null,
           // rencana_id & aksi dikirim bersama; server hanya menolak kalau tindakannya beda dari rencana
           ...(rencanaId ? { rencana_id: rencanaId } : {}),
           ...(aksiKirim ? { aksi: aksiKirim } : {}),
@@ -394,8 +411,44 @@ export default function PartMappingChecklistModal({
                 </Form.Group>
               )}
 
+              {/* Pelaksana pekerjaan: internal PLN atau vendor (pihak ketiga) */}
+              <Form.Group className="mt-3">
+                <Form.Label className="small fw-semibold d-block">Pelaksana pekerjaan</Form.Label>
+                <div className="d-flex flex-wrap gap-3">
+                  <Form.Check
+                    type="radio"
+                    id="pelaksana-internal"
+                    name="jenis-pelaksana"
+                    className="small"
+                    label="Internal PLN"
+                    checked={jenisPelaksana === "Internal"}
+                    onChange={() => setJenisPelaksana("Internal")}
+                  />
+                  <Form.Check
+                    type="radio"
+                    id="pelaksana-vendor"
+                    name="jenis-pelaksana"
+                    className="small"
+                    label="Vendor (Pihak Ketiga)"
+                    checked={jenisPelaksana === "Vendor"}
+                    onChange={() => setJenisPelaksana("Vendor")}
+                  />
+                </div>
+                {jenisPelaksana === "Vendor" && (
+                  <Form.Control
+                    size="sm"
+                    className="mt-2"
+                    style={{ maxWidth: 320 }}
+                    value={namaVendor}
+                    onChange={(e) => setNamaVendor(e.target.value)}
+                    placeholder="Nama vendor, mis. PT Mitra Teknik"
+                    aria-label="Nama vendor"
+                  />
+                )}
+              </Form.Group>
+
               <Form.Group className="mt-3" style={{ maxWidth: 320 }}>
-                <Form.Label className="small fw-semibold">Nama teknisi</Form.Label>
+                <Form.Label className="small fw-semibold">{jenisPelaksana === "Vendor" ? "Nama teknisi / PIC vendor" : "Nama teknisi"}</Form.Label>
                 <Form.Control size="sm" value={teknisi} onChange={(e) => setTeknisi(e.target.value)} />
               </Form.Group>
 

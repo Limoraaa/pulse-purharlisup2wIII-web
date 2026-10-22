@@ -24,6 +24,8 @@ class LogPemeliharaanMesin extends Model
         'status',
         'jumlah_part_diperiksa',
         'jumlah_part_total',
+        'jenis_pelaksana',
+        'nama_vendor',
     ];
 
     protected $casts = [

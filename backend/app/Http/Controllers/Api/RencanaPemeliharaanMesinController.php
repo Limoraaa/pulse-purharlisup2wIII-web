@@ -102,6 +102,7 @@ class RencanaPemeliharaanMesinController extends Controller
             'aksi'       => ['required', Rule::in(['C', 'L', 'P', 'M'])],
             'rab'        => ['sometimes', 'nullable', 'integer', 'min:0'],
             'keterangan' => ['nullable', 'string', 'max:1000'],
+            'jenis_pelaksana' => ['sometimes', Rule::in(['Internal', 'Vendor'])],
         ];
     }
 
