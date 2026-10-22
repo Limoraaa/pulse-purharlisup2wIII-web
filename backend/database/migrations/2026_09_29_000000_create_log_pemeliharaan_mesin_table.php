@@ -36,6 +36,10 @@ return new class extends Migration
             $table->string('status')->nullable();
             $table->integer('jumlah_part_diperiksa')->nullable();
             $table->integer('jumlah_part_total')->nullable();
+
+            // Pelaksana pemeliharaan: internal PLN atau vendor (pihak ketiga)
+            $table->enum('jenis_pelaksana', ['Internal', 'Vendor'])->default('Internal');
+            $table->string('nama_vendor')->nullable();
             $table->timestamps();
         });
     }
