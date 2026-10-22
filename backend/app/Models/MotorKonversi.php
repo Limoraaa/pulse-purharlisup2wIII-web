@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\PunyaFotoStorage;
 
 class MotorKonversi extends Model
 {
-    use HasFactory;
+    use HasFactory, PunyaFotoStorage;
 
     protected $table = 'motor_konversi';
 
