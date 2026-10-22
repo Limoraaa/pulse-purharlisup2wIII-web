@@ -178,7 +178,18 @@ class LogPemeliharaanMesinController extends Controller
             'hasil_checklist.*.items.*.status' => 'required|in:baik,perlu_perhatian,rusak',
             'hasil_checklist.*.items.*.catatan' => 'nullable|string',
             'hasil_checklist.*.catatan' => 'nullable|string',
+            // Pemakaian oli pada part (opsional, hanya part yang memakai oli)
+            'hasil_checklist.*.oli' => 'nullable|array',
+            'hasil_checklist.*.oli.tindakan' => 'required_with:hasil_checklist.*.oli|in:tidak,tambah,ganti',
+            'hasil_checklist.*.oli.jumlah' => 'nullable|numeric|gt:0|required_if:hasil_checklist.*.oli.tindakan,tambah,ganti',
+            'hasil_checklist.*.oli.satuan' => 'nullable|string|max:20',
+            'hasil_checklist.*.oli.oli_lain' => 'nullable|boolean',
+            'hasil_checklist.*.oli.merek' => 'nullable|string|max:100',
+            'hasil_checklist.*.oli.jenis' => 'nullable|string|max:100',
+            'hasil_checklist.*.oli.kode' => 'nullable|string|max:100',
             'jumlah_part_total' => 'nullable|integer|min:0',
+        ], [
+            'hasil_checklist.*.oli.jumlah.required_if' => 'Jumlah oli wajib diisi bila oli ditambah atau diganti.',
         ]);
 
         $data = [
@@ -314,7 +325,8 @@ class LogPemeliharaanMesinController extends Controller
                     . (!empty($it['catatan']) ? ": {$it['catatan']}" : '') . ')',
                 $part['items']
             );
-            $baris[] = "{$part['partName']}: " . implode('; ', $items);
+            $baris[] = "{$part['partName']}: " . implode('; ', $items)
+                . (!empty($part['oli']) ? '; ' . $this->teksOli($part['oli']) : '');
 
             if (!empty($part['catatan'])) {
                 $baris[] = "Catatan {$part['partName']}: {$part['catatan']}";
@@ -322,6 +334,21 @@ class LogPemeliharaanMesinController extends Controller
         }
 
         return implode(' | ', $baris);
+    }
+
+    // "Oli ditambah 0,5 Liter (Shell Oli mesin AB7)" / "Oli dicek (Shell Oli mesin AX7)"
+    private function teksOli(array $oli): string
+    {
+        $spek = trim(implode(' ', array_filter([$oli['merek'] ?? null, $oli['jenis'] ?? null, $oli['kode'] ?? null])));
+        $spek = $spek !== '' ? " ({$spek}" . (!empty($oli['oli_lain']) ? ', oli lain' : '') . ')' : '';
+
+        if (($oli['tindakan'] ?? 'tidak') === 'tidak') {
+            return "Oli dicek{$spek}";
+        }
+        $kata = $oli['tindakan'] === 'ganti' ? 'diganti' : 'ditambah';
+        $jumlah = rtrim(rtrim(number_format((float) $oli['jumlah'], 2, ',', '.'), '0'), ',');
+
+        return "Oli {$kata} {$jumlah} " . ($oli['satuan'] ?? '') . $spek;
     }
 
     private function ringkasHasil(array $hasil): array

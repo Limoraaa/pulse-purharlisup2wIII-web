@@ -1,9 +1,35 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { Button, Form, Table, Alert, Badge, Spinner, Modal } from "react-bootstrap";
-import { IconMapPin, IconPencil, IconTrash } from "@tabler/icons-react";
+import { Button, Form, Table, Alert, Badge, Spinner, Modal, Row, Col } from "react-bootstrap";
+import { IconDroplet, IconMapPin, IconPencil, IconTrash } from "@tabler/icons-react";
 import api from "lib/api";
-import type { MachinePart, PartMappingPayload } from "./PartMappingType";
+import AngkaStepper, { angkaKeTeks, teksKeAngka } from "components/common/AngkaStepper";
+import { JENIS_OLI, SATUAN_OLI, formatJumlahOli, labelOli } from "./PartMappingType";
+import type { MachinePart, OliSpec, PartMappingPayload } from "./PartMappingType";
+
+// Isian form oli (opsional) untuk satu part
+interface OliForm {
+  merek: string;
+  jenis: string; // salah satu JENIS_OLI, atau "lainnya"
+  jenisLain: string;
+  kode: string;
+  kapasitas: string; // kosong = tidak diisi
+  satuan: string;
+}
+const OLI_KOSONG: OliForm = { merek: "", jenis: "", jenisLain: "", kode: "", kapasitas: "", satuan: "Liter" };
+const JENIS_LAINNYA = "lainnya";
+
+const oliKeForm = (o: OliSpec): OliForm => {
+  const dikenal = JENIS_OLI.includes(o.jenis);
+  return {
+    merek: o.merek,
+    jenis: dikenal ? o.jenis : JENIS_LAINNYA,
+    jenisLain: dikenal ? "" : o.jenis,
+    kode: o.kode,
+    kapasitas: o.kapasitas ? angkaKeTeks(o.kapasitas) : "",
+    satuan: o.satuan || "Liter",
+  };
+};
 
 interface Props {
   show: boolean;
@@ -30,6 +56,8 @@ export default function PartMappingEditor({ show, onHide, mesinId, mesinNama, on
   const [checklistItems, setChecklistItems] = useState<string[]>([]);
   const [newItemText, setNewItemText] = useState("");
   const [formError, setFormError] = useState("");
+  const [pakaiOli, setPakaiOli] = useState(false);
+  const [oli, setOli] = useState<OliForm>(OLI_KOSONG);
   // Part yang sedang diedit (null = form untuk part baru)
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -119,6 +147,8 @@ export default function PartMappingEditor({ show, onHide, mesinId, mesinNama, on
     setChecklistItems([]);
     setNewItemText("");
     setFormError("");
+    setPakaiOli(false);
+    setOli(OLI_KOSONG);
   };
 
   const handleEditPart = (part: MachinePart) => {
@@ -129,7 +159,11 @@ export default function PartMappingEditor({ show, onHide, mesinId, mesinNama, on
     setChecklistItems(part.checklistItems);
     setNewItemText("");
     setFormError("");
+    setPakaiOli(!!part.oli);
+    setOli(part.oli ? oliKeForm(part.oli) : OLI_KOSONG);
   };
+
+  const ubahOli = (field: keyof OliForm, value: string) => setOli((prev) => ({ ...prev, [field]: value }));
 
   const handleAddPart = () => {
     if (!pendingPoint) return;
@@ -141,9 +175,25 @@ export default function PartMappingEditor({ show, onHide, mesinId, mesinNama, on
       setFormError("Tambahkan minimal satu poin checklist untuk part ini.");
       return;
     }
+    // Oli opsional: kalau dinyalakan, merek, jenis & kode wajib diisi
+    let oliSpec: OliSpec | null = null;
+    if (pakaiOli) {
+      const jenis = oli.jenis === JENIS_LAINNYA ? oli.jenisLain.trim() : oli.jenis;
+      if (!oli.merek.trim() || !jenis || !oli.kode.trim()) {
+        setFormError("Lengkapi merek, jenis, dan kode oli, atau matikan pilihan oli.");
+        return;
+      }
+      const kapasitas = oli.kapasitas.trim() ? teksKeAngka(oli.kapasitas) : null;
+      if (kapasitas !== null && (!Number.isFinite(kapasitas) || kapasitas <= 0)) {
+        setFormError("Kapasitas oli harus lebih dari 0, atau kosongkan.");
+        return;
+      }
+      oliSpec = { merek: oli.merek.trim(), jenis, kode: oli.kode.trim(), kapasitas, satuan: kapasitas ? oli.satuan : null };
+    }
     // Poin yang masih diketik tapi belum ditekan "Tambah" ikut disimpan
     const items = newItemText.trim() ? [...checklistItems, newItemText.trim()] : checklistItems;
     const dataPart = {
+      oli: oliSpec,
       partNumber: partNumber.trim(),
       partName: partName.trim(),
       checklistItems: items,
@@ -326,6 +376,51 @@ export default function PartMappingEditor({ show, onHide, mesinId, mesinNama, on
                       </div>
                     </Form.Group>
 
+                    {/* Oli/pelumas: opsional, hanya untuk part yang memakai oli */}
+                    <div className="border rounded p-2 mb-2 bg-body-tertiary">
+                      <Form.Check
+                        type="switch"
+                        id="pakai-oli"
+                        className="small fw-semibold"
+                        label="Part ini menggunakan oli/pelumas"
+                        checked={pakaiOli}
+                        onChange={(e) => setPakaiOli(e.target.checked)}
+                      />
+                      {pakaiOli && (
+                        <Row className="g-2 mt-1">
+                          <Col sm={4}>
+                            <Form.Label className="small mb-1">Merek oli</Form.Label>
+                            <Form.Control size="sm" value={oli.merek} onChange={(e) => ubahOli("merek", e.target.value)} placeholder="Contoh: Shell" />
+                          </Col>
+                          <Col sm={4}>
+                            <Form.Label className="small mb-1">Jenis oli</Form.Label>
+                            <Form.Select size="sm" value={oli.jenis} onChange={(e) => ubahOli("jenis", e.target.value)}>
+                              <option value="">Pilih jenis...</option>
+                              {JENIS_OLI.map((j) => <option key={j} value={j}>{j}</option>)}
+                              <option value={JENIS_LAINNYA}>Lainnya…</option>
+                            </Form.Select>
+                            {oli.jenis === JENIS_LAINNYA && (
+                              <Form.Control size="sm" className="mt-1" value={oli.jenisLain} onChange={(e) => ubahOli("jenisLain", e.target.value)} placeholder="Tulis jenis oli" />
+                            )}
+                          </Col>
+                          <Col sm={4}>
+                            <Form.Label className="small mb-1">Kode oli</Form.Label>
+                            <Form.Control size="sm" value={oli.kode} onChange={(e) => ubahOli("kode", e.target.value)} placeholder="Contoh: AX7" />
+                          </Col>
+                          <Col sm={6}>
+                            <Form.Label className="small mb-1">Kapasitas standar <span className="text-muted">(opsional)</span></Form.Label>
+                            <AngkaStepper size="sm" value={oli.kapasitas} onChange={(v) => ubahOli("kapasitas", v)} step={0.5} ariaLabel="Kapasitas oli" />
+                          </Col>
+                          <Col sm={6}>
+                            <Form.Label className="small mb-1">Satuan</Form.Label>
+                            <Form.Select size="sm" value={oli.satuan} onChange={(e) => ubahOli("satuan", e.target.value)}>
+                              {SATUAN_OLI.map((s) => <option key={s} value={s}>{s}</option>)}
+                            </Form.Select>
+                          </Col>
+                        </Row>
+                      )}
+                    </div>
+
                     <div className="d-flex gap-2 mt-2">
                       <Button size="sm" onClick={handleAddPart}>
                         {editingId ? "Simpan perubahan part" : "Simpan titik part"}
@@ -358,6 +453,12 @@ export default function PartMappingEditor({ show, onHide, mesinId, mesinNama, on
                               <li key={idx}>{item}</li>
                             ))}
                           </ul>
+                          {p.oli && (
+                            <div className="small mt-1 d-flex align-items-center gap-1 text-primary">
+                              <IconDroplet size={14} /> {labelOli(p.oli)}
+                              {p.oli.kapasitas ? ` (standar ${formatJumlahOli(p.oli.kapasitas)} ${p.oli.satuan ?? ""})` : ""}
+                            </div>
+                          )}
                         </td>
                         <td className="text-nowrap">
                           <Button

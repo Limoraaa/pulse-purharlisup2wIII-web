@@ -1,9 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Modal, Form, Button, ButtonGroup, Alert, Spinner } from "react-bootstrap";
-import { IconClipboardCheck } from "@tabler/icons-react";
+import { Modal, Form, Button, ButtonGroup, Alert, Spinner, Row, Col } from "react-bootstrap";
+import { IconClipboardCheck, IconDroplet } from "@tabler/icons-react";
 import api from "lib/api";
-import type { ChecklistStatus, MachinePart, PartMappingPayload } from "./PartMappingType";
+import AngkaStepper, { angkaKeTeks, teksKeAngka } from "components/common/AngkaStepper";
+import { JENIS_OLI, SATUAN_OLI, formatJumlahOli, labelOli } from "./PartMappingType";
+import type { ChecklistStatus, MachinePart, PartMappingPayload, TindakanOli } from "./PartMappingType";
 import { useFeedback } from "components/common/FeedbackProvider";
 
 type AksiCode = "C" | "L" | "P" | "M" | "K";
@@ -22,7 +24,39 @@ interface Props {
 interface PartResult {
   statuses: Record<string, ChecklistStatus>;
   catatan: Record<string, string>; // catatan temuan per item (hanya item yang bukan "Baik")
+  oli?: OliDraft; // hanya untuk part yang memakai oli
 }
+
+// Pemakaian oli pada pemeriksaan ini. Default memakai oli standar part;
+// "Pakai oli lain" hanya berlaku untuk catatan kali ini (spesifikasi part tidak berubah).
+interface OliDraft {
+  tindakan: TindakanOli;
+  jumlah: string;
+  satuan: string;
+  oliLain: boolean;
+  merek: string;
+  jenis: string;
+  kode: string;
+}
+
+const TINDAKAN_OLI: { value: TindakanOli; label: string }[] = [
+  { value: "tidak", label: "Tidak ada" },
+  { value: "tambah", label: "Tambah (top-up)" },
+  { value: "ganti", label: "Ganti oli" },
+];
+
+const oliAwal = (p: MachinePart): OliDraft | undefined =>
+  p.oli
+    ? {
+        tindakan: "tidak",
+        jumlah: "",
+        satuan: p.oli.satuan || "Liter",
+        oliLain: false,
+        merek: p.oli.merek,
+        jenis: p.oli.jenis,
+        kode: p.oli.kode,
+      }
+    : undefined;
 
 // Tindakan pemeliharaan yang dikerjakan. Dipakai server untuk mengisi baris Realisasi di Rencana.
 const AKSI_OPTIONS: { value: AksiCode; label: string }[] = [
@@ -64,6 +98,20 @@ function todayLocal(): string {
   return `${d.getFullYear()}-${mm}-${dd}`;
 }
 
+// Oli yang benar-benar dipakai: standar part, atau oli lain yang diisi teknisi
+function oliKirim(d: OliDraft, p: MachinePart) {
+  const spek = d.oliLain ? { merek: d.merek.trim(), jenis: d.jenis.trim(), kode: d.kode.trim() } : (p.oli as NonNullable<MachinePart["oli"]>);
+  return {
+    tindakan: d.tindakan,
+    jumlah: d.tindakan === "tidak" ? null : teksKeAngka(d.jumlah),
+    satuan: d.tindakan === "tidak" ? null : d.satuan,
+    oli_lain: d.oliLain,
+    merek: spek.merek,
+    jenis: spek.jenis,
+    kode: spek.kode,
+  };
+}
+
 export default function PartMappingChecklistModal({
   show,
   onHide,
@@ -90,6 +138,7 @@ export default function PartMappingChecklistModal({
   const [selectedPart, setSelectedPart] = useState<MachinePart | null>(null);
   const [draftStatuses, setDraftStatuses] = useState<Record<string, ChecklistStatus>>({});
   const [draftCatatan, setDraftCatatan] = useState<Record<string, string>>({});
+  const [draftOli, setDraftOli] = useState<OliDraft | undefined>(undefined);
   const [partError, setPartError] = useState("");
 
   // Dikerjakan dari rencana: tindakan ikut rencana, tidak perlu dipilih lagi.
@@ -140,6 +189,7 @@ export default function PartMappingChecklistModal({
     if (existing) {
       setDraftStatuses({ ...existing.statuses });
       setDraftCatatan({ ...existing.catatan });
+      setDraftOli(existing.oli ? { ...existing.oli } : oliAwal(p));
     } else {
       const initial: Record<string, ChecklistStatus> = {};
       p.checklistItems.forEach((item) => {
@@ -147,6 +197,7 @@ export default function PartMappingChecklistModal({
       });
       setDraftStatuses(initial);
       setDraftCatatan({});
+      setDraftOli(oliAwal(p));
     }
     setPartError("");
     setSelectedPart(p);
@@ -160,13 +211,24 @@ export default function PartMappingChecklistModal({
       setPartError(`Catatan temuan wajib diisi untuk: ${tanpaCatatan.join(", ")}.`);
       return;
     }
+    if (draftOli && draftOli.tindakan !== "tidak") {
+      const jumlah = teksKeAngka(draftOli.jumlah);
+      if (!draftOli.jumlah.trim() || !Number.isFinite(jumlah) || jumlah <= 0) {
+        setPartError("Isi jumlah oli yang ditambahkan/diganti.");
+        return;
+      }
+    }
+    if (draftOli?.oliLain && (!draftOli.merek.trim() || !draftOli.jenis.trim() || !draftOli.kode.trim())) {
+      setPartError("Lengkapi merek, jenis, dan kode oli lain yang dipakai.");
+      return;
+    }
     const catatan: Record<string, string> = {};
     temuan.forEach((item) => {
       catatan[item] = draftCatatan[item].trim();
     });
     setResults((prev) => ({
       ...prev,
-      [selectedPart.id]: { statuses: draftStatuses, catatan },
+      [selectedPart.id]: { statuses: draftStatuses, catatan, oli: draftOli },
     }));
     setSelectedPart(null);
   };
@@ -218,6 +280,7 @@ export default function PartMappingChecklistModal({
             status: results[p.id].statuses[item] ?? "baik",
             catatan: results[p.id].catatan[item] || undefined,
           })),
+          ...(results[p.id].oli && p.oli ? { oli: oliKirim(results[p.id].oli as OliDraft, p) } : {}),
         }));
 
       await api("/log-pemeliharaan", {
@@ -394,6 +457,95 @@ export default function PartMappingChecklistModal({
               )}
             </div>
           ))}
+
+          {/* Pelumasan: hanya untuk part yang diberi spesifikasi oli di Peta Part */}
+          {selectedPart?.oli && draftOli && (
+            <div className="border rounded p-2 mt-3 bg-body-tertiary">
+              <div className="small fw-semibold d-flex align-items-center gap-1 text-primary">
+                <IconDroplet size={16} /> Oli standar: {labelOli(selectedPart.oli)}
+                {selectedPart.oli.kapasitas
+                  ? ` (standar ${formatJumlahOli(selectedPart.oli.kapasitas)} ${selectedPart.oli.satuan ?? ""})`
+                  : ""}
+              </div>
+
+              <Form.Label className="small mt-2 mb-1">Tindakan oli</Form.Label>
+              <div>
+                <ButtonGroup size="sm">
+                  {TINDAKAN_OLI.map((t) => (
+                    <Button
+                      key={t.value}
+                      variant={draftOli.tindakan === t.value ? "primary" : "outline-primary"}
+                      onClick={() =>
+                        setDraftOli({
+                          ...draftOli,
+                          tindakan: t.value,
+                          // Ganti oli: isi otomatis dengan kapasitas standar bila ada
+                          jumlah:
+                            t.value === "ganti" && !draftOli.jumlah && selectedPart.oli?.kapasitas
+                              ? angkaKeTeks(selectedPart.oli.kapasitas)
+                              : draftOli.jumlah,
+                        })
+                      }
+                    >
+                      {t.label}
+                    </Button>
+                  ))}
+                </ButtonGroup>
+              </div>
+
+              {draftOli.tindakan !== "tidak" && (
+                <Row className="g-2 mt-1">
+                  <Col xs={7}>
+                    <Form.Label className="small mb-1">Jumlah dipakai</Form.Label>
+                    <AngkaStepper
+                      size="sm"
+                      value={draftOli.jumlah}
+                      onChange={(v) => setDraftOli({ ...draftOli, jumlah: v })}
+                      step={0.5}
+                      ariaLabel="Jumlah oli"
+                    />
+                  </Col>
+                  <Col xs={5}>
+                    <Form.Label className="small mb-1">Satuan</Form.Label>
+                    <Form.Select size="sm" value={draftOli.satuan} onChange={(e) => setDraftOli({ ...draftOli, satuan: e.target.value })}>
+                      {SATUAN_OLI.map((s) => <option key={s} value={s}>{s}</option>)}
+                    </Form.Select>
+                  </Col>
+                </Row>
+              )}
+
+              <Form.Check
+                type="checkbox"
+                id="pakai-oli-lain"
+                className="small mt-2"
+                label="Pakai oli lain (hanya untuk pemeriksaan ini)"
+                checked={draftOli.oliLain}
+                onChange={(e) =>
+                  setDraftOli(
+                    e.target.checked
+                      ? { ...draftOli, oliLain: true }
+                      : { ...draftOli, oliLain: false, merek: selectedPart.oli!.merek, jenis: selectedPart.oli!.jenis, kode: selectedPart.oli!.kode }
+                  )
+                }
+              />
+              {draftOli.oliLain && (
+                <Row className="g-2 mt-1">
+                  <Col xs={4}>
+                    <Form.Control size="sm" value={draftOli.merek} onChange={(e) => setDraftOli({ ...draftOli, merek: e.target.value })} placeholder="Merek" aria-label="Merek oli lain" />
+                  </Col>
+                  <Col xs={4}>
+                    <Form.Control size="sm" list="jenis-oli-opsi" value={draftOli.jenis} onChange={(e) => setDraftOli({ ...draftOli, jenis: e.target.value })} placeholder="Jenis" aria-label="Jenis oli lain" />
+                    <datalist id="jenis-oli-opsi">
+                      {JENIS_OLI.map((j) => <option key={j} value={j} />)}
+                    </datalist>
+                  </Col>
+                  <Col xs={4}>
+                    <Form.Control size="sm" value={draftOli.kode} onChange={(e) => setDraftOli({ ...draftOli, kode: e.target.value })} placeholder="Kode, mis. AB7" aria-label="Kode oli lain" />
+                  </Col>
+                </Row>
+              )}
+            </div>
+          )}
         </Modal.Body>
         <Modal.Footer>
           <Button variant="outline-secondary" onClick={() => setSelectedPart(null)}>
