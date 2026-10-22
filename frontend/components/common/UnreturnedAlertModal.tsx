@@ -1,26 +1,28 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Toast, ToastContainer, Button, Badge } from 'react-bootstrap';
 import api from '/lib/api';
+import { usePermission } from 'hooks/usePermissions';
 
 export default function UnreturnedAlertModal() {
   const [unreturnedCount, setUnreturnedCount] = useState(0);
   const [showModal, setShowModal] = useState(false);
   const router = useRouter();
 
+  // Hanya akun yang boleh melihat data peminjaman (izin Riwayat) yang diingatkan.
+  // Berbasis hak akses agar tetap benar walau nama role diubah/ditambah lewat matriks.
+  const bolehLihatPeminjaman = usePermission('view_riwayat');
+  const sudahDicek = useRef(false);
+
   useEffect(() => {
-    const checkUserAndUnreturnedTools = async () => {
+    if (!bolehLihatPeminjaman || sudahDicek.current) return;
+    sudahDicek.current = true;
+
+    const checkUnreturnedTools = async () => {
       try {
-        const userRes: any = await api('/user');
-        const userRole = userRes?.role || userRes?.data?.role;
-
-        if (userRole && userRole.toLowerCase() !== 'staff') {
-          return;
-        }
-
-        const res: any = await api('/peminjaman/belum-kembali');
+        const res = await api<{ total?: number }>('/peminjaman/belum-kembali');
         const total = res?.total || 0;
 
         if (total > 0) {
@@ -28,12 +30,12 @@ export default function UnreturnedAlertModal() {
           setShowModal(true);
         }
       } catch (err) {
-        console.error('Gagal mengecek hak akses atau data peminjaman', err);
+        console.error('Gagal mengecek data peminjaman yang belum kembali', err);
       }
     };
 
-    checkUserAndUnreturnedTools();
-  }, []);
+    checkUnreturnedTools();
+  }, [bolehLihatPeminjaman]);
 
   return (
     <ToastContainer

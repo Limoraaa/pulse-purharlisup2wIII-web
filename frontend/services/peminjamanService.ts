@@ -1,4 +1,5 @@
 import apiFetch from "lib/api";
+import { NAMA_BULAN_ID } from "components/ruangtools/common/dateUtils";
 import { CartItemType, PeminjamanAktifItemType } from "types/DataToolsTypes";
 import { RiwayatPeminjamanType } from "types/RiwayatTypes";
 
@@ -44,12 +45,13 @@ interface CreatePeminjamanPayload {
 
 // --- UTILS & MAPPERS ---
 
+// "21 Okt 2026, 18:48" (WIB), singkatan bulan Indonesia; tetap terbaca parseRowDate untuk filter.
 function formatTanggalJam(isoString: string): string {
   const d = new Date(isoString);
   const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone: "Asia/Jakarta",
     day: "2-digit",
-    month: "short",
+    month: "numeric",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
@@ -57,7 +59,8 @@ function formatTanggalJam(isoString: string): string {
   }).formatToParts(d);
 
   const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
-  return `${get("day")} ${get("month")} ${get("year")}, ${get("hour")}:${get("minute")}`;
+  const bulan = NAMA_BULAN_ID[Number(get("month")) - 1]?.slice(0, 3) ?? "";
+  return `${get("day")} ${bulan} ${get("year")}, ${get("hour")}:${get("minute")}`;
 }
 
 function buildNomorTransaksi(tanggalIso: string, pemintaNama: string): string {

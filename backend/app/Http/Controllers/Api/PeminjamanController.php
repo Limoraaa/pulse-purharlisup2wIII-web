@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class PeminjamanController extends Controller
 {
@@ -41,6 +42,10 @@ class PeminjamanController extends Controller
 
         if (!$tool && !$consumable) {
             return response()->json(['message' => 'Item tidak ditemukan di data Tools maupun Consumable.'], 404);
+        }
+
+        if (($tool && !$tool->is_active) || ($consumable && !$consumable->is_active)) {
+            return response()->json(['message' => 'Item ini sudah dinonaktifkan dan tidak bisa dipinjam/diambil.'], 422);
         }
 
         $isTool = (bool) $tool;
@@ -165,13 +170,18 @@ class PeminjamanController extends Controller
    public function prosesPeminjaman(Request $request)
     {
         $request->validate([
-            'peminta_id' => 'required|string|exists:peminta,id',
-            'dicatat_oleh' => 'required|uuid|exists:users,id',
+            'peminta_id' => ['required', 'string', Rule::exists('peminta', 'id')->where('aktif', true)],
+            'dicatat_oleh' => 'nullable|uuid|exists:users,id',
             'nama_pekerjaan' => 'required|string|max:255',
             'area_pekerjaan' => 'nullable|string|max:255',
             'spesifikasi' => 'nullable|string',
             'keterangan' => 'nullable|string',
+        ], [
+            'peminta_id.exists' => 'Peminjam tidak terdaftar atau sudah dinonaktifkan.',
         ]);
+
+        // Pencatat transaksi = akun yang sedang login
+        $request->merge(['dicatat_oleh' => $request->user()->id]);
 
         $antrean = DB::table('temporary_cart')->whereNotNull('tools_id')->get();
 
@@ -183,6 +193,9 @@ class PeminjamanController extends Controller
             $tool = Tool::find($item->tools_id);
             if (!$tool) {
                 return response()->json(['message' => 'Salah satu alat di keranjang sudah tidak ada'], 422);
+            }
+            if (!$tool->is_active) {
+                return response()->json(['message' => "Alat {$tool->nama_barang} sudah dinonaktifkan, hapus dari keranjang terlebih dahulu."], 422);
             }
             if ($item->qty > $tool->tersedia()) {
                 return response()->json([

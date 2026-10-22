@@ -56,9 +56,10 @@ class LaporanKerusakanController extends Controller
             $laporan = DB::transaction(function () use ($data) {
                 $tool = Tool::lockForUpdate()->findOrFail($data['tool_id']);
 
-                if ($tool->stok < $data['jumlah']) {
+                // Bandingkan dengan unit yang ada di gudang (stok dikurangi yang sedang dipinjam)
+                if ($tool->tersedia() < $data['jumlah']) {
                     throw new \RuntimeException(
-                        "Jumlah rusak melebihi stok. Stok saat ini: {$tool->stok}, dilaporkan: {$data['jumlah']}"
+                        "Jumlah rusak melebihi stok tersedia. Tersedia saat ini: {$tool->tersedia()}, dilaporkan: {$data['jumlah']}"
                     );
                 }
 
@@ -109,8 +110,9 @@ class LaporanKerusakanController extends Controller
 
         try {
             $laporan = DB::transaction(function () use ($laporan, $data) {
-                // Kalau jumlah tidak diubah, langsung update field lain saja
-                if (! isset($data['jumlah']) || $data['jumlah'] == $laporan->jumlah) {
+                // Kalau jumlah tidak diubah, langsung update field lain saja.
+                // Laporan yang sudah selesai diperbaiki stoknya sudah dikembalikan, jadi tidak disesuaikan lagi.
+                if (! isset($data['jumlah']) || $data['jumlah'] == $laporan->jumlah || $laporan->status === 'selesai_diperbaiki') {
                     $laporan->update($data);
                     return $laporan;
                 }
@@ -151,7 +153,8 @@ class LaporanKerusakanController extends Controller
         DB::transaction(function () use ($laporan) {
             $tool = Tool::lockForUpdate()->find($laporan->tool_id);
 
-            if ($tool) {
+            // Stok laporan yang sudah selesai diperbaiki sudah dikembalikan saat repair
+            if ($tool && $laporan->status !== 'selesai_diperbaiki') {
                 $tool->stok += $laporan->jumlah;
                 $tool->save();
             }
