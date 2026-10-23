@@ -9,6 +9,7 @@ import {
   createOrderConsumable 
 } from '/services/orderConsumableService';
 import { useFeedback } from "components/common/FeedbackProvider";
+import SearchableInput, { SearchableOption } from "components/common/SearchableInput";
 
 interface OrderConsumableFormModalProps {
   isOpen: boolean;
@@ -27,6 +28,19 @@ interface OrderItem {
   jumlah: number;
   satuan: string;
 }
+
+// Teks utama consumable di kotak pencarian & isi input setelah dipilih
+const labelConsumable = (c: any) =>
+  `${c.kode_barang || c.kodeBarang} — ${c.nama_barang || c.namaBarang || c.nama}`;
+
+// Keterangan pembeda di bawah label: tipe & ukuran (hanya yang ada)
+const deskripsiConsumable = (c: any) =>
+  [
+    (c.tipe || c.type) && `Tipe: ${c.tipe || c.type}`,
+    c.ukuran && `Ukuran: ${c.ukuran}`,
+  ]
+    .filter(Boolean)
+    .join(' · ') || undefined;
 
 const getEmptyItem = (): OrderItem => ({
   consumable_id: '',
@@ -47,6 +61,8 @@ export default function OrderConsumableFormModal({ isOpen, onClose, onSuccess }:
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const [pemintaId, setPemintaId] = useState<string>('');
+  const [pemintaText, setPemintaText] = useState<string>('');
+  const [pemintaInvalid, setPemintaInvalid] = useState(false);
   const [pekerjaan, setPekerjaan] = useState<string>(''); // <-- STATE UNTUK PEKERJAAN GLOBAL
   const [items, setItems] = useState<OrderItem[]>([getEmptyItem()]);
   const [searchTexts, setSearchTexts] = useState<{ [key: number]: string }>({});
@@ -64,6 +80,8 @@ export default function OrderConsumableFormModal({ isOpen, onClose, onSuccess }:
       }).catch(console.error);
 
       setPemintaId('');
+      setPemintaText('');
+      setPemintaInvalid(false);
       setPekerjaan(''); // Reset pekerjaan saat modal dibuka
       setItems([getEmptyItem()]);
       setSearchTexts({});
@@ -96,6 +114,27 @@ export default function OrderConsumableFormModal({ isOpen, onClose, onSuccess }:
     }
   };
 
+  const pemintaOptions: SearchableOption[] = peminjamList.map((p) => ({
+    value: String(p.id),
+    label: p.nama,
+    description: p.divisi || undefined,
+  }));
+
+  const consumableOptions: SearchableOption[] = consumableList.map((c) => ({
+    value: String(c.id),
+    label: labelConsumable(c),
+    description: deskripsiConsumable(c),
+  }));
+
+  // Saat mengetik: nama pengusul baru sah kalau sama persis (tanpa beda huruf besar/kecil)
+  // dengan tepat satu nama di daftar; selain itu pengguna harus memilih dari daftar.
+  const handlePemintaInput = (text: string) => {
+    setPemintaText(text);
+    setPemintaInvalid(false);
+    const cocok = peminjamList.filter((p) => (p.nama || '').toLowerCase() === text.trim().toLowerCase());
+    setPemintaId(cocok.length === 1 ? String(cocok[0].id) : '');
+  };
+
   const handleAddItem = () => {
     setItems([...items, getEmptyItem()]);
   };
@@ -111,6 +150,10 @@ export default function OrderConsumableFormModal({ isOpen, onClose, onSuccess }:
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!pemintaId) {
+      setPemintaInvalid(true);
+      return;
+    }
     setIsSubmitting(true);
 
     const tzOffset = (new Date()).getTimezoneOffset() * 60000;
@@ -167,13 +210,23 @@ export default function OrderConsumableFormModal({ isOpen, onClose, onSuccess }:
                   <Form.Label className="fw-semibold">
                     Nama Pengusul <span className="text-danger">*</span>
                   </Form.Label>
-                  <Form.Select required value={pemintaId} onChange={e => setPemintaId(e.target.value)}>
-                    <option value="" disabled>-- Pilih Nama Pengusul --</option>
-                    {peminjamList.map((p) => (
-                      <option key={p.id} value={p.id}>{p.nama}</option>
-                    ))}
-                  </Form.Select>
-                  <Form.Text className="text-muted">Nama pengusul ini berlaku untuk semua barang di bawah.</Form.Text>
+                  <SearchableInput
+                    options={pemintaOptions}
+                    inputValue={pemintaText}
+                    onInputChange={handlePemintaInput}
+                    onSelect={(o) => {
+                      setPemintaId(o.value);
+                      setPemintaText(o.label);
+                      setPemintaInvalid(false);
+                    }}
+                    placeholder="Ketik untuk mencari nama pengusul..."
+                    isInvalid={pemintaInvalid}
+                  />
+                  {pemintaInvalid ? (
+                    <div className="invalid-feedback d-block">Pilih nama pengusul dari daftar.</div>
+                  ) : (
+                    <Form.Text className="text-muted">Nama pengusul ini berlaku untuk semua barang di bawah.</Form.Text>
+                  )}
                 </Form.Group>
               </Col>
 
@@ -200,7 +253,7 @@ export default function OrderConsumableFormModal({ isOpen, onClose, onSuccess }:
           {items.map((item, index) => {
             const currentSearchText = searchTexts[index] !== undefined
               ? searchTexts[index]
-              : (item.consumable_id ? `${item.kode_barang} — ${item.nama_barang}` : item.nama_barang);
+              : (item.consumable_id ? labelConsumable(item) : item.nama_barang);
 
             // Field auto-fill disabled saat consumable sudah dipilih dari database
             const isLocked = Boolean(item.consumable_id);
@@ -222,17 +275,18 @@ export default function OrderConsumableFormModal({ isOpen, onClose, onSuccess }:
                       <Form.Label className="fw-semibold">
                         Kode Barang <span className="text-danger">*</span>
                       </Form.Label>
-                      <Form.Control
-                        list={`consumable-options-${index}`}
+                      <SearchableInput
+                        options={consumableOptions}
                         placeholder="Ketik atau pilih kode/nama consumable..."
-                        value={currentSearchText}
-                        onChange={(e) => {
-                          const typed = e.target.value;
+                        inputValue={currentSearchText}
+                        onSelect={(o) => {
+                          setSearchTexts((prev) => ({ ...prev, [index]: o.label }));
+                          handleSelectConsumable(index, o.value);
+                        }}
+                        onInputChange={(typed) => {
                           setSearchTexts((prev) => ({ ...prev, [index]: typed }));
 
-                          const match = consumableList.find(
-                            (c) => `${c.kode_barang || c.kodeBarang} — ${c.nama_barang || c.namaBarang || c.nama}` === typed
-                          );
+                          const match = consumableList.find((c) => labelConsumable(c) === typed);
 
                           if (match) {
                             handleSelectConsumable(index, match.id.toString());
@@ -253,13 +307,6 @@ export default function OrderConsumableFormModal({ isOpen, onClose, onSuccess }:
                           }
                         }}
                       />
-                      <datalist id={`consumable-options-${index}`}>
-                        {consumableList.map((c) => {
-                          const kode = c.kode_barang || c.kodeBarang;
-                          const nama = c.nama_barang || c.namaBarang || c.nama;
-                          return <option key={c.id} value={`${kode} — ${nama}`} />;
-                        })}
-                      </datalist>
                       <Form.Text className="text-muted">
                         Pilih dari daftar database, atau ketik bebas untuk barang baru.
                       </Form.Text>
