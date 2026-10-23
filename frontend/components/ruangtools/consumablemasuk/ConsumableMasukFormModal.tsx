@@ -10,6 +10,7 @@ import {
   ConsumableMasukType,
   ConsumableMasukFormValues,
 } from "types/DataConsumableTypes";
+import SearchableInput, { SearchableOption, keteranganBarang } from "components/common/SearchableInput";
 
 // Tampilan "16 Juli 2026, 14:32" dari timestamp ISO
 const formatTanggalJam = (iso: string): string => {
@@ -96,6 +97,12 @@ const ConsumableMasukFormModal = ({
     }));
   };
 
+  const pilihanBarang: SearchableOption[] = consumableOptions.map((c) => ({
+    value: c.id,
+    label: `${c.kode_barang} — ${c.nama}`,
+    description: keteranganBarang(c.tipe, c.ukuran),
+  }));
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return; // Mencegah proses dobel jalan bersamaan
@@ -173,18 +180,20 @@ const ConsumableMasukFormModal = ({
               </Col>
               <Col md={6}>
                 <Form.Label>Kode Barang</Form.Label>
-                <Form.Control
-                  required
-                  list="consumable-options"
+                <SearchableInput
+                  options={pilihanBarang}
                   placeholder="Ketik atau pilih kode barang..."
                   disabled={isEditMode}
-                  value={
+                  inputValue={
                     form.consumable_id
                       ? `${form.kode_barang || ""} — ${form.nama || ""}`
                       : consumableSearchText || ""
                   }
-                  onChange={(e) => {
-                    const typed = e.target.value;
+                  onSelect={(o) => {
+                    setConsumableSearchText(o.label);
+                    handleSelectConsumable(o.value);
+                  }}
+                  onInputChange={(typed) => {
                     setConsumableSearchText(typed);
 
                     const match = consumableOptions.find(
@@ -207,11 +216,6 @@ const ConsumableMasukFormModal = ({
                     }
                   }}
                 />
-                <datalist id="consumable-options">
-                  {consumableOptions.map((c) => (
-                    <option key={c.id} value={`${c.kode_barang} — ${c.nama}`} />
-                  ))}
-                </datalist>
               </Col>
 
               <Col md={6}>
