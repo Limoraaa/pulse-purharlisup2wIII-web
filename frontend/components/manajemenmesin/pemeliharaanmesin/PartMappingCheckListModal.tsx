@@ -17,22 +17,18 @@ interface Props {
   onHide: () => void;
   mesinId: number | string;
   mesinNama: string;
-  rencanaId?: number | string | null; // rencana yang sedang dikerjakan (opsional)
-  aksiRencana?: AksiCode | null; // tindakan dari rencana tsb; selalu dikirim ke server bersama rencana_id
-  // Pelaksana dari rencana (Internal PLN / Vendor), dipakai sebagai isian awal
+  rencanaId?: number | string | null;
+  aksiRencana?: AksiCode | null;
   pelaksanaRencana?: { jenis: JenisPelaksana; namaVendor?: string | null } | null;
-  onSubmitted?: () => void; // dipanggil setelah kegiatan berhasil disimpan
+  onSubmitted?: () => void;
 }
 
-// Hasil pemeriksaan satu part, ditampung di layar sampai teknisi menyimpan kegiatan.
 interface PartResult {
   statuses: Record<string, ChecklistStatus>;
-  catatan: Record<string, string>; // catatan temuan per item (hanya item yang bukan "Baik")
-  oli?: OliDraft; // hanya untuk part yang memakai oli
+  catatan: Record<string, string>;
+  oli?: OliDraft;
 }
 
-// Pemakaian oli pada pemeriksaan ini. Default memakai oli standar part;
-// "Pakai oli lain" hanya berlaku untuk catatan kali ini (spesifikasi part tidak berubah).
 interface OliDraft {
   tindakan: TindakanOli;
   jumlah: string;
@@ -41,6 +37,15 @@ interface OliDraft {
   merek: string;
   jenis: string;
   kode: string;
+}
+
+// Master Data Oli dari Database
+interface OliMaster {
+  id: number;
+  kode_oli: string;
+  nama_oli: string;
+  stok: number;
+  satuan: string;
 }
 
 const TINDAKAN_OLI: { value: TindakanOli; label: string; hint: string }[] = [
@@ -63,7 +68,6 @@ const oliAwal = (p: MachinePart): OliDraft | undefined =>
       }
     : undefined;
 
-// Tindakan pemeliharaan yang dikerjakan. Dipakai server untuk mengisi baris Realisasi di Rencana.
 const AKSI_OPTIONS: { value: AksiCode; label: string }[] = [
   { value: "C", label: "C - Cleaning / Check" },
   { value: "L", label: "L - Lubrication" },
@@ -94,8 +98,6 @@ function worstOf(statuses: Record<string, ChecklistStatus>): ChecklistStatus {
   return worst;
 }
 
-// Tanggal lokal (YYYY-MM-DD). toISOString() memakai UTC, sehingga di WIB sebelum jam 07.00
-// tanggalnya mundur sehari dan log bisa masuk minggu yang salah.
 function todayLocal(): string {
   const d = new Date();
   const mm = String(d.getMonth() + 1).padStart(2, "0");
@@ -103,7 +105,6 @@ function todayLocal(): string {
   return `${d.getFullYear()}-${mm}-${dd}`;
 }
 
-// Oli yang benar-benar dipakai: standar part, atau oli lain yang diisi teknisi
 function oliKirim(d: OliDraft, p: MachinePart) {
   const spek = d.oliLain ? { merek: d.merek.trim(), jenis: d.jenis.trim(), kode: d.kode.trim() } : (p.oli as NonNullable<MachinePart["oli"]>);
   return {
@@ -133,12 +134,10 @@ export default function PartMappingChecklistModal({
   const [parts, setParts] = useState<MachinePart[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  // Hasil semua part yang sudah diperiksa pada kegiatan ini (key = id part)
   const [results, setResults] = useState<Record<string, PartResult>>({});
   const [teknisi, setTeknisi] = useState("");
   const [aksi, setAksi] = useState<AksiCode | "">("");
-  // Nilai awal pelaksana dari rencana (string, agar stabil sebagai dependensi effect)
-  // Akun Vendor: pelaksana otomatis Vendor dengan nama vendor = nama akun (bila rencana tidak menentukan)
+  
   const akunVendor = useRoles().includes("Vendor");
   const jenisPelaksanaAwal: JenisPelaksana = pelaksanaRencana?.jenis ?? (akunVendor ? "Vendor" : "Internal");
   const namaVendorAwal = pelaksanaRencana?.namaVendor ?? "";
@@ -147,21 +146,20 @@ export default function PartMappingChecklistModal({
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
 
-  // Form pemeriksaan satu part
+  // Inventaris Oli Terhubung
+  const [olis, setOlis] = useState<OliMaster[]>([]);
+  const [selectedOliId, setSelectedOliId] = useState<string>("");
+  const [jumlahOliGlobal, setJumlahOliGlobal] = useState<string>("");
+
   const [selectedPart, setSelectedPart] = useState<MachinePart | null>(null);
   const [draftStatuses, setDraftStatuses] = useState<Record<string, ChecklistStatus>>({});
   const [draftCatatan, setDraftCatatan] = useState<Record<string, string>>({});
   const [draftOli, setDraftOli] = useState<OliDraft | undefined>(undefined);
   const [partError, setPartError] = useState("");
 
-  // Dikerjakan dari rencana: tindakan ikut rencana, tidak perlu dipilih lagi.
-  // Dropdown hanya muncul untuk kegiatan di luar rencana.
-  // Dianggap "dari rencana" hanya kalau tindakan rencananya diketahui (aksiRencana). Kalau halaman induk
-  // hanya mengirim rencanaId tanpa aksiRencana, dropdown tetap tampil supaya aksi selalu terkirim.
   const dariRencana = !!aksiRencana;
   const aksiRencanaLabel = AKSI_OPTIONS.find((o) => o.value === aksiRencana)?.label;
 
-  // Tiap kali modal dibuka: muat peta part & mulai kegiatan baru yang bersih
   useEffect(() => {
     if (!show) return;
     let cancelled = false;
@@ -173,7 +171,10 @@ export default function PartMappingChecklistModal({
     setTeknisi(localStorage.getItem("userName") || "");
     setJenisPelaksana(jenisPelaksanaAwal);
     setNamaVendor(namaVendorAwal || (akunVendor ? localStorage.getItem("userName") || "" : ""));
+    setSelectedOliId("");
+    setJumlahOliGlobal("");
 
+    // Ambil Peta Part
     (async () => {
       setLoadingMapping(true);
       setLoadError(null);
@@ -184,17 +185,21 @@ export default function PartMappingChecklistModal({
           setParts(res?.parts ?? []);
         }
       } catch {
-        if (!cancelled) {
-          setLoadError("Mapping part untuk mesin ini belum tersedia. Minta admin memetakan part terlebih dahulu.");
-        }
+        if (!cancelled) setLoadError("Mapping part untuk mesin ini belum tersedia.");
       } finally {
         if (!cancelled) setLoadingMapping(false);
       }
     })();
 
-    return () => {
-      cancelled = true;
-    };
+    // Ambil Daftar Master Oli
+    api<any>("/olis")
+      .then((res) => {
+        const data = res?.data ?? res ?? [];
+        if (!cancelled) setOlis(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => console.error("Gagal memuat data oli", err));
+
+    return () => { cancelled = true; };
   }, [show, mesinId, jenisPelaksanaAwal, namaVendorAwal, akunVendor]);
 
   const checkedCount = Object.keys(results).length;
@@ -207,9 +212,7 @@ export default function PartMappingChecklistModal({
       setDraftOli(existing.oli ? { ...existing.oli } : oliAwal(p));
     } else {
       const initial: Record<string, ChecklistStatus> = {};
-      p.checklistItems.forEach((item) => {
-        initial[item] = "baik";
-      });
+      p.checklistItems.forEach((item) => { initial[item] = "baik"; });
       setDraftStatuses(initial);
       setDraftCatatan({});
       setDraftOli(oliAwal(p));
@@ -238,13 +241,8 @@ export default function PartMappingChecklistModal({
       return;
     }
     const catatan: Record<string, string> = {};
-    temuan.forEach((item) => {
-      catatan[item] = draftCatatan[item].trim();
-    });
-    setResults((prev) => ({
-      ...prev,
-      [selectedPart.id]: { statuses: draftStatuses, catatan, oli: draftOli },
-    }));
+    temuan.forEach((item) => { catatan[item] = draftCatatan[item].trim(); });
+    setResults((prev) => ({ ...prev, [selectedPart.id]: { statuses: draftStatuses, catatan, oli: draftOli } }));
     setSelectedPart(null);
   };
 
@@ -257,9 +255,7 @@ export default function PartMappingChecklistModal({
         confirmLabel: "Ya, tutup",
         variant: "warning",
       }))
-    ) {
-      return;
-    }
+    ) { return; }
     onHide();
   };
 
@@ -268,11 +264,7 @@ export default function PartMappingChecklistModal({
       setSubmitError("Nama teknisi wajib diisi.");
       return;
     }
-
-    // Tindakan: dari rencana kalau ada, selain itu dari pilihan teknisi.
     const aksiKirim: AksiCode | "" = aksiRencana || aksi;
-
-    // Tindakan selalu dikirim: server memakainya untuk mencocokkan plotting dan memvalidasi rencana.
     if (!aksiKirim) {
       setSubmitError("Pilih tindakan yang dikerjakan.");
       return;
@@ -283,6 +275,17 @@ export default function PartMappingChecklistModal({
     }
     if (jenisPelaksana === "Vendor" && !namaVendor.trim()) {
       setSubmitError("Nama vendor wajib diisi bila dikerjakan oleh vendor.");
+      return;
+    }
+    
+    // Validasi Pemotongan Oli Global
+    if (selectedOliId && (!jumlahOliGlobal || Number(jumlahOliGlobal) <= 0)) {
+      setSubmitError("Masukkan jumlah pemakaian oli dari gudang.");
+      return;
+    }
+    const oliTerpilih = olis.find(o => String(o.id) === selectedOliId);
+    if (oliTerpilih && Number(jumlahOliGlobal) > oliTerpilih.stok) {
+      setSubmitError(`Stok oli ${oliTerpilih.nama_oli} tidak mencukupi (Sisa stok: ${oliTerpilih.stok} ${oliTerpilih.satuan}).`);
       return;
     }
 
@@ -312,7 +315,8 @@ export default function PartMappingChecklistModal({
           hasil_checklist: hasil,
           jenis_pelaksana: jenisPelaksana,
           nama_vendor: jenisPelaksana === "Vendor" ? namaVendor.trim() : null,
-          // rencana_id & aksi dikirim bersama; server hanya menolak kalau tindakannya beda dari rencana
+          oli_id: selectedOliId ? Number(selectedOliId) : null,
+          jumlah_oli: selectedOliId ? Number(jumlahOliGlobal) : null,
           ...(rencanaId ? { rencana_id: rencanaId } : {}),
           ...(aksiKirim ? { aksi: aksiKirim } : {}),
         }),
@@ -328,7 +332,6 @@ export default function PartMappingChecklistModal({
 
   return (
     <>
-      {/* Modal utama: gambar mesin + titik-titik part */}
       <Modal show={show && !selectedPart} onHide={handleCloseMain} centered size="lg" backdrop="static">
         <Modal.Header closeButton>
           <Modal.Title className="fs-6 fw-bold d-flex align-items-center gap-2">
@@ -363,15 +366,10 @@ export default function PartMappingChecklistModal({
                         left: `${p.xPercent}%`,
                         top: `${p.yPercent}%`,
                         transform: "translate(-50%, -50%)",
-                        width: 28,
-                        height: 28,
-                        borderRadius: "50%",
-                        border: "2px solid #fff",
-                        background: bg,
+                        width: 28, height: 28, borderRadius: "50%",
+                        border: "2px solid #fff", background: bg,
                         color: r && worstOf(r.statuses) === "perlu_perhatian" ? "#000" : "#fff",
-                        fontSize: 13,
-                        fontWeight: 600,
-                        padding: 0,
+                        fontSize: 13, fontWeight: 600, padding: 0,
                       }}
                     >
                       {p.partNumber}
@@ -379,74 +377,77 @@ export default function PartMappingChecklistModal({
                   );
                 })}
               </div>
-              <div className="small text-muted mt-2">
+              <div className="small text-muted mt-2 mb-4">
                 Biru = belum diperiksa · Hijau = baik · Kuning = perlu perhatian · Merah = rusak
               </div>
 
-              {/* Tindakan: dipakai untuk mencocokkan kegiatan ini ke plotting di Rencana Pemeliharaan.
-                  Kalau dikerjakan dari sebuah rencana, tindakannya ikut rencana itu. */}
               {dariRencana ? (
                 <div className="small mt-3">
-                  <span className="fw-semibold">Tindakan:</span>{" "}
-                  {aksiRencanaLabel ?? "sesuai rencana"}{" "}
+                  <span className="fw-semibold">Tindakan:</span> {aksiRencanaLabel ?? "sesuai rencana"}{" "}
                   <span className="text-muted">(mengerjakan rencana, hasilnya otomatis menyelesaikan rencana ini)</span>
                 </div>
               ) : (
                 <Form.Group className="mt-3" style={{ maxWidth: 320 }}>
                   <Form.Label className="small fw-semibold">Tindakan yang dikerjakan</Form.Label>
-                  <Form.Select
-                    size="sm"
-                    value={aksi}
-                    onChange={(e) => setAksi(e.target.value as AksiCode | "")}
-                  >
+                  <Form.Select size="sm" value={aksi} onChange={(e) => setAksi(e.target.value as AksiCode | "")}>
                     <option value="">Pilih tindakan...</option>
-                    {AKSI_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
+                    {AKSI_OPTIONS.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                   </Form.Select>
-                  {rencanaId && (
-                    <Form.Text className="text-muted">
-                      Pilih tindakan yang sama dengan rencana yang sedang dikerjakan.
-                    </Form.Text>
-                  )}
                 </Form.Group>
               )}
 
-              {/* Pelaksana pekerjaan: internal PLN atau vendor (pihak ketiga) */}
-              <Form.Group className="mt-3">
+              {/* INTEGRASI PENGGUNAAN OLI INVENTARIS */}
+              <div className="mt-4 p-3 border rounded bg-light">
+                <Form.Label className="small fw-bold d-flex align-items-center gap-2 mb-2 text-primary">
+                  <IconDroplet size={16} /> Potong Stok Oli Gudang (Opsional)
+                </Form.Label>
+                <div className="d-flex flex-wrap gap-2">
+                  <Form.Select
+                    size="sm"
+                    value={selectedOliId}
+                    onChange={(e) => setSelectedOliId(e.target.value)}
+                    style={{ maxWidth: 320 }}
+                  >
+                    <option value="">-- Tidak ada pemakaian oli --</option>
+                    {olis.map((o) => (
+                      <option key={o.id} value={o.id} disabled={o.stok <= 0}>
+                        {o.nama_oli} (Sisa: {o.stok} {o.satuan})
+                      </option>
+                    ))}
+                  </Form.Select>
+                  {selectedOliId && (
+                    <div className="d-flex align-items-center gap-2">
+                      <Form.Control
+                        size="sm"
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        placeholder="Jumlah..."
+                        value={jumlahOliGlobal}
+                        onChange={(e) => setJumlahOliGlobal(e.target.value)}
+                        style={{ width: 100 }}
+                      />
+                      <span className="small text-muted fw-semibold">
+                        {olis.find((o) => String(o.id) === selectedOliId)?.satuan}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                {selectedOliId && (
+                  <Form.Text className="text-muted small mt-2 d-block">
+                    Stok <strong>{olis.find((o) => String(o.id) === selectedOliId)?.nama_oli}</strong> akan otomatis dikurangi setelah kegiatan disimpan.
+                  </Form.Text>
+                )}
+              </div>
+
+              <Form.Group className="mt-4">
                 <Form.Label className="small fw-semibold d-block">Pelaksana pekerjaan</Form.Label>
                 <div className="d-flex flex-wrap gap-3">
-                  <Form.Check
-                    type="radio"
-                    id="pelaksana-internal"
-                    name="jenis-pelaksana"
-                    className="small"
-                    label="Internal PLN"
-                    checked={jenisPelaksana === "Internal"}
-                    onChange={() => setJenisPelaksana("Internal")}
-                  />
-                  <Form.Check
-                    type="radio"
-                    id="pelaksana-vendor"
-                    name="jenis-pelaksana"
-                    className="small"
-                    label="Vendor (Pihak Ketiga)"
-                    checked={jenisPelaksana === "Vendor"}
-                    onChange={() => setJenisPelaksana("Vendor")}
-                  />
+                  <Form.Check type="radio" name="jenis-pelaksana" className="small" label="Internal PLN" checked={jenisPelaksana === "Internal"} onChange={() => setJenisPelaksana("Internal")} />
+                  <Form.Check type="radio" name="jenis-pelaksana" className="small" label="Vendor (Pihak Ketiga)" checked={jenisPelaksana === "Vendor"} onChange={() => setJenisPelaksana("Vendor")} />
                 </div>
                 {jenisPelaksana === "Vendor" && (
-                  <Form.Control
-                    size="sm"
-                    className="mt-2"
-                    style={{ maxWidth: 320 }}
-                    value={namaVendor}
-                    onChange={(e) => setNamaVendor(e.target.value)}
-                    placeholder="Nama vendor, mis. PT Mitra Teknik"
-                    aria-label="Nama vendor"
-                  />
+                  <Form.Control size="sm" className="mt-2" style={{ maxWidth: 320 }} value={namaVendor} onChange={(e) => setNamaVendor(e.target.value)} placeholder="Nama vendor, mis. PT Mitra Teknik" />
                 )}
               </Form.Group>
 
@@ -466,19 +467,16 @@ export default function PartMappingChecklistModal({
               {checkedCount === 0 && " · periksa minimal 1 part"}
             </span>
             <div className="d-flex gap-2">
-              <Button variant="outline-secondary" onClick={handleCloseMain} disabled={submitting}>
-                Batal
-              </Button>
+              <Button variant="outline-secondary" onClick={handleCloseMain} disabled={submitting}>Batal</Button>
               <Button onClick={handleSubmit} disabled={submitting || checkedCount === 0}>
-                {submitting ? <Spinner size="sm" className="me-1" /> : null}
-                Simpan Kegiatan Pemeliharaan
+                {submitting ? <Spinner size="sm" className="me-1" /> : null} Simpan Kegiatan
               </Button>
             </div>
           </Modal.Footer>
         )}
       </Modal>
 
-      {/* Modal pemeriksaan satu part (hanya menampung ke layar, belum kirim ke server) */}
+      {/* Modal Pemeriksaan Part */}
       <Modal show={!!selectedPart} onHide={() => setSelectedPart(null)} centered>
         <Modal.Header closeButton>
           <Modal.Title className="fs-6 fw-bold">Checklist - {selectedPart?.partName}</Modal.Title>
@@ -500,70 +498,44 @@ export default function PartMappingChecklistModal({
                   </Button>
                 ))}
               </ButtonGroup>
-              {/* Catatan terpisah untuk tiap item yang bukan "Baik" */}
               {draftStatuses[item] !== "baik" && (
-                <Form.Control
-                  as="textarea"
-                  rows={2}
-                  size="sm"
-                  className="mt-2"
-                  value={draftCatatan[item] ?? ""}
-                  onChange={(e) => setDraftCatatan((prev) => ({ ...prev, [item]: e.target.value }))}
-                  placeholder={`Catatan temuan untuk "${item}"...`}
-                />
+                <Form.Control as="textarea" rows={2} size="sm" className="mt-2" value={draftCatatan[item] ?? ""} onChange={(e) => setDraftCatatan((prev) => ({ ...prev, [item]: e.target.value }))} placeholder={`Catatan temuan untuk "${item}"...`} />
               )}
             </div>
           ))}
 
-          {/* Pelumasan: hanya untuk part yang diberi spesifikasi oli di Peta Part */}
           {selectedPart?.oli && draftOli && (
             <div className="border rounded p-2 mt-3 bg-body-tertiary">
               <div className="small fw-semibold d-flex align-items-center gap-1 text-primary">
-                <IconDroplet size={16} /> Oli standar: {labelOli(selectedPart.oli)}
-                {selectedPart.oli.kapasitas
-                  ? ` (standar ${formatJumlahOli(selectedPart.oli.kapasitas)} ${selectedPart.oli.satuan ?? ""})`
-                  : ""}
+                <IconDroplet size={16} /> Oli standar part: {labelOli(selectedPart.oli)}
+                {selectedPart.oli.kapasitas ? ` (${formatJumlahOli(selectedPart.oli.kapasitas)} ${selectedPart.oli.satuan ?? ""})` : ""}
               </div>
 
-              <Form.Label className="small mt-2 mb-1">Tindakan oli</Form.Label>
+              <Form.Label className="small mt-2 mb-1">Tindakan oli part ini</Form.Label>
               <div>
                 <ButtonGroup size="sm">
                   {TINDAKAN_OLI.map((t) => (
                     <Button
                       key={t.value}
                       variant={draftOli.tindakan === t.value ? "primary" : "outline-primary"}
-                      onClick={() =>
-                        setDraftOli({
-                          ...draftOli,
-                          tindakan: t.value,
-                          // Ganti oli: isi otomatis dengan kapasitas standar bila ada
-                          jumlah:
-                            t.value === "ganti" && !draftOli.jumlah && selectedPart.oli?.kapasitas
-                              ? angkaKeTeks(selectedPart.oli.kapasitas)
-                              : draftOli.jumlah,
-                        })
-                      }
+                      onClick={() => setDraftOli({
+                        ...draftOli,
+                        tindakan: t.value,
+                        jumlah: t.value === "ganti" && !draftOli.jumlah && selectedPart.oli?.kapasitas ? angkaKeTeks(selectedPart.oli.kapasitas) : draftOli.jumlah,
+                      })}
                     >
                       {t.label}
                     </Button>
                   ))}
                 </ButtonGroup>
-                <div className="text-muted mt-1" style={{ fontSize: 12 }}>
-                  {TINDAKAN_OLI.find((t) => t.value === draftOli.tindakan)?.hint}
-                </div>
+                <div className="text-muted mt-1" style={{ fontSize: 12 }}>{TINDAKAN_OLI.find((t) => t.value === draftOli.tindakan)?.hint}</div>
               </div>
 
               {draftOli.tindakan !== "tidak" && (
                 <Row className="g-2 mt-1">
                   <Col xs={7}>
                     <Form.Label className="small mb-1">Jumlah dipakai</Form.Label>
-                    <AngkaStepper
-                      size="sm"
-                      value={draftOli.jumlah}
-                      onChange={(v) => setDraftOli({ ...draftOli, jumlah: v })}
-                      step={0.5}
-                      ariaLabel="Jumlah oli"
-                    />
+                    <AngkaStepper size="sm" value={draftOli.jumlah} onChange={(v) => setDraftOli({ ...draftOli, jumlah: v })} step={0.5} />
                   </Col>
                   <Col xs={5}>
                     <Form.Label className="small mb-1">Satuan</Form.Label>
@@ -576,30 +548,25 @@ export default function PartMappingChecklistModal({
 
               <Form.Check
                 type="checkbox"
-                id="pakai-oli-lain"
                 className="small mt-2"
-                label="Pakai oli lain (hanya untuk pemeriksaan ini)"
+                label="Pakai oli spesifikasi lain"
                 checked={draftOli.oliLain}
-                onChange={(e) =>
-                  setDraftOli(
-                    e.target.checked
-                      ? { ...draftOli, oliLain: true }
-                      : { ...draftOli, oliLain: false, merek: selectedPart.oli!.merek, jenis: selectedPart.oli!.jenis, kode: selectedPart.oli!.kode }
-                  )
-                }
+                onChange={(e) => setDraftOli(
+                  e.target.checked
+                    ? { ...draftOli, oliLain: true }
+                    : { ...draftOli, oliLain: false, merek: selectedPart.oli!.merek, jenis: selectedPart.oli!.jenis, kode: selectedPart.oli!.kode }
+                )}
               />
               {draftOli.oliLain && (
                 <Row className="g-2 mt-1">
                   <Col sm={4}>
                     <Form.Label className="small mb-1">Merek</Form.Label>
-                    <Form.Control size="sm" value={draftOli.merek} onChange={(e) => setDraftOli({ ...draftOli, merek: e.target.value })} placeholder="Contoh: Shell" aria-label="Merek oli lain" />
+                    <Form.Control size="sm" value={draftOli.merek} onChange={(e) => setDraftOli({ ...draftOli, merek: e.target.value })} placeholder="Cth: Shell" />
                   </Col>
                   <Col sm={4}>
                     <Form.Label className="small mb-1">Jenis oli</Form.Label>
-                    {/* Dropdown seperti di Peta Part; "Lainnya…" untuk jenis di luar daftar */}
                     <Form.Select
                       size="sm"
-                      aria-label="Jenis oli lain"
                       value={JENIS_OLI.includes(draftOli.jenis) ? draftOli.jenis : draftOli.jenis ? JENIS_LAINNYA : ""}
                       onChange={(e) => setDraftOli({ ...draftOli, jenis: e.target.value === JENIS_LAINNYA ? " " : e.target.value })}
                     >
@@ -608,19 +575,12 @@ export default function PartMappingChecklistModal({
                       <option value={JENIS_LAINNYA}>Lainnya…</option>
                     </Form.Select>
                     {draftOli.jenis && !JENIS_OLI.includes(draftOli.jenis) && (
-                      <Form.Control
-                        size="sm"
-                        className="mt-1"
-                        value={draftOli.jenis.trimStart()}
-                        onChange={(e) => setDraftOli({ ...draftOli, jenis: e.target.value || " " })}
-                        placeholder="Tulis jenis oli"
-                        aria-label="Jenis oli lain (ketik)"
-                      />
+                      <Form.Control size="sm" className="mt-1" value={draftOli.jenis.trimStart()} onChange={(e) => setDraftOli({ ...draftOli, jenis: e.target.value || " " })} placeholder="Ketik jenis..." />
                     )}
                   </Col>
                   <Col sm={4}>
                     <Form.Label className="small mb-1">Kode oli</Form.Label>
-                    <Form.Control size="sm" value={draftOli.kode} onChange={(e) => setDraftOli({ ...draftOli, kode: e.target.value })} placeholder="Contoh: AB7" aria-label="Kode oli lain" />
+                    <Form.Control size="sm" value={draftOli.kode} onChange={(e) => setDraftOli({ ...draftOli, kode: e.target.value })} placeholder="Cth: AB7" />
                   </Col>
                 </Row>
               )}
@@ -628,9 +588,7 @@ export default function PartMappingChecklistModal({
           )}
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="outline-secondary" onClick={() => setSelectedPart(null)}>
-            Batal
-          </Button>
+          <Button variant="outline-secondary" onClick={() => setSelectedPart(null)}>Batal</Button>
           <Button onClick={handleSavePart}>Simpan part ini</Button>
         </Modal.Footer>
       </Modal>

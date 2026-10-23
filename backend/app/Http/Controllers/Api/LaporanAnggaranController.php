@@ -67,6 +67,7 @@ class LaporanAnggaranController extends Controller
             'nama_vendor'    => 'nullable|string|max:255',
             'no_po'          => 'nullable|string|max:255',
             'keterangan'     => 'nullable|string|max:255',
+            'jenis_anggaran' => 'required|in:disburse,penugasan', // <-- Validasi baru ditambahkan di sini
         ];
     }
 
