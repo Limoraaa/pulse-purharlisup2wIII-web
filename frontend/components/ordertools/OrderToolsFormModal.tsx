@@ -47,6 +47,8 @@ export default function OrderToolsFormModal({ isOpen, onClose, onSuccess }: Orde
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const [pemintaId, setPemintaId] = useState<string>('');
+  const [pemintaText, setPemintaText] = useState<string>('');
+  const [pemintaInvalid, setPemintaInvalid] = useState(false);
   const [pekerjaan, setPekerjaan] = useState<string>(''); // <-- STATE UNTUK PEKERJAAN GLOBAL
   const [items, setItems] = useState<OrderItem[]>([getEmptyItem()]);
   const [searchTexts, setSearchTexts] = useState<{ [key: number]: string }>({});
@@ -64,6 +66,8 @@ export default function OrderToolsFormModal({ isOpen, onClose, onSuccess }: Orde
       }).catch(console.error);
 
       setPemintaId('');
+      setPemintaText('');
+      setPemintaInvalid(false);
       setPekerjaan(''); // <-- RESET STATE PEKERJAAN
       setItems([getEmptyItem()]);
       setSearchTexts({});
@@ -96,6 +100,21 @@ export default function OrderToolsFormModal({ isOpen, onClose, onSuccess }: Orde
     }
   };
 
+  const pemintaOptions: SearchableOption[] = peminjamList.map((p) => ({
+    value: String(p.id),
+    label: p.nama,
+    description: p.divisi || undefined,
+  }));
+
+  // Saat mengetik: nama pengusul baru sah kalau sama persis (tanpa beda huruf besar/kecil)
+  // dengan tepat satu nama di daftar; selain itu pengguna harus memilih dari daftar.
+  const handlePemintaInput = (text: string) => {
+    setPemintaText(text);
+    setPemintaInvalid(false);
+    const cocok = peminjamList.filter((p) => (p.nama || '').toLowerCase() === text.trim().toLowerCase());
+    setPemintaId(cocok.length === 1 ? String(cocok[0].id) : '');
+  };
+
   const toolOptions: SearchableOption[] = toolsList.map((t) => ({
     value: String(t.id),
     label: labelTool(t),
@@ -122,6 +141,10 @@ export default function OrderToolsFormModal({ isOpen, onClose, onSuccess }: Orde
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!pemintaId) {
+      setPemintaInvalid(true);
+      return;
+    }
     setIsSubmitting(true);
 
     const tzOffset = (new Date()).getTimezoneOffset() * 60000;
@@ -178,13 +201,24 @@ export default function OrderToolsFormModal({ isOpen, onClose, onSuccess }: Orde
                   <Form.Label className="fw-semibold">
                     Nama Pengusul <span className="text-danger">*</span>
                   </Form.Label>
-                  <Form.Select required value={pemintaId} onChange={e => setPemintaId(e.target.value)}>
-                    <option value="" disabled>-- Pilih Nama Pengusul --</option>
-                    {peminjamList.map((p) => (
-                      <option key={p.id} value={p.id}>{p.nama}</option>
-                    ))}
-                  </Form.Select>
-                  <Form.Text className="text-muted">Nama pengusul ini berlaku untuk semua barang di bawah.</Form.Text>
+                  <SearchableInput
+                    options={pemintaOptions}
+                    inputValue={pemintaText}
+                    onInputChange={handlePemintaInput}
+                    onSelect={(o) => {
+                      setPemintaId(o.value);
+                      setPemintaText(o.label);
+                      setPemintaInvalid(false);
+                    }}
+                    placeholder="Ketik untuk mencari nama pengusul..."
+                    isInvalid={pemintaInvalid}
+                    required
+                  />
+                  {pemintaInvalid ? (
+                    <div className="invalid-feedback d-block">Pilih nama pengusul dari daftar.</div>
+                  ) : (
+                    <Form.Text className="text-muted">Nama pengusul ini berlaku untuk semua barang di bawah.</Form.Text>
+                  )}
                 </Form.Group>
               </Col>
 
