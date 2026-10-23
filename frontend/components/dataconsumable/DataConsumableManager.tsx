@@ -27,7 +27,7 @@ import { v4 as uuid } from "uuid";
 // Redux & Services untuk Universal Scanner
 import { useAppDispatch, useAppSelector } from "store/store";
 import { fetchTools } from "store/slices/inventoryToolsSlice";
-import { scanTool, fetchAntrean, prosesPeminjamanApi, updateCartItem } from "services/peminjamanService";
+import { scanTool, fetchAntrean, prosesPeminjamanApi, updateCartItem, removeCartItem } from "services/peminjamanService";
 
 import {
   ConsumableItemType,
@@ -580,12 +580,16 @@ const DataConsumableManager = () => {
       const savedTools = JSON.parse(localStorage.getItem("global_shared_tools_cart") || "[]");
       const updatedToolCart = savedTools.filter((c: any) => c.cartId !== cartId);
       localStorage.setItem("global_shared_tools_cart", JSON.stringify(updatedToolCart));
+      // Hapus juga dari keranjang di server; kalau tidak, alat tetap ikut terproses saat checkout
       try {
-          // Hanya memicu event untuk memberitahu halaman DataTools (jika diperlukan)
-      } catch (e) {
-          console.error(e);
+        await removeCartItem(cartId);
+      } catch (err) {
+        console.error(err);
+        showToast(err instanceof Error ? err.message : "Gagal menghapus alat dari keranjang.", "danger");
+        await loadCart();
+      } finally {
+        pendingRemoveRef.current.delete(cartId);
       }
-      pendingRemoveRef.current.delete(cartId);
       return;
     }
 

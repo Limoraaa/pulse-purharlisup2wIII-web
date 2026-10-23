@@ -8,6 +8,7 @@ use App\Models\RencanaPemeliharaanMesin; // Pastikan import nama model Rencana A
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class KalibrasiMesinController extends Controller
 {
@@ -49,6 +50,7 @@ class KalibrasiMesinController extends Controller
                 'nomor_sertifikat' => $item->nomor_sertifikat,
                 'kalibrator' => $item->kalibrator,
                 'hasil_status' => $item->hasil_status,
+                'keterangan' => $item->keterangan,
                 'file_sertifikat' => $item->file_sertifikat ? asset('storage/' . $item->file_sertifikat) : null,
             ];
         });
@@ -78,6 +80,20 @@ class KalibrasiMesinController extends Controller
         try {
             $data = $request->except('file_sertifikat');
 
+            // Rencana yang ditutup harus rencana KALIBRASI milik mesin yang sama dan belum selesai
+            if ($request->rencana_pemeliharaan_id) {
+                $rencana = RencanaPemeliharaanMesin::lockForUpdate()->find($request->rencana_pemeliharaan_id);
+                $pesan = match (true) {
+                    (int) $rencana->mesin_id !== (int) $request->mesin_produksi_id => 'Rencana ini bukan milik mesin yang dipilih.',
+                    $rencana->aksi !== 'K' => 'Rencana ini bukan rencana kalibrasi.',
+                    $rencana->status === 'Selesai' => 'Rencana ini sudah selesai dikerjakan.',
+                    default => null,
+                };
+                if ($pesan) {
+                    throw ValidationException::withMessages(['rencana_pemeliharaan_id' => $pesan]);
+                }
+            }
+
             // Handle Upload File Sertifikat
             if ($request->hasFile('file_sertifikat')) {
                 $file = $request->file('file_sertifikat');
@@ -103,6 +119,9 @@ class KalibrasiMesinController extends Controller
                 'data' => $kalibrasi
             ], 201);
 
+        } catch (ValidationException $e) {
+            DB::rollBack();
+            throw $e;
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -119,14 +138,16 @@ class KalibrasiMesinController extends Controller
 
         $request->validate([
             'tanggal_kalibrasi' => 'required|date',
-            'tanggal_jatuh_tempo' => 'required|date',
+            'tanggal_jatuh_tempo' => 'required|date|after:tanggal_kalibrasi',
             'nomor_sertifikat' => 'required|string|max:255',
             'kalibrator' => 'required|string|max:255',
             'hasil_status' => 'required|in:Lulus,Perlu Penyesuaian,Tidak Layak',
+            'keterangan' => 'nullable|string',
             'file_sertifikat' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);
 
-        $data = $request->except('file_sertifikat');
+        // Hanya kolom di atas yang boleh diubah; mesin & rencana yang tertaut tidak bisa dipindah lewat edit
+        $data = $request->only(['tanggal_kalibrasi', 'tanggal_jatuh_tempo', 'nomor_sertifikat', 'kalibrator', 'hasil_status', 'keterangan']);
 
         // Handle Update File Sertifikat
         if ($request->hasFile('file_sertifikat')) {
@@ -160,7 +181,15 @@ class KalibrasiMesinController extends Controller
             Storage::disk('public')->delete($kalibrasi->file_sertifikat);
         }
 
-        $kalibrasi->delete();
+        DB::transaction(function () use ($kalibrasi) {
+            // Rencana yang ditutup oleh kalibrasi ini dibuka kembali (kecuali sudah ditutup log pemeliharaan)
+            if ($kalibrasi->rencana_pemeliharaan_id) {
+                RencanaPemeliharaanMesin::where('id', $kalibrasi->rencana_pemeliharaan_id)
+                    ->whereDoesntHave('log')
+                    ->update(['status' => 'Terjadwal']);
+            }
+            $kalibrasi->delete();
+        });
 
         return response()->json([
             'success' => true,

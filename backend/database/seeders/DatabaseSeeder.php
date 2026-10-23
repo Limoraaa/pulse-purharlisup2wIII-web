@@ -8,6 +8,15 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        // Server produksi: hanya role/permission + satu Super Admin (tanpa akun & data contoh)
+        if (app()->isProduction()) {
+            $this->call([
+                RolePermissionSeeder::class,
+                SuperAdminAwalSeeder::class,
+            ]);
+            return;
+        }
+
         $this->call([
             RolePermissionSeeder::class, // <-- Wajib paling atas agar role & permission siap
             UserSeeder::class,          // <-- Baru buat user dan assign role-nya di sini

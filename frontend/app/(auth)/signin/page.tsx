@@ -1,5 +1,6 @@
 "use client";
 // import node modules libraries
+import { clearPermissions } from "hooks/usePermissions";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -62,6 +63,9 @@ const SignIn = () => {
       localStorage.setItem("userId", data.user.id);
       localStorage.setItem("userName", data.user.full_name);
       localStorage.setItem("userRole", data.user.role);
+      // Buang data akun sebelumnya (foto & cache hak akses) agar tidak terbawa
+      localStorage.removeItem("userAvatarUrl");
+      clearPermissions();
 
       router.push("/");
     } catch (err) {

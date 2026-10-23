@@ -1,5 +1,6 @@
 "use client";
 // import node module libraries
+import { logout } from "lib/logout";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -216,11 +217,8 @@ const ProfileManager = () => {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("userId");
-    localStorage.removeItem("userName");
-    localStorage.removeItem("userRole");
+  const handleLogout = async () => {
+    await logout();
     router.push("/signin");
   };
 

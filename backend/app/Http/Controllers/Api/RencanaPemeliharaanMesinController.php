@@ -112,7 +112,7 @@ class RencanaPemeliharaanMesinController extends Controller
     {
         if ($rencana->status === 'Selesai') {
             throw ValidationException::withMessages([
-                'status' => "Rencana yang sudah selesai tidak dapat {$aksi}. Hapus log pemeliharaannya terlebih dahulu jika ingin membuka kembali.",
+                'status' => "Rencana yang sudah selesai tidak dapat {$aksi}. Hapus log pemeliharaan atau data kalibrasinya terlebih dahulu jika ingin membuka kembali.",
             ]);
         }
     }

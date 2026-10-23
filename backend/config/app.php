@@ -123,4 +123,14 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+
+    /*
+    | Akun Super Admin awal untuk server produksi (dipakai SuperAdminAwalSeeder).
+    | Dibaca lewat config agar tetap berfungsi setelah "php artisan config:cache".
+    */
+    'superadmin_awal' => [
+        'username' => env('SUPERADMIN_USERNAME', 'superadmin'),
+        'password' => env('SUPERADMIN_PASSWORD'),
+    ],
+
 ];
