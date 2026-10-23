@@ -3,13 +3,12 @@
 import { useEffect, useState } from "react";
 import { Row, Col, Alert, Spinner, Nav } from "react-bootstrap";
 import { IconCircleCheck, IconScan, IconUserSearch } from "@tabler/icons-react";
-import { createLaporanKerusakan } from "services/laporanKerusakanService";
 
 // import custom types
 import { PeminjamanAktifItemType } from "types/DataToolsTypes";
 
 // import services
-import { getPeminjamanAktif, tandaiDikembalikan } from "services/peminjamanService";
+import { getPeminjamanAktif, tandaiDikembalikan, KerusakanPengembalian } from "services/peminjamanService";
 import { getPemintaAktif } from "services/pemintaService";
 import { usePermission } from "hooks/usePermissions";
 
@@ -64,15 +63,16 @@ const PengembalianManager = () => {
     setScanning(true);
     setScanError(null);
     try {
-      const pemintaAktif = await getPemintaAktif();
-      const peminta = pemintaAktif.find((p) => p.id === idCard);
+      const milikPeminjamIni = items.filter((item) => item.peminjamId === idCard);
+      // Peminjam yang sudah dinonaktifkan tetap boleh mengembalikan alat yang masih dipinjamnya
+      const peminta = milikPeminjamIni.length
+        ? { nama: milikPeminjamIni[0].namaPeminjam }
+        : (await getPemintaAktif()).find((p) => p.id === idCard);
 
       if (!peminta) {
         setScanError("Kartu tidak dikenali atau peminjam tidak aktif.");
         return;
       }
-
-      const milikPeminjamIni = items.filter((item) => item.peminjamId === idCard);
 
       if (milikPeminjamIni.length === 0) {
         setScanError(`${peminta.nama} tidak sedang meminjam alat apa pun.`);
@@ -128,8 +128,6 @@ const PengembalianManager = () => {
     const handleBatchSubmit = async (batch: PengembalianBatchItem[]) => {
     setSubmitting(true);
     try {
-      const dicatatOleh = localStorage.getItem("userId");
-
       for (const item of batch) {
         const records = recordsByGroup[item.id] || [];
 
@@ -145,40 +143,21 @@ const PengembalianManager = () => {
           if (sisaDikembalikan <= 0) break;
 
           const ambil = Math.min(record.jumlah, sisaDikembalikan);
-          await tandaiDikembalikan(record.id, ambil);
 
-          let terpakai = 0;
+          // Bagi unit rusak ke record ini; dikirim bersama pengembalian agar tersimpan sekaligus
+          const kerusakan: KerusakanPengembalian[] = [];
           const ambilBisaDiperbaiki = Math.min(poolBisaDiperbaiki, ambil);
           if (ambilBisaDiperbaiki > 0) {
-            if (!dicatatOleh) throw new Error("Sesi login tidak ditemukan. Silakan login ulang.");
-            await createLaporanKerusakan({
-              tanggal: new Date().toISOString(),
-              tool_id: item.toolId,
-              peminjaman_id: record.id,
-              jumlah: ambilBisaDiperbaiki,
-              keterangan: catatanBisaDiperbaiki,
-              status: "bisa_diperbaiki",
-              dilaporkan_oleh: dicatatOleh,
-            });
+            kerusakan.push({ status: "bisa_diperbaiki", jumlah: ambilBisaDiperbaiki, keterangan: catatanBisaDiperbaiki });
             poolBisaDiperbaiki -= ambilBisaDiperbaiki;
-            terpakai += ambilBisaDiperbaiki;
           }
-
-          const ambilRusakPermanen = Math.min(poolRusakPermanen, ambil - terpakai);
+          const ambilRusakPermanen = Math.min(poolRusakPermanen, ambil - ambilBisaDiperbaiki);
           if (ambilRusakPermanen > 0) {
-            if (!dicatatOleh) throw new Error("Sesi login tidak ditemukan. Silakan login ulang.");
-            await createLaporanKerusakan({
-              tanggal: new Date().toISOString(),
-              tool_id: item.toolId,
-              peminjaman_id: record.id,
-              jumlah: ambilRusakPermanen,
-              keterangan: catatanRusakPermanen,
-              status: "rusak_permanen",
-              dilaporkan_oleh: dicatatOleh,
-            });
+            kerusakan.push({ status: "rusak_permanen", jumlah: ambilRusakPermanen, keterangan: catatanRusakPermanen });
             poolRusakPermanen -= ambilRusakPermanen;
           }
 
+          await tandaiDikembalikan(record.id, ambil, kerusakan);
           sisaDikembalikan -= ambil;
         }
       }
@@ -202,7 +181,10 @@ const PengembalianManager = () => {
       handleBackToScan();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Gagal memproses pengembalian";
-      notify(message);
+      // Sebagian alat mungkin sudah tersimpan: muat ulang agar percobaan berikutnya memakai data terbaru
+      notify(`${message} Data telah dimuat ulang, silakan scan kembali untuk alat yang belum tercatat.`);
+      await loadData();
+      handleBackToScan();
     } finally {
       setSubmitting(false);
     }

@@ -122,9 +122,9 @@ class LaporanKerusakanController extends Controller
 
                 // selisih positif = jumlah rusak nambah -> stok dikurangi lagi
                 // selisih negatif = jumlah rusak berkurang -> stok dikembalikan
-                if ($selisih > 0 && $tool->stok < $selisih) {
+                if ($selisih > 0 && $tool->tersedia() < $selisih) {
                     throw new \RuntimeException(
-                        "Stok tidak cukup untuk menambah jumlah kerusakan. Stok saat ini: {$tool->stok}, tambahan diperlukan: {$selisih}"
+                        "Stok tersedia tidak cukup untuk menambah jumlah kerusakan. Tersedia saat ini: {$tool->tersedia()}, tambahan diperlukan: {$selisih}"
                     );
                 }
 

@@ -41,13 +41,14 @@ async function apiFetch<T = unknown>(
 
   if (!res.ok) {
     if (res.status === 401 && endpoint !== "/login" && typeof window !== "undefined") {
-      localStorage.removeItem("token");
-      localStorage.removeItem("userId");
-      localStorage.removeItem("userName");
-      localStorage.removeItem("userRole");
+      // Sama dengan KUNCI_SESI di lib/logout.ts (tidak diimpor agar tidak saling impor)
+      ["token", "userId", "userName", "userRole", "userAvatarUrl", "global_shared_tools_cart", "global_shared_consumable_cart"]
+        .forEach((k) => localStorage.removeItem(k));
 
-      if (window.location.pathname !== "/signin") {
-        window.location.href = "/signin";
+      // Ikut basePath bila aplikasi dipasang di subfolder (NEXT_PUBLIC_BASE_PATH)
+      const halamanLogin = `${process.env.NEXT_PUBLIC_BASE_PATH || ""}/signin`;
+      if (window.location.pathname !== halamanLogin) {
+        window.location.href = halamanLogin;
       }
       return new Promise<T>(() => {});
     }

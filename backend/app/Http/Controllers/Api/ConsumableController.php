@@ -47,7 +47,7 @@ class ConsumableController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'kode_barang' => 'required|string|unique:consumables,kode_barang',
+            'kode_barang' => ['required', 'string', Rule::unique('consumables', 'kode_barang')->where('is_active', true)],
             'nama' => 'required|string',
             'merk' => 'nullable|string',
             'er_e' => 'nullable|string',
@@ -109,7 +109,7 @@ class ConsumableController extends Controller
     public function update(Request $request, Consumable $consumable)
     {
         $validated = $request->validate([
-            'kode_barang' => 'sometimes|string|unique:consumables,kode_barang,' . $consumable->id,
+            'kode_barang' => ['sometimes', 'string', Rule::unique('consumables', 'kode_barang')->where('is_active', true)->ignore($consumable->id)],
             'nama' => 'sometimes|string',
             'merk' => 'nullable|string',
             'er_e' => 'nullable|string',

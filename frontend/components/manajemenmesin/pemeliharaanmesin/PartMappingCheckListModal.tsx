@@ -1,4 +1,5 @@
 "use client";
+import { tanggalLokal } from "lib/tanggal";
 import { useEffect, useState } from "react";
 import { Modal, Form, Button, ButtonGroup, Alert, Spinner, Row, Col } from "react-bootstrap";
 import { IconClipboardCheck, IconDroplet } from "@tabler/icons-react";
@@ -94,14 +95,6 @@ function worstOf(statuses: Record<string, ChecklistStatus>): ChecklistStatus {
   return worst;
 }
 
-// Tanggal lokal (YYYY-MM-DD). toISOString() memakai UTC, sehingga di WIB sebelum jam 07.00
-// tanggalnya mundur sehari dan log bisa masuk minggu yang salah.
-function todayLocal(): string {
-  const d = new Date();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${d.getFullYear()}-${mm}-${dd}`;
-}
 
 // Oli yang benar-benar dipakai: standar part, atau oli lain yang diisi teknisi
 function oliKirim(d: OliDraft, p: MachinePart) {
@@ -306,7 +299,7 @@ export default function PartMappingChecklistModal({
         method: "POST",
         body: JSON.stringify({
           mesin_produksi_id: mesinId,
-          waktu_pelaksana: todayLocal(),
+          waktu_pelaksana: tanggalLokal(),
           paraf: teknisi.trim(),
           jumlah_part_total: parts.length,
           hasil_checklist: hasil,

@@ -1,4 +1,5 @@
 "use client";
+import { tanggalLokal } from "lib/tanggal";
 import React, { useState, useEffect } from "react";
 import { Modal, Button, Form, Row, Col, Spinner, Alert } from "react-bootstrap";
 import useSWR from "swr";
@@ -69,7 +70,7 @@ const KalibrasiFormModal: React.FC<KalibrasiFormModalProps> = ({
       } else {
         setFormData({
           mesin_produksi_id: str(mesinIdDefault),
-          tanggal_kalibrasi: new Date().toISOString().split("T")[0],
+          tanggal_kalibrasi: tanggalLokal(),
           tanggal_jatuh_tempo: "",
           nomor_sertifikat: "",
           kalibrator: "",

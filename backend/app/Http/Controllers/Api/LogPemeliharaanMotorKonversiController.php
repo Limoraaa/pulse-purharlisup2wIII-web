@@ -77,7 +77,7 @@ class LogPemeliharaanMotorKonversiController extends Controller
 
             // Tren aktivitas: jumlah log per hari, default 30 hari terakhir
             $hari = min(max((int) request('hari', 30), 1), 365);
-            $mulai = now()->subDays($hari - 1)->startOfDay();
+            $mulai = now(config('app.timezone_lokal'))->subDays($hari - 1)->startOfDay();
 
             $perHari = LogPemeliharaanMotorKonversi::where('waktu_pelaksana', '>=', $mulai)
                 ->selectRaw('DATE(waktu_pelaksana) as tanggal, COUNT(*) as total')
@@ -117,9 +117,10 @@ class LogPemeliharaanMotorKonversiController extends Controller
                 ]
             ]);
         } catch (\Exception $e) {
+            report($e); // detail error masuk log server, tidak dikirim ke pengguna
             return response()->json([
                 'success' => false,
-                'message' => 'Terjadi kesalahan sistem: ' . $e->getMessage()
+                'message' => 'Terjadi kesalahan sistem. Silakan coba lagi atau hubungi Admin.'
             ], 500);
         }
     }
@@ -156,10 +157,11 @@ class LogPemeliharaanMotorKonversiController extends Controller
             ], 200);
 
         } catch (\Exception $e) {
+            report($e); // detail error masuk log server, tidak dikirim ke pengguna
             // Menghindari CORS Error dengan mengembalikan JSON Error 500
             return response()->json([
                 'success' => false,
-                'message' => 'Terjadi kesalahan sistem saat memuat log: ' . $e->getMessage(),
+                'message' => 'Terjadi kesalahan sistem saat memuat log. Silakan coba lagi atau hubungi Admin.',
                 'data' => []
             ], 500);
         }
@@ -223,9 +225,10 @@ class LogPemeliharaanMotorKonversiController extends Controller
                 'data' => $log
             ], 201);
         } catch (\Exception $e) {
+            report($e); // detail error masuk log server, tidak dikirim ke pengguna
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal menyimpan log: ' . $e->getMessage()
+                'message' => 'Gagal menyimpan log. Silakan coba lagi atau hubungi Admin.'
             ], 500);
         }
     }
@@ -308,9 +311,10 @@ class LogPemeliharaanMotorKonversiController extends Controller
                 'data' => $log
             ], 200);
         } catch (\Exception $e) {
+            report($e); // detail error masuk log server, tidak dikirim ke pengguna
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal memperbarui log: ' . $e->getMessage()
+                'message' => 'Gagal memperbarui log. Silakan coba lagi atau hubungi Admin.'
             ], 500);
         }
     }
@@ -332,9 +336,10 @@ class LogPemeliharaanMotorKonversiController extends Controller
                 'message' => 'Log pemeliharaan berhasil dihapus'
             ], 200);
         } catch (\Exception $e) {
+            report($e); // detail error masuk log server, tidak dikirim ke pengguna
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal menghapus log: ' . $e->getMessage()
+                'message' => 'Gagal menghapus log. Silakan coba lagi atau hubungi Admin.'
             ], 500);
         }
     }

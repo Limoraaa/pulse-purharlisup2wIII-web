@@ -211,8 +211,19 @@ class UserController extends Controller
             return response()->json(['message' => 'Anda tidak memiliki izin untuk mengubah akun ini.'], 403);
         }
 
+        if ($user->id === auth()->id()) {
+            return response()->json(['message' => 'Anda tidak dapat menghapus akun Anda sendiri.'], 422);
+        }
+
+        // Harus selalu ada minimal satu Super Admin aktif yang bisa mengatur hak akses
+        if ($user->hasRole('Super Admin')
+            && User::role('Super Admin')->where('is_active', true)->where('id', '!=', $user->id)->doesntExist()) {
+            return response()->json(['message' => 'Super Admin terakhir tidak dapat dihapus.'], 422);
+        }
+
+        // "Hapus" = nonaktifkan (bisa dipulihkan lewat "Pulihkan"); riwayat transaksi yang dicatat user tetap utuh
+        $user->update(['is_active' => false]);
         $user->tokens()->delete();
-        $user->delete();
 
         return response()->json(['message' => 'User berhasil dihapus']);
     }

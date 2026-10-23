@@ -1,11 +1,8 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
-import { Card, Form, InputGroup, ListGroup, Badge, Spinner } from "react-bootstrap";
+import { useMemo, useState } from "react";
+import { Card, Form, InputGroup, ListGroup, Badge } from "react-bootstrap";
 import { IconSearch } from "@tabler/icons-react";
-import { getPemintaAktif } from "services/pemintaService";
 import { PeminjamanAktifItemType } from "types/DataToolsTypes";
-
-type PemintaOption = Awaited<ReturnType<typeof getPemintaAktif>>[number];
 
 interface Props {
   items: PeminjamanAktifItemType[];
@@ -14,16 +11,16 @@ interface Props {
 }
 
 const PengembalianCariManual = ({ items, onSelect, disabled = false }: Props) => {
-  const [peminta, setPeminta] = useState<PemintaOption[]>([]);
-  const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
-
-  useEffect(() => {
-    getPemintaAktif()
-      .then(setPeminta)
-      .catch(() => setPeminta([]))
-      .finally(() => setLoading(false));
-  }, []);
+  // Daftar peminjam diambil dari pinjaman aktif itu sendiri, sehingga peminjam yang
+  // sudah dinonaktifkan tetap bisa mengembalikan alatnya
+  const peminta = useMemo(() => {
+    const map = new Map<string, { id: string; nama: string }>();
+    items.forEach((i) => {
+      if (!map.has(i.peminjamId)) map.set(i.peminjamId, { id: i.peminjamId, nama: i.namaPeminjam });
+    });
+    return [...map.values()];
+  }, [items]);
 
   // Total unit yang sedang dipinjam per peminjam
   const totalPinjam = useMemo(() => {
@@ -72,12 +69,7 @@ const PengembalianCariManual = ({ items, onSelect, disabled = false }: Props) =>
           />
         </InputGroup>
 
-        {loading ? (
-          <div className="text-center py-3">
-            <Spinner animation="border" size="sm" className="me-2" />
-            Memuat data...
-          </div>
-        ) : hasil.length === 0 ? (
+        {hasil.length === 0 ? (
           <p className="text-secondary small mb-0">
           </p>
         ) : (

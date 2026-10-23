@@ -1,5 +1,6 @@
 "use client";
 // import node module libraries
+import { tanggalLokal } from "lib/tanggal";
 import ExcelJS from "exceljs";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -394,7 +395,7 @@ export async function exportToPDF<T extends Record<string, unknown>>(
 // ---- Helper: Generate Nama File Export Dinamis ----
 export function getFilteredExportFileName(baseName: string, filterName?: string): string {
   // Ambil tanggal hari ini (Format: YYYY-MM-DD)
-  const dateStr = new Date().toISOString().split("T")[0];
+  const dateStr = tanggalLokal();
   let fileName = baseName;
 
   // Jika ada filter nama dan bukan "Semua", tambahkan nama tersebut ke file

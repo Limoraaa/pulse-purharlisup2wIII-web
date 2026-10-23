@@ -98,6 +98,7 @@ const DataConsumableManager = () => {
   const dispatch = useAppDispatch();
   const tools = useAppSelector((state) => state.inventoryTools.tools);
   const canManage = usePermission("manage_inventaris");
+  const canAddToCart = usePermission("process_transaksi");
 
   const [consumables, setConsumables] = useState<ConsumableItemType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -694,6 +695,7 @@ const columns = useMemo(
     () =>
       getConsumableColumns({
         canManage,
+        canAddToCart,
         onDetail: openDetailModal,
         onEdit: openEditModal,
         onDelete: openDeleteModal,
@@ -707,7 +709,7 @@ const columns = useMemo(
         // Siklus klik: Neutral → Asc → Desc → Asc (tidak kembali neutral)
         enableSortingRemoval: false,
       })),
-    [openDetailModal, openEditModal, openDeleteModal, handleAddToCart, canManage]
+    [openDetailModal, openEditModal, openDeleteModal, handleAddToCart, canManage, canAddToCart]
   );
   
   return (

@@ -67,6 +67,10 @@ return [
 
     'timezone' => 'UTC',
 
+    // Zona waktu lokal pengguna (WIB). Dipakai untuk menentukan "hari ini" pada data bertipe tanggal
+    // (tren dashboard, jatuh tempo kalibrasi), karena timestamp tetap disimpan dalam UTC.
+    'timezone_lokal' => env('APP_TIMEZONE_LOKAL', 'Asia/Jakarta'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration

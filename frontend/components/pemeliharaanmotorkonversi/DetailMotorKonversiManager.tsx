@@ -19,6 +19,7 @@ import {
 } from '@tabler/icons-react';
 import Image from 'next/image';
 import api from 'lib/api';
+import { usePermission } from 'hooks/usePermissions';
 import { formatTanggal } from 'components/ruangtools/common/dateUtils';
 import { useFeedback } from 'components/common/FeedbackProvider';
 import { MotorKonversiFormModal, MotorEditData } from './MotorKonversiFormModal';
@@ -113,6 +114,8 @@ export default function DetailMotorKonversiManager({
 
   const [showMappingEditor, setShowMappingEditor] = useState(false);
   const [showChecklistModal, setShowChecklistModal] = useState(false);
+  // Mencatat log motor cukup izin "proses" (sama dengan server), tidak harus "kelola"
+  const canCatatLog = usePermission(['process_pemeliharaan_motor_konversi', 'manage_pemeliharaan_motor_konversi']);
 
   // Sesuaikan endpoint API ini dengan backend Motor Konversi Anda
   const loadLogs = useCallback(async () => {
@@ -375,7 +378,7 @@ export default function DetailMotorKonversiManager({
                       <IconMap size={14} /> Peta Komponen
                     </Button>
                   )}
-                  {canManage && (
+                  {canCatatLog && (
                     <Button variant="primary" size="sm" onClick={() => setShowChecklistModal(true)} className="d-flex align-items-center gap-1 shadow-sm" style={{ fontSize: '0.75rem' }}>
                       <IconClipboardCheck size={14} /> Checklist Visual
                     </Button>

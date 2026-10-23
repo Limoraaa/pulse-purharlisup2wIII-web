@@ -84,7 +84,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // ------------------------------------------
     Route::middleware('permission:view_inventaris')->group(function () {
         Route::get('/pekerjaan/active', [PekerjaanController::class, 'getActive']);
-        Route::apiResource('pekerjaan', PekerjaanController::class)->only(['index', 'show']);
+        Route::apiResource('pekerjaan', PekerjaanController::class)->only(['index']);
     });
 
     Route::middleware('permission:view_inventaris|view_transaksi')->group(function () {
@@ -254,7 +254,6 @@ Route::middleware('auth:sanctum')->group(function () {
         // Pindahkan rute spesifik "mesin/{mesin_id}" ke atas SEBELUM rute dinamis "{id}"
         Route::get('/log-pemeliharaan/mesin/{mesin_id}', [LogPemeliharaanMesinController::class, 'getByMesin']);
 
-        Route::get('/log-pemeliharaan/{id}', [LogPemeliharaanMesinController::class, 'show']);
     });
 
     // Tambah catatan: "Isi catatan" & "Kelola penuh"; ubah/hapus hanya "Kelola penuh"
@@ -276,7 +275,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/log-aktivitas', [LogAktivitasMesinController::class, 'index']);
         // Rute spesifik "mesin/{mesin_id}" harus di atas rute dinamis "{id}"
         Route::get('/log-aktivitas/mesin/{mesin_id}', [LogAktivitasMesinController::class, 'getByMesin']);
-        Route::get('/log-aktivitas/{id}', [LogAktivitasMesinController::class, 'show']);
     });
 
     Route::middleware('permission:view_operasional_mesin')->group(function () {
@@ -330,7 +328,6 @@ Route::middleware('auth:sanctum')->group(function () {
     // Tab Kalibrasi di halaman detail mesin juga terbaca oleh level "Isi catatan"
     Route::middleware('permission:view_pemeliharaan_mesin|process_pemeliharaan_mesin')->group(function () {
         Route::get('/pemeliharaan/kalibrasi/mesin/{mesin_id}', [KalibrasiMesinController::class, 'getByMesin']);
-        Route::get('/pemeliharaan/kalibrasi/{id}', [KalibrasiMesinController::class, 'show']);
     });
  
     Route::middleware('permission:manage_pemeliharaan_mesin')->group(function () {

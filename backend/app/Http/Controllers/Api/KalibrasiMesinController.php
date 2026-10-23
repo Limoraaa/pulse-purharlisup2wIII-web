@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Rules\MesinAktif;
 use App\Http\Controllers\Controller;
 use App\Models\KalibrasiMesin;
 use App\Models\RencanaPemeliharaanMesin; // Pastikan import nama model Rencana Anda yang benar
@@ -66,7 +67,7 @@ class KalibrasiMesinController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'mesin_produksi_id' => 'required|exists:mesin_produksi,id',
+            'mesin_produksi_id' => ['required', new MesinAktif()],
             'rencana_pemeliharaan_id' => 'nullable|exists:rencana_pemeliharaan_mesin,id', // Sesuaikan nama tabel jika berbeda
             'tanggal_kalibrasi' => 'required|date',
             'tanggal_jatuh_tempo' => 'required|date|after:tanggal_kalibrasi',
@@ -76,6 +77,7 @@ class KalibrasiMesinController extends Controller
             'file_sertifikat' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120', // Maks 5MB
         ]);
 
+        $pathBaru = null;
         DB::beginTransaction();
         try {
             $data = $request->except('file_sertifikat');
@@ -98,8 +100,8 @@ class KalibrasiMesinController extends Controller
             if ($request->hasFile('file_sertifikat')) {
                 $file = $request->file('file_sertifikat');
                 $filename = time() . '_sertifikat_' . $request->mesin_produksi_id . '.' . $file->getClientOriginalExtension();
-                $path = $file->storeAs('kalibrasi_sertifikat', $filename, 'public');
-                $data['file_sertifikat'] = $path;
+                $pathBaru = $file->storeAs('kalibrasi_sertifikat', $filename, 'public');
+                $data['file_sertifikat'] = $pathBaru;
             }
 
             // Simpan Data Kalibrasi
@@ -123,10 +125,15 @@ class KalibrasiMesinController extends Controller
             DB::rollBack();
             throw $e;
         } catch (\Exception $e) {
+            report($e); // detail error masuk log server, tidak dikirim ke pengguna
             DB::rollBack();
+            // Data batal tersimpan: buang file sertifikat yang sudah terlanjur diunggah
+            if ($pathBaru) {
+                Storage::disk('public')->delete($pathBaru);
+            }
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal menyimpan data: ' . $e->getMessage()
+                'message' => 'Gagal menyimpan data. Silakan coba lagi atau hubungi Admin.'
             ], 500);
         }
     }
@@ -149,13 +156,11 @@ class KalibrasiMesinController extends Controller
         // Hanya kolom di atas yang boleh diubah; mesin & rencana yang tertaut tidak bisa dipindah lewat edit
         $data = $request->only(['tanggal_kalibrasi', 'tanggal_jatuh_tempo', 'nomor_sertifikat', 'kalibrator', 'hasil_status', 'keterangan']);
 
-        // Handle Update File Sertifikat
+        // Handle Update File Sertifikat (file lama dihapus setelah data baru tersimpan)
+        $fileLama = null;
         if ($request->hasFile('file_sertifikat')) {
-            // Hapus file lama jika ada
-            if ($kalibrasi->file_sertifikat && Storage::disk('public')->exists($kalibrasi->file_sertifikat)) {
-                Storage::disk('public')->delete($kalibrasi->file_sertifikat);
-            }
-            
+            $fileLama = $kalibrasi->file_sertifikat;
+
             $file = $request->file('file_sertifikat');
             $filename = time() . '_sertifikat_' . $kalibrasi->mesin_produksi_id . '.' . $file->getClientOriginalExtension();
             $path = $file->storeAs('kalibrasi_sertifikat', $filename, 'public');
@@ -163,6 +168,10 @@ class KalibrasiMesinController extends Controller
         }
 
         $kalibrasi->update($data);
+
+        if ($fileLama && $fileLama !== $kalibrasi->file_sertifikat) {
+            Storage::disk('public')->delete($fileLama);
+        }
 
         return response()->json([
             'success' => true,

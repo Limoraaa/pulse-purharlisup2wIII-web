@@ -3,6 +3,8 @@
 namespace App\Models\Concerns;
 
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Kolom foto_katalog & gambar_url disimpan sebagai path relatif di disk "public"
@@ -55,6 +57,30 @@ trait PunyaFotoStorage
         }
 
         return $nilai;
+    }
+
+    /**
+     * Ganti gambar peta part/komponen dengan aman.
+     * - File di storage hanya boleh dari folder unggahan peta ($folder), agar URL kiriman
+     *   tidak bisa menunjuk (lalu menghapus) file lain seperti foto profil.
+     * - File lama di folder tersebut dihapus bila gambarnya berganti.
+     */
+    public function gantiGambarPeta(?string $baru, string $folder): void
+    {
+        $pathBaru = self::kePathStorage($baru);
+        $pathLama = $this->getRawOriginal('gambar_url');
+
+        if ($pathBaru && self::adalahPathStorage($pathBaru) && $pathBaru !== $pathLama
+            && ! str_starts_with($pathBaru, rtrim($folder, '/') . '/')) {
+            throw ValidationException::withMessages(['gambarUrl' => 'Gambar peta tidak valid. Unggah ulang gambarnya.']);
+        }
+
+        if ($pathLama && $pathLama !== $pathBaru && self::adalahPathStorage($pathLama)
+            && str_starts_with($pathLama, rtrim($folder, '/') . '/')) {
+            Storage::disk('public')->delete($pathLama);
+        }
+
+        $this->gambar_url = $pathBaru;
     }
 
     private static function adalahPathStorage(string $nilai): bool

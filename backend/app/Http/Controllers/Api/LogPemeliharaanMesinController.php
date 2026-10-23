@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Rules\MesinAktif;
 use App\Http\Controllers\Controller;
 use App\Models\KalibrasiMesin;
 use App\Models\LogAktivitasMesin;
@@ -58,7 +59,7 @@ class LogPemeliharaanMesinController extends Controller
             $totalLogAktivitas = LogAktivitasMesin::count();
 
             $hari = min(max((int) request('hari', 30), 1), 365);
-            $mulai = now()->subDays($hari - 1)->startOfDay();
+            $mulai = now(config('app.timezone_lokal'))->subDays($hari - 1)->startOfDay();
 
             // Tren harian log pemeliharaan & log aktivitas (alias "tgl" agar tidak bentrok dengan kolom "tanggal")
             $perHariPemeliharaan = LogPemeliharaanMesin::where('waktu_pelaksana', '>=', $mulai)
@@ -109,8 +110,8 @@ class LogPemeliharaanMesinController extends Controller
                 ->values();
 
             // Reminder kalibrasi: kalibrasi terakhir tiap mesin aktif yang jatuh temponya sudah lewat / <= 30 hari lagi
-            $hariIni = now()->startOfDay();
-            $batas = now()->addDays(30)->endOfDay();
+            $hariIni = now(config('app.timezone_lokal'))->startOfDay();
+            $batas = now(config('app.timezone_lokal'))->addDays(30)->endOfDay();
             $kalibrasiMendekat = KalibrasiMesin::with('mesin:id,kode_mesin,nama_mesin,status')
                 ->orderBy('tanggal_kalibrasi', 'desc')
                 ->orderBy('id', 'desc')
@@ -164,7 +165,7 @@ class LogPemeliharaanMesinController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'mesin_produksi_id' => 'required|exists:mesin_produksi,id',
+            'mesin_produksi_id' => ['required', new MesinAktif()],
             'waktu_pelaksana' => 'required|date',
             'paraf' => 'required|string',
             'rencana_id' => 'nullable|integer|exists:rencana_pemeliharaan_mesin,id',

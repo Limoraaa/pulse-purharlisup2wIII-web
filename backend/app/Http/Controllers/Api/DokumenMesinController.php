@@ -89,8 +89,10 @@ class DokumenMesinController extends Controller
 
         $lama = $this->cariDokumen($validated['jenis'], $mesinId);
         if ($lama) {
-            Storage::disk(self::DISK)->delete($lama->file_path);
+            // File lama baru dihapus setelah data baru tersimpan
+            $fileLama = $lama->file_path;
             $lama->update($data);
+            Storage::disk(self::DISK)->delete($fileLama);
             $dokumen = $lama;
         } else {
             $dokumen = DokumenMesin::create($data);

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Rules\MesinAktif;
 use App\Http\Controllers\Controller;
 use App\Models\MappingPengerjaanMesin;
 use Illuminate\Http\Request;
@@ -22,7 +23,7 @@ class MappingPengerjaanMesinController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'mesin_id'        => 'required|exists:mesin_produksi,id',
+            'mesin_id'        => ['required', new MesinAktif()],
             'nama_pekerjaan'  => 'required|string|max:255',
             'tanggal_mulai'   => 'required|date',
             'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',

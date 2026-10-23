@@ -125,10 +125,15 @@ class ToolMasukController extends Controller
                 $tool = Tool::lockForUpdate()->findOrFail($toolMasuk->tool_id);
                 $selisih = $data['jumlah_masuk'] - $toolMasuk->jumlah_masuk;
 
-                if ($selisih < 0 && $tool->stok < abs($selisih)) {
+                // Bandingkan dengan unit di gudang (stok dikurangi yang sedang dipinjam)
+                if ($selisih < 0 && $tool->tersedia() < abs($selisih)) {
                     throw new \RuntimeException(
-                        "Stok tidak cukup untuk mengurangi jumlah ini. Stok saat ini: {$tool->stok}"
+                        "Stok tersedia tidak cukup untuk mengurangi jumlah ini. Tersedia saat ini: {$tool->tersedia()}"
                     );
+                }
+
+                if ($tool->kategori === 'mesin' && $tool->stok + $selisih > 1) {
+                    throw new \RuntimeException('Alat berkategori Mesin harus dicatat 1 kode = 1 unit fisik (Stok maksimal 1).');
                 }
 
                 $tool->stok += $selisih;
@@ -154,16 +159,26 @@ class ToolMasukController extends Controller
             return response()->json(['message' => 'Data tools masuk tidak ditemukan'], 404);
         }
 
-        DB::transaction(function () use ($toolMasuk) {
-            $tool = Tool::lockForUpdate()->find($toolMasuk->tool_id);
+        try {
+            DB::transaction(function () use ($toolMasuk) {
+                $tool = Tool::lockForUpdate()->find($toolMasuk->tool_id);
 
-            if ($tool) {
-                $tool->stok -= $toolMasuk->jumlah_masuk;
-                $tool->save();
-            }
+                if ($tool) {
+                    // Unit dari transaksi ini mungkin sudah dipinjam / dikurangi: jangan sampai stok minus
+                    if ($tool->tersedia() < $toolMasuk->jumlah_masuk) {
+                        throw new \RuntimeException(
+                            "Data tidak dapat dihapus: stok tersedia ({$tool->tersedia()}) lebih kecil dari jumlah masuk ({$toolMasuk->jumlah_masuk}). Kembalikan alat yang dipinjam terlebih dahulu."
+                        );
+                    }
+                    $tool->stok -= $toolMasuk->jumlah_masuk;
+                    $tool->save();
+                }
 
-            $toolMasuk->delete();
-        });
+                $toolMasuk->delete();
+            });
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
 
         return response()->json(['message' => 'Data tools masuk berhasil dihapus, stok disesuaikan kembali']);
     }
