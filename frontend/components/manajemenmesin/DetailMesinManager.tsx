@@ -807,15 +807,15 @@ export default function DetailMesinManager({
                 <Table hover className="align-middle mb-0" style={{ fontSize: '0.8rem' }}>
                   <thead className="table-light text-center">
                     <tr>
-                      <th style={{ width: "5%" }}>No</th>
-                      <th className="text-start" style={{ width: "23%" }}>Uraian Pemeliharaan</th>
-                      <th style={{ width: "12%" }}>Waktu Pelaksana</th>
-                      <th style={{ width: "7%" }}>Tindakan</th>
-                      <th style={{ width: "12%" }}>Teknisi</th>
-                      <th style={{ width: "9%" }}>Part Diperiksa</th>
-                      <th style={{ width: "10%" }}>Status</th>
-                      <th style={{ width: "12%" }}>Oli</th>
-                      <th className="text-start" style={{ width: "22%" }}>Keterangan</th>
+                      <th style={{ width: "4%" }}>No</th>
+                      <th className="text-start" style={{ width: "19%", minWidth: 150 }}>Uraian Pemeliharaan</th>
+                      <th style={{ width: "9%" }}>Waktu Pelaksana</th>
+                      <th style={{ width: "6%" }}>Tindakan</th>
+                      <th style={{ width: "10%" }}>Teknisi</th>
+                      <th style={{ width: "7%" }}>Part Diperiksa</th>
+                      <th style={{ width: "9%" }}>Status</th>
+                      <th style={{ width: "11%", minWidth: 110 }}>Oli</th>
+                      <th className="text-start" style={{ width: "25%", minWidth: 170 }}>Keterangan</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -876,7 +876,7 @@ export default function DetailMesinManager({
                             </td>
                             <td className="text-center">
                               {badge ? (
-                                <Badge bg={badge.bg} text={log.status === "perlu_perhatian" ? "dark" : undefined} className="px-2 py-1 shadow-sm" style={{ minWidth: '95px' }}>
+                                <Badge bg={badge.bg} text={log.status === "perlu_perhatian" ? "dark" : undefined} className="px-2 py-1 shadow-sm" style={{ minWidth: '72px' }}>
                                   {badge.label}
                                 </Badge>
                               ) : "-"}
@@ -904,7 +904,7 @@ export default function DetailMesinManager({
                                         <div key={i} className="mb-1">{bagian}</div>
                                       ))
                                     ) : (
-                                      <div style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                      <div style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                                         {ket}
                                       </div>
                                     )}
