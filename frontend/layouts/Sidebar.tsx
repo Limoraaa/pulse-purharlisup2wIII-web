@@ -220,8 +220,8 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
     "Pengajuan Order": "view_order",
     "Laporan Kerusakan Alat": "view_kerusakan_alat",
     "Dashboard Pemeliharaan": "view_dashboard_pemeliharaan",
-    "Pemeliharaan": ["view_pemeliharaan_mesin", "process_pemeliharaan_mesin"],
-    "Operasional": ["view_operasional_mesin", "process_operasional_mesin"],
+    "Pemeliharaan": ["view_pemeliharaan_mesin", "process_pemeliharaan_mesin", "manage_rencana_pemeliharaan"],
+    "Operasional": ["view_operasional_mesin", "process_operasional_mesin", "manage_plotting_operasional"],
     "Manajemen User": "view_users",
   };
 
@@ -231,10 +231,10 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
     "/data-mesin": "view_data_mesin",
     // Data Oli: dikelola Inventaris, dilihat juga oleh pengelola Pemeliharaan (bukan level "Isi catatan")
     "/inventaris/data-oli": ["view_inventaris", "view_pemeliharaan_mesin"],
-    "/operasional/mapping-pengerjaan": "view_operasional_mesin",
+    "/operasional/mapping-pengerjaan": ["view_operasional_mesin", "manage_plotting_operasional"],
     "/operasional/data-mesin": ["view_operasional_mesin", "process_operasional_mesin"],
     "/pemeliharaan/kalibrasi": "view_pemeliharaan_mesin",
-    "/pemeliharaan/rencana": "view_pemeliharaan_mesin",
+    "/pemeliharaan/rencana": ["view_pemeliharaan_mesin", "manage_rencana_pemeliharaan"],
     "/pemeliharaan/data-mesin": ["view_pemeliharaan_mesin", "process_pemeliharaan_mesin"],
     "/pemeliharaan/laporan-anggaran": "view_pemeliharaan_mesin",
     "/pemeliharaan/dashboard-motor-konversi": "view_dashboard_pemeliharaan_motor_konversi",

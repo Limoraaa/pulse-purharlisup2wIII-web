@@ -181,6 +181,8 @@ export default function DetailMesinManager({
 
   // HIRARC berlaku untuk semua mesin dan hanya dikelola oleh pengelola Pemeliharaan
   const canManageHirarc = usePermission('manage_pemeliharaan_mesin');
+  // Peta Part: pengelola Pemeliharaan atau izin khusus (mis. PIC Mesin)
+  const canPetaPart = usePermission(['manage_pemeliharaan_mesin', 'manage_peta_part']);
   // Mesin nonaktif: riwayat tetap bisa dilihat, tetapi tidak bisa ditambah catatan/rencana/kalibrasi baru
   const mesinAktif = mesin.status !== 'Tidak Aktif';
   // Level "Isi catatan" (pekerja/vendor) maupun "Kelola penuh" boleh menambah catatan aktivitas
@@ -781,7 +783,7 @@ export default function DetailMesinManager({
                     </Dropdown.Menu>
                   </Dropdown>
                   
-                  {canManage && (
+                  {canPetaPart && (
                     <Button variant="outline-primary" size="sm" onClick={() => setShowMappingEditor(true)} className="d-flex align-items-center gap-1 shadow-sm" style={{ fontSize: '0.75rem' }}>
                       <IconMap size={14} /> Peta Part
                     </Button>

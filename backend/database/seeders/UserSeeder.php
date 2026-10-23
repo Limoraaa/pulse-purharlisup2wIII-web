@@ -18,6 +18,7 @@ class UserSeeder extends Seeder
             'lapangan',
             'maintenance',
             'vendor',
+            'pic',
         ])->delete();
 
         // 1. Buat user Staff Tools
@@ -85,5 +86,16 @@ class UserSeeder extends Seeder
             'must_change_password' => false,
         ]);
         $vendor->assignRole('Vendor');
+
+        // 7. Buat user PIC Mesin
+        $pic = User::create([
+            'full_name' => 'PIC Mesin Testing',
+            'username' => 'pic',
+            'email' => 'pic@test.com',
+            'password' => Hash::make('password123'),
+            'role' => 'PIC Mesin',
+            'must_change_password' => false,
+        ]);
+        $pic->assignRole('PIC Mesin');
     }
 }

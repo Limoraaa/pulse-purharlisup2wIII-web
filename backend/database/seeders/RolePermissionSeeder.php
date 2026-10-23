@@ -49,6 +49,10 @@ class RolePermissionSeeder extends Seeder
             'view_operasional_mesin', 'process_operasional_mesin', 'manage_operasional_mesin',
             // Data Mesin (master data: tambah, edit, nonaktifkan, hapus mesin)
             'view_data_mesin', 'manage_data_mesin',
+            // Izin tambahan (dipakai role PIC Mesin, bisa diberikan ke role lain lewat matriks)
+            'manage_peta_part',              // atur Peta Part semua mesin
+            'manage_plotting_operasional',   // kelola Plotting Jadwal Operasional
+            'manage_rencana_pemeliharaan',   // kelola Rencana Pemeliharaan
 
             // --- PEMELIHARAAN MOTOR KONVERSI (domain terpisah) ---
             'view_dashboard_pemeliharaan_motor_konversi',
@@ -68,6 +72,7 @@ class RolePermissionSeeder extends Seeder
         $rolePekerjaLapangan = Role::firstOrCreate(['name' => 'Pekerja Lapangan'], ['color' => 'info']);
         $rolePegawaiMaintenance = Role::firstOrCreate(['name' => 'Pegawai Maintenance Mesin'], ['color' => 'success']);
         $roleVendor = Role::firstOrCreate(['name' => 'Vendor'], ['color' => 'secondary']);
+        $rolePicMesin = Role::firstOrCreate(['name' => 'PIC Mesin'], ['color' => 'primary']);
         $roleSuperAdmin = Role::firstOrCreate(['name' => 'Super Admin'], ['color' => 'warning']);
 
         // 3. Beri default permission sesuai matriks
@@ -113,6 +118,11 @@ class RolePermissionSeeder extends Seeder
         $izinPencatat = ['process_operasional_mesin', 'process_pemeliharaan_mesin'];
         $rolePekerjaLapangan->syncPermissions($izinPencatat);
         $roleVendor->syncPermissions($izinPencatat);
+
+        // PIC Mesin: sama dengan pencatat, ditambah atur Peta Part, Plotting Jadwal & Rencana Pemeliharaan
+        $rolePicMesin->syncPermissions(array_merge($izinPencatat, [
+            'manage_peta_part', 'manage_plotting_operasional', 'manage_rencana_pemeliharaan',
+        ]));
 
         // --- PEGAWAI MAINTENANCE MESIN: kelola penuh SELURUH domain Pemeliharaan Mesin
         // (termasuk Dashboard Pemeliharaan), TIDAK ADA akses modul lain ---
