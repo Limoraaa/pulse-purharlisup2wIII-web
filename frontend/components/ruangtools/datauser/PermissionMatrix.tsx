@@ -112,6 +112,7 @@ export default function PermissionMatrix() {
         { key: 'manage_peta_part', label: 'Atur Peta Part', hint: 'Unggah gambar, tambah/edit titik part & poin checklist di semua mesin', type: 'switch' },
         { key: 'manage_plotting_operasional', label: 'Kelola Plotting Jadwal', hint: 'Tambah, ubah, hapus Plotting Jadwal Operasional (tanpa edit/hapus catatan aktivitas)', type: 'switch' },
         { key: 'manage_rencana_pemeliharaan', label: 'Kelola Rencana Pemeliharaan', hint: 'Tambah, ubah, hapus Rencana Pemeliharaan', type: 'switch' },
+        { key: 'manage_kebutuhan_mesin', label: 'Kelola Kebutuhan Pemeliharaan', hint: 'Tambah, ubah, hapus Kebutuhan Pemeliharaan Alat & Consumable per mesin', type: 'switch' },
       ],
     },
     {

@@ -183,6 +183,8 @@ export default function DetailMesinManager({
   const canManageHirarc = usePermission('manage_pemeliharaan_mesin');
   // Peta Part: pengelola Pemeliharaan atau izin khusus (mis. PIC Mesin)
   const canPetaPart = usePermission(['manage_pemeliharaan_mesin', 'manage_peta_part']);
+  // Kebutuhan Pemeliharaan Alat & Consumable: pengelola Pemeliharaan atau izin khusus (mis. PIC Mesin)
+  const canKebutuhan = usePermission(['manage_pemeliharaan_mesin', 'manage_kebutuhan_mesin']);
   // Mesin nonaktif: riwayat tetap bisa dilihat, tetapi tidak bisa ditambah catatan/rencana/kalibrasi baru
   const mesinAktif = mesin.status !== 'Tidak Aktif';
   // Level "Isi catatan" (pekerja/vendor) maupun "Kelola penuh" boleh menambah catatan aktivitas
@@ -1084,7 +1086,7 @@ export default function DetailMesinManager({
           )}
 
           {activeTab === 'kebutuhan' && mode === 'pemeliharaan' && mesinId && (
-            <KebutuhanMesinPanel mesinId={mesinId} canManage={canManage && mesinAktif} />
+            <KebutuhanMesinPanel mesinId={mesinId} canManage={canKebutuhan && mesinAktif} />
           )}
         </CardBody>
       </Card>

@@ -325,7 +325,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/kebutuhan-mesin', [KebutuhanMesinController::class, 'index']);
     });
 
-    Route::middleware('permission:manage_pemeliharaan_mesin')->group(function () {
+    // Kelola kebutuhan: pengelola Pemeliharaan atau izin khusus (mis. PIC Mesin)
+    Route::middleware('permission:manage_pemeliharaan_mesin|manage_kebutuhan_mesin')->group(function () {
         Route::post('/kebutuhan-mesin', [KebutuhanMesinController::class, 'store']);
         Route::put('/kebutuhan-mesin/{id}', [KebutuhanMesinController::class, 'update']);
         Route::delete('/kebutuhan-mesin/{id}', [KebutuhanMesinController::class, 'destroy']);
