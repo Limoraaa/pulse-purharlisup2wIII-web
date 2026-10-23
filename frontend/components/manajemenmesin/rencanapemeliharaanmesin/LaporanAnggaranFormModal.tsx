@@ -19,6 +19,7 @@ export interface PekerjaanItem {
   nama_vendor: string | null;
   no_po: string | null;
   keterangan: string | null;
+  jenis_anggaran: 'disburse' | 'penugasan';
 }
 
 export interface DisburseItem {
@@ -40,12 +41,23 @@ interface Props {
   tahun: number;
   jenis: 'pekerjaan' | 'disburse'; // menentukan isi form
   defaultBulan: number;
+  defaultJenisAnggaran?: 'disburse' | 'penugasan'; // default jenis anggaran dari tombol tambah
   editItem: PekerjaanItem | DisburseItem | null; // null = tambah baru
   onSave: (payload: any, id?: number) => Promise<void>;
   onDelete: (id: number) => Promise<void>;
 }
 
-export default function LaporanAnggaranFormModal({ show, onHide, tahun, jenis, defaultBulan, editItem, onSave, onDelete }: Props) {
+export default function LaporanAnggaranFormModal({
+  show,
+  onHide,
+  tahun,
+  jenis,
+  defaultBulan,
+  defaultJenisAnggaran = 'disburse',
+  editItem,
+  onSave,
+  onDelete
+}: Props) {
   const [bulan, setBulan] = useState(defaultBulan);
 
   // Field rencana pekerjaan
@@ -57,6 +69,7 @@ export default function LaporanAnggaranFormModal({ show, onHide, tahun, jenis, d
   const [noPo, setNoPo] = useState('');
   const [keterangan, setKeterangan] = useState('');
   const [biayaAktual, setBiayaAktual] = useState('');
+  const [jenisAnggaran, setJenisAnggaran] = useState<'disburse' | 'penugasan'>('disburse');
 
   // Field disburse
   const [uraian, setUraian] = useState('');
@@ -81,11 +94,12 @@ export default function LaporanAnggaranFormModal({ show, onHide, tahun, jenis, d
     setNoPo(p?.no_po ?? '');
     setKeterangan(p?.keterangan ?? '');
     setBiayaAktual(p?.biaya_aktual != null ? String(p.biaya_aktual) : '');
+    setJenisAnggaran(p?.jenis_anggaran ?? defaultJenisAnggaran);
 
     const d = jenis === 'disburse' ? (editItem as DisburseItem | null) : null;
     setUraian(d?.uraian ?? '');
     setNominal(d ? String(d.nominal) : '');
-  }, [show, editItem, jenis, defaultBulan]);
+  }, [show, editItem, jenis, defaultBulan, defaultJenisAnggaran]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,6 +119,7 @@ export default function LaporanAnggaranFormModal({ show, onHide, tahun, jenis, d
               nama_vendor: namaVendor || null,
               no_po: noPo || null,
               keterangan: keterangan || null,
+              jenis_anggaran: jenisAnggaran,
             }
           : { tahun, bulan, uraian, nominal: Number(nominal) || 0 };
       await onSave(payload, editItem?.id);
@@ -159,6 +174,17 @@ export default function LaporanAnggaranFormModal({ show, onHide, tahun, jenis, d
                 </Form.Select>
               </div>
               <div className="col-md-8">
+                <Form.Label className="small fw-semibold">Jenis Anggaran <span className="text-danger">*</span></Form.Label>
+                <Form.Select 
+                  value={jenisAnggaran} 
+                  onChange={(e) => setJenisAnggaran(e.target.value as 'disburse' | 'penugasan')}
+                >
+                  <option value="disburse">Anggaran Disburse (Memotong Sisa PRK)</option>
+                  <option value="penugasan">Anggaran Penugasan (Hanya Pencatatan)</option>
+                </Form.Select>
+              </div>
+
+              <div className="col-12">
                 <Form.Label className="small fw-semibold">Nama pekerjaan</Form.Label>
                 <Form.Control
                   required

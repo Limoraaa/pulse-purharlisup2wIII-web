@@ -9,6 +9,7 @@ use App\Models\LogAktivitasMesin;
 use App\Models\LogPemeliharaanMesin;
 use App\Models\MesinProduksi;
 use App\Models\RencanaPemeliharaanMesin;
+use App\Models\Oli; // <-- Pastikan model Oli di-import
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -27,7 +28,7 @@ class LogPemeliharaanMesinController extends Controller
 
     public function index()
     {
-        $logs = LogPemeliharaanMesin::orderBy('waktu_pelaksana', 'desc')->get()->map(function ($item) {
+        $logs = LogPemeliharaanMesin::with('oli')->orderBy('waktu_pelaksana', 'desc')->get()->map(function ($item) {
             $mesin = MesinProduksi::find($item->mesin_produksi_id);
             return [
                 'id' => $item->id,
@@ -43,6 +44,10 @@ class LogPemeliharaanMesinController extends Controller
                 'jumlah_part_total' => $item->jumlah_part_total,
                 'jenis_pelaksana' => $item->jenis_pelaksana,
                 'nama_vendor' => $item->nama_vendor,
+                // Tambahan data oli
+                'oli_id' => $item->oli_id,
+                'nama_oli' => $item->oli ? $item->oli->nama_oli : null,
+                'jumlah_oli' => $item->jumlah_oli,
             ];
         });
 
@@ -169,10 +174,14 @@ class LogPemeliharaanMesinController extends Controller
             'waktu_pelaksana' => 'required|date',
             'paraf' => 'required|string',
             'rencana_id' => 'nullable|integer|exists:rencana_pemeliharaan_mesin,id',
-            // AKSI WAJIB DIPILIH AGAR TIDAK MUNCUL TANDA TANYA (?)
             'aksi' => ['required', Rule::in(self::AKSI)],
             'uraian_pemeliharaan' => 'required_without:hasil_checklist|nullable|string',
             'keterangan' => 'nullable|string',
+            
+            // Validasi Inventaris Oli
+            'oli_id' => 'nullable|exists:olis,id',
+            'jumlah_oli' => 'nullable|numeric|min:0.01|required_with:oli_id',
+
             'hasil_checklist' => 'required_without:uraian_pemeliharaan|nullable|array|min:1',
             'hasil_checklist.*.partId' => 'required|string',
             'hasil_checklist.*.partName' => 'required|string',
@@ -181,7 +190,6 @@ class LogPemeliharaanMesinController extends Controller
             'hasil_checklist.*.items.*.status' => 'required|in:baik,perlu_perhatian,rusak',
             'hasil_checklist.*.items.*.catatan' => 'nullable|string',
             'hasil_checklist.*.catatan' => 'nullable|string',
-            // Pemakaian oli pada part (opsional, hanya part yang memakai oli)
             'hasil_checklist.*.oli' => 'nullable|array',
             'hasil_checklist.*.oli.tindakan' => 'required_with:hasil_checklist.*.oli|in:tidak,tambah,ganti',
             'hasil_checklist.*.oli.jumlah' => 'nullable|numeric|gt:0|required_if:hasil_checklist.*.oli.tindakan,tambah,ganti',
@@ -191,12 +199,12 @@ class LogPemeliharaanMesinController extends Controller
             'hasil_checklist.*.oli.jenis' => 'nullable|string|max:100',
             'hasil_checklist.*.oli.kode' => 'nullable|string|max:100',
             'jumlah_part_total' => 'nullable|integer|min:0',
-            // Pelaksana: internal PLN atau vendor (nama vendor wajib bila vendor)
             'jenis_pelaksana' => 'nullable|in:Internal,Vendor',
             'nama_vendor' => 'nullable|required_if:jenis_pelaksana,Vendor|string|max:255',
         ], [
             'nama_vendor.required_if' => 'Nama vendor wajib diisi bila dikerjakan oleh vendor.',
             'hasil_checklist.*.oli.jumlah.required_if' => 'Jumlah oli wajib diisi bila oli ditambah atau diganti.',
+            'jumlah_oli.required_with' => 'Jumlah oli wajib diisi jika Anda memilih oli.',
         ]);
 
         $data = [
@@ -206,6 +214,8 @@ class LogPemeliharaanMesinController extends Controller
             'aksi' => $validated['aksi'],
             'jenis_pelaksana' => $validated['jenis_pelaksana'] ?? 'Internal',
             'nama_vendor' => ($validated['jenis_pelaksana'] ?? 'Internal') === 'Vendor' ? $validated['nama_vendor'] : null,
+            'oli_id' => $validated['oli_id'] ?? null,
+            'jumlah_oli' => $validated['jumlah_oli'] ?? null,
         ];
 
         if (!empty($validated['hasil_checklist'])) {
@@ -232,6 +242,23 @@ class LogPemeliharaanMesinController extends Controller
         }
 
         $log = DB::transaction(function () use ($data, $validated) {
+            // === LOGIKA PENGURANGAN STOK OLI ===
+            if (!empty($data['oli_id']) && !empty($data['jumlah_oli'])) {
+                // Lock row oli agar tidak terjadi race condition
+                $oli = Oli::lockForUpdate()->find($data['oli_id']);
+                
+                if ($oli) {
+                    if ($oli->stok < $data['jumlah_oli']) {
+                        throw ValidationException::withMessages([
+                            'jumlah_oli' => "Stok oli {$oli->nama_oli} tidak mencukupi (Sisa stok: {$oli->stok} {$oli->satuan})."
+                        ]);
+                    }
+                    // Kurangi stok oli
+                    $oli->decrement('stok', $data['jumlah_oli']);
+                }
+            }
+            // ===================================
+
             if (!empty($validated['rencana_id'])) {
                 $rencana = RencanaPemeliharaanMesin::lockForUpdate()->findOrFail($validated['rencana_id']);
 
@@ -316,6 +343,16 @@ class LogPemeliharaanMesinController extends Controller
                 RencanaPemeliharaanMesin::where('id', $log->rencana_id)
                     ->update(['status' => self::STATUS_BELUM]);
             }
+
+            // === LOGIKA PENGEMBALIAN STOK OLI ===
+            // Jika log ini sebelumnya menggunakan oli, maka stok harus dikembalikan
+            if ($log->oli_id && $log->jumlah_oli > 0) {
+                $oli = Oli::lockForUpdate()->find($log->oli_id);
+                if ($oli) {
+                    $oli->increment('stok', $log->jumlah_oli);
+                }
+            }
+            // =====================================
 
             $log->delete();
         });
@@ -403,9 +440,6 @@ class LogPemeliharaanMesinController extends Controller
             ->lockForUpdate()
             ->get();
 
-        // Pilih rencana yang minggunya paling dekat dengan tanggal pelaksanaan (maks. 4 minggu ke belakang/ke depan).
-        // Bila jaraknya sama, utamakan yang sudah lewat. Rencana terlewat yang lebih lama tidak ditutup otomatis:
-        // tetap tampil "Terlewat" dan bisa dikerjakan lewat tombol "Kerjakan".
         return $kandidat
             ->map(fn ($r) => ['r' => $r, 'selisih' => $this->slot($r->tahun, $r->bulan, $r->minggu) - $slotLog])
             ->filter(fn ($x) => abs($x['selisih']) <= self::LOOKAHEAD_MINGGU)
