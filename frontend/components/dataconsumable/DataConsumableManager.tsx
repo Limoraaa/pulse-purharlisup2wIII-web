@@ -186,7 +186,7 @@ const DataConsumableManager = () => {
 
       setCart(combinedCart);
     } catch (err) {
-      console.error("Gagal load keranjang", err);
+      console.warn("Gagal load keranjang", err);
     }
   }, []);
 
@@ -259,7 +259,7 @@ const DataConsumableManager = () => {
                 setSuccessMessage(`Berhasil: Consumable ${foundItem.nama} ditambahkan ke keranjang.`);
                 setTimeout(() => setSuccessMessage(null), 3000);
               } catch (err) {
-                console.error("Gagal menambah Consumable", err);
+                showToast(err instanceof Error ? err.message : "Gagal menambah consumable ke keranjang.", "danger");
               }
             } else {
                showToast(`Stok Consumable ${foundItem.nama} sudah habis!`, "danger");
@@ -299,7 +299,7 @@ const DataConsumableManager = () => {
                   setSuccessMessage(`Berhasil: Tool ${foundTool.namaBarang} ditambahkan ke keranjang.`);
                   setTimeout(() => setSuccessMessage(null), 3000);
                 } catch (err) {
-                  console.error("Gagal menambah Tool", err);
+                  showToast(err instanceof Error ? err.message : "Gagal menambah alat ke keranjang.", "danger");
                 }
               } else {
                   showToast(`Stok Tool ${foundTool.namaBarang} kosong/dipinjam semua.`, "danger");
@@ -549,8 +549,7 @@ const DataConsumableManager = () => {
         }
         debounceTimers.current.delete(cartId);
       } catch (err) {
-        console.error("Gagal memperbarui jumlah item:", err);
-        showToast("Gagal update stok ke database. Mengembalikan data ke kondisi semula.", "danger");
+        showToast(err instanceof Error ? err.message : "Gagal memperbarui jumlah item.", "danger");
         await loadCart();
       }
     }, 500);
@@ -585,7 +584,6 @@ const DataConsumableManager = () => {
       try {
         await removeCartItem(cartId);
       } catch (err) {
-        console.error(err);
         showToast(err instanceof Error ? err.message : "Gagal menghapus alat dari keranjang.", "danger");
         await loadCart();
       } finally {
@@ -605,7 +603,6 @@ const DataConsumableManager = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
     } catch (err) {
-      console.error(err);
       showToast(err instanceof Error ? err.message : "Gagal menghapus item dari keranjang.", "danger");
       await loadCart(); 
     } finally {
@@ -682,7 +679,6 @@ const DataConsumableManager = () => {
 
       setTimeout(() => setSuccessMessage(null), 5000);
     } catch (err) {
-      console.error("Gagal proses keranjang:", err);
       setOutError(
         err instanceof Error ? err.message : "Terjadi kesalahan saat memproses data."
       );

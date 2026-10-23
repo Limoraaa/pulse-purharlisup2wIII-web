@@ -251,7 +251,7 @@ const DataToolsManager = () => {
   // ================= LOAD DATA DARI DATABASE =================
   useEffect(() => {
     dispatch(fetchTools());
-    getConsumables().then(setConsumables).catch(console.error); // Load consumables untuk Universal Scanner
+    getConsumables().then(setConsumables).catch(console.warn); // Load consumables untuk Universal Scanner
   }, [dispatch]);
 
   // ================= BARCODE SCANNER UNIVERSAL =================
@@ -285,7 +285,7 @@ const DataToolsManager = () => {
                 setSuccessMessage(`Berhasil: Tool ${foundTool.namaBarang} ditambahkan ke keranjang.`);
                 setTimeout(() => setSuccessMessage(null), 3000);
               } catch (err) {
-                console.error("Gagal menambah Tool", err);
+                showToast(err instanceof Error ? err.message : "Gagal menambah alat ke keranjang.", "danger");
               }
             } else {
                showToast(`Stok Tool ${foundTool.namaBarang} kosong/dipinjam semua.`, "danger");
@@ -333,7 +333,7 @@ const DataToolsManager = () => {
                   setSuccessMessage(`Berhasil: Consumable ${foundConsumable.nama} ditambahkan ke keranjang.`);
                   setTimeout(() => setSuccessMessage(null), 3000);
                 } catch (err) {
-                  console.error("Gagal menambah Consumable", err);
+                  showToast(err instanceof Error ? err.message : "Gagal menambah consumable ke keranjang.", "danger");
                 }
               } else {
                  showToast(`Stok Consumable ${foundConsumable.nama} habis!`, "danger");
@@ -443,7 +443,6 @@ const DataToolsManager = () => {
       await scanTool(tool.id, 1);
       await mutate("/peminjaman/antrean");
     } catch (err) { 
-      console.error("Gagal menambah ke keranjang DB", err); 
       showToast(err instanceof Error ? err.message : "Gagal menambah ke keranjang.", "danger");
     } finally {
       pendingAddRef.current.delete(tool.id);
@@ -510,7 +509,6 @@ const DataToolsManager = () => {
         debounceTimers.current.delete(cartId);
         // Sukses: state lokal sudah benar, tidak perlu refetch — biar tetap smooth.
       } catch (err) {
-        console.error("Gagal memperbarui jumlah item:", err);
         showToast(err instanceof Error ? err.message : "Gagal memperbarui jumlah item.", "danger");
         // Jika backend menolak (misal error server/stok limit), paksa ambil nilai asli dari database
         mutate("/peminjaman/antrean");
@@ -548,7 +546,6 @@ const DataToolsManager = () => {
       try {
         await api(`/consumable-keluar/antrean/${targetItem.consumable_id}`, { method: "DELETE" });
       } catch (err) {
-        console.error("Gagal menghapus consumable dari antrean", err);
         showToast(err instanceof Error ? err.message : "Gagal menghapus dari keranjang.", "danger");
         await mutate("/peminjaman/antrean");
       } finally {
@@ -562,7 +559,6 @@ const DataToolsManager = () => {
       await removeCartItem(cartId);
       // Sukses: item sudah dihapus dari state lokal, tidak perlu refetch.
     } catch (err) {
-      console.error("Gagal menghapus dari keranjang DB", err);
       showToast(err instanceof Error ? err.message : "Gagal menghapus dari keranjang.", "danger");
       await mutate("/peminjaman/antrean"); // Revert jika gagal
     } finally {

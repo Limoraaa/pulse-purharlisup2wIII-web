@@ -36,7 +36,7 @@ export default function DataPekerjaanManager() {
         setData(json.data);
       }
     } catch (error) {
-      console.error("Gagal mengambil data:", error);
+      notify(error instanceof Error ? error.message : "Gagal memuat data pekerjaan.");
     } finally {
       setLoading(false);
     }
@@ -62,7 +62,7 @@ export default function DataPekerjaanManager() {
         fetchData(); // Refresh tabel setelah status diubah
       }
     } catch (error) {
-      console.error("Gagal mengubah status:", error);
+      notify(error instanceof Error ? error.message : "Gagal mengubah status pekerjaan.");
     }
   };
 
@@ -82,7 +82,7 @@ export default function DataPekerjaanManager() {
           fetchData(); // Refresh tabel setelah dihapus
         }
       } catch (error) {
-        console.error("Gagal menghapus data:", error);
+        notify(error instanceof Error ? error.message : "Gagal menghapus data pekerjaan.");
       }
     }
     setIsDeleteOpen(false);
@@ -107,7 +107,7 @@ export default function DataPekerjaanManager() {
         notify(json.message || "Gagal menyimpan data");
       }
     } catch (error) {
-      console.error("Error submitting data:", error);
+      notify(error instanceof Error ? error.message : "Gagal menyimpan data pekerjaan.");
     }
   };
 
