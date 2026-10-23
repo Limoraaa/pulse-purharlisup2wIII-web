@@ -58,7 +58,6 @@ class UserController extends Controller
             'full_name' => 'sometimes|required|string|max:255',
             'username' => 'sometimes|required|string|max:255|unique:users,username,' . $user->id,
             'email' => 'sometimes|nullable|email|unique:users,email,' . $user->id,
-            'password' => 'nullable|string|min:6',
             'divisi' => 'sometimes|nullable|string|max:255',
             'no_hp' => 'sometimes|nullable|string|max:20',
         ]);
@@ -67,13 +66,8 @@ class UserController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $data = $validator->validated();
-
-        if (empty($data['password'])) {
-            unset($data['password']);
-        }
-
-        $user->update($data);
+        // Password hanya bisa diganti lewat /profile/password (wajib password lama)
+        $user->update($validator->validated());
 
         return response()->json($user->only(self::SAFE_COLUMNS));
     }
@@ -104,6 +98,9 @@ class UserController extends Controller
             'must_change_password' => false,
         ]);
 
+        // Keluarkan sesi login di perangkat lain; sesi yang sedang dipakai tetap aktif
+        $user->tokens()->where('id', '!=', $user->currentAccessToken()->id)->delete();
+
         return response()->json(['message' => 'Password berhasil diperbarui']);
     }
 
@@ -128,6 +125,10 @@ class UserController extends Controller
         }
 
         $data = $validator->validated();
+
+        if ($tolak = $this->tolakJikaBeriSuperAdmin($data['role'])) {
+            return $tolak;
+        }
 
         $data['must_change_password'] = false;
         $data['is_active'] = true;
@@ -169,11 +170,26 @@ class UserController extends Controller
 
         $data = $validator->validated();
 
+        if (isset($data['role'])) {
+            if ($tolak = $this->tolakJikaBeriSuperAdmin($data['role'])) {
+                return $tolak;
+            }
+            // Role sendiri tidak boleh diubah (mencegah menaikkan/menurunkan hak akses diri sendiri)
+            if ($targetUser->id === auth()->id() && ! $targetUser->hasRole($data['role'])) {
+                return response()->json(['message' => 'Anda tidak dapat mengubah role akun Anda sendiri.'], 403);
+            }
+        }
+
         if (empty($data['password'])) {
             unset($data['password']);
         }
 
         $targetUser->update($data);
+
+        // Password diganti admin: keluarkan semua sesi login user tersebut
+        if (isset($data['password'])) {
+            $targetUser->tokens()->delete();
+        }
 
         // Jika ada perubahan role, sinkronisasikan dengan tabel Spatie
         if (isset($data['role'])) {
@@ -242,6 +258,9 @@ class UserController extends Controller
             'password' => $request->password_baru,
         ]);
 
+        // Keluarkan semua sesi login user tersebut agar wajib login dengan password baru
+        $targetUser->tokens()->delete();
+
         return response()->json(['message' => 'Password user berhasil direset']);
     }
 
@@ -265,5 +284,14 @@ class UserController extends Controller
             'avatar_path' => $path,
             'avatar_url' => \Illuminate\Support\Facades\Storage::disk('public')->url($path),
         ]);
+    }
+
+    // Hanya Super Admin yang boleh membuat/menjadikan akun Super Admin
+    private function tolakJikaBeriSuperAdmin(string $role)
+    {
+        if ($role === 'Super Admin' && ! auth()->user()->hasRole('Super Admin')) {
+            return response()->json(['message' => 'Hanya Super Admin yang dapat memberikan role Super Admin.'], 403);
+        }
+        return null;
     }
 }

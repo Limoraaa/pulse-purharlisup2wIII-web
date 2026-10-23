@@ -10,6 +10,11 @@ interface PermissionState {
 let cachedState: PermissionState | null = null;
 let listeners: Array<(state: PermissionState) => void> = [];
 
+/** Kosongkan cache tanpa mengambil ulang (dipakai saat logout) */
+export const clearPermissions = () => {
+  cachedState = null;
+};
+
 /** Panggil saat login/logout supaya permission diambil ulang */
 export const resetPermissions = () => {
   cachedState = null;

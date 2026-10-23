@@ -128,6 +128,13 @@ class ConsumableController extends Controller
 
             $validated['stok_awal_asli'] = $validated['stok_tersedia'];
             $validated['stok_tersedia'] = $validated['stok_awal_asli'] + $totalMasuk - $totalKeluar;
+
+            if ($validated['stok_tersedia'] < 0) {
+                return response()->json([
+                    'message' => "Stok awal terlalu kecil: barang yang sudah keluar ({$totalKeluar}) melebihi stok awal + barang masuk.",
+                    'errors' => ['stok_tersedia' => ['Stok awal terlalu kecil dibanding riwayat barang keluar.']],
+                ], 422);
+            }
         }
 
         $consumable->update($validated);

@@ -1,5 +1,6 @@
 "use client";
 //import node module libraries
+import { logout } from "lib/logout";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import React, { Fragment, useContext, useEffect, useState } from "react";
@@ -255,11 +256,8 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
     return true;
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("userId");
-    localStorage.removeItem("userName");
-    localStorage.removeItem("userRole");
+  const handleLogout = async () => {
+    await logout();
     router.push("/signin");
   };
 

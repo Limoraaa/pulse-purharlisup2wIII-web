@@ -92,12 +92,8 @@ class ConsumableMasukController extends Controller
         $consumableMasuk = DB::transaction(function () use ($data) {
             $consumable = Consumable::lockForUpdate()->findOrFail($data['consumable_id']);
 
-            // Auto-isi stok_awal_asli dari transaksi masuk PERTAMA saja
-            // (selama masih 0 / belum pernah diisi manual).
-            if ($consumable->stok_awal_asli == 0) {
-                $consumable->stok_awal_asli = $data['jumlah_masuk'];
-            }
-
+            // stok_awal_asli TIDAK diubah: barang masuk dihitung terpisah (stok akhir = awal + masuk - keluar).
+            // Dulu masuk pertama disalin ke stok_awal_asli, sehingga terhitung dua kali saat consumable diedit.
             $consumable->stok_tersedia += $data['jumlah_masuk'];
             $consumable->save();
 

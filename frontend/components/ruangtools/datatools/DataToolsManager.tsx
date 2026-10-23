@@ -543,7 +543,16 @@ const DataToolsManager = () => {
       const savedCons = JSON.parse(localStorage.getItem("global_shared_consumable_cart") || "[]");
       const updated = savedCons.filter((c: any) => c.id !== cartId && c.consumable_id !== cartId);
       localStorage.setItem("global_shared_consumable_cart", JSON.stringify(updated));
-      pendingRemoveRef.current.delete(cartId);
+      // Hapus juga dari antrean di server; kalau tidak, consumable tetap ikut terproses saat checkout
+      try {
+        await api(`/consumable-keluar/antrean/${targetItem.consumable_id}`, { method: "DELETE" });
+      } catch (err) {
+        console.error("Gagal menghapus consumable dari antrean", err);
+        showToast(err instanceof Error ? err.message : "Gagal menghapus dari keranjang.", "danger");
+        await mutate("/peminjaman/antrean");
+      } finally {
+        pendingRemoveRef.current.delete(cartId);
+      }
       return;
     }
 

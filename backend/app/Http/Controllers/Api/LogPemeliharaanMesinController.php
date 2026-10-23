@@ -402,15 +402,13 @@ class LogPemeliharaanMesinController extends Controller
             ->lockForUpdate()
             ->get();
 
-        $jatuhTempo = $kandidat->first(
-            fn ($r) => $this->slot($r->tahun, $r->bulan, $r->minggu) <= $slotLog
-        );
-        if ($jatuhTempo) {
-            return $jatuhTempo;
-        }
-
-        return $kandidat->first(
-            fn ($r) => $this->slot($r->tahun, $r->bulan, $r->minggu) - $slotLog <= self::LOOKAHEAD_MINGGU
-        );
+        // Pilih rencana yang minggunya paling dekat dengan tanggal pelaksanaan (maks. 4 minggu ke belakang/ke depan).
+        // Bila jaraknya sama, utamakan yang sudah lewat. Rencana terlewat yang lebih lama tidak ditutup otomatis:
+        // tetap tampil "Terlewat" dan bisa dikerjakan lewat tombol "Kerjakan".
+        return $kandidat
+            ->map(fn ($r) => ['r' => $r, 'selisih' => $this->slot($r->tahun, $r->bulan, $r->minggu) - $slotLog])
+            ->filter(fn ($x) => abs($x['selisih']) <= self::LOOKAHEAD_MINGGU)
+            ->sortBy(fn ($x) => [abs($x['selisih']), $x['selisih'] > 0 ? 1 : 0])
+            ->first()['r'] ?? null;
     }
 }
