@@ -11,19 +11,26 @@ return new class extends Migration
         Schema::create('log_pemeliharaan_mesin', function (Blueprint $table) {
             $table->id();
             
-            // Menggunakan foreignId yang otomatis membuat tipe bigint unsigned 
-            // dan langsung menghubungkannya ke tabel mesin_produksi
+            // Relasi ke mesin
             $table->foreignId('mesin_produksi_id')
                   ->constrained('mesin_produksi')
                   ->onDelete('cascade');
 
-            // Rencana yang dikerjakan lewat log ini (kosong bila bukan dari rencana)
+            // Rencana yang dikerjakan lewat log ini
             $table->foreignId('rencana_id')
                   ->nullable()
                   ->constrained('rencana_pemeliharaan_mesin')
                   ->nullOnDelete();
 
-            // Tindakan: C / L / P / M / K, dipakai untuk mencocokkan log ke plotting rencana
+            // === PENAMBAHAN KOLOM OLI ===
+            $table->foreignId('oli_id')
+                  ->nullable()
+                  ->constrained('olis')
+                  ->nullOnDelete();
+            $table->decimal('jumlah_oli', 8, 2)->nullable();
+            // =============================
+
+            // Tindakan: C / L / P / M / K
             $table->string('aksi', 1)->nullable();
 
             $table->text('uraian_pemeliharaan');
@@ -37,7 +44,7 @@ return new class extends Migration
             $table->integer('jumlah_part_diperiksa')->nullable();
             $table->integer('jumlah_part_total')->nullable();
 
-            // Pelaksana pemeliharaan: internal PLN atau vendor (pihak ketiga)
+            // Pelaksana pemeliharaan
             $table->enum('jenis_pelaksana', ['Internal', 'Vendor'])->default('Internal');
             $table->string('nama_vendor')->nullable();
             $table->timestamps();

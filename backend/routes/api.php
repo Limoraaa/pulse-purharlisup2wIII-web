@@ -30,6 +30,7 @@ use App\Http\Controllers\Api\MappingPengerjaanMesinController;
 use App\Http\Controllers\Api\LaporanAnggaranController;
 use App\Http\Controllers\Api\DokumenMesinController;
 use App\Http\Controllers\Api\KebutuhanMesinController;
+use App\Http\Controllers\Api\OliController; // <-- IMPORT BARU UNTUK OLI
 
 // ==========================================
 // 1. ROUTE PUBLIK (Tanpa Auth)
@@ -98,6 +99,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('peminta', PemintaController::class)->only(['index', 'show']);
     });
 
+    // Tambahan untuk Oli: Bisa dilihat oleh user Inventaris & Teknisi Mesin
+    Route::middleware('permission:view_inventaris|view_pemeliharaan_mesin|process_pemeliharaan_mesin')->group(function () {
+        Route::apiResource('olis', OliController::class)->only(['index', 'show']);
+    });
+
     // process_* = level "Isi catatan" (pekerja/vendor): butuh daftar mesin untuk halaman catatan
     Route::middleware('permission:view_inventaris|view_pemeliharaan_mesin|view_operasional_mesin|view_data_mesin|process_operasional_mesin|process_pemeliharaan_mesin')->group(function () {
         Route::apiResource('mesin-produksi', MesinProduksiController::class)->only(['index', 'show']);
@@ -111,6 +117,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('tools', ToolController::class)->except(['index', 'show']);
         Route::patch('/tools/{tool}/kurangi-stok', [ToolController::class, 'kurangiStok']);
         Route::apiResource('consumable', ConsumableController::class)->except(['index', 'show']);
+        
+        // Tambahan Kelola Oli
+        Route::apiResource('olis', OliController::class)->except(['index', 'show']);
     });
 
     Route::middleware('permission:manage_transaksi')->group(function () {
@@ -223,8 +232,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
     // ==========================================
-// LAPORAN ANGGARAN (berdiri sendiri)
-// ==========================================
+    // LAPORAN ANGGARAN (berdiri sendiri)
+    // ==========================================
     // Ikut hak akses Pemeliharaan Mesin: "Lihat saja" = view, "Kelola penuh" = manage
     Route::middleware('permission:view_pemeliharaan_mesin')->group(function () {
         Route::get('/laporan-anggaran', [LaporanAnggaranController::class, 'index']);
