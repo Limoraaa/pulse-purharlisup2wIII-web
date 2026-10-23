@@ -18,6 +18,8 @@ const HALAMAN_AWAL: [string[], string][] = [
   [["view_data_mesin"], "/data-mesin"],
   [["view_pemeliharaan_mesin", "process_pemeliharaan_mesin"], "/pemeliharaan/data-mesin"],
   [["view_operasional_mesin", "process_operasional_mesin"], "/operasional/data-mesin"],
+  [["manage_plotting_operasional"], "/operasional/mapping-pengerjaan"],
+  [["manage_rencana_pemeliharaan"], "/pemeliharaan/rencana"],
   [["view_dashboard_pemeliharaan_motor_konversi"], "/pemeliharaan/dashboard-motor-konversi"],
   [["view_pemeliharaan_motor_konversi"], "/pemeliharaan/data-motor-konversi"],
   [["view_users", "manage_users"], "/data-user"],

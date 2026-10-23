@@ -287,7 +287,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/log-aktivitas/mesin/{mesin_id}', [LogAktivitasMesinController::class, 'getByMesin']);
     });
 
-    Route::middleware('permission:view_operasional_mesin')->group(function () {
+    Route::middleware('permission:view_operasional_mesin|manage_plotting_operasional')->group(function () {
         Route::get('/mapping-pengerjaan', [MappingPengerjaanMesinController::class, 'index']);
     });
 
@@ -298,7 +298,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:manage_operasional_mesin')->group(function () {
         Route::put('/log-aktivitas/{id}', [LogAktivitasMesinController::class, 'update']);
         Route::delete('/log-aktivitas/{id}', [LogAktivitasMesinController::class, 'destroy']);
+    });
 
+    // Plotting Jadwal Operasional: pengelola Operasional atau izin khusus (mis. PIC Mesin)
+    Route::middleware('permission:manage_operasional_mesin|manage_plotting_operasional')->group(function () {
         Route::post('/mapping-pengerjaan', [MappingPengerjaanMesinController::class, 'store']);
         Route::put('/mapping-pengerjaan/{id}', [MappingPengerjaanMesinController::class, 'update']);
         Route::delete('/mapping-pengerjaan/{id}', [MappingPengerjaanMesinController::class, 'destroy']);
@@ -351,11 +354,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // RENCANA PEMELIHARAAN MESIN (jadwal mingguan per tahun)
     // ------------------------------------------
     // Level "Isi catatan" butuh daftar rencana per mesin untuk tombol "Kerjakan" di halaman catatan
-    Route::middleware('permission:view_pemeliharaan_mesin|process_pemeliharaan_mesin')->group(function () {
+    Route::middleware('permission:view_pemeliharaan_mesin|process_pemeliharaan_mesin|manage_rencana_pemeliharaan')->group(function () {
         Route::get('/rencana-pemeliharaan', [RencanaPemeliharaanMesinController::class, 'index']);
     });
  
-    Route::middleware('permission:manage_pemeliharaan_mesin')->group(function () {
+    Route::middleware('permission:manage_pemeliharaan_mesin|manage_rencana_pemeliharaan')->group(function () {
         Route::post('/rencana-pemeliharaan', [RencanaPemeliharaanMesinController::class, 'store']);
         Route::put('/rencana-pemeliharaan/{id}', [RencanaPemeliharaanMesinController::class, 'update']);
         Route::delete('/rencana-pemeliharaan/{id}', [RencanaPemeliharaanMesinController::class, 'destroy']);
@@ -420,7 +423,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/mesin-produksi/{id}/part-mapping', [MesinProduksiController::class, 'getPartMapping']);
     });
 
-    Route::middleware('permission:manage_pemeliharaan_mesin')->group(function () {
+    Route::middleware('permission:manage_pemeliharaan_mesin|manage_peta_part')->group(function () {
     Route::put('/mesin-produksi/{id}/part-mapping', [MesinProduksiController::class, 'savePartMapping']);
     Route::post('/mesin-produksi/{id}/upload-gambar', [MesinProduksiController::class, 'uploadGambar']);
     });

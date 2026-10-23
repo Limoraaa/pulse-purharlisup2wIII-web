@@ -108,6 +108,10 @@ export default function PermissionMatrix() {
           managePerms: ['process_pemeliharaan_mesin', 'manage_pemeliharaan_mesin'],
           catatPerms: ['process_pemeliharaan_mesin'],
         },
+        // Izin tambahan, terpisah dari level modul di atas (dipakai role PIC Mesin)
+        { key: 'manage_peta_part', label: 'Atur Peta Part', hint: 'Unggah gambar, tambah/edit titik part & poin checklist di semua mesin', type: 'switch' },
+        { key: 'manage_plotting_operasional', label: 'Kelola Plotting Jadwal', hint: 'Tambah, ubah, hapus Plotting Jadwal Operasional (tanpa edit/hapus catatan aktivitas)', type: 'switch' },
+        { key: 'manage_rencana_pemeliharaan', label: 'Kelola Rencana Pemeliharaan', hint: 'Tambah, ubah, hapus Rencana Pemeliharaan', type: 'switch' },
       ],
     },
     {

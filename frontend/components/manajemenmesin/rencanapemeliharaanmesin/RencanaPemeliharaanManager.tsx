@@ -230,7 +230,8 @@ const StatCard = ({ label, value, tone, icon }: StatCardProps) => (
 );
 
 const RencanaPemeliharaanManager = () => {
-  const canManage = usePermission("manage_pemeliharaan_mesin");
+  // Pengelola Pemeliharaan atau izin khusus Rencana Pemeliharaan (mis. PIC Mesin)
+  const canManage = usePermission(["manage_pemeliharaan_mesin", "manage_rencana_pemeliharaan"]);
   const canProcess = usePermission("process_pemeliharaan_mesin");
 
   const today = useMemo(() => new Date(), []);
