@@ -213,6 +213,7 @@ export default function OrderConsumableFormModal({ isOpen, onClose, onSuccess }:
                     }}
                     placeholder="Ketik untuk mencari nama pengusul..."
                     isInvalid={pemintaInvalid}
+                    required
                   />
                   {pemintaInvalid ? (
                     <div className="invalid-feedback d-block">Pilih nama pengusul dari daftar.</div>

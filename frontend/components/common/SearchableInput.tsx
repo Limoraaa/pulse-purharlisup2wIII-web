@@ -42,6 +42,7 @@ interface SearchableInputProps {
   placeholder?: string;
   isInvalid?: boolean;
   disabled?: boolean;
+  required?: boolean;
   maxResults?: number;
 }
 
@@ -55,6 +56,7 @@ export default function SearchableInput({
   placeholder,
   isInvalid,
   disabled,
+  required,
   maxResults = 50,
 }: SearchableInputProps) {
   const [open, setOpen] = useState(false);
@@ -105,6 +107,7 @@ export default function SearchableInput({
         placeholder={placeholder}
         isInvalid={isInvalid}
         disabled={disabled}
+        required={required}
         autoComplete="off"
         onChange={(e) => {
           onInputChange(e.target.value);
