@@ -30,6 +30,10 @@ return new class extends Migration
             $table->text('keterangan')->nullable();
             
             $table->timestamps();
+
+            // Index kolom relasi (PostgreSQL tidak otomatis membuat index untuk foreign key)
+            $table->index('mesin_produksi_id');
+            $table->index('rencana_pemeliharaan_id');
         });
     }
 

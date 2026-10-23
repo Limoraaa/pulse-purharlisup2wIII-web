@@ -16,6 +16,9 @@ return new class extends Migration
             $table->date('tanggal_selesai');
             $table->text('keterangan')->nullable();
             $table->timestamps();
+
+            // Index kolom relasi (PostgreSQL tidak otomatis membuat index untuk foreign key)
+            $table->index('mesin_id');
         });
     }
 
