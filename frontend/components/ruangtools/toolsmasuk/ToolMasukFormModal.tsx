@@ -98,7 +98,7 @@ const ToolMasukFormModal = ({
   const pilihanAlat: SearchableOption[] = toolOptions.map((t) => ({
     value: t.id,
     label: `${t.kodeBarang} — ${t.namaBarang}`,
-    description: keteranganBarang(t.tipe, t.ukuran),
+    description: keteranganBarang({ merk: t.merk, tipe: t.tipe, warna: t.warna, ukuran: t.ukuran }),
   }));
 
   const isMesinStokPenuh = selectedTool?.kategori === "mesin" && selectedTool.stok >= 1;
