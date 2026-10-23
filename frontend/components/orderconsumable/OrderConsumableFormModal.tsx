@@ -9,7 +9,7 @@ import {
   createOrderConsumable 
 } from '/services/orderConsumableService';
 import { useFeedback } from "components/common/FeedbackProvider";
-import SearchableInput, { SearchableOption } from "components/common/SearchableInput";
+import SearchableInput, { SearchableOption, keteranganBarang } from "components/common/SearchableInput";
 
 interface OrderConsumableFormModalProps {
   isOpen: boolean;
@@ -33,14 +33,6 @@ interface OrderItem {
 const labelConsumable = (c: any) =>
   `${c.kode_barang || c.kodeBarang} — ${c.nama_barang || c.namaBarang || c.nama}`;
 
-// Keterangan pembeda di bawah label: tipe & ukuran (hanya yang ada)
-const deskripsiConsumable = (c: any) =>
-  [
-    (c.tipe || c.type) && `Tipe: ${c.tipe || c.type}`,
-    c.ukuran && `Ukuran: ${c.ukuran}`,
-  ]
-    .filter(Boolean)
-    .join(' · ') || undefined;
 
 const getEmptyItem = (): OrderItem => ({
   consumable_id: '',
@@ -123,7 +115,7 @@ export default function OrderConsumableFormModal({ isOpen, onClose, onSuccess }:
   const consumableOptions: SearchableOption[] = consumableList.map((c) => ({
     value: String(c.id),
     label: labelConsumable(c),
-    description: deskripsiConsumable(c),
+    description: keteranganBarang(c.tipe || c.type, c.ukuran),
   }));
 
   // Saat mengetik: nama pengusul baru sah kalau sama persis (tanpa beda huruf besar/kecil)

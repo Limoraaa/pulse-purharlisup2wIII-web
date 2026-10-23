@@ -8,6 +8,13 @@ export interface SearchableOption {
   description?: string; // keterangan tambahan di bawah label (mis. tipe & ukuran)
 }
 
+// Keterangan pembeda barang di bawah label: "Tipe: x · Ukuran: y" (hanya yang ada isinya;
+// "-" dari service dianggap kosong)
+export const keteranganBarang = (tipe?: string | null, ukuran?: string | null): string | undefined => {
+  const ada = (v?: string | null) => Boolean(v && v.trim() && v.trim() !== '-');
+  return [ada(tipe) && `Tipe: ${tipe}`, ada(ukuran) && `Ukuran: ${ukuran}`].filter(Boolean).join(' · ') || undefined;
+};
+
 interface SearchableInputProps {
   options: SearchableOption[];
   inputValue: string;
@@ -15,6 +22,7 @@ interface SearchableInputProps {
   onSelect: (option: SearchableOption) => void;
   placeholder?: string;
   isInvalid?: boolean;
+  disabled?: boolean;
   maxResults?: number;
 }
 
@@ -27,6 +35,7 @@ export default function SearchableInput({
   onSelect,
   placeholder,
   isInvalid,
+  disabled,
   maxResults = 50,
 }: SearchableInputProps) {
   const [open, setOpen] = useState(false);
@@ -76,6 +85,7 @@ export default function SearchableInput({
         value={inputValue}
         placeholder={placeholder}
         isInvalid={isInvalid}
+        disabled={disabled}
         autoComplete="off"
         onChange={(e) => {
           onInputChange(e.target.value);

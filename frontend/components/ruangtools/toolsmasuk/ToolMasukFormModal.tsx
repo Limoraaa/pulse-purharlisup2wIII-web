@@ -7,6 +7,7 @@ import { IconTruckDelivery, IconPencil, IconPlus } from "@tabler/icons-react";
 // import custom types
 import { ToolItemType } from "types/DataToolsTypes";
 import { ToolMasukType, ToolMasukFormValues } from "types/DataToolsTypes";
+import SearchableInput, { SearchableOption, keteranganBarang } from "components/common/SearchableInput";
 
 // Tampilan "16 Juli 2026, 14:32" dari timestamp ISO
 const formatTanggalJam = (iso: string): string => {
@@ -94,6 +95,12 @@ const ToolMasukFormModal = ({
     }));
   };
 
+  const pilihanAlat: SearchableOption[] = toolOptions.map((t) => ({
+    value: t.id,
+    label: `${t.kodeBarang} — ${t.namaBarang}`,
+    description: keteranganBarang(t.tipe, t.ukuran),
+  }));
+
   const isMesinStokPenuh = selectedTool?.kategori === "mesin" && selectedTool.stok >= 1;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -178,18 +185,20 @@ const ToolMasukFormModal = ({
               </Col>
               <Col md={6}>
                 <Form.Label>Kode Barang</Form.Label>
-                <Form.Control
-                  required
-                  list="tool-options"
+                <SearchableInput
+                  options={pilihanAlat}
                   placeholder="Ketik atau pilih kode barang..."
                   disabled={isEditMode}
-                  value={
+                  inputValue={
                     form.tool_id
                       ? `${form.kode_barang} — ${form.nama_barang}`
                       : toolSearchText
                   }
-                  onChange={(e) => {
-                    const typed = e.target.value;
+                  onSelect={(o) => {
+                    setToolSearchText(o.label);
+                    handleSelectTool(o.value);
+                  }}
+                  onInputChange={(typed) => {
                     setToolSearchText(typed);
 
                     const match = toolOptions.find(
@@ -211,11 +220,6 @@ const ToolMasukFormModal = ({
                     }
                   }}
                 />
-                <datalist id="tool-options">
-                  {toolOptions.map((t) => (
-                    <option key={t.id} value={`${t.kodeBarang} — ${t.namaBarang}`} />
-                  ))}
-                </datalist>
               </Col>
 
               <Col md={6}>
