@@ -16,6 +16,8 @@ const formatNumber = (n: number) => n.toLocaleString("en-US");
 
 interface ColumnHandlers {
   canManage?: boolean;
+  // Tombol masuk keranjang mengikuti izin Transaksi (server: process_transaksi), bukan izin Inventaris
+  canAddToCart?: boolean;
   onDetail: (consumable: ConsumableItemType) => void;
   onEdit: (consumable: ConsumableItemType) => void;
   onDelete: (consumable: ConsumableItemType) => void;
@@ -27,6 +29,7 @@ interface ColumnHandlers {
 
 export const getConsumableColumns = ({
   canManage = false,
+  canAddToCart = false,
   onDetail,
   onEdit,
   onDelete,
@@ -187,7 +190,7 @@ export const getConsumableColumns = ({
 
  return (
         <div className="dataconsumable-action-cell">
-          {canManage && (
+          {canAddToCart && (
             <div className="dataconsumable-action-main">
             {/* Tombol Utama: Ambil Bahan */}
             <button

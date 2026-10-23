@@ -24,6 +24,8 @@ const kondisiVariant = (kondisi: ToolCondition) => {
 
 interface ColumnHandlers {
   canManage?: boolean;
+  // Tombol masuk keranjang mengikuti izin Transaksi (server: process_transaksi), bukan izin Inventaris
+  canAddToCart?: boolean;
   onDetail: (tool: ToolItemType) => void;
   onEdit: (tool: ToolItemType) => void;
   onDelete: (tool: ToolItemType) => void;
@@ -33,6 +35,7 @@ interface ColumnHandlers {
 
 export const getDataToolsColumns = ({
   canManage = false,
+  canAddToCart = false,
   onDetail,
   onEdit,
   onDelete,
@@ -205,7 +208,7 @@ export const getDataToolsColumns = ({
 
       return (
         <div className="datatools-action-cell">
-          {canManage && (
+          {canAddToCart && (
             <div className="datatools-action-main">
               <button
                 type="button"

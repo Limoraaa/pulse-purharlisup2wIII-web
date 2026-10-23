@@ -13,6 +13,8 @@ interface ColumnHandlers {
   onDeactivate: (item: UserItemType) => void;
   onActivate: (item: UserItemType) => void;
   onResetPassword: (item: UserItemType) => void;
+  // Akun yang sedang login: tidak bisa menghapus dirinya sendiri
+  currentUserId?: string | null;
 }
 
 // Peta warna role diambil dari database (lihat DataUserManager), bukan hardcode di sini.
@@ -29,6 +31,7 @@ export const getDataUserColumns = ({
   onDeactivate,
   onActivate,
   onResetPassword,
+  currentUserId = null,
 }: ColumnHandlers): ColumnDef<UserItemType>[] => {
   const baseColumns: ColumnDef<UserItemType>[] = [
     {
@@ -92,7 +95,7 @@ export const getDataUserColumns = ({
           >
             <Dropdown.Item onClick={() => onEdit(target)}>Edit</Dropdown.Item>
             <Dropdown.Item onClick={() => onResetPassword(target)}>Reset Password</Dropdown.Item>
-            {target.is_active && (
+            {target.is_active && String(target.id) !== currentUserId && (
               <Dropdown.Item className="text-danger" onClick={() => onDeactivate(target)}>
                 Hapus
               </Dropdown.Item>

@@ -199,7 +199,8 @@ const DataUserManager = () => {
     if (!activeUser) return;
     try {
       await deleteUser(activeUser.id);
-      setUsers((prev) => prev.filter((u) => u.id !== activeUser.id));
+      // Server menonaktifkan user (bisa dipulihkan), jadi tetap disimpan di daftar dengan status nonaktif
+      setUsers((prev) => prev.map((u) => (u.id === activeUser.id ? { ...u, is_active: false } : u)));
       showSuccess("User berhasil dihapus.");
     } catch (err) {
       notify(err instanceof Error ? err.message : "Gagal menghapus user");
@@ -253,6 +254,7 @@ const DataUserManager = () => {
       onDeactivate: openDeactivateModal,
       onActivate: openActivateModal,
       onResetPassword: openResetModal,
+      currentUserId: typeof window !== "undefined" ? localStorage.getItem("userId") : null,
     }),
   [isAdmin, roleColorMap]
 );

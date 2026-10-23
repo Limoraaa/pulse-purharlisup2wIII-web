@@ -170,10 +170,21 @@ export async function getRiwayatPeminjaman(): Promise<RiwayatPeminjamanType[]> {
     .map(mapRiwayatFromApi);
 }
 
-export async function tandaiDikembalikan(id: string, jumlahDikembalikan?: number): Promise<void> {
+export interface KerusakanPengembalian {
+  status: "bisa_diperbaiki" | "rusak_permanen";
+  jumlah: number;
+  keterangan?: string;
+}
+
+// Unit rusak (opsional) dicatat ke Laporan Kerusakan oleh server dalam transaksi yang sama
+export async function tandaiDikembalikan(
+  id: string,
+  jumlahDikembalikan?: number,
+  kerusakan: KerusakanPengembalian[] = []
+): Promise<void> {
   await apiFetch(`/peminjaman/${id}/kembali`, {
     method: "PATCH",
-    body: JSON.stringify({ jumlah_dikembalikan: jumlahDikembalikan }),
+    body: JSON.stringify({ jumlah_dikembalikan: jumlahDikembalikan, kerusakan }),
   });
 }
 

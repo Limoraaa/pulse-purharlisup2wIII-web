@@ -11,7 +11,7 @@ return new class extends Migration
     {
         Schema::create('consumables', function (Blueprint $table) {
             $table->uuid('id')->default(DB::raw('gen_random_uuid()'))->primary();
-            $table->string('kode_barang')->unique();
+            $table->string('kode_barang'); // unik hanya di antara yang aktif (index parsial di bawah)
             $table->string('nama');
             $table->string('merk')->nullable();
             $table->string('type')->nullable();
@@ -23,6 +23,9 @@ return new class extends Migration
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
+
+        // Kode barang boleh dipakai lagi setelah consumable lama dihapus (dinonaktifkan), sama seperti tools
+        DB::statement('CREATE UNIQUE INDEX consumables_kode_barang_active_unique ON consumables (kode_barang) WHERE is_active = true');
     }
 
      public function down(): void

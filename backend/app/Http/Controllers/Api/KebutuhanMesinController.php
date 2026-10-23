@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Rules\MesinAktif;
 use App\Http\Controllers\Controller;
 use App\Models\KebutuhanMesin;
 use Illuminate\Http\Request;
@@ -45,7 +46,7 @@ class KebutuhanMesinController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate(
-            ['mesin_produksi_id' => 'required|integer|exists:mesin_produksi,id'] + $this->aturan(),
+            ['mesin_produksi_id' => ['required', 'integer', new MesinAktif()]] + $this->aturan(),
             self::PESAN
         );
 

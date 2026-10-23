@@ -2,17 +2,24 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Rules\MesinAktif;
 use App\Http\Controllers\Controller;
 use App\Models\LogAktivitasMesin;
 use Illuminate\Http\Request;
 
 class LogAktivitasMesinController extends Controller
 {
+    private const PESAN = [
+        'waktu_mulai.date_format' => 'Format jam mulai harus JJ:MM, mis. 08:00.',
+        'waktu_selesai.date_format' => 'Format jam selesai harus JJ:MM, mis. 16:30.',
+        'jumlah.min' => 'Jumlah tidak boleh negatif.',
+    ];
+
     // Mengambil semua log aktivitas atau berdasarkan mesin_id
     public function index(Request $request)
     {
-        // Menarik relasi 'mesin' untuk kebutuhan tabel global
-        $query = LogAktivitasMesin::with('mesin');
+        // Menarik relasi mesin untuk kebutuhan tabel global
+        $query = LogAktivitasMesin::with('mesinProduksi');
         
         if ($request->has('mesin_id')) {
             $query->where('mesin_produksi_id', $request->mesin_id);
@@ -37,15 +44,15 @@ class LogAktivitasMesinController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'mesin_produksi_id' => 'required|exists:mesin_produksi,id',
+            'mesin_produksi_id' => ['required', new MesinAktif()],
             'operator_pelaksana' => 'required|string|max:255',
             'uraian_pekerjaan' => 'required|string',
             'tanggal' => 'required|date',
-            'waktu_mulai' => 'required',
-            'waktu_selesai' => 'required',
-            'jumlah' => 'required|integer',
+            'waktu_mulai' => 'required|date_format:H:i,H:i:s',
+            'waktu_selesai' => 'required|date_format:H:i,H:i:s',
+            'jumlah' => 'required|integer|min:0',
             'pemeriksa' => 'required|string|max:255',
-        ]);
+        ], self::PESAN);
 
         $log = LogAktivitasMesin::create($validated);
 
@@ -69,11 +76,11 @@ class LogAktivitasMesinController extends Controller
             'operator_pelaksana' => 'required|string|max:255',
             'uraian_pekerjaan' => 'required|string',
             'tanggal' => 'required|date',
-            'waktu_mulai' => 'required',
-            'waktu_selesai' => 'required',
-            'jumlah' => 'required|integer',
+            'waktu_mulai' => 'required|date_format:H:i,H:i:s',
+            'waktu_selesai' => 'required|date_format:H:i,H:i:s',
+            'jumlah' => 'required|integer|min:0',
             'pemeriksa' => 'required|string|max:255',
-        ]);
+        ], self::PESAN);
 
         $log->update($validated);
 

@@ -150,9 +150,10 @@ class MotorKonversiController extends Controller
                 'data' => $motor
             ], 200);
         } catch (\Exception $e) {
+            report($e); // detail error masuk log server, tidak dikirim ke pengguna
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal mengubah status: ' . $e->getMessage()
+                'message' => 'Gagal mengubah status. Silakan coba lagi atau hubungi Admin.'
             ], 500);
         }
     }
@@ -183,7 +184,7 @@ class MotorKonversiController extends Controller
             'parts' => 'nullable|array'
         ]);
 
-        $motor->gambar_url = $request->gambarUrl;
+        $motor->gantiGambarPeta($request->gambarUrl, 'motor-mapping');
         // Encode dari Array ke JSON string untuk disimpan di database
         $motor->part_mapping = json_encode($request->parts);
         $motor->save();
@@ -201,19 +202,10 @@ class MotorKonversiController extends Controller
         ]);
 
         if ($request->hasFile('gambar')) {
-            // Hapus gambar blueprint lama jika sebelumnya sudah ada
-            if ($motor->gambar_url) {
-                $oldPath = str_replace(asset('storage/') . '/', '', $motor->gambar_url);
-                Storage::disk('public')->delete($oldPath);
-            }
-
-            // Simpan gambar baru ke folder storage/app/public/motor-mapping
+            // Hanya menyimpan file; gambar peta baru dipakai (dan yang lama dihapus) saat mapping disimpan,
+            // sehingga membatalkan editor tidak mengubah peta yang sudah ada
             $path = $request->file('gambar')->store('motor-mapping', 'public');
             $url = asset('storage/' . $path);
-            
-            // Simpan URL gambar ke database
-            $motor->gambar_url = $url;
-            $motor->save();
 
             return response()->json(['url' => $url], 200);
         }

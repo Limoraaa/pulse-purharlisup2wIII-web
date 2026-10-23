@@ -121,6 +121,7 @@ const DataToolsManager = () => {
   const dispatch = useAppDispatch();
   const { mutate } = useSWRConfig();
   const canManage = usePermission("manage_inventaris");
+  const canAddToCart = usePermission("process_transaksi");
 
   // Data tools dari Redux store
   const tools = useAppSelector((state) => state.inventoryTools.tools);
@@ -655,6 +656,7 @@ const DataToolsManager = () => {
     () =>
       getDataToolsColumns({
         canManage,
+        canAddToCart,
         onDetail: openDetailModal,
         onEdit: openEditModal,
         onDelete: openDeleteModal,
@@ -678,7 +680,7 @@ const DataToolsManager = () => {
         // Siklus klik: Neutral → Asc → Desc → Asc (tidak kembali neutral)
         enableSortingRemoval: false,
       })),
-    [cart, handleAddToCart, canManage]
+    [cart, handleAddToCart, canManage, canAddToCart]
   );
 
   return (

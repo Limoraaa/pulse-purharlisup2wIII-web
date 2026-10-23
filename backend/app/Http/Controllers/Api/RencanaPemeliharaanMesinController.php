@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Rules\MesinAktif;
 use App\Http\Controllers\Controller;
 use App\Models\KalibrasiMesin;
 use App\Models\LogPemeliharaanMesin;
@@ -95,12 +96,12 @@ class RencanaPemeliharaanMesinController extends Controller
     private function rules(): array
     {
         return [
-            'mesin_id'   => ['required', 'exists:mesin_produksi,id'],
+            'mesin_id'   => ['required', new MesinAktif()],
             'tahun'      => ['required', 'integer', 'between:2000,2100'],
             'bulan'      => ['required', 'integer', 'between:1,12'],
             'minggu'     => ['required', 'integer', 'between:1,4'],
             'aksi'       => ['required', Rule::in(['C', 'L', 'P', 'M'])],
-            'rab'        => ['sometimes', 'nullable', 'integer', 'min:0'],
+            'rab'        => ['sometimes', 'integer', 'min:0'], // kolom NOT NULL (default 0): tidak boleh dikirim kosong
             'keterangan' => ['nullable', 'string', 'max:1000'],
             'jenis_pelaksana' => ['sometimes', Rule::in(['Internal', 'Vendor'])],
         ];

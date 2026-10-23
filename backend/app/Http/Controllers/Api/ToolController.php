@@ -137,6 +137,15 @@ class ToolController extends Controller
                 ], 422);
             }
 
+            // Stok tidak boleh lebih kecil dari unit yang sedang dipinjam
+            $dipinjam = $tool->sedangDipinjam();
+            if ($stokAkhir < $dipinjam) {
+                return response()->json([
+                    'message' => "Stok tidak boleh kurang dari jumlah yang sedang dipinjam ({$dipinjam} unit).",
+                    'errors' => ['stok' => ["Minimal {$dipinjam} (sedang dipinjam)."]],
+                ], 422);
+            }
+
             $tool->update($validated);
 
             return response()->json([
@@ -170,10 +179,10 @@ class ToolController extends Controller
             'jumlah' => 'required|integer|min:1',
         ]);
 
-        // jangan sampai stok jadi negatif
-        if ($validated['jumlah'] > $tool->stok) {
+        // jangan sampai stok jadi negatif: bandingkan dengan unit di gudang (stok dikurangi yang sedang dipinjam)
+        if ($validated['jumlah'] > $tool->tersedia()) {
             return response()->json([
-                'message' => "Jumlah melebihi stok yang ada. Stok saat ini: {$tool->stok}",
+                'message' => "Jumlah melebihi stok tersedia. Tersedia saat ini: {$tool->tersedia()}",
             ], 422);
         }
 

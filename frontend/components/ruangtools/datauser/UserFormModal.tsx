@@ -10,7 +10,8 @@ const emptyForm: UserFormValues = {
   full_name: "",
   username: "",
   password: "",
-  role: "Staff", // Diubah menggunakan huruf kapital awal agar sesuai database
+  // Kosong = wajib dipilih; nilai lama "Staff" bukan nama role yang ada di database ("Staff Tools")
+  role: "" as UserRole,
   divisi: "",
 };
 
@@ -156,7 +157,9 @@ const UserFormModal = ({
                 <Form.Select
                   value={form.role}
                   onChange={(e) => handleChange("role", e.target.value as UserRole)}
+                  required
                 >
+                  <option value="" disabled>Pilih role...</option>
                   {roleOptions.map((roleName) => (
                     <option key={roleName} value={roleName}>{roleName}</option>
                   ))}

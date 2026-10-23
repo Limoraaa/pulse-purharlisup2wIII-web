@@ -63,8 +63,8 @@ const SignIn = () => {
       localStorage.setItem("userId", data.user.id);
       localStorage.setItem("userName", data.user.full_name);
       localStorage.setItem("userRole", data.user.role);
-      // Buang data akun sebelumnya (foto & cache hak akses) agar tidak terbawa
-      localStorage.removeItem("userAvatarUrl");
+      // Buang data akun sebelumnya (foto, keranjang & cache hak akses) agar tidak terbawa
+      ["userAvatarUrl", "global_shared_tools_cart", "global_shared_consumable_cart"].forEach((k) => localStorage.removeItem(k));
       clearPermissions();
 
       router.push("/");

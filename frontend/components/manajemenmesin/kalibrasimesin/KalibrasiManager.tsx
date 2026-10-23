@@ -1,4 +1,5 @@
 "use client";
+import { sudahLewat } from "lib/tanggal";
 import React, { useMemo, useState } from "react";
 import useSWR from "swr";
 import { Row, Col, Card, CardBody, Button, InputGroup, Form, Badge, Spinner, Alert } from "react-bootstrap";
@@ -114,7 +115,7 @@ const KalibrasiManager = () => {
         header: "Jatuh Tempo",
         accessorKey: "tanggal_jatuh_tempo",
         cell: ({ row }) => {
-          const isOverdue = new Date(row.original.tanggal_jatuh_tempo) < new Date();
+          const isOverdue = sudahLewat(row.original.tanggal_jatuh_tempo);
           return (
             <span className={isOverdue ? "text-danger fw-semibold" : ""}>
               {formatDate(row.original.tanggal_jatuh_tempo)}

@@ -196,7 +196,9 @@ class MesinProduksiController extends Controller
             'parts.*.oli.*.required_with' => 'Merek, jenis, dan kode oli wajib diisi untuk part yang memakai oli.',
         ]);
 
-        $mesin->gambar_url = $validated['gambarUrl'] ?? $mesin->gambar_url;
+        if (array_key_exists('gambarUrl', $validated) && $validated['gambarUrl'] !== null) {
+            $mesin->gantiGambarPeta($validated['gambarUrl'], 'mesin-produksi');
+        }
         $mesin->part_mapping = $validated['parts'];
         $mesin->save();
 

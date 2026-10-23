@@ -114,7 +114,8 @@ export const fetchMesinOptions = async (): Promise<MesinOption[]> => {
     method: "GET",
     headers: authHeaders(),
   });
-  return unwrap(json).map((m) => ({
+  // Mesin nonaktif tidak bisa dibuatkan rencana baru
+  return unwrap(json).filter((m) => m.status !== "Tidak Aktif").map((m) => ({
     id: String(m.id),
     kodeMesin: m.kode_mesin ?? m.kodeMesin ?? "-",
     namaMesin: m.nama_mesin ?? m.namaMesin ?? "-",

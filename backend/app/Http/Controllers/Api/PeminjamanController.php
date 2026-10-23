@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Peminjaman;
 use App\Models\Tool;
 use App\Models\Consumable;
+use App\Models\LaporanKerusakanTools;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -329,40 +330,79 @@ class PeminjamanController extends Controller
 
         $validator = Validator::make($request->all(), [
             'jumlah_dikembalikan' => 'nullable|integer|min:1|max:' . $peminjaman->jumlah,
+            // Unit rusak yang ikut dikembalikan: laporan kerusakannya dibuat dalam transaksi yang sama
+            'kerusakan' => 'nullable|array',
+            'kerusakan.*.status' => 'required|in:bisa_diperbaiki,rusak_permanen',
+            'kerusakan.*.jumlah' => 'required|integer|min:1',
+            'kerusakan.*.keterangan' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $jumlahDikembalikan = $validator->validated()['jumlah_dikembalikan'] ?? $peminjaman->jumlah;
+        $validated = $validator->validated();
+        $jumlahDikembalikan = $validated['jumlah_dikembalikan'] ?? $peminjaman->jumlah;
+        $kerusakan = $validated['kerusakan'] ?? [];
 
-        $hasilRecord = DB::transaction(function () use ($peminjaman, $jumlahDikembalikan) {
-            if ($jumlahDikembalikan >= $peminjaman->jumlah) {
-                $peminjaman->update(['tanggal_kembali' => now()]);
-                return $peminjaman;
+        if (array_sum(array_column($kerusakan, 'jumlah')) > $jumlahDikembalikan) {
+            return response()->json([
+                'message' => 'Jumlah unit rusak melebihi jumlah yang dikembalikan.',
+            ], 422);
+        }
+
+        $hasilRecord = DB::transaction(function () use ($peminjaman, $jumlahDikembalikan, $kerusakan) {
+            $record = $this->catatPengembalian($peminjaman, $jumlahDikembalikan);
+
+            // Unit rusak langsung keluar dari stok siap pakai dan tercatat di Laporan Kerusakan,
+            // tertaut ke record pengembalian (bukan ke sisa pinjaman yang masih berjalan)
+            foreach ($kerusakan as $k) {
+                $tool = Tool::lockForUpdate()->findOrFail($peminjaman->tool_id);
+                $tool->stok -= $k['jumlah'];
+                $tool->save();
+
+                LaporanKerusakanTools::create([
+                    'tanggal' => now(),
+                    'tool_id' => $peminjaman->tool_id,
+                    'peminjaman_id' => $record->id,
+                    'jumlah' => $k['jumlah'],
+                    'keterangan' => $k['keterangan'] ?? null,
+                    'status' => $k['status'],
+                    'dilaporkan_oleh' => auth()->id(),
+                ]);
             }
 
-            $peminjaman->decrement('jumlah', $jumlahDikembalikan);
-
-            return Peminjaman::create([
-                'id' => (string) Str::uuid(),
-                'tool_id' => $peminjaman->tool_id,
-                'peminta_id' => $peminjaman->peminta_id,
-                'dicatat_oleh' => $peminjaman->dicatat_oleh,
-                'tanggal' => $peminjaman->tanggal,
-                'jumlah' => $jumlahDikembalikan,
-                'nama_pekerjaan' => $peminjaman->nama_pekerjaan,
-                'area_pekerjaan' => $peminjaman->area_pekerjaan,
-                'spesifikasi' => $peminjaman->spesifikasi,
-                'keterangan' => $peminjaman->keterangan,
-                'tanggal_kembali' => now(),
-            ]);
+            return $record;
         });
 
         return response()->json([
             'message' => 'Alat berhasil ditandai dikembalikan',
             'data' => $hasilRecord->load('tool'),
+        ]);
+    }
+
+    // Tandai kembali seluruhnya, atau pecah record bila hanya sebagian yang dikembalikan
+    private function catatPengembalian(Peminjaman $peminjaman, int $jumlahDikembalikan): Peminjaman
+    {
+        if ($jumlahDikembalikan >= $peminjaman->jumlah) {
+            $peminjaman->update(['tanggal_kembali' => now()]);
+            return $peminjaman;
+        }
+
+        $peminjaman->decrement('jumlah', $jumlahDikembalikan);
+
+        return Peminjaman::create([
+            'id' => (string) Str::uuid(),
+            'tool_id' => $peminjaman->tool_id,
+            'peminta_id' => $peminjaman->peminta_id,
+            'dicatat_oleh' => $peminjaman->dicatat_oleh,
+            'tanggal' => $peminjaman->tanggal,
+            'jumlah' => $jumlahDikembalikan,
+            'nama_pekerjaan' => $peminjaman->nama_pekerjaan,
+            'area_pekerjaan' => $peminjaman->area_pekerjaan,
+            'spesifikasi' => $peminjaman->spesifikasi,
+            'keterangan' => $peminjaman->keterangan,
+            'tanggal_kembali' => now(),
         ]);
     }
 

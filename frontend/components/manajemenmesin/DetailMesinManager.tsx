@@ -1,4 +1,5 @@
 'use client';
+import { tanggalLokal, sudahLewat } from "lib/tanggal";
 import React, { useState, useEffect, useCallback } from 'react';
 import useSWR, { mutate } from 'swr';
 import { Row, Col, Card, CardBody, Button, Badge, Table, Spinner, Alert, Dropdown, Modal, Form } from 'react-bootstrap';
@@ -164,6 +165,8 @@ export default function DetailMesinManager({
 
   // HIRARC berlaku untuk semua mesin dan hanya dikelola oleh pengelola Pemeliharaan
   const canManageHirarc = usePermission('manage_pemeliharaan_mesin');
+  // Mesin nonaktif: riwayat tetap bisa dilihat, tetapi tidak bisa ditambah catatan/rencana/kalibrasi baru
+  const mesinAktif = mesin.status !== 'Tidak Aktif';
   // Level "Isi catatan" (pekerja/vendor) maupun "Kelola penuh" boleh menambah catatan aktivitas
   const canCatatAktivitas = usePermission(['process_operasional_mesin', 'manage_operasional_mesin']);
   // Kalibrasi hanya dicatat pengelola Pemeliharaan; pekerja/vendor cukup melihat
@@ -306,7 +309,7 @@ export default function DetailMesinManager({
     const userName = localStorage.getItem("userName") || "";
     setOperator(userName);
     setUraianAkt("");
-    setTglAkt(new Date().toISOString().split("T")[0]);
+    setTglAkt(tanggalLokal());
     setJamMulai("08:00");
     setJamSelesai("16:00");
     setJumlahAkt(1);
@@ -466,6 +469,12 @@ export default function DetailMesinManager({
         </Button>
       </div>
 
+      {!mesinAktif && (
+        <Alert variant="secondary" className="py-2 small">
+          Mesin ini sudah <strong>tidak aktif</strong>. Riwayatnya tetap bisa dilihat, tetapi tidak bisa ditambah catatan, rencana, atau kalibrasi baru.
+        </Alert>
+      )}
+
       <Card className="mb-4 shadow-sm border-0">
         <CardBody className="p-4">
           <Row className="align-items-center g-4">
@@ -618,7 +627,7 @@ export default function DetailMesinManager({
                     </Dropdown.Menu>
                   </Dropdown>
 
-                  {canCatatAktivitas && (
+                  {canCatatAktivitas && mesinAktif && (
                     <Button 
                       variant="primary" 
                       size="sm" 
@@ -729,7 +738,7 @@ export default function DetailMesinManager({
               {mesinId && (
                 <RencanaMesinCard
                   mesinId={mesinId}
-                  canProcess={canProcess}
+                  canProcess={canProcess && mesinAktif}
                   onKerjakan={handleKerjakanRencana}
                   bolehKerjakan={bolehKerjakanRencana}
                 />
@@ -755,7 +764,7 @@ export default function DetailMesinManager({
                       <IconMap size={14} /> Peta Part
                     </Button>
                   )}
-                  {canProcess && (
+                  {canProcess && mesinAktif && (
                     <Button
                       variant="primary"
                       size="sm"
@@ -897,7 +906,7 @@ export default function DetailMesinManager({
               {mesinId && (
                 <RencanaMesinCard
                   mesinId={mesinId}
-                  canProcess={canProcess}
+                  canProcess={canProcess && mesinAktif}
                   onKerjakan={handleKerjakanRencana}
                   bolehKerjakan={bolehKerjakanRencana}
                 />
@@ -908,7 +917,7 @@ export default function DetailMesinManager({
                   <IconAdjustments size={18} /> Riwayat Kalibrasi Mesin
                 </h5>
                 <div className="d-flex gap-2 flex-wrap w-100 w-md-auto justify-content-center">
-                  {canManage && (
+                  {canManage && mesinAktif && (
                     <Button 
                       variant="primary" 
                       size="sm" 
@@ -955,7 +964,7 @@ export default function DetailMesinManager({
                       </tr>
                     ) : (
                       kalibrasiData.map((kal: any, index: number) => {
-                        const isOverdue = new Date(kal.tanggal_jatuh_tempo) < new Date();
+                        const isOverdue = sudahLewat(kal.tanggal_jatuh_tempo);
                         let bg = "secondary";
                         if (kal.hasil_status === "Lulus") bg = "success";
                         if (kal.hasil_status === "Perlu Penyesuaian") bg = "warning";
@@ -1039,7 +1048,7 @@ export default function DetailMesinManager({
           )}
 
           {activeTab === 'kebutuhan' && mode === 'pemeliharaan' && mesinId && (
-            <KebutuhanMesinPanel mesinId={mesinId} canManage={canManage} />
+            <KebutuhanMesinPanel mesinId={mesinId} canManage={canManage && mesinAktif} />
           )}
         </CardBody>
       </Card>

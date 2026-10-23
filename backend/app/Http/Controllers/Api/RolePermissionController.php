@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use App\Models\Role;
 use Spatie\Permission\Models\Permission;
 
@@ -144,16 +145,21 @@ class RolePermissionController extends Controller
             'roles' => 'required|array',
             'roles.*.id' => 'required|exists:roles,id',
             'roles.*.permissions' => 'array',
+            // Nama permission yang tidak dikenal ditolak di sini (bukan error 500 di tengah penyimpanan)
+            'roles.*.permissions.*' => 'string|exists:permissions,name',
         ]);
 
-        foreach ($request->roles as $roleData) {
-            $role = Role::find($roleData['id']);
-            if ($role) {
-                // syncPermissions akan otomatis menimpa hak akses lama dengan array yang baru dikirim
-                // Gunakan coalesce (?? []) agar tidak error jika permissions kosong
-                $role->syncPermissions($roleData['permissions'] ?? []);
+        // Semua role disimpan sekaligus: gagal satu, batal semua
+        DB::transaction(function () use ($request) {
+            foreach ($request->roles as $roleData) {
+                $role = Role::find($roleData['id']);
+                if ($role) {
+                    // syncPermissions akan otomatis menimpa hak akses lama dengan array yang baru dikirim
+                    // Gunakan coalesce (?? []) agar tidak error jika permissions kosong
+                    $role->syncPermissions($roleData['permissions'] ?? []);
+                }
             }
-        }
+        });
 
         return response()->json(['message' => 'Matriks hak akses berhasil diperbarui!']);
     }

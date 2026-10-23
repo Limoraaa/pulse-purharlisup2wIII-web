@@ -165,16 +165,26 @@ class ConsumableMasukController extends Controller
             return response()->json(['message' => 'Data consumable masuk tidak ditemukan'], 404);
         }
 
-        DB::transaction(function () use ($consumableMasuk) {
-            $consumable = Consumable::lockForUpdate()->find($consumableMasuk->consumable_id);
+        try {
+            DB::transaction(function () use ($consumableMasuk) {
+                $consumable = Consumable::lockForUpdate()->find($consumableMasuk->consumable_id);
 
-            if ($consumable) {
-                $consumable->stok_tersedia -= $consumableMasuk->jumlah_masuk;
-                $consumable->save();
-            }
+                if ($consumable) {
+                    // Barang dari transaksi ini mungkin sudah dikeluarkan: jangan sampai stok minus
+                    if ($consumable->stok_tersedia < $consumableMasuk->jumlah_masuk) {
+                        throw new \RuntimeException(
+                            "Data tidak dapat dihapus: stok tersedia ({$consumable->stok_tersedia}) lebih kecil dari jumlah masuk ({$consumableMasuk->jumlah_masuk})."
+                        );
+                    }
+                    $consumable->stok_tersedia -= $consumableMasuk->jumlah_masuk;
+                    $consumable->save();
+                }
 
-            $consumableMasuk->delete();
-        });
+                $consumableMasuk->delete();
+            });
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
 
         return response()->json(['message' => 'Data consumable masuk berhasil dihapus, stok disesuaikan kembali']);
     }
