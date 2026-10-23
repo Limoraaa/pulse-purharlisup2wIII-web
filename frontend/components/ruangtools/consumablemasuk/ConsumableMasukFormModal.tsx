@@ -100,7 +100,7 @@ const ConsumableMasukFormModal = ({
   const pilihanBarang: SearchableOption[] = consumableOptions.map((c) => ({
     value: c.id,
     label: `${c.kode_barang} — ${c.nama}`,
-    description: keteranganBarang(c.tipe, c.ukuran),
+    description: keteranganBarang({ merk: c.merk, tipe: c.tipe, er_e: c.er_e, ukuran: c.ukuran }),
   }));
 
   const handleSubmit = async (e: React.FormEvent) => {

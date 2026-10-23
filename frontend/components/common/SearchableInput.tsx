@@ -8,11 +8,30 @@ export interface SearchableOption {
   description?: string; // keterangan tambahan di bawah label (mis. tipe & ukuran)
 }
 
-// Keterangan pembeda barang di bawah label: "Tipe: x · Ukuran: y" (hanya yang ada isinya;
-// "-" dari service dianggap kosong)
-export const keteranganBarang = (tipe?: string | null, ukuran?: string | null): string | undefined => {
-  const ada = (v?: string | null) => Boolean(v && v.trim() && v.trim() !== '-');
-  return [ada(tipe) && `Tipe: ${tipe}`, ada(ukuran) && `Ukuran: ${ukuran}`].filter(Boolean).join(' · ') || undefined;
+interface DetailBarang {
+  merk?: string | null;
+  tipe?: string | null;
+  warna?: string | null;
+  er_e?: string | null;
+  ukuran?: string | null;
+}
+
+// Keterangan pembeda barang di bawah label, mis. "Bosch · Tipe: GWS 900 · Ukuran: 4 INCI".
+// Merk di depan tanpa label; detail kosong (atau "-" dari service) tidak ditampilkan.
+// Teks ini juga ikut dicari, jadi mengetik merk/warna/ukuran ikut menyaring.
+export const keteranganBarang = ({ merk, tipe, warna, er_e, ukuran }: DetailBarang): string | undefined => {
+  const isi = (v?: string | null) => (v && v.trim() && v.trim() !== '-' ? v.trim() : '');
+  return (
+    [
+      isi(merk),
+      isi(tipe) && `Tipe: ${isi(tipe)}`,
+      isi(warna) && `Warna: ${isi(warna)}`,
+      isi(er_e) && `ER/E: ${isi(er_e)}`,
+      isi(ukuran) && `Ukuran: ${isi(ukuran)}`,
+    ]
+      .filter(Boolean)
+      .join(' · ') || undefined
+  );
 };
 
 interface SearchableInputProps {
@@ -23,6 +42,7 @@ interface SearchableInputProps {
   placeholder?: string;
   isInvalid?: boolean;
   disabled?: boolean;
+  required?: boolean;
   maxResults?: number;
 }
 
@@ -36,6 +56,7 @@ export default function SearchableInput({
   placeholder,
   isInvalid,
   disabled,
+  required,
   maxResults = 50,
 }: SearchableInputProps) {
   const [open, setOpen] = useState(false);
@@ -86,6 +107,7 @@ export default function SearchableInput({
         placeholder={placeholder}
         isInvalid={isInvalid}
         disabled={disabled}
+        required={required}
         autoComplete="off"
         onChange={(e) => {
           onInputChange(e.target.value);
