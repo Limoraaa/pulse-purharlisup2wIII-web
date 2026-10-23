@@ -12,6 +12,7 @@ import {
   IconAlertTriangle, 
   IconPackages,
   IconMapPin,
+  IconDroplet,
   IconCalendarEvent,
   IconClipboardList,
   IconMapPin as IconMap,  
@@ -56,6 +57,8 @@ interface MesinProps {
     kode?: string;
     kode_mesin?: string;
     status: string;
+    oli_id?: number | null;
+    oli?: { id: number; kode_oli: string; nama_oli: string; satuan: string } | null;
     lokasi?: string;
     lokasi_ruang?: string;
     foto_katalog?: string | null;
@@ -79,7 +82,19 @@ interface LogItemType {
   jumlah_part_diperiksa?: number | null;
   jumlah_part_total?: number | null;
   aksi?: AksiCode | null;
+  // Pemakaian oli (dari Data Oli) pada kegiatan ini
+  jumlah_oli?: number | string | null;
+  tindakan_oli?: "tambah" | "ganti" | null;
+  oli?: { kode_oli: string; nama_oli: string; satuan: string } | null;
 }
+
+// "Ganti 3 Liter (AX7 - Shell Tellus)" untuk kolom Oli & export
+const labelOliLog = (log: LogItemType) => {
+  if (!log.oli || log.jumlah_oli == null) return "-";
+  const jumlah = Number(log.jumlah_oli).toLocaleString("id-ID", { maximumFractionDigits: 2 });
+  const tindakan = log.tindakan_oli === "ganti" ? "Ganti" : "Tambah";
+  return `${tindakan} ${jumlah} ${log.oli.satuan} (${log.oli.kode_oli} - ${log.oli.nama_oli})`;
+};
 
 interface LogAktivitasType {
   id: number;
@@ -101,6 +116,7 @@ const EXPORT_COLUMNS_LOG: ExportColumn[] = [
   { header: "Uraian Pemeliharaan", key: "uraian_pemeliharaan" },
   { header: "Waktu Pelaksana", key: "waktu_pelaksana" },
   { header: "Keterangan", key: "keterangan" },
+  { header: "Oli", key: "oli_label" },
   { header: "Teknisi", key: "paraf" },
   { header: "Pelaksana", key: "pelaksana" },
 ];
@@ -285,12 +301,12 @@ export default function DetailMesinManager({
   });
 
   const handleExportLogPDF = () => {
-    const dataWithIndex = logs.map((log, index) => ({ no: index + 1, ...log, waktu_pelaksana: formatTanggal(log.waktu_pelaksana), pelaksana: labelPelaksana(log) }));
+    const dataWithIndex = logs.map((log, index) => ({ no: index + 1, ...log, waktu_pelaksana: formatTanggal(log.waktu_pelaksana), pelaksana: labelPelaksana(log), oli_label: labelOliLog(log) }));
     exportToPDF(dataWithIndex as unknown as Record<string, unknown>[], EXPORT_COLUMNS_LOG, `kartu-gantung-${mesinKode}`, "Kartu Gantung Pemeliharaan Mesin", exportLogInfo());
   };
 
   const handleExportLogExcel = () => {
-    const dataWithIndex = logs.map((log, index) => ({ no: index + 1, ...log, waktu_pelaksana: formatTanggal(log.waktu_pelaksana), pelaksana: labelPelaksana(log) }));
+    const dataWithIndex = logs.map((log, index) => ({ no: index + 1, ...log, waktu_pelaksana: formatTanggal(log.waktu_pelaksana), pelaksana: labelPelaksana(log), oli_label: labelOliLog(log) }));
     exportToExcel(dataWithIndex as unknown as Record<string, unknown>[], EXPORT_COLUMNS_LOG, `kartu-gantung-${mesinKode}`, "Kartu Gantung Pemeliharaan Mesin", exportLogInfo());
   };
 
@@ -517,6 +533,12 @@ export default function DetailMesinManager({
 
               <p className="text-secondary small mb-4 d-flex align-items-center justify-content-center justify-content-md-start gap-1">
                 <IconMapPin size={16} className="text-muted" /> Lokasi Penempatan: <strong className="text-body">{mesinLokasi}</strong>
+                {mesin.oli && (
+                  <>
+                    <span className="mx-2 text-muted">·</span>
+                    <IconDroplet size={16} className="text-muted" /> Oli: <strong className="text-body">{mesin.oli.kode_oli} - {mesin.oli.nama_oli}</strong>
+                  </>
+                )}
               </p>
 
               <Row className="g-3 pt-3 border-top">
@@ -792,19 +814,20 @@ export default function DetailMesinManager({
                       <th style={{ width: "12%" }}>Teknisi</th>
                       <th style={{ width: "9%" }}>Part Diperiksa</th>
                       <th style={{ width: "10%" }}>Status</th>
+                      <th style={{ width: "12%" }}>Oli</th>
                       <th className="text-start" style={{ width: "22%" }}>Keterangan</th>
                     </tr>
                   </thead>
                   <tbody>
                     {loadingLogs ? (
                       <tr>
-                        <td colSpan={8} className="text-center py-4 text-muted">
+                        <td colSpan={9} className="text-center py-4 text-muted">
                           <Spinner animation="border" size="sm" className="me-2" /> Memuat riwayat log pemeliharaan...
                         </td>
                       </tr>
                     ) : logs.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="text-center py-5 text-secondary">
+                        <td colSpan={9} className="text-center py-5 text-secondary">
                           <IconHistory size={32} className="mb-2 opacity-50" /><br/>
                           Belum ada catatan log pemeliharaan untuk mesin ini.
                         </td>
@@ -856,6 +879,17 @@ export default function DetailMesinManager({
                                 <Badge bg={badge.bg} text={log.status === "perlu_perhatian" ? "dark" : undefined} className="px-2 py-1 shadow-sm" style={{ minWidth: '95px' }}>
                                   {badge.label}
                                 </Badge>
+                              ) : "-"}
+                            </td>
+                            <td className="text-center">
+                              {log.oli && log.jumlah_oli != null ? (
+                                <>
+                                  <div className="fw-semibold text-nowrap">
+                                    {log.tindakan_oli === "ganti" ? "Ganti" : "Tambah"}{" "}
+                                    {Number(log.jumlah_oli).toLocaleString("id-ID", { maximumFractionDigits: 2 })} {log.oli.satuan}
+                                  </div>
+                                  <div className="small text-muted">{log.oli.kode_oli} - {log.oli.nama_oli}</div>
+                                </>
                               ) : "-"}
                             </td>
                             <td>
@@ -1153,6 +1187,7 @@ export default function DetailMesinManager({
                 ? { jenis: rencanaAktif.jenis_pelaksana ?? "Internal", namaVendor: rencanaAktif.nama_vendor }
                 : null
             }
+            oliStandarId={mesin.oli_id ?? null}
             onSubmitted={() => {
               setShowChecklistModal(false);
               setRencanaAktif(null);

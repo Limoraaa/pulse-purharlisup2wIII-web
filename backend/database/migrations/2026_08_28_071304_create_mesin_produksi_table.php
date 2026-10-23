@@ -19,6 +19,10 @@ return new class extends Migration
             $table->string('foto_katalog')->nullable()->comment('Foto profil mesin untuk tampilan katalog');
             $table->string('gambar_url')->nullable()->comment('Foto blueprint/layout untuk background part mapping');
             $table->json('part_mapping')->nullable()->comment('Data titik koordinat dan checklist part');
+
+            // Oli standar mesin (1 mesin = 1 oli), dipilih dari Data Oli
+            $table->foreignId('oli_id')->nullable()->constrained('olis')->nullOnDelete();
+            $table->index('oli_id');
             
             $table->timestamps();
         });

@@ -28,6 +28,7 @@ return new class extends Migration
                   ->constrained('olis')
                   ->nullOnDelete();
             $table->decimal('jumlah_oli', 8, 2)->nullable();
+            $table->enum('tindakan_oli', ['tambah', 'ganti'])->nullable(); // oli ditambah (top-up) atau diganti semua
             // =============================
 
             // Tindakan: C / L / P / M / K
@@ -52,6 +53,7 @@ return new class extends Migration
             // Index kolom relasi (PostgreSQL tidak otomatis membuat index untuk foreign key)
             $table->index('mesin_produksi_id');
             $table->index('rencana_id');
+            $table->index('oli_id');
         });
     }
 

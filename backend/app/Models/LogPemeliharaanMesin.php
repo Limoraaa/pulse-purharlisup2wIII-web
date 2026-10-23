@@ -29,6 +29,7 @@ class LogPemeliharaanMesin extends Model
         // === Kolom Oli ===
         'oli_id',
         'jumlah_oli',
+        'tindakan_oli',
     ];
 
     protected $casts = [

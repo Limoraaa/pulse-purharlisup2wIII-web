@@ -48,6 +48,8 @@ class LogPemeliharaanMesinController extends Controller
                 'oli_id' => $item->oli_id,
                 'nama_oli' => $item->oli ? $item->oli->nama_oli : null,
                 'jumlah_oli' => $item->jumlah_oli,
+                'tindakan_oli' => $item->tindakan_oli,
+                'satuan_oli' => $item->oli?->satuan,
             ];
         });
 
@@ -159,7 +161,8 @@ class LogPemeliharaanMesinController extends Controller
 
     public function getByMesin($mesin_id)
     {
-        $logs = LogPemeliharaanMesin::where('mesin_produksi_id', $mesin_id)
+        $logs = LogPemeliharaanMesin::with('oli:id,kode_oli,nama_oli,satuan')
+                ->where('mesin_produksi_id', $mesin_id)
                 ->orderBy('waktu_pelaksana', 'desc')
                 ->orderBy('id', 'desc')
                 ->get();
@@ -178,9 +181,10 @@ class LogPemeliharaanMesinController extends Controller
             'uraian_pemeliharaan' => 'required_without:hasil_checklist|nullable|string',
             'keterangan' => 'nullable|string',
             
-            // Validasi Inventaris Oli
+            // Pemakaian oli (opsional): oli dari Data Oli, ditambah/diganti, stok gudang dipotong
             'oli_id' => 'nullable|exists:olis,id',
-            'jumlah_oli' => 'nullable|numeric|min:0.01|required_with:oli_id',
+            'tindakan_oli' => 'nullable|required_with:oli_id|in:tambah,ganti',
+            'jumlah_oli' => 'nullable|numeric|gt:0|required_with:oli_id',
 
             'hasil_checklist' => 'required_without:uraian_pemeliharaan|nullable|array|min:1',
             'hasil_checklist.*.partId' => 'required|string',
@@ -190,21 +194,13 @@ class LogPemeliharaanMesinController extends Controller
             'hasil_checklist.*.items.*.status' => 'required|in:baik,perlu_perhatian,rusak',
             'hasil_checklist.*.items.*.catatan' => 'nullable|string',
             'hasil_checklist.*.catatan' => 'nullable|string',
-            'hasil_checklist.*.oli' => 'nullable|array',
-            'hasil_checklist.*.oli.tindakan' => 'required_with:hasil_checklist.*.oli|in:tidak,tambah,ganti',
-            'hasil_checklist.*.oli.jumlah' => 'nullable|numeric|gt:0|required_if:hasil_checklist.*.oli.tindakan,tambah,ganti',
-            'hasil_checklist.*.oli.satuan' => 'nullable|string|max:20',
-            'hasil_checklist.*.oli.oli_lain' => 'nullable|boolean',
-            'hasil_checklist.*.oli.merek' => 'nullable|string|max:100',
-            'hasil_checklist.*.oli.jenis' => 'nullable|string|max:100',
-            'hasil_checklist.*.oli.kode' => 'nullable|string|max:100',
             'jumlah_part_total' => 'nullable|integer|min:0',
             'jenis_pelaksana' => 'nullable|in:Internal,Vendor',
             'nama_vendor' => 'nullable|required_if:jenis_pelaksana,Vendor|string|max:255',
         ], [
             'nama_vendor.required_if' => 'Nama vendor wajib diisi bila dikerjakan oleh vendor.',
-            'hasil_checklist.*.oli.jumlah.required_if' => 'Jumlah oli wajib diisi bila oli ditambah atau diganti.',
             'jumlah_oli.required_with' => 'Jumlah oli wajib diisi jika Anda memilih oli.',
+            'tindakan_oli.required_with' => 'Pilih tindakan oli: ditambah atau diganti.',
         ]);
 
         $data = [
@@ -215,7 +211,8 @@ class LogPemeliharaanMesinController extends Controller
             'jenis_pelaksana' => $validated['jenis_pelaksana'] ?? 'Internal',
             'nama_vendor' => ($validated['jenis_pelaksana'] ?? 'Internal') === 'Vendor' ? $validated['nama_vendor'] : null,
             'oli_id' => $validated['oli_id'] ?? null,
-            'jumlah_oli' => $validated['jumlah_oli'] ?? null,
+            'jumlah_oli' => !empty($validated['oli_id']) ? $validated['jumlah_oli'] : null,
+            'tindakan_oli' => !empty($validated['oli_id']) ? $validated['tindakan_oli'] : null,
         ];
 
         if (!empty($validated['hasil_checklist'])) {
@@ -253,7 +250,7 @@ class LogPemeliharaanMesinController extends Controller
                             'jumlah_oli' => "Stok oli {$oli->nama_oli} tidak mencukupi (Sisa stok: {$oli->stok} {$oli->satuan})."
                         ]);
                     }
-                    // Kurangi stok oli
+                    // Kurangi stok oli (riwayatnya tampil di kolom "Oli" log & halaman Data Oli)
                     $oli->decrement('stok', $data['jumlah_oli']);
                 }
             }
@@ -371,8 +368,7 @@ class LogPemeliharaanMesinController extends Controller
                     . (!empty($it['catatan']) ? ": {$it['catatan']}" : '') . ')',
                 $part['items']
             );
-            $baris[] = "{$part['partName']}: " . implode('; ', $items)
-                . (!empty($part['oli']) ? '; ' . $this->teksOli($part['oli']) : '');
+            $baris[] = "{$part['partName']}: " . implode('; ', $items);
 
             if (!empty($part['catatan'])) {
                 $baris[] = "Catatan {$part['partName']}: {$part['catatan']}";
@@ -380,21 +376,6 @@ class LogPemeliharaanMesinController extends Controller
         }
 
         return implode(' | ', $baris);
-    }
-
-    // "Oli ditambah 0,5 Liter (Shell Oli mesin AB7)" / "Oli dicek (Shell Oli mesin AX7)"
-    private function teksOli(array $oli): string
-    {
-        $spek = trim(implode(' ', array_filter([$oli['merek'] ?? null, $oli['jenis'] ?? null, $oli['kode'] ?? null])));
-        $spek = $spek !== '' ? " ({$spek}" . (!empty($oli['oli_lain']) ? ', oli lain' : '') . ')' : '';
-
-        if (($oli['tindakan'] ?? 'tidak') === 'tidak') {
-            return "Oli dicek{$spek}";
-        }
-        $kata = $oli['tindakan'] === 'ganti' ? 'diganti' : 'ditambah';
-        $jumlah = rtrim(rtrim(number_format((float) $oli['jumlah'], 2, ',', '.'), '0'), ',');
-
-        return "Oli {$kata} {$jumlah} " . ($oli['satuan'] ?? '') . $spek;
     }
 
     private function ringkasHasil(array $hasil): array

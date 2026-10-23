@@ -4,6 +4,7 @@ import Image from "next/image";
 import { Modal, Button, Form, Alert, Spinner, Row, Col } from "react-bootstrap";
 import { IconPhoto, IconTrash } from "@tabler/icons-react";
 import api from "lib/api";
+import { fetchOli, OliItem } from "services/oliService";
 
 export interface MesinFormData {
   id: number | string;
@@ -12,6 +13,7 @@ export interface MesinFormData {
   lokasi_ruang: string;
   status: string;
   foto_katalog?: string | null;
+  oli_id?: number | null; // oli standar mesin (dari Data Oli)
 }
 
 interface MesinFormModalProps {
@@ -30,6 +32,8 @@ export default function MesinFormModal({ show, onHide, onSuccess, mesin }: Mesin
   const [namaMesin, setNamaMesin] = useState("");
   const [lokasiRuang, setLokasiRuang] = useState("");
   const [statusMesin, setStatusMesin] = useState("Aktif");
+  const [oliId, setOliId] = useState("");
+  const [daftarOli, setDaftarOli] = useState<OliItem[]>([]);
   const [fotoFile, setFotoFile] = useState<File | null>(null);
   const [fotoPreview, setFotoPreview] = useState<string | null>(null);
   // Edit: foto lama dihapus tanpa diganti
@@ -45,6 +49,9 @@ export default function MesinFormModal({ show, onHide, onSuccess, mesin }: Mesin
     setNamaMesin(mesin?.nama_mesin ?? "");
     setLokasiRuang(mesin?.lokasi_ruang ?? "");
     setStatusMesin(mesin?.status ?? "Aktif");
+    setOliId(mesin?.oli_id ? String(mesin.oli_id) : "");
+    // Pilihan oli diambil dari halaman Data Oli
+    fetchOli().then(setDaftarOli).catch(() => setDaftarOli([]));
     setFotoFile(null);
     setFotoPreview(mesin?.foto_katalog ?? null);
     setHapusFoto(false);
@@ -87,6 +94,7 @@ export default function MesinFormModal({ show, onHide, onSuccess, mesin }: Mesin
     formData.append("nama_mesin", namaMesin);
     formData.append("lokasi_ruang", lokasiRuang);
     formData.append("status", statusMesin);
+    formData.append("oli_id", oliId); // kosong = tanpa oli standar
     if (fotoFile) formData.append("foto_katalog", fotoFile);
     if (hapusFoto) formData.append("hapus_foto", "1");
     // PHP tidak membaca file pada request PUT, jadi edit dikirim sebagai POST + _method=PUT
@@ -186,6 +194,18 @@ export default function MesinFormModal({ show, onHide, onSuccess, mesin }: Mesin
                 {/* Status "Tidak Aktif" diatur lewat tombol Nonaktifkan; tetap ditampilkan saat mengedit mesin nonaktif */}
                 {mesin?.status === "Tidak Aktif" && <option value="Tidak Aktif">Tidak Aktif</option>}
               </Form.Select>
+            </Col>
+            <Col md={12}>
+              <Form.Label>Oli Standar Mesin <span className="text-muted small">(Opsional)</span></Form.Label>
+              <Form.Select value={oliId} onChange={(e) => setOliId(e.target.value)}>
+                <option value="">Tidak memakai oli / belum ditentukan</option>
+                {daftarOli.map((o) => (
+                  <option key={o.id} value={o.id}>{o.kode_oli} - {o.nama_oli} ({o.satuan})</option>
+                ))}
+              </Form.Select>
+              <Form.Text className="text-muted">
+                Daftar oli diambil dari halaman Data Oli. Oli ini otomatis terpilih saat mencatat pemakaian oli di Checklist Visual.
+              </Form.Text>
             </Col>
           </Row>
         </Modal.Body>

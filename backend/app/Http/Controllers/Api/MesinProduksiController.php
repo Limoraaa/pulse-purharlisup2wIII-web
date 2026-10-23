@@ -14,7 +14,8 @@ class MesinProduksiController extends Controller
     // Tampilkan semua data master mesin
     public function index()
     {
-        $mesin = MesinProduksi::withCount(MesinProduksi::RELASI_RIWAYAT)
+        $mesin = MesinProduksi::with('oli:id,kode_oli,nama_oli,satuan')
+            ->withCount(MesinProduksi::RELASI_RIWAYAT)
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($item) {
@@ -36,6 +37,7 @@ class MesinProduksiController extends Controller
             'nama_mesin' => 'required|string',
             'lokasi_ruang' => 'required|string',
             'status' => 'sometimes|string|in:Aktif,Tidak Aktif,Maintenance,Rusak',
+            'oli_id' => 'nullable|integer|exists:olis,id', // oli standar mesin
             'foto_katalog' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048', // Validasi foto
         ], [
             'kode_mesin.required' => 'Kode mesin wajib diisi.',
@@ -53,6 +55,7 @@ class MesinProduksiController extends Controller
             'nama_mesin' => $validated['nama_mesin'],
             'lokasi_ruang' => $validated['lokasi_ruang'],
             'status' => $validated['status'] ?? 'Aktif',
+            'oli_id' => $validated['oli_id'] ?? null,
             'foto_katalog' => $fotoKatalogUrl, // Simpan ke database
         ]);
 
@@ -62,7 +65,7 @@ class MesinProduksiController extends Controller
     // Detail satu mesin
     public function show($id)
     {
-        $mesin = MesinProduksi::findOrFail($id);
+        $mesin = MesinProduksi::with('oli:id,kode_oli,nama_oli,satuan,stok')->findOrFail($id);
         return response()->json(['message' => 'Sukses', 'data' => $mesin], 200);
     }
 
@@ -77,6 +80,7 @@ class MesinProduksiController extends Controller
             'nama_mesin' => 'required|string',
             'lokasi_ruang' => 'required|string',
             'status' => 'sometimes|string|in:Aktif,Tidak Aktif,Maintenance,Rusak',
+            'oli_id' => 'sometimes|nullable|integer|exists:olis,id', // oli standar mesin
             'foto_katalog' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
             'hapus_foto' => 'sometimes|boolean',
         ], [
@@ -95,7 +99,7 @@ class MesinProduksiController extends Controller
 
         $mesin->update($data);
 
-        return response()->json(['message' => 'Data mesin berhasil diperbarui', 'data' => $mesin], 200);
+        return response()->json(['message' => 'Data mesin berhasil diperbarui', 'data' => $mesin->load('oli:id,kode_oli,nama_oli,satuan')], 200);
     }
 
     // Hapus data mesin
@@ -185,21 +189,20 @@ class MesinProduksiController extends Controller
             'parts.*.checklistItems.*' => 'required|string',
             'parts.*.xPercent' => 'required|numeric|min:0|max:100',
             'parts.*.yPercent' => 'required|numeric|min:0|max:100',
-            // Oli/pelumas standar part (opsional)
-            'parts.*.oli' => 'nullable|array',
-            'parts.*.oli.merek' => 'required_with:parts.*.oli|string|max:100',
-            'parts.*.oli.jenis' => 'required_with:parts.*.oli|string|max:100',
-            'parts.*.oli.kode' => 'required_with:parts.*.oli|string|max:100',
-            'parts.*.oli.kapasitas' => 'nullable|numeric|gt:0',
-            'parts.*.oli.satuan' => 'nullable|string|max:20',
-        ], [
-            'parts.*.oli.*.required_with' => 'Merek, jenis, dan kode oli wajib diisi untuk part yang memakai oli.',
         ]);
 
         if (array_key_exists('gambarUrl', $validated) && $validated['gambarUrl'] !== null) {
             $mesin->gantiGambarPeta($validated['gambarUrl'], 'mesin-produksi');
         }
-        $mesin->part_mapping = $validated['parts'];
+        // Hanya kolom yang dikenal yang disimpan (oli kini per mesin, bukan per part)
+        $mesin->part_mapping = array_map(fn ($p) => [
+            'id' => $p['id'],
+            'partNumber' => $p['partNumber'],
+            'partName' => $p['partName'],
+            'checklistItems' => array_values($p['checklistItems']),
+            'xPercent' => $p['xPercent'],
+            'yPercent' => $p['yPercent'],
+        ], $validated['parts']);
         $mesin->save();
 
         return response()->json([

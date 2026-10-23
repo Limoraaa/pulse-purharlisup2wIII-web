@@ -2,12 +2,33 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Table, Spinner, Alert, Badge, Modal, Form } from 'react-bootstrap';
-import { IconPlus, IconEdit, IconTrash, IconDroplet } from '@tabler/icons-react';
+import { IconPlus, IconEdit, IconTrash, IconDroplet, IconHistory } from '@tabler/icons-react';
 import { usePermission } from 'hooks/usePermissions';
-import { fetchOli, createOli, updateOli, deleteOli, OliItem } from 'services/oliService';
+import { useFeedback } from 'components/common/FeedbackProvider';
+import { formatTanggal } from 'components/ruangtools/common/dateUtils';
+import { fetchOli, createOli, updateOli, deleteOli, fetchRiwayatOli, OliItem, RiwayatOliItem } from 'services/oliService';
 
 export default function DataOliManager() {
   const canManage = usePermission('manage_inventaris');
+  const { confirm: confirmDialog, notify } = useFeedback();
+
+  // Riwayat pemakaian oli (dari Checklist Visual pemeliharaan mesin)
+  const [riwayatOli, setRiwayatOli] = useState<OliItem | null>(null);
+  const [riwayat, setRiwayat] = useState<RiwayatOliItem[]>([]);
+  const [loadingRiwayat, setLoadingRiwayat] = useState(false);
+
+  const bukaRiwayat = async (oli: OliItem) => {
+    setRiwayatOli(oli);
+    setRiwayat([]);
+    setLoadingRiwayat(true);
+    try {
+      setRiwayat(await fetchRiwayatOli(oli.id));
+    } catch (err: any) {
+      notify(err.message || 'Gagal memuat riwayat oli');
+    } finally {
+      setLoadingRiwayat(false);
+    }
+  };
   
   const [olis, setOlis] = useState<OliItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,12 +104,18 @@ export default function DataOliManager() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!window.confirm('Yakin ingin menghapus data oli ini?')) return;
+    const ok = await confirmDialog({
+      title: 'Hapus Data Oli?',
+      message: 'Data oli ini akan dihapus.',
+      confirmLabel: 'Ya, hapus',
+      variant: 'danger',
+    });
+    if (!ok) return;
     try {
       await deleteOli(id);
       loadData();
     } catch (err: any) {
-      alert(err.message || 'Gagal menghapus data');
+      notify(err.message || 'Gagal menghapus data');
     }
   };
 
@@ -151,16 +178,21 @@ export default function DataOliManager() {
                           )}
                         </td>
                         <td className="px-4 text-center">
-                          {canManage ? (
-                            <div className="d-flex justify-content-center gap-2">
+                          <div className="d-flex justify-content-center gap-2">
+                            <Button variant="light" size="sm" className="border shadow-sm text-primary" title="Riwayat pemakaian" onClick={() => bukaRiwayat(oli)}>
+                              <IconHistory size={14} />
+                            </Button>
+                          {canManage && (
+                            <>
                               <Button variant="light" size="sm" className="border shadow-sm text-secondary" onClick={() => handleOpenModal(oli)}>
                                 <IconEdit size={14} />
                               </Button>
                               <Button variant="light" size="sm" className="border shadow-sm text-danger" onClick={() => handleDelete(oli.id)}>
                                 <IconTrash size={14} />
                               </Button>
-                            </div>
-                          ) : '-'}
+                            </>
+                          )}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -171,6 +203,47 @@ export default function DataOliManager() {
           )}
         </Card.Body>
       </Card>
+
+      {/* Modal Riwayat Pemakaian */}
+      <Modal show={!!riwayatOli} onHide={() => setRiwayatOli(null)} centered size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title as="h5" className="d-flex align-items-center gap-2">
+            <IconHistory size={20} /> Riwayat Pemakaian {riwayatOli?.kode_oli} - {riwayatOli?.nama_oli}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {loadingRiwayat ? (
+            <div className="text-center py-4"><Spinner animation="border" size="sm" /></div>
+          ) : riwayat.length === 0 ? (
+            <div className="text-center text-muted py-4">Oli ini belum pernah dipakai di Checklist Visual.</div>
+          ) : (
+            <Table size="sm" hover responsive className="align-middle mb-0">
+              <thead className="table-light">
+                <tr>
+                  <th>Tanggal</th>
+                  <th>Mesin</th>
+                  <th>Tindakan</th>
+                  <th className="text-end">Jumlah</th>
+                  <th>Teknisi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {riwayat.map((r) => (
+                  <tr key={r.id}>
+                    <td className="text-nowrap">{formatTanggal(r.tanggal)}</td>
+                    <td>{r.kode_mesin} - {r.nama_mesin}</td>
+                    <td>{r.tindakan === 'ganti' ? <Badge bg="primary">Ganti</Badge> : <Badge bg="info" text="dark">Tambah</Badge>}</td>
+                    <td className="text-end text-nowrap">
+                      {Number(r.jumlah).toLocaleString('id-ID', { maximumFractionDigits: 2 })} {riwayatOli?.satuan}
+                    </td>
+                    <td>{r.paraf}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          )}
+        </Modal.Body>
+      </Modal>
 
       {/* Modal Form */}
       <Modal show={modalShow} onHide={() => setModalShow(false)} centered backdrop="static">
