@@ -34,6 +34,7 @@ return new class extends Migration
                 $table->string('nama_vendor')->nullable();
                 $table->string('no_po')->nullable();
                 $table->string('keterangan')->nullable();
+                $table->enum('jenis_anggaran', ['disburse', 'penugasan'])->default('disburse'); // <-- Kolom ditambahkan di sini
                 $table->timestamps();
 
                 $table->index(['tahun', 'bulan']);

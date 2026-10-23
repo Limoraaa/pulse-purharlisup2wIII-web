@@ -26,11 +26,15 @@ class LogPemeliharaanMesin extends Model
         'jumlah_part_total',
         'jenis_pelaksana',
         'nama_vendor',
+        // === Kolom Oli ===
+        'oli_id',
+        'jumlah_oli',
     ];
 
     protected $casts = [
         'hasil_checklist' => 'array',
         'waktu_pelaksana' => 'datetime',
+        'jumlah_oli'      => 'float', // Pastikan dicast ke float/desimal
     ];
 
     public function mesinProduksi(): BelongsTo
@@ -42,5 +46,11 @@ class LogPemeliharaanMesin extends Model
     public function rencana(): BelongsTo
     {
         return $this->belongsTo(RencanaPemeliharaanMesin::class, 'rencana_id');
+    }
+
+    // Relasi ke tabel Master Oli
+    public function oli(): BelongsTo
+    {
+        return $this->belongsTo(Oli::class, 'oli_id');
     }
 }

@@ -12,6 +12,7 @@ import {
   IconReportAnalytics,
   IconUsers,
   IconCalendarEvent,
+  IconDroplet, // <-- Import icon tambahan untuk oli
 } from "@tabler/icons-react";
 
 //import custom type
@@ -145,6 +146,14 @@ export const DashboardMenu: MenuItemType[] = [
     link: "/data-mesin",
     icon: <IconDatabase size={20} strokeWidth={1.5} />,
   },
+  // --- MENU DATA OLI DIPINDAH KE SINI ---
+  {
+    id: uuid(),
+    title: "Data Oli",
+    link: "/inventaris/data-oli",
+    icon: <IconDroplet size={20} strokeWidth={1.5} />,
+  },
+  // --------------------------------------
   {
     id: uuid(),
     title: "Operasional",
@@ -182,7 +191,6 @@ export const DashboardMenu: MenuItemType[] = [
         name: "Catatan Pemeliharaan Mesin",
         link: "/pemeliharaan/data-mesin",
       },
-      // --- MENU BARU DITAMBAHKAN DI SINI ---
       {
         id: uuid(),
         name: "Laporan Anggaran & Vendor",

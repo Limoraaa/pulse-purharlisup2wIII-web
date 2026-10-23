@@ -83,8 +83,6 @@ const EMPTY_LOG: LogDiLuarRencana[] = [];
 const WEEKS = [1, 2, 3, 4];
 
 // Fallback aman untuk data lama / kode tindakan yang tidak dikenal.
-// Nilai `aksi` dari database bisa di luar C/L/P/M (huruf kecil, spasi, kode lama),
-// sehingga ACTION_META[aksi] bisa undefined saat runtime.
 const FALLBACK_META = {
   label: "Tidak diketahui",
   color: "#94a3b8",
@@ -122,7 +120,6 @@ const stickyCell = (bg: string, zIndex: number): React.CSSProperties => ({
   borderRight: "1px solid var(--bs-border-color)",
 });
 
-// Kolom label "Rencana / Realisasi" (sticky, menempel di kanan kolom mesin yang lebarnya 200)
 const labelCell = (bg: string, zIndex: number): React.CSSProperties => ({
   position: "sticky",
   left: 200,
@@ -133,14 +130,11 @@ const labelCell = (bg: string, zIndex: number): React.CSSProperties => ({
   borderRight: "1px solid var(--bs-border-color)",
 });
 
-// Helper konversi warna Hex (#198754 -> 198754) untuk Excel
 const cleanHex = (hex?: string, fallback = "000000") => {
   if (!hex || !hex.startsWith("#")) return fallback;
   return hex.replace("#", "").toUpperCase();
 };
 
-// Posisi realisasi sebuah rencana. Memakai hasil hitung backend (*Realisasi) jika
-// service memetakannya; kalau tidak, dihitung dari tanggalSelesai.
 const getRealisasiPos = (p: RencanaItem) => {
   if (p.status !== "Selesai") return null;
   if (p.bulanRealisasi && p.mingguRealisasi) {
@@ -161,7 +155,6 @@ const getRealisasiPos = (p: RencanaItem) => {
   return { tahun: p.tahun, bulan: p.bulan, minggu: p.minggu };
 };
 
-// Rencana selesai yang realisasinya jatuh di tahun/bulan/minggu tertentu
 const getRealisasiAt = (
   plans: RencanaItem[],
   tahun: number,
@@ -173,7 +166,6 @@ const getRealisasiAt = (
     return !!pos && pos.tahun === tahun && pos.bulan === bulan && pos.minggu === minggu;
   });
 
-// Pekerjaan di luar rencana (log tanpa plotting) pada mesin & posisi tertentu
 const getExtraAt = (
   logs: LogDiLuarRencana[],
   mesinId: string,
@@ -190,16 +182,10 @@ const getExtraAt = (
   );
 
 const extraTitle = (l: LogDiLuarRencana) =>
-  `${l.aksi ? `${l.aksi} - ${getActionMeta(l.aksi).label}` : "Tindakan tidak dicatat"}\nRealisasi: ${
+  `${l.aksi ? `${l.aksi}\n${getActionMeta(l.aksi).label}` : "Tindakan tidak dicatat"}\nRealisasi: ${
     formatDateIndo(l.tanggal) ?? "-"
   }\nDi luar rencana`;
 
-// Warna pekerjaan di luar rencana (hijau muda, beda dari realisasi yang terhubung ke plotting)
-const EXTRA_BG = "#a3cfbb";
-const EXTRA_TEXT = "#0f5132";
-const EXTRA_BORDER = "#75b798";
-
-// Susunan badge ke bawah di dalam satu sel matrix
 const stackStyle: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
@@ -250,19 +236,16 @@ const RencanaPemeliharaanManager = () => {
   const today = useMemo(() => new Date(), []);
   const currentYear = today.getFullYear();
 
-  // ---- State tampilan ----
   const [viewMode, setViewMode] = useState<"matrix" | "list">("matrix");
   const [searchTerm, setSearchTerm] = useState("");
   const [tahun, setTahun] = useState(currentYear);
 
-  // ---- State modal ----
   const [modalOpen, setModalOpen] = useState(false);
   const [activeItem, setActiveItem] = useState<RencanaItem | null>(null);
   const [formDefaults, setFormDefaults] = useState<RencanaFormDefaults | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
 
-  // ---- Notifikasi ----
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const flashSuccess = (msg: string) => {
@@ -270,7 +253,6 @@ const RencanaPemeliharaanManager = () => {
     setTimeout(() => setSuccessMessage(null), 3000);
   };
 
-  // ================= DATA DARI API =================
   const {
     data: rencanaData,
     error: rencanaError,
@@ -289,7 +271,6 @@ const RencanaPemeliharaanManager = () => {
     []
   );
 
-  // ================= TURUNAN DATA =================
   const allRows = useMemo(() => {
     const map = new Map<string, { mesin: MesinOption; plans: RencanaItem[] }>();
     mesinList.forEach((m) => map.set(m.id, { mesin: m, plans: [] }));
@@ -338,7 +319,6 @@ const RencanaPemeliharaanManager = () => {
     return { total: rencana.length, selesai, terlewat, bulanIni };
   }, [rencana, tahun, today, currentYear]);
 
-  // ================= AKSI MODAL =================
   const openAddModal = useCallback((defaults: RencanaFormDefaults | null = null) => {
     setActiveItem(null);
     setFormDefaults(defaults);
@@ -394,12 +374,11 @@ const RencanaPemeliharaanManager = () => {
     }
   };
 
-  // ================= 1. EXPORT FORMAT LIST =================
   const buildExportDataList = () =>
     filteredPlans.map((p) => ({
       kodeMesin: p.kodeMesin,
       namaMesin: p.namaMesin,
-      tindakan: `${p.aksi} - ${getActionMeta(p.aksi).label}`,
+      tindakan: `${p.aksi}\n${getActionMeta(p.aksi).label}`,
       jadwal: formatJadwal(p),
       status: getStatusTampil(p, today),
       rab: formatRupiah(p.rab),
@@ -438,12 +417,10 @@ const RencanaPemeliharaanManager = () => {
       exportInfo()
     );
 
-  // ================= HELPER EXPORT MATRIX =================
-  // Tiap kegiatan = satu badge, ditumpuk ke bawah di dalam sel (sama seperti tampilan web).
   type ExportBadge = {
     label: string;
     kind: "rencana" | "terlewat" | "selesai" | "luar";
-    color: string; // warna tindakan (hex), dipakai untuk badge rencana
+    color: string; 
   };
 
   const hexToRgb = (hex: string): [number, number, number] => {
@@ -455,7 +432,6 @@ const RencanaPemeliharaanManager = () => {
     ];
   };
 
-  // Badge baris Rencana pada bulan & minggu tertentu
   const getRencanaBadges = (plans: RencanaItem[], bulan: number, minggu: number): ExportBadge[] =>
     plans
       .filter((p) => p.bulan === bulan && p.minggu === minggu)
@@ -465,7 +441,6 @@ const RencanaPemeliharaanManager = () => {
         color: getActionMeta(p.aksi).color,
       }));
 
-  // Badge baris Realisasi: yang terhubung ke plotting (hijau) lalu di luar rencana (hijau muda)
   const getRealisasiBadges = (
     plans: RencanaItem[],
     mesinId: string,
@@ -475,16 +450,15 @@ const RencanaPemeliharaanManager = () => {
     ...getRealisasiAt(plans, tahun, bulan, minggu).map((p) => ({
       label: p.aksi as string,
       kind: "selesai" as ExportBadge["kind"],
-      color: "#198754",
+      color: getActionMeta(p.aksi).color,
     })),
     ...getExtraAt(logDiLuar, mesinId, tahun, bulan, minggu).map((l) => ({
       label: (l.aksi ?? "?") as string,
       kind: "luar" as ExportBadge["kind"],
-      color: EXTRA_BORDER,
+      color: getActionMeta(l.aksi).color,
     })),
   ];
 
-  // ================= 2. EXPORT PDF FORMAT MATRIX (PERSIS UI) =================
   const handleExportPDFMatrix = async () => {
     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
 
@@ -517,7 +491,6 @@ const RencanaPemeliharaanManager = () => {
       });
     });
 
-    // Ukuran badge (mm) dan tinggi baris yang menyesuaikan jumlah badge tertumpuk
     const BADGE = 3.6;
     const GAP = 0.6;
     const PAD = 0.8;
@@ -555,7 +528,6 @@ const RencanaPemeliharaanManager = () => {
             minCellHeight: hR,
           },
         },
-        // Sel kosong; badge digambar di didDrawCell lewat properti `badges`
         ...rencanaCells.map((badges) => ({
           content: "",
           badges,
@@ -612,7 +584,6 @@ const RencanaPemeliharaanManager = () => {
         50: { cellWidth: 20 },
       },
       margin: { left: 8, right: 8 },
-      // Gambar badge ke bawah di dalam sel, warnanya sama seperti di web
       didDrawCell: (data: any) => {
         if (data.section !== "body") return;
         const badges: ExportBadge[] | undefined = data.cell?.raw?.badges;
@@ -625,26 +596,35 @@ const RencanaPemeliharaanManager = () => {
           let fill: [number, number, number] = [255, 255, 255];
           let text: [number, number, number] = hexToRgb(b.color);
           let border: [number, number, number] = hexToRgb(b.color);
+          let isDashed = false;
 
           if (b.kind === "terlewat") {
             fill = [220, 53, 69];
             text = [255, 255, 255];
             border = [220, 53, 69];
           } else if (b.kind === "selesai") {
-            fill = [25, 135, 84];
+            fill = hexToRgb(b.color);
             text = [255, 255, 255];
-            border = [25, 135, 84];
+            border = hexToRgb(b.color);
           } else if (b.kind === "luar") {
-            fill = [163, 207, 187];
-            text = [15, 81, 50];
-            border = [117, 183, 152];
+            fill = [255, 255, 255];
+            text = hexToRgb(b.color);
+            border = hexToRgb(b.color);
+            isDashed = true; 
           }
 
           doc.setFillColor(fill[0], fill[1], fill[2]);
           doc.setDrawColor(border[0], border[1], border[2]);
           doc.setLineWidth(0.25);
-          doc.roundedRect(x, y, BADGE, BADGE, 0.7, 0.7, "FD");
-
+          
+          if(isDashed) {
+            // PDF doesn't natively support dashed rounded rect well without extra logic, 
+            // drawing standard rect for simplicity in pdf export
+            doc.roundedRect(x, y, BADGE, BADGE, 0.7, 0.7, "FD");
+          } else {
+            doc.roundedRect(x, y, BADGE, BADGE, 0.7, 0.7, "FD");
+          }
+          
           doc.setFont("helvetica", "bold");
           doc.setFontSize(5.5);
           doc.setTextColor(text[0], text[1], text[2]);
@@ -667,7 +647,7 @@ const RencanaPemeliharaanManager = () => {
     doc.text("Status Warna:", 10, finalY + 5);
     doc.setFont("helvetica", "normal");
     doc.text(
-      "Putih = Terjadwal     |     Merah = Terlewat     |     Hijau (baris Realisasi) = Selesai     |     Hijau muda = Di luar rencana",
+      "Putih = Terjadwal     |     Merah = Terlewat     |     Warna Solid = Selesai     |     Putih (Garis Warna) = Di luar rencana",
       32,
       finalY + 5
     );
@@ -675,7 +655,6 @@ const RencanaPemeliharaanManager = () => {
     doc.save(`rencana-pemeliharaan-matrix-${tahun}.pdf`);
   };
 
-  // ================= 3. EXPORT EXCEL FORMAT MATRIX (FULL UI/UX STYLING) =================
   const handleExportExcelMatrix = async () => {
     const borderThin = {
       top: { style: "thin", color: { rgb: "DEE2E6" } },
@@ -698,7 +677,6 @@ const RencanaPemeliharaanManager = () => {
       border: borderThin,
     };
 
-    // Baris 0: Header Tabel Utama (Kode & Nama Mesin + Baris + 12 Bulan + RAB)
     const headRow1: any[] = [
       {
         v: "KODE & NAMA MESIN",
@@ -725,7 +703,6 @@ const RencanaPemeliharaanManager = () => {
       s: { ...headerStyle, alignment: { horizontal: "right", vertical: "center" } },
     });
 
-    // Baris 1: Sub-Header Minggu (W1 - W4)
     const headRow2: any[] = [
       { v: "", t: "s", s: headerStyle },
       { v: "", t: "s", s: headerStyle },
@@ -737,7 +714,6 @@ const RencanaPemeliharaanManager = () => {
     });
     headRow2.push({ v: "", t: "s", s: headerStyle });
 
-    // Style dasar sel
     const machineStyle = {
       font: { name: "Arial", sz: 9, bold: true, color: { rgb: "212529" } },
       fill: { fgColor: { rgb: "FFFFFF" } },
@@ -766,7 +742,6 @@ const RencanaPemeliharaanManager = () => {
       },
     };
 
-    // Style badge: sama dengan warna di web
     const badgeStyle = (b: ExportBadge) => {
       let bg = "FFFFFF";
       let fg = cleanHex(b.color, "212529");
@@ -782,13 +757,18 @@ const RencanaPemeliharaanManager = () => {
         fg = "FFFFFF";
         border = borderThin;
       } else if (b.kind === "selesai") {
-        bg = "198754";
+        bg = cleanHex(b.color);
         fg = "FFFFFF";
         border = borderThin;
       } else if (b.kind === "luar") {
-        bg = "A3CFBB";
-        fg = "0F5132";
-        border = borderThin;
+        bg = "FFFFFF";
+        fg = cleanHex(b.color);
+        border = {
+          top: { style: "dashed", color: { rgb: fg } },
+          bottom: { style: "dashed", color: { rgb: fg } },
+          left: { style: "dashed", color: { rgb: fg } },
+          right: { style: "dashed", color: { rgb: fg } },
+        };
       }
 
       return {
@@ -799,16 +779,13 @@ const RencanaPemeliharaanManager = () => {
       };
     };
 
-    // Baris data: tiap mesin = blok baris Rencana + blok baris Realisasi.
-    // Jumlah sub-baris mengikuti sel dengan kegiatan terbanyak, sehingga badge ditumpuk
-    // ke bawah (satu badge per baris) seperti di web.
     const dataRows: any[][] = [];
     const rowHeights: any[] = [
-      { hpt: 22 }, // Header Bulan
-      { hpt: 18 }, // Header W1-W4
+      { hpt: 22 }, 
+      { hpt: 18 }, 
     ];
     const blocks: { start: number; nR: number; nZ: number }[] = [];
-    let cursor = 2; // baris data pertama (index 2, tepat di bawah header)
+    let cursor = 2;
 
     filteredRows.forEach(({ mesin, plans }) => {
       const totalRab = plans.reduce((sum, p) => sum + p.rab, 0);
@@ -863,7 +840,6 @@ const RencanaPemeliharaanManager = () => {
       cursor += nR + nZ;
     });
 
-    // Baris Legenda Keterangan di Bawah Tabel (Persis UI Card Keterangan)
     const legendActionRow: any[] = [
       {
         v: "Keterangan Tindakan:",
@@ -926,13 +902,13 @@ const RencanaPemeliharaanManager = () => {
         t: "s",
         s: {
           font: { name: "Arial", sz: 9, bold: true, color: { rgb: "FFFFFF" } },
-          fill: { fgColor: { rgb: "198754" } },
+          fill: { fgColor: { rgb: "0D6EFD" } }, // Example solid color representation
           alignment: { horizontal: "center", vertical: "center" },
           border: borderThin,
         },
       },
       {
-        v: "Selesai (Hijau, baris Realisasi)",
+        v: "Selesai (Warna Solid)",
         t: "s",
         s: { font: { name: "Arial", sz: 9 }, alignment: { vertical: "center" } },
       },
@@ -959,34 +935,37 @@ const RencanaPemeliharaanManager = () => {
         v: "M",
         t: "s",
         s: {
-          font: { name: "Arial", sz: 9, bold: true, color: { rgb: "0F5132" } },
-          fill: { fgColor: { rgb: "A3CFBB" } },
+          font: { name: "Arial", sz: 9, bold: true, color: { rgb: "0D6EFD" } },
+          fill: { fgColor: { rgb: "FFFFFF" } },
           alignment: { horizontal: "center", vertical: "center" },
-          border: borderThin,
+          border: {
+            top: { style: "dashed", color: { rgb: "0D6EFD" } },
+            bottom: { style: "dashed", color: { rgb: "0D6EFD" } },
+            left: { style: "dashed", color: { rgb: "0D6EFD" } },
+            right: { style: "dashed", color: { rgb: "0D6EFD" } },
+          },
         },
       },
       {
-        v: "Di luar rencana (Hijau muda)",
+        v: "Di luar rencana (Garis Putus-Putus)",
         t: "s",
         s: { font: { name: "Arial", sz: 9 }, alignment: { vertical: "center" } },
       },
     ];
 
     const worksheetData: any[][] = [
-      headRow1, // Row index 0
-      headRow2, // Row index 1
-      ...dataRows, // Mulai Row index 2
+      headRow1,
+      headRow2,
+      ...dataRows,
       [],
       legendActionRow,
       legendStatusRow,
     ];
 
-    // Merge Cells: Judul, Header Kode/Nama Mesin, Header Baris, 12 Bulan (4 kolom per bulan), RAB
-    // Total kolom: 1 (mesin) + 1 (baris) + 48 (minggu) + 1 (RAB) = 51 -> RAB di kolom 50
     const merges: any[] = [
-      { s: { r: 0, c: 0 }, e: { r: 1, c: 0 } }, // Merge Header Kode & Nama Mesin
-      { s: { r: 0, c: 1 }, e: { r: 1, c: 1 } }, // Merge Header Baris
-      { s: { r: 0, c: 50 }, e: { r: 1, c: 50 } }, // Merge Header RAB (RP)
+      { s: { r: 0, c: 0 }, e: { r: 1, c: 0 } },
+      { s: { r: 0, c: 1 }, e: { r: 1, c: 1 } },
+      { s: { r: 0, c: 50 }, e: { r: 1, c: 50 } },
     ];
 
     MONTHS_SHORT.forEach((_, mIdx) => {
@@ -997,7 +976,6 @@ const RencanaPemeliharaanManager = () => {
       });
     });
 
-    // Tiap mesin: gabungkan kolom mesin & RAB di seluruh blok, serta label Rencana/Realisasi
     blocks.forEach(({ start, nR, nZ }) => {
       const end = start + nR + nZ - 1;
       merges.push({ s: { r: start, c: 0 }, e: { r: end, c: 0 } });
@@ -1006,19 +984,14 @@ const RencanaPemeliharaanManager = () => {
       if (nZ > 1) merges.push({ s: { r: start + nR, c: 1 }, e: { r: end, c: 1 } });
     });
 
-
-    // Lebar Kolom Proporsional seperti UI (Kolom W1-W4 dibuat kotak kecil)
-    const colWidths: any[] = [{ wch: 30 }, { wch: 11 }]; // Kolom 0: Mesin, Kolom 1: Baris
+    const colWidths: any[] = [{ wch: 30 }, { wch: 11 }];
     for (let i = 0; i < 48; i++) {
-      colWidths.push({ wch: 4.5 }); // 48 Kolom Minggu dibuat kotak compact
+      colWidths.push({ wch: 4.5 });
     }
-    colWidths.push({ wch: 18 }); // Kolom 50: RAB (Rp)
+    colWidths.push({ wch: 18 });
 
-    // Tinggi baris: header + tiap sub-baris data + legenda
     rowHeights.push({ hpt: 12 }, { hpt: 22 }, { hpt: 22 });
 
-    // Tulis ke ExcelJS (mendukung logo pada kop). Style di atas memakai format
-    // xlsx-js-style, jadi dikonversi dulu ke format ExcelJS.
     const toArgb = (rgb?: string) => (rgb ? { argb: `FF${rgb}` } : undefined);
     const applyStyle = (cell: ExcelJS.Cell, st: any) => {
       if (!st) return;
@@ -1075,7 +1048,6 @@ const RencanaPemeliharaanManager = () => {
     await downloadWorkbook(workbook, `rencana-pemeliharaan-matrix-${tahun}`);
   };
 
-  // ================= KOLOM TABEL LIST =================
   const listColumns = useMemo<ColumnDef<RencanaItem>[]>(
     () => [
       {
@@ -1163,7 +1135,6 @@ const RencanaPemeliharaanManager = () => {
     [today, canManage, openEditModal]
   );
 
-  // ================= RENDER =================
   const hasData = rencana.length > 0;
   const noResults =
     hasData &&
@@ -1198,7 +1169,6 @@ const RencanaPemeliharaanManager = () => {
         </Alert>
       )}
 
-      {/* ---- Page Header ---- */}
       <Row>
         <Col>
           <Flex
@@ -1224,7 +1194,6 @@ const RencanaPemeliharaanManager = () => {
         </Col>
       </Row>
 
-      {/* ---- Statistik ---- */}
       <Row className="g-3 mb-4">
         <Col xl={3} md={6}>
           <StatCard
@@ -1265,7 +1234,6 @@ const RencanaPemeliharaanManager = () => {
       </Row>
 
       <Card className="card-lg mb-4">
-        {/* ---- Toolbar ---- */}
         <div className="datatools-toolbar border-bottom">
           <Row className="g-2 align-items-center">
             <Col lg={4} md={6}>
@@ -1326,7 +1294,6 @@ const RencanaPemeliharaanManager = () => {
               <span className="text-secondary small">{countText}</span>
             </Col>
             <Col lg="auto" className="d-flex justify-content-lg-end gap-2">
-              {/* Dropdown Export PDF */}
               <Dropdown>
                 <Dropdown.Toggle
                   variant="danger"
@@ -1347,7 +1314,6 @@ const RencanaPemeliharaanManager = () => {
                 </Dropdown.Menu>
               </Dropdown>
 
-              {/* Dropdown Export Excel */}
               <Dropdown>
                 <Dropdown.Toggle
                   variant="outline-success"
@@ -1388,8 +1354,7 @@ const RencanaPemeliharaanManager = () => {
               <div className="d-flex align-items-center gap-2">
                 <IconAlertCircle size={20} />
                 <span>
-                  Gagal memuat rencana pemeliharaan. Koneksi ke server sempat
-                  terputus.
+                  Gagal memuat rencana pemeliharaan. Koneksi ke server sempat terputus.
                 </span>
               </div>
               <Button
@@ -1414,8 +1379,7 @@ const RencanaPemeliharaanManager = () => {
               </div>
               <h5 className="mb-1">Belum ada rencana untuk {tahun}</h5>
               <p className="text-secondary mb-4">
-                Mulai dengan menjadwalkan pemeliharaan pertama untuk mesin
-                produksi.
+                Mulai dengan menjadwalkan pemeliharaan pertama untuk mesin produksi.
               </p>
               {canManage && (
                 <Button
@@ -1492,7 +1456,6 @@ const RencanaPemeliharaanManager = () => {
                   {filteredRows.map(({ mesin, plans }) => {
                     const totalRab = plans.reduce((sum, p) => sum + p.rab, 0);
 
-                    // ---- Sel baris RENCANA: semua plotting ditumpuk ke bawah ----
                     const renderRencanaCell = (mIdx: number, w: number) => {
                       const cellPlans = plans.filter(
                         (p) => p.bulan === mIdx + 1 && p.minggu === w
@@ -1524,7 +1487,7 @@ const RencanaPemeliharaanManager = () => {
                                       color: terlewat ? "#fff" : meta.color,
                                       borderColor: terlewat ? "#dc3545" : meta.color,
                                     }}
-                                    title={`${p.aksi} - ${meta.label}\nStatus: ${status}\nJadwal: ${formatJadwal(p)}`}
+                                    title={`${p.aksi}\n${meta.label}\nStatus: ${status}\nJadwal: ${formatJadwal(p)}`}
                                     onClick={() => openEditModal(p)}
                                   >
                                     {p.aksi}
@@ -1564,7 +1527,6 @@ const RencanaPemeliharaanManager = () => {
                       );
                     };
 
-                    // ---- Sel baris REALISASI: tiap kegiatan jadi satu badge, ditumpuk ke bawah ----
                     const renderRealisasiCell = (mIdx: number, w: number) => {
                       const done = getRealisasiAt(plans, tahun, mIdx + 1, w);
                       const extra = getExtraAt(logDiLuar, mesin.id, tahun, mIdx + 1, w);
@@ -1577,45 +1539,50 @@ const RencanaPemeliharaanManager = () => {
                         >
                           {done.length + extra.length > 0 ? (
                             <div style={stackStyle}>
-                              {/* Realisasi yang terhubung ke plotting (hijau) */}
-                              {done.map((p) => (
-                                <button
-                                  key={`d-${p.id}`}
-                                  type="button"
-                                  className="border rounded d-inline-flex align-items-center justify-content-center fw-bold"
-                                  style={{
-                                    ...badgeBase,
-                                    cursor: "pointer",
-                                    background: "#198754",
-                                    color: "#fff",
-                                    borderColor: "#198754",
-                                  }}
-                                  title={`${p.aksi} - ${getActionMeta(p.aksi).label}\nRealisasi: ${
-                                    formatDateIndo(p.tanggalSelesai) ?? "-"
-                                  }\nRencana: ${formatJadwal(p)}`}
-                                  onClick={() => openEditModal(p)}
-                                >
-                                  {p.aksi}
-                                </button>
-                              ))}
+                              {done.map((p) => {
+                                const meta = getActionMeta(p.aksi);
+                                return (
+                                  <button
+                                    key={`d-${p.id}`}
+                                    type="button"
+                                    className="border rounded d-inline-flex align-items-center justify-content-center fw-bold"
+                                    style={{
+                                      ...badgeBase,
+                                      cursor: "pointer",
+                                      background: meta.color, 
+                                      color: meta.textColor || "#fff",
+                                      borderColor: meta.color,
+                                    }}
+                                    title={`${p.aksi}\n${meta.label}\nRealisasi: ${
+                                      formatDateIndo(p.tanggalSelesai) ?? "-"
+                                    }\nRencana: ${formatJadwal(p)}`}
+                                    onClick={() => openEditModal(p)}
+                                  >
+                                    {p.aksi}
+                                  </button>
+                                );
+                              })}
 
-                              {/* Di luar rencana (hijau muda) */}
-                              {extra.map((l) => (
-                                <div
-                                  key={`x-${l.id}`}
-                                  className="border rounded d-inline-flex align-items-center justify-content-center fw-bold"
-                                  style={{
-                                    ...badgeBase,
-                                    background: EXTRA_BG,
-                                    color: EXTRA_TEXT,
-                                    borderColor: EXTRA_BORDER,
-                                    cursor: "default",
-                                  }}
-                                  title={extraTitle(l)}
-                                >
-                                  {l.aksi ?? "?"}
-                                </div>
-                              ))}
+                              {extra.map((l) => {
+                                const meta = getActionMeta(l.aksi);
+                                return (
+                                  <div
+                                    key={`x-${l.id}`}
+                                    className="border rounded d-inline-flex align-items-center justify-content-center fw-bold"
+                                    style={{
+                                      ...badgeBase,
+                                      background: "var(--bs-body-bg, #fff)",
+                                      color: meta.color,
+                                      borderColor: meta.color,
+                                      borderStyle: "dashed",
+                                      cursor: "default",
+                                    }}
+                                    title={extraTitle(l)}
+                                  >
+                                    {l.aksi ?? "?"}
+                                  </div>
+                                );
+                              })}
                             </div>
                           ) : (
                             <div style={{ width: 24, height: 24 }} />
@@ -1682,7 +1649,6 @@ const RencanaPemeliharaanManager = () => {
         </CardBody>
       </Card>
 
-      {/* ---- Keterangan ---- */}
       <Card className="mb-6">
         <CardBody className="d-flex flex-wrap align-items-center gap-4 small">
           <span className="fw-semibold">Keterangan Tindakan:</span>
@@ -1706,17 +1672,17 @@ const RencanaPemeliharaanManager = () => {
           </span>
           <span className="d-inline-flex align-items-center gap-2">
             <span
-              className="d-inline-block rounded"
-              style={{ width: 16, height: 16, background: "#198754" }}
+              className="d-inline-block rounded bg-primary"
+              style={{ width: 16, height: 16 }}
             />
-            Selesai (Hijau, di baris Realisasi)
+            Selesai (Warna Solid, di baris Realisasi)
           </span>
           <span className="d-inline-flex align-items-center gap-2">
             <span
-              className="d-inline-block rounded"
-              style={{ width: 16, height: 16, background: EXTRA_BG, border: `1px solid ${EXTRA_BORDER}` }}
+              className="d-inline-block rounded bg-body"
+              style={{ width: 16, height: 16, border: "1.5px dashed #6c757d" }}
             />
-            Di luar rencana (Hijau muda)
+            Di luar rencana (Garis Putus-Putus)
           </span>
           <span className="d-inline-flex align-items-center gap-2">
             <span
@@ -1728,7 +1694,6 @@ const RencanaPemeliharaanManager = () => {
         </CardBody>
       </Card>
 
-      {/* ---- Modal ---- */}
       <RencanaFormModal
         show={modalOpen}
         onClose={closeModal}
