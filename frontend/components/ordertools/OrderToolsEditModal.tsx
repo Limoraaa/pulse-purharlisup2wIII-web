@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Modal, Form, Button, Row, Col } from 'react-bootstrap';
 import { getPemintaListForTools, updateOrderTools } from '/services/orderToolsService';
 import { useFeedback } from "components/common/FeedbackProvider";
+import SearchableInput, { SearchableOption } from "components/common/SearchableInput";
 
 interface OrderToolsEditModalProps {
   isOpen: boolean;
@@ -22,6 +23,9 @@ export default function OrderToolsEditModal({ isOpen, onClose, onSuccess, orderD
   const { notify } = useFeedback();
   const [peminjamList, setPeminjamList] = useState<any[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // null = belum diketik ulang, tampilkan nama pengusul yang tersimpan
+  const [pemintaText, setPemintaText] = useState<string | null>(null);
+  const [pemintaInvalid, setPemintaInvalid] = useState(false);
   const [form, setForm] = useState<any>({
     peminta_id: '',
     pekerjaan: '', // <-- TAMBAHAN STATE PEKERJAAN
@@ -43,6 +47,9 @@ export default function OrderToolsEditModal({ isOpen, onClose, onSuccess, orderD
         setPeminjamList(Array.isArray(data) ? data : []);
       }).catch(console.error);
 
+      setPemintaText(null);
+      setPemintaInvalid(false);
+
       if (orderData) {
         setForm({
           peminta_id: orderData.peminta_id || '',
@@ -61,12 +68,34 @@ export default function OrderToolsEditModal({ isOpen, onClose, onSuccess, orderD
     }
   }, [isOpen, orderData]);
 
+  const pemintaOptions: SearchableOption[] = peminjamList.map((p) => ({
+    value: String(p.id),
+    label: p.nama,
+    description: p.divisi || undefined,
+  }));
+
+  const pemintaTersimpan =
+    peminjamList.find((p) => String(p.id) === String(form.peminta_id))?.nama ?? orderData?.peminta?.nama ?? '';
+
+  // Saat mengetik: nama pengusul baru sah kalau sama persis (tanpa beda huruf besar/kecil)
+  // dengan tepat satu nama di daftar; selain itu pengguna harus memilih dari daftar.
+  const handlePemintaInput = (text: string) => {
+    setPemintaText(text);
+    setPemintaInvalid(false);
+    const cocok = peminjamList.filter((p) => (p.nama || '').toLowerCase() === text.trim().toLowerCase());
+    setForm((prev: any) => ({ ...prev, peminta_id: cocok.length === 1 ? String(cocok[0].id) : '' }));
+  };
+
   const handleChange = (field: string, value: any) => {
     setForm((prev: any) => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.peminta_id) {
+      setPemintaInvalid(true);
+      return;
+    }
     setIsSubmitting(true);
 
     try {
@@ -110,16 +139,22 @@ export default function OrderToolsEditModal({ isOpen, onClose, onSuccess, orderD
             <Col md={6}>
               <Form.Group className="mb-3">
                 <Form.Label className="fw-semibold">Nama Pengusul</Form.Label>
-                <Form.Select
+                <SearchableInput
+                  options={pemintaOptions}
+                  inputValue={pemintaText ?? pemintaTersimpan}
+                  onInputChange={handlePemintaInput}
+                  onSelect={(o) => {
+                    handleChange('peminta_id', o.value);
+                    setPemintaText(o.label);
+                    setPemintaInvalid(false);
+                  }}
+                  placeholder="Ketik untuk mencari nama pengusul..."
+                  isInvalid={pemintaInvalid}
                   required
-                  value={form.peminta_id}
-                  onChange={e => handleChange('peminta_id', e.target.value)}
-                >
-                  <option value="" disabled>-- Pilih Nama Pengusul --</option>
-                  {peminjamList.map((p: any) => (
-                    <option key={p.id} value={p.id}>{p.nama}</option>
-                  ))}
-                </Form.Select>
+                />
+                {pemintaInvalid && (
+                  <div className="invalid-feedback d-block">Pilih nama pengusul dari daftar.</div>
+                )}
               </Form.Group>
             </Col>
 
