@@ -53,6 +53,7 @@ class RolePermissionSeeder extends Seeder
             'manage_peta_part',              // atur Peta Part semua mesin
             'manage_plotting_operasional',   // kelola Plotting Jadwal Operasional
             'manage_rencana_pemeliharaan',   // kelola Rencana Pemeliharaan
+            'manage_kebutuhan_mesin',        // kelola Kebutuhan Pemeliharaan Alat & Consumable
 
             // --- PEMELIHARAAN MOTOR KONVERSI (domain terpisah) ---
             'view_dashboard_pemeliharaan_motor_konversi',
@@ -119,9 +120,9 @@ class RolePermissionSeeder extends Seeder
         $rolePekerjaLapangan->syncPermissions($izinPencatat);
         $roleVendor->syncPermissions($izinPencatat);
 
-        // PIC Mesin: sama dengan pencatat, ditambah atur Peta Part, Plotting Jadwal & Rencana Pemeliharaan
+        // PIC Mesin: sama dengan pencatat, ditambah atur Peta Part, Plotting Jadwal, Rencana Pemeliharaan & Kebutuhan
         $rolePicMesin->syncPermissions(array_merge($izinPencatat, [
-            'manage_peta_part', 'manage_plotting_operasional', 'manage_rencana_pemeliharaan',
+            'manage_peta_part', 'manage_plotting_operasional', 'manage_rencana_pemeliharaan', 'manage_kebutuhan_mesin',
         ]));
 
         // --- PEGAWAI MAINTENANCE MESIN: kelola penuh SELURUH domain Pemeliharaan Mesin
