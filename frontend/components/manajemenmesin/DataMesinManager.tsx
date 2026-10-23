@@ -36,6 +36,8 @@ interface MesinItemType {
   lokasi_ruang: string;
   status: 'Aktif' | 'Maintenance' | 'Rusak' | string;
   foto_katalog?: string | null;
+  oli_id?: number | null; // oli standar mesin
+  oli?: { id: number; kode_oli: string; nama_oli: string; satuan: string } | null;
 }
 
 const DATA_MESIN_PATH = "/data-mesin";
@@ -154,7 +156,9 @@ const DataMesinManager = ({ mode = 'pemeliharaan' }: DataMesinManagerProps) => {
           kode_mesin: selectedMesin.kode_mesin,
           lokasi_ruang: selectedMesin.lokasi_ruang,
           status: selectedMesin.status,
-          foto_katalog: selectedMesin.foto_katalog
+          foto_katalog: selectedMesin.foto_katalog,
+          oli_id: selectedMesin.oli_id ?? null,
+          oli: selectedMesin.oli ?? null,
         }} 
         canManage={mode === 'operasional' ? canManageOperasional : canManageMesin}
         mode={mode} // <--- MENGIRIMKAN PROPS MODE KE DETAIL MESIN
@@ -280,7 +284,9 @@ const DataMesinManager = ({ mode = 'pemeliharaan' }: DataMesinManagerProps) => {
                       kode_mesin: mesin.kode_mesin,
                       lokasi_ruang: mesin.lokasi_ruang,
                       status: mesin.status,
-                      foto_katalog: mesin.foto_katalog
+                      foto_katalog: mesin.foto_katalog,
+                      oli_id: mesin.oli_id ?? null,
+                      oli: mesin.oli ?? null,
                     })}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.transform = 'translateY(-3px)';

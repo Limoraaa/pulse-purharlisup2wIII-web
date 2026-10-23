@@ -34,3 +34,19 @@ export const updateOli = async (id: number, data: Partial<OliItem>) => {
 export const deleteOli = async (id: number) => {
   await api(`/olis/${id}`, { method: 'DELETE' });
 };
+// Riwayat pemakaian satu oli: dipakai di mesin mana saja dan kapan
+export interface RiwayatOliItem {
+  id: number;
+  tanggal: string;
+  mesin_id: number;
+  kode_mesin: string | null;
+  nama_mesin: string | null;
+  tindakan: 'tambah' | 'ganti' | null;
+  jumlah: number | string | null;
+  paraf: string;
+}
+
+export const fetchRiwayatOli = async (id: number): Promise<RiwayatOliItem[]> => {
+  const response: any = await api(`/olis/${id}/riwayat`, { method: 'GET' });
+  return response.data || [];
+};

@@ -102,6 +102,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Tambahan untuk Oli: Bisa dilihat oleh user Inventaris & Teknisi Mesin
     Route::middleware('permission:view_inventaris|view_pemeliharaan_mesin|process_pemeliharaan_mesin')->group(function () {
         Route::apiResource('olis', OliController::class)->only(['index', 'show']);
+        Route::get('/olis/{id}/riwayat', [OliController::class, 'riwayat']);
     });
 
     // process_* = level "Isi catatan" (pekerja/vendor): butuh daftar mesin untuk halaman catatan

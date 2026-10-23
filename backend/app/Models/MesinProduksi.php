@@ -20,14 +20,22 @@ class MesinProduksi extends Model
         'gambar_url', 
         'part_mapping',
         'foto_katalog', // <--- Tambahkan ini
+        'oli_id',
     ];
 
     protected $casts = [
         'part_mapping' => 'array',
+        'oli_id' => 'integer',
     ];
 
     // Relasi riwayat yang ikut terhapus (cascade) bila mesin dihapus permanen
     public const RELASI_RIWAYAT = ['logPemeliharaan', 'logAktivitas', 'kalibrasi', 'rencana', 'mappingPengerjaan', 'dokumen'];
+
+    // Oli standar mesin (dari Data Oli)
+    public function oli()
+    {
+        return $this->belongsTo(Oli::class, 'oli_id');
+    }
 
     // Relasi: 1 Mesin memiliki banyak Log Pemeliharaan
     public function logPemeliharaan()
