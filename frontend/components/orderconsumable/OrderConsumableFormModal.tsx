@@ -115,7 +115,7 @@ export default function OrderConsumableFormModal({ isOpen, onClose, onSuccess }:
   const consumableOptions: SearchableOption[] = consumableList.map((c) => ({
     value: String(c.id),
     label: labelConsumable(c),
-    description: keteranganBarang(c.tipe || c.type, c.ukuran),
+    description: keteranganBarang({ merk: c.merk || c.merek, tipe: c.tipe || c.type, er_e: c.er_e, ukuran: c.ukuran }),
   }));
 
   // Saat mengetik: nama pengusul baru sah kalau sama persis (tanpa beda huruf besar/kecil)

@@ -4,6 +4,7 @@ import { Modal, Form, Button, Row, Col } from 'react-bootstrap';
 import { IconTrash, IconPlus } from '@tabler/icons-react';
 import { getPemintaListForTools, getToolsList, createOrderTools } from '/services/orderToolsService';
 import { useFeedback } from "components/common/FeedbackProvider";
+import SearchableInput, { SearchableOption, keteranganBarang } from "components/common/SearchableInput";
 
 interface OrderToolsFormModalProps {
   isOpen: boolean;
@@ -22,6 +23,10 @@ interface OrderItem {
   jumlah: number;
   satuan: string;
 }
+
+// Teks utama alat di kotak pencarian & isi input setelah dipilih
+const labelTool = (t: any) =>
+  `${t.kode_barang || t.kodeBarang} — ${t.nama_barang || t.namaBarang || t.nama}`;
 
 const getEmptyItem = (): OrderItem => ({
   tool_id: '',
@@ -90,6 +95,17 @@ export default function OrderToolsFormModal({ isOpen, onClose, onSuccess }: Orde
       setItems(newItems);
     }
   };
+
+  const toolOptions: SearchableOption[] = toolsList.map((t) => ({
+    value: String(t.id),
+    label: labelTool(t),
+    description: keteranganBarang({
+      merk: t.merk || t.merek,
+      tipe: t.tipe || t.type,
+      warna: t.warna,
+      ukuran: t.ukuran,
+    }),
+  }));
 
   const handleAddItem = () => {
     setItems([...items, getEmptyItem()]);
@@ -195,7 +211,7 @@ export default function OrderToolsFormModal({ isOpen, onClose, onSuccess }: Orde
           {items.map((item, index) => {
             const currentSearchText = searchTexts[index] !== undefined
               ? searchTexts[index]
-              : (item.tool_id ? `${item.kode_barang} — ${item.nama_barang}` : item.nama_barang);
+              : (item.tool_id ? labelTool(item) : item.nama_barang);
 
             // Field auto-fill disabled saat tool sudah dipilih dari database
             const isLocked = Boolean(item.tool_id);
@@ -217,17 +233,18 @@ export default function OrderToolsFormModal({ isOpen, onClose, onSuccess }: Orde
                       <Form.Label className="fw-semibold">
                         Kode Barang <span className="text-danger">*</span>
                       </Form.Label>
-                      <Form.Control
-                        list={`tools-options-${index}`}
+                      <SearchableInput
+                        options={toolOptions}
                         placeholder="Ketik atau pilih kode/nama barang..."
-                        value={currentSearchText}
-                        onChange={(e) => {
-                          const typed = e.target.value;
+                        inputValue={currentSearchText}
+                        onSelect={(o) => {
+                          setSearchTexts((prev) => ({ ...prev, [index]: o.label }));
+                          handleSelectTool(index, o.value);
+                        }}
+                        onInputChange={(typed) => {
                           setSearchTexts((prev) => ({ ...prev, [index]: typed }));
 
-                          const match = toolsList.find(
-                            (t) => `${t.kode_barang || t.kodeBarang} — ${t.nama_barang || t.namaBarang || t.nama}` === typed
-                          );
+                          const match = toolsList.find((t) => labelTool(t) === typed);
 
                           if (match) {
                             handleSelectTool(index, match.id.toString());
@@ -248,13 +265,6 @@ export default function OrderToolsFormModal({ isOpen, onClose, onSuccess }: Orde
                           }
                         }}
                       />
-                      <datalist id={`tools-options-${index}`}>
-                        {toolsList.map((t) => {
-                          const kode = t.kode_barang || t.kodeBarang;
-                          const nama = t.nama_barang || t.namaBarang || t.nama;
-                          return <option key={t.id} value={`${kode} — ${nama}`} />;
-                        })}
-                      </datalist>
                       <Form.Text className="text-muted">
                         Pilih dari daftar database, atau ketik bebas untuk barang baru.
                       </Form.Text>
