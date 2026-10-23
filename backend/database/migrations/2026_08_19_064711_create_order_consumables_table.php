@@ -40,6 +40,9 @@ return new class extends Migration
             // <-- TAMBAHAN STATUS 'on progres' DI ENUM
             $table->enum('status_pembelian', ['belum dibeli', 'on progres', 'sudah dibeli', 'ditolak'])->default('belum dibeli');
             $table->timestamps();
+
+            // Index kolom relasi (PostgreSQL tidak otomatis membuat index untuk foreign key)
+            $table->index('peminta_id');
         });
     }
 

@@ -20,6 +20,10 @@ return new class extends Migration
 
             $table->foreign('tool_id')->references('id')->on('tools');
             $table->foreign('dicatat_oleh')->references('id')->on('peminta')->onUpdate('cascade');
+
+            // Index kolom relasi (PostgreSQL tidak otomatis membuat index untuk foreign key)
+            $table->index('tool_id');
+            $table->index('dicatat_oleh');
         });
     }
 

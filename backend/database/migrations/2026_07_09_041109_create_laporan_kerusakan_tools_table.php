@@ -23,6 +23,10 @@ return new class extends Migration
             $table->integer('perbaikan_ke')->nullable();
             $table->uuid('dilaporkan_oleh');
             $table->timestamps();
+
+            // Index kolom relasi (PostgreSQL tidak otomatis membuat index untuk foreign key)
+            $table->index('tool_id');
+            $table->index('peminjaman_id');
         });
     }
 

@@ -24,6 +24,10 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['jenis', 'mesin_produksi_id']);
+
+            // Index kolom relasi (PostgreSQL tidak otomatis membuat index untuk foreign key)
+            $table->index('mesin_produksi_id');
+            $table->index('diunggah_oleh');
         });
     }
 

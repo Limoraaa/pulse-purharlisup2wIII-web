@@ -19,6 +19,9 @@ return new class extends Migration
             $table->integer('jumlah');
             $table->string('pemeriksa');
             $table->timestamps();
+
+            // Index kolom relasi (PostgreSQL tidak otomatis membuat index untuk foreign key)
+            $table->index('mesin_produksi_id');
         });
     }
 

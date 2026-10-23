@@ -19,6 +19,10 @@ return new class extends Migration
             $table->string('dicatat_oleh'); // ID kartu Inventory Man (tabel peminta)
             $table->foreign('dicatat_oleh')->references('id')->on('peminta')->onUpdate('cascade');
             $table->timestamps();
+
+            // Index kolom relasi (PostgreSQL tidak otomatis membuat index untuk foreign key)
+            $table->index('consumable_id');
+            $table->index('dicatat_oleh');
         });
     }
 

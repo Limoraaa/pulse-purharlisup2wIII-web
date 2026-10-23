@@ -22,6 +22,10 @@ return new class extends Migration
             $table->text('keterangan')->nullable();
             $table->uuid('dicatat_oleh');
             $table->timestamps();
+
+            // Index kolom relasi (PostgreSQL tidak otomatis membuat index untuk foreign key)
+            $table->index('consumable_id');
+            $table->index('peminta_id');
         });
     }
 

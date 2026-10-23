@@ -41,6 +41,10 @@ return new class extends Migration
             $table->enum('jenis_pelaksana', ['Internal', 'Vendor'])->default('Internal');
             $table->string('nama_vendor')->nullable();
             $table->timestamps();
+
+            // Index kolom relasi (PostgreSQL tidak otomatis membuat index untuk foreign key)
+            $table->index('mesin_produksi_id');
+            $table->index('rencana_id');
         });
     }
 

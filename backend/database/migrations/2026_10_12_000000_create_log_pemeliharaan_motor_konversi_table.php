@@ -26,6 +26,9 @@ return new class extends Migration
             $table->foreign('motor_konversi_id')
                   ->references('id')->on('motor_konversi')
                   ->onDelete('cascade');
+
+                  // Index kolom relasi (PostgreSQL tidak otomatis membuat index untuk foreign key)
+                  $table->index('motor_konversi_id');
         });
     }
 
