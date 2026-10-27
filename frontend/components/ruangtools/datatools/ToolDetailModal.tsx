@@ -11,7 +11,7 @@ import {
 } from "@tabler/icons-react";
 
 // import custom types
-import { ToolItemType, ToolCondition } from "types/DataToolsTypes";
+import { ToolItemType, ToolCondition, KATEGORI_LABEL } from "types/DataToolsTypes";
 
 const kondisiVariant = (kondisi: ToolCondition) => {
   switch (kondisi) {
@@ -81,6 +81,12 @@ const ToolDetailModal = ({ show, onClose, tool }: ToolDetailModalProps) => {
               <h4 className="mb-1">{tool.namaBarang}</h4>
               <div className="text-secondary">
                 Kode Barang: <span className="fw-semibold text-body">{tool.kodeBarang}</span>
+              </div>
+              <div className="text-secondary">
+                Kategori:{" "}
+                <span className="fw-semibold text-body">
+                  {KATEGORI_LABEL[tool.kategori ?? "alat_biasa"] ?? tool.kategori}
+                </span>
               </div>
             </div>
             <Badge bg={bg} text={text} className="tool-detail-status d-inline-flex align-items-center gap-1">

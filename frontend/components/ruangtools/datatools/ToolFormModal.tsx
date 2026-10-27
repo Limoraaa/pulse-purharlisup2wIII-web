@@ -5,7 +5,7 @@ import { Modal, Form, Row, Col, Button } from "react-bootstrap";
 import { IconTool, IconPencil, IconPlus } from "@tabler/icons-react";
 
 // import custom types
-import { ToolFormValues, ToolItemType} from "types/DataToolsTypes";
+import { ToolFormValues, ToolItemType, ToolKategori, KATEGORI_LABEL } from "types/DataToolsTypes";
 
 
 const emptyForm: ToolFormValues = {
@@ -186,9 +186,9 @@ const ToolFormModal = ({
                   }));
                 }}
               >
-                <option value="alat_biasa">Perkakas Tangan</option>
-                <option value="perkakas_mesin">Perkakas Mesin</option>
-                <option value="mesin">Mesin</option>
+                {(Object.keys(KATEGORI_LABEL) as ToolKategori[]).map((k) => (
+                  <option key={k} value={k}>{KATEGORI_LABEL[k]}</option>
+                ))}
               </Form.Select>
               {form.kategori === "mesin" && (
                 <Form.Text className="text-warning">
