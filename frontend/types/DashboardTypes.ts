@@ -9,6 +9,11 @@ export interface StokMenipisItem {
   id: string;
   kode_barang: string;
   nama: string;
+  merk?: string | null;
+  type?: string | null;
+  er_e?: string | null;
+  ukuran?: string | null;
+  satuan?: string | null;
   stok_tersedia: number;
 }
 

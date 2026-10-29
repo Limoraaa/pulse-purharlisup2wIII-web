@@ -60,12 +60,15 @@ class DashboardController extends Controller
     }
 
     // GET /api/dashboard/stok-menipis
+    // Semua consumable aktif dengan stok < 5, beserta detail pembeda (merk, tipe, ER/E, ukuran)
+    // agar barang bernama sama (mis. lakban kertas vs plastik) bisa dibedakan di dashboard.
     public function stokMenipis()
     {
-        $data = Consumable::where('stok_tersedia', '<', 5)
+        $data = Consumable::active()
+            ->where('stok_tersedia', '<', 5)
             ->orderBy('stok_tersedia', 'asc')
-            ->limit(5)
-            ->get(['id', 'kode_barang', 'nama', 'stok_tersedia']);
+            ->orderBy('kode_barang', 'asc')
+            ->get(['id', 'kode_barang', 'nama', 'merk', 'type', 'er_e', 'ukuran', 'satuan', 'stok_tersedia']);
 
         return response()->json($data);
     }

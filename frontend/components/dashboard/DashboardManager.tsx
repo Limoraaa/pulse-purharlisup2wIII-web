@@ -50,6 +50,7 @@ import { usePermission } from "hooks/usePermissions";
 import Flex from "components/common/Flex";
 
 import StatCard from "components/dashboard/StatCard";
+import { keteranganBarang } from "components/common/SearchableInput";
 
 const formatWaktu = (iso: string) => {
   const d = new Date(iso);
@@ -278,27 +279,48 @@ const DashboardManager = () => {
               <div className="d-flex align-items-center gap-2 mb-3">
                 <IconAlertTriangle className="text-danger" size={20} />
                 <h5 className="mb-0">Stok Consumable Menipis</h5>
+                {stokMenipis.length > 0 && (
+                  <Badge bg="danger" pill className="ms-1">{stokMenipis.length}</Badge>
+                )}
               </div>
               {stokMenipis.length === 0 ? (
                 <p className="text-secondary small mb-0">Semua stok aman.</p>
               ) : (
-                <ul className="list-unstyled mb-0 dash-list">
-                  {stokMenipis.map((item) => (
-                    <li
-                      key={item.id}
-                      className="d-flex justify-content-between align-items-center px-2 py-2 rounded small border-bottom"
-                    >
-                      <div>
-                        <div className="fw-semibold">
-                          {item.nama} <span className="text-secondary fw-normal">({item.kode_barang})</span>
-                        </div>
-                      </div>
-                      <Badge bg={item.stok_tersedia === 0 ? "danger" : "warning"}>
-                        {item.stok_tersedia} unit
-                      </Badge>
-                    </li>
-                  ))}
-                </ul>
+                <>
+                  {/* Semua barang menipis ditampilkan; daftar bisa di-scroll bila panjang */}
+                  <ul className="list-unstyled mb-0 dash-list" style={{ maxHeight: 300, overflowY: "auto" }}>
+                    {stokMenipis.map((item) => {
+                      const detail = keteranganBarang({
+                        merk: item.merk,
+                        tipe: item.type,
+                        er_e: item.er_e,
+                        ukuran: item.ukuran,
+                      });
+                      const satuan = item.satuan && item.satuan.trim() && item.satuan !== "-" ? item.satuan : "unit";
+                      return (
+                        <li
+                          key={item.id}
+                          className="d-flex justify-content-between align-items-center gap-2 px-2 py-2 rounded small border-bottom"
+                        >
+                          <div className="min-w-0">
+                            <div className="fw-semibold">
+                              {item.nama} <span className="text-secondary fw-normal">({item.kode_barang})</span>
+                            </div>
+                            {detail && <div className="text-secondary" style={{ fontSize: "0.75rem" }}>{detail}</div>}
+                          </div>
+                          <Badge bg={item.stok_tersedia === 0 ? "danger" : "warning"} className="flex-shrink-0">
+                            {item.stok_tersedia} {satuan}
+                          </Badge>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  <div className="text-end mt-2">
+                    <Link href="/inventaris/data-consumable" className="small fw-semibold text-decoration-none">
+                      Lihat Data Consumable →
+                    </Link>
+                  </div>
+                </>
               )}
             </CardBody>
           </Card>
