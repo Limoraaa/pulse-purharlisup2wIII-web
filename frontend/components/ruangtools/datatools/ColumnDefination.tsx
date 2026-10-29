@@ -2,7 +2,7 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge, Dropdown } from "react-bootstrap";
 import { IconDotsVertical, IconShoppingCartPlus } from "@tabler/icons-react";
-import QRCode from "qrcode"; 
+import { downloadQrDenganLabel } from "components/common/downloadQrLabel";
 
 // import custom types
 import { ToolItemType, ToolCondition, CartItemType } from "types/DataToolsTypes";
@@ -149,58 +149,13 @@ export const getDataToolsColumns = ({
         try {
           const namaBarang = tool.namaBarang || "Tool";
           const merkBarang = tool.merk || "Unknown";
-          const kodeBarang = tool.kodeBarang || "-"; // Ambil kode barang untuk teks visual
-          
-          // Format nama file: NamaBarang_Merk.png
-          const fileName = `${namaBarang}_${merkBarang}`.replace(/[^a-zA-Z0-9_-]/g, "_") + ".png";
-
-          // 1. Generate QR murni jadi Base64 (Isi data tetap ID)
-          const qrDataUrl = await QRCode.toDataURL(String(tool.id), {
-            width: 500,
-            margin: 2,
-            errorCorrectionLevel: 'H'
+          await downloadQrDenganLabel({
+            data: String(tool.id), // isi QR tetap ID agar sistem scan bekerja
+            kodeBarang: tool.kodeBarang || "-",
+            namaBarang: tool.namaBarang || "",
+            // Format nama file: NamaBarang_Merk.png
+            fileName: `${namaBarang}_${merkBarang}`.replace(/[^a-zA-Z0-9_-]/g, "_"),
           });
-
-          // 2. Ubah jadi gambar statis di memori
-          const qrImage = new Image();
-          qrImage.src = qrDataUrl;
-          
-          qrImage.onload = () => {
-            const finalCanvas = document.createElement("canvas");
-            const ctx = finalCanvas.getContext("2d");
-            if (!ctx) return;
-
-            // Kunci ukuran jadi Persegi Panjang
-            const QR_SIZE = 500;
-            const TEXT_AREA = 100;
-
-            finalCanvas.width = QR_SIZE;
-            finalCanvas.height = QR_SIZE + TEXT_AREA;
-
-            // Background putih
-            ctx.fillStyle = "#ffffff";
-            ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
-
-            // Tempel QR Code di atas
-            ctx.drawImage(qrImage, 0, 0, QR_SIZE, QR_SIZE);
-
-            // Tempel Teks Kode Barang di bawah
-            ctx.fillStyle = "#000000";    
-            ctx.font = "bold 40px Arial, sans-serif"; 
-            ctx.textAlign = "center";     
-            ctx.textBaseline = "middle";  
-            
-            ctx.fillText(kodeBarang, QR_SIZE / 2, QR_SIZE + (TEXT_AREA / 2)); 
-
-            // Eksekusi otomatis download
-            const link = document.createElement("a");
-            link.download = fileName; 
-            link.href = finalCanvas.toDataURL("image/png");
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-          };
-
         } catch (err) {
           console.error("Gagal membuat QR Code", err);
         }

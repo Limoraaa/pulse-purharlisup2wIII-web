@@ -1,6 +1,13 @@
 export type ToolCondition = "Baik" | "Rusak";
 export type ToolKategori = "mesin" | "alat_biasa" | "perkakas_mesin";
 
+// Nama kategori yang ditampilkan ke pengguna (urutan = urutan pilihan di form)
+export const KATEGORI_LABEL: Record<ToolKategori, string> = {
+  alat_biasa: "Perkakas Tangan",
+  perkakas_mesin: "Perkakas Mesin",
+  mesin: "Mesin",
+};
+
 export interface ToolItemType {
   id: string;
   kodeBarang: string;
