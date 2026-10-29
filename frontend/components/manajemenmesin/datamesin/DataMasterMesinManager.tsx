@@ -196,7 +196,8 @@ export default function DataMasterMesinManager() {
   }, [canManage, prosesId]);
 
   return (
-    <div>
+    // datamesin-page: kolom Aksi tabel tetap terlihat saat tabel digeser (sama seperti Data Tools)
+    <div className="datamesin-page">
       <Row className="mb-3">
         <Col>
           <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">

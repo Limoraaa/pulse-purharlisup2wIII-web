@@ -14,7 +14,7 @@ interface initialStateType {
 
 const initialState: initialStateType = {
   skin: settings.theme.skin,
-  showMenu: true,
+  showMenu: false, // menu samping (offcanvas) di HP/tablet tertutup saat halaman dibuka
   collapsed: "expanded",
 };
 const appSlice = createSlice({

@@ -49,7 +49,6 @@ import {
 } from "components/ruangtools/riwayat/common/exportUtils";
 import TanstackTable from "components/table/TanstackTable";
 import Flex from "components/common/Flex";
-import DasherBreadcrumb from "components/common/DasherBreadcrumb";
 
 import {
   fetchRencanaLengkap,
@@ -1178,7 +1177,12 @@ const RencanaPemeliharaanManager = () => {
             className="mb-4 w-100"
             breakpoint="md"
           >
-            <DasherBreadcrumb />
+            <div>
+              <h1 className="mb-2 h2">Rencana Pemeliharaan Mesin</h1>
+              <p className="text-secondary mb-0">
+                Kelola dan pantau jadwal preventive maintenance mesin.
+              </p>
+            </div>
             <div>
               {canManage && (
                 <Button
@@ -1196,7 +1200,7 @@ const RencanaPemeliharaanManager = () => {
       </Row>
 
       <Row className="g-3 mb-4">
-        <Col xl={3} md={6}>
+        <Col xl={3} md={6} xs={6}>
           <StatCard
             label={`Total Rencana ${tahun}`}
             value={stats.total}
@@ -1204,7 +1208,7 @@ const RencanaPemeliharaanManager = () => {
             icon={<IconCalendar size={24} />}
           />
         </Col>
-        <Col xl={3} md={6}>
+        <Col xl={3} md={6} xs={6}>
           <StatCard
             label={
               stats.bulanIni === null
@@ -1216,7 +1220,7 @@ const RencanaPemeliharaanManager = () => {
             icon={<IconClock size={24} />}
           />
         </Col>
-        <Col xl={3} md={6}>
+        <Col xl={3} md={6} xs={6}>
           <StatCard
             label="Selesai"
             value={stats.selesai}
@@ -1224,7 +1228,7 @@ const RencanaPemeliharaanManager = () => {
             icon={<IconCircleCheck size={24} />}
           />
         </Col>
-        <Col xl={3} md={6}>
+        <Col xl={3} md={6} xs={6}>
           <StatCard
             label="Terlewat"
             value={stats.terlewat}

@@ -1,5 +1,7 @@
 "use client";
 //import node modules libraries
+import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { Image } from "react-bootstrap";
 import Offcanvas from "react-bootstrap/Offcanvas";
 import OffcanvasBody from "react-bootstrap/OffcanvasBody";
@@ -15,6 +17,13 @@ import { getAssetPath } from "helper/assetPath";
 
 const OffcanvasSidebar = () => {
   const { showMenu, toggleMenuHandler } = useMenu();
+  const pathname = usePathname();
+
+  // Tutup menu setelah pengguna berpindah halaman, agar halaman baru tidak tertutup menu
+  useEffect(() => {
+    toggleMenuHandler(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   return (
     <Offcanvas

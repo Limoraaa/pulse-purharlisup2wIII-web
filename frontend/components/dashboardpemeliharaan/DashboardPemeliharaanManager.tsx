@@ -393,7 +393,7 @@ const DashboardPemeliharaanManager = () => {
 
       {/* Baris 1: Ringkasan utama */}
       <Row className="g-3 mb-4">
-        <Col xs={12} md={6} xl={3}>
+        <Col xs={6} md={6} xl={3}>
           <LinkIf href={mesinHref}>
             <StatCard
               icon={<IconServer size={26} />}
@@ -403,7 +403,7 @@ const DashboardPemeliharaanManager = () => {
             />
           </LinkIf>
         </Col>
-        <Col xs={12} md={6} xl={3}>
+        <Col xs={6} md={6} xl={3}>
           <LinkIf href={mesinHref}>
             <StatCard
               icon={<IconAlertTriangle size={26} />}
@@ -413,7 +413,7 @@ const DashboardPemeliharaanManager = () => {
             />
           </LinkIf>
         </Col>
-        <Col xs={12} md={6} xl={3}>
+        <Col xs={6} md={6} xl={3}>
           <LinkIf href={rencanaHref}>
             <StatCard
               icon={<IconCalendarEvent size={26} />}
@@ -423,7 +423,7 @@ const DashboardPemeliharaanManager = () => {
             />
           </LinkIf>
         </Col>
-        <Col xs={12} md={6} xl={3}>
+        <Col xs={6} md={6} xl={3}>
           <LinkIf href={rencanaHref}>
             <StatCard
               icon={<IconCalendarDue size={26} />}
@@ -622,14 +622,14 @@ const DashboardPemeliharaanManager = () => {
                   {kalibrasi.map((k) => (
                     <div
                       key={`kal-${k.id}`}
-                      className={`d-flex justify-content-between align-items-center gap-2 border rounded p-2 ${k.status === 'terlewat' ? 'border-danger bg-danger-subtle' : 'border-warning bg-warning-subtle'}`}
+                      className={`d-flex flex-wrap justify-content-between align-items-center gap-2 border rounded p-2 ${k.status === 'terlewat' ? 'border-danger bg-danger-subtle' : 'border-warning bg-warning-subtle'}`}
                     >
-                      <div className="d-flex align-items-center gap-2 min-w-0">
+                      <div className="d-flex align-items-center gap-2 min-w-0" style={{ flex: "1 1 200px" }}>
                         <span className="d-inline-flex align-items-center justify-content-center rounded bg-white border flex-shrink-0" style={{ width: 28, height: 28 }}>
                           <IconAdjustmentsAlt size={16} className={k.status === 'terlewat' ? 'text-danger' : 'text-warning'} />
                         </span>
-                        <div className="text-truncate">
-                          <div className="fw-semibold text-truncate" title={k.nama_mesin}>
+                        <div className="min-w-0">
+                          <div className="fw-semibold text-break" title={k.nama_mesin}>
                             [Kalibrasi] {k.kode_mesin}
                           </div>
                           <div className="text-secondary small">Jatuh Tempo: {formatTanggalSaja(k.jatuh_tempo)}</div>
@@ -651,14 +651,14 @@ const DashboardPemeliharaanManager = () => {
                     return (
                       <div
                         key={`ang-${p.id}`}
-                        className={`d-flex justify-content-between align-items-center gap-2 border rounded p-2 ${isTerlewat ? 'border-danger bg-danger-subtle' : ''}`}
+                        className={`d-flex flex-wrap justify-content-between align-items-center gap-2 border rounded p-2 ${isTerlewat ? 'border-danger bg-danger-subtle' : ''}`}
                       >
-                        <div className="d-flex align-items-center gap-2 min-w-0">
+                        <div className="d-flex align-items-center gap-2 min-w-0" style={{ flex: "1 1 200px" }}>
                           <span className="d-inline-flex align-items-center justify-content-center rounded bg-white border flex-shrink-0" style={{ width: 28, height: 28 }}>
                             <IconReportMoney size={16} style={{ color: STATUS_META[p.status].color }} />
                           </span>
-                          <div className="text-truncate">
-                            <div className="fw-semibold text-truncate" title={p.nama_pekerjaan}>
+                          <div className="min-w-0">
+                            <div className="fw-semibold text-break" title={p.nama_pekerjaan}>
                               [Anggaran] {p.nama_pekerjaan}
                             </div>
                             <div className="text-secondary small">
@@ -688,9 +688,9 @@ const DashboardPemeliharaanManager = () => {
                     return (
                       <div
                         key={`ren-${r.id}`}
-                        className={`d-flex justify-content-between align-items-center gap-2 border rounded p-2 ${isTerlewat ? 'border-danger bg-danger-subtle' : ''}`}
+                        className={`d-flex flex-wrap justify-content-between align-items-center gap-2 border rounded p-2 ${isTerlewat ? 'border-danger bg-danger-subtle' : ''}`}
                       >
-                        <div className="d-flex align-items-center gap-2 min-w-0">
+                        <div className="d-flex align-items-center gap-2 min-w-0" style={{ flex: "1 1 200px" }}>
                           <span
                             className="d-inline-flex align-items-center justify-content-center rounded fw-bold flex-shrink-0"
                             style={{ 
@@ -705,8 +705,8 @@ const DashboardPemeliharaanManager = () => {
                           >
                             {r.aksi}
                           </span>
-                          <div className="text-truncate">
-                            <div className="fw-semibold text-truncate" title={r.namaMesin}>
+                          <div className="min-w-0">
+                            <div className="fw-semibold text-break" title={r.namaMesin}>
                               {r.kodeMesin}
                             </div>
                             <div className="text-secondary small">{formatJadwal(r)}</div>
@@ -751,8 +751,8 @@ const DashboardPemeliharaanManager = () => {
                   <ul className="list-unstyled mb-0 dash-list">
                     {aktivitas.map((item) => (
                       <li key={item.id} className="px-3 py-3 rounded border-bottom bg-white hover-bg-light transition">
-                        <div className="d-flex justify-content-between align-items-center gap-2">
-                          <div>
+                        <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
+                          <div className="min-w-0">
                             <div className="d-flex align-items-center gap-2 flex-wrap">
                               <span className="fw-semibold text-dark fs-6">{item.nama_mesin}</span>
                               <Badge

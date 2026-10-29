@@ -584,7 +584,7 @@ export default function DetailMesinManager({
             {/* HANYA MUNCUL JIKA MODE = OPERASIONAL */}
             {mode === 'operasional' && (
               <div className="d-flex align-items-center pe-4 border-end">
-                <span className="text-muted small fw-bold me-3" style={{fontSize: '0.7rem', letterSpacing: '0.5px'}}>OPERASIONAL:</span>
+                <span className="text-muted small fw-bold me-3 d-none d-sm-inline" style={{fontSize: '0.7rem', letterSpacing: '0.5px'}}>OPERASIONAL:</span>
                 <ul className="nav nav-pills gap-2 m-0 flex-nowrap">
                   {[
                     { id: 'log_aktivitas', label: 'Log Aktivitas', icon: IconActivity },
@@ -597,7 +597,7 @@ export default function DetailMesinManager({
             {/* HANYA MUNCUL JIKA MODE = PEMELIHARAAN */}
             {mode === 'pemeliharaan' && (
               <div className="d-flex align-items-center pe-4 border-end">
-                <span className="text-muted small fw-bold me-3" style={{fontSize: '0.7rem', letterSpacing: '0.5px'}}>PEMELIHARAAN:</span>
+                <span className="text-muted small fw-bold me-3 d-none d-sm-inline" style={{fontSize: '0.7rem', letterSpacing: '0.5px'}}>PEMELIHARAAN:</span>
                 <ul className="nav nav-pills gap-2 m-0 flex-nowrap">
                   {[
                     { id: 'log_pemeliharaan', label: 'Log Pemeliharaan', icon: IconHistory }, 
@@ -610,7 +610,7 @@ export default function DetailMesinManager({
 
             {/* MUNCUL DI KEDUA MODE */}
             <div className="d-flex align-items-center">
-              <span className="text-muted small fw-bold me-3" style={{fontSize: '0.7rem', letterSpacing: '0.5px'}}>K3:</span>
+              <span className="text-muted small fw-bold me-3 d-none d-sm-inline" style={{fontSize: '0.7rem', letterSpacing: '0.5px'}}>K3:</span>
               <ul className="nav nav-pills gap-2 m-0 flex-nowrap">
                 {[
                   { id: 'hirarc', label: 'HIRARC', icon: IconAlertTriangle },
@@ -621,7 +621,7 @@ export default function DetailMesinManager({
             {/* Kebutuhan alat & consumable: hanya di halaman Pemeliharaan */}
             {mode === 'pemeliharaan' && (
               <div className="d-flex align-items-center ps-4 border-start">
-                <span className="text-muted small fw-bold me-3" style={{fontSize: '0.7rem', letterSpacing: '0.5px'}}>KEBUTUHAN:</span>
+                <span className="text-muted small fw-bold me-3 d-none d-sm-inline" style={{fontSize: '0.7rem', letterSpacing: '0.5px'}}>KEBUTUHAN:</span>
                 <ul className="nav nav-pills gap-2 m-0 flex-nowrap">
                   {[
                     { id: 'kebutuhan', label: 'Kebutuhan Pemeliharaan', icon: IconPackages },

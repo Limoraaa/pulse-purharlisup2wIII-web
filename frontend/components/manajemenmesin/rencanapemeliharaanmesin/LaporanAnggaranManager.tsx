@@ -298,13 +298,13 @@ export default function LaporanAnggaranManager() {
 
     return (
       <Card key={bulan} className="mb-5 shadow-sm border-0">
-        <Card.Header className="bg-white border-bottom-0 pt-4 pb-2">
+        <Card.Header className="bg-white border-bottom-0 pt-4 pb-2 px-3 px-md-4">
           <h4 className="fw-bold text-dark mb-0">
             Bulan {namaBulan} {selectedYear}
           </h4>
         </Card.Header>
 
-        <Card.Body>
+        <Card.Body className="p-3 p-md-4">
           
           {/* SECTION 1: DISBURSE (WARNING / ORANYE SOFT) */}
           <div className="mb-5">
@@ -509,8 +509,8 @@ export default function LaporanAnggaranManager() {
     <div className="container-fluid px-0">
       <div className="d-flex flex-wrap justify-content-between align-items-end mb-4 gap-3">
         <div>
-          <h3 className="fw-bold text-dark mb-1">Laporan Serapan Anggaran PRK</h3>
-          <p className="text-muted mb-0 small">Catat disburse, rencana pekerjaan, dan pembayaran vendor per bulan.</p>
+          <h1 className="mb-2 h2">Laporan Serapan Anggaran PRK</h1>
+          <p className="text-secondary mb-0">Catat disburse, rencana pekerjaan, dan pembayaran vendor per bulan.</p>
         </div>
 
         <div className="d-flex flex-wrap align-items-end gap-2">
