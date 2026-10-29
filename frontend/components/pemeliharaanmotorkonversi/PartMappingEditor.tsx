@@ -1,4 +1,5 @@
 "use client";
+import { v4 as uuid } from "uuid"; // bukan crypto.randomUUID(): itu hanya tersedia di HTTPS/localhost
 import { useEffect, useRef, useState } from "react";
 import { Button, Form, Table, Alert, Badge, Spinner, Modal } from "react-bootstrap";
 import { IconMapPin, IconPencil, IconTrash } from "@tabler/icons-react";
@@ -154,7 +155,7 @@ export default function PartMappingEditorMotor({ show, onHide, mesinId, mesinNam
       // id dipertahankan agar riwayat checklist yang sudah tersimpan tetap terhubung ke part ini
       setParts((prev) => prev.map((p) => (p.id === editingId ? { ...p, ...dataPart } : p)));
     } else {
-      setParts((prev) => [...prev, { id: crypto.randomUUID(), ...dataPart }]);
+      setParts((prev) => [...prev, { id: uuid(), ...dataPart }]);
     }
     resetPartForm();
   };

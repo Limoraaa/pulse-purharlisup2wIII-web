@@ -116,10 +116,11 @@ class MesinProduksiController extends Controller
         }
 
         $this->hapusFileFoto($mesin->foto_katalog);
-        $this->hapusFileFoto($mesin->gambar_url); // gambar peta part (view pertama)
-        // Gambar view lain pada peta part
-        foreach ($this->bacaViews($mesin) as $view) {
-            $this->hapusFileFoto($view['gambarUrl'] ?? null);
+        // Semua gambar peta part (view pertama & view lain), hanya yang ada di folder peta part
+        foreach ($this->semuaPathPeta($mesin) as $path) {
+            if (MesinProduksi::pathDiFolder($path, self::FOLDER_PETA)) {
+                Storage::disk('public')->delete($path);
+            }
         }
         $mesin->delete();
 
@@ -132,6 +133,23 @@ class MesinProduksiController extends Controller
         if ($url && str_contains($url, '/storage/')) {
             Storage::disk('public')->delete(MesinProduksi::kePathStorage($url));
         }
+    }
+
+    private const FOLDER_PETA = 'mesin-produksi';
+
+    // Semua path file gambar peta (gambar utama + semua view), dalam bentuk path relatif
+    private function semuaPathPeta(MesinProduksi $mesin): array
+    {
+        $paths = array_map(fn ($v) => MesinProduksi::kePathStorage($v['gambarUrl'] ?? null), $this->bacaViews($mesin));
+        $paths[] = $mesin->getRawOriginal('gambar_url') ?? $mesin->getAttributes()['gambar_url'] ?? null;
+
+        return array_values(array_unique(array_filter($paths)));
+    }
+
+    // Views untuk dikirim ke frontend: path relatif diubah ke URL lengkap server yang sedang berjalan
+    private function viewsDenganUrl(MesinProduksi $mesin): array
+    {
+        return array_map(fn ($v) => array_merge($v, ['gambarUrl' => MesinProduksi::keUrlStorage($v['gambarUrl'] ?? null)]), $this->bacaViews($mesin));
     }
 
     // Daftar view peta part (kolom views_peta, JSON). Kosong untuk mesin yang belum pakai multi-view.
@@ -185,7 +203,7 @@ class MesinProduksiController extends Controller
         // views kosong untuk mesin lama: frontend otomatis membuat 1 view dari gambarUrl
         return response()->json([
             'gambarUrl' => $mesin->gambar_url,
-            'views' => $this->bacaViews($mesin),
+            'views' => $this->viewsDenganUrl($mesin),
             'parts' => $mesin->part_mapping ?? [],
         ]);
     }
@@ -241,12 +259,29 @@ class MesinProduksiController extends Controller
             }
         }
 
-        // gambar_url = gambar view pertama (kompatibilitas halaman/kode lain yang masih membaca 1 gambar)
-        $gambarUtama = $views[0]['gambarUrl'] ?? ($validated['gambarUrl'] ?? null);
-        $urlLama = array_column($this->bacaViews($mesin), 'gambarUrl');
+        // Gambar view disimpan sebagai path relatif ("mesin-produksi/a.png") agar tetap tampil setelah
+        // aplikasi pindah server/domain. File di storage hanya boleh dari folder unggahan peta part,
+        // supaya alamat kiriman tidak bisa menunjuk (lalu menghapus) file lain seperti foto profil.
+        $pathLama = $this->semuaPathPeta($mesin);
+        foreach ($views as $i => $v) {
+            $path = MesinProduksi::kePathStorage($v['gambarUrl']);
+            if (MesinProduksi::adalahFileStorage($path) && ! MesinProduksi::pathDiFolder($path, self::FOLDER_PETA)
+                && ! in_array($path, $pathLama, true)) {
+                throw ValidationException::withMessages([
+                    "views.{$i}.gambarUrl" => "Gambar view \"{$v['nama']}\" tidak valid. Unggah ulang gambarnya.",
+                ]);
+            }
+            $views[$i]['gambarUrl'] = $path;
+        }
 
+        // gambar_url = gambar view pertama (kompatibilitas halaman/kode lain yang masih membaca 1 gambar)
+        $gambarUtama = $views[0]['gambarUrl'] ?? MesinProduksi::kePathStorage($validated['gambarUrl'] ?? null);
+        if ($gambarUtama !== null && MesinProduksi::adalahFileStorage($gambarUtama)
+            && ! MesinProduksi::pathDiFolder($gambarUtama, self::FOLDER_PETA) && ! in_array($gambarUtama, $pathLama, true)) {
+            throw ValidationException::withMessages(['gambarUrl' => 'Gambar peta tidak valid. Unggah ulang gambarnya.']);
+        }
         if ($gambarUtama !== null) {
-            $mesin->gantiGambarPeta($gambarUtama, 'mesin-produksi');
+            $mesin->gambar_url = $gambarUtama;
         }
 
         // Hanya kolom yang dikenal yang disimpan (oli kini per mesin, bukan per part)
@@ -262,12 +297,15 @@ class MesinProduksiController extends Controller
         $mesin->views_peta = json_encode($views, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         $mesin->save();
 
-        // Hapus file gambar dari view yang sudah dibuang/diganti (view pertama ditangani gantiGambarPeta)
-        foreach (array_diff($urlLama, array_column($views, 'gambarUrl')) as $url) {
-            if ($url !== $gambarUtama) {
-                $this->hapusFileFoto($url);
+        // Hapus file gambar yang tidak dipakai lagi oleh view mana pun (hanya dari folder peta part)
+        $pathBaru = $this->semuaPathPeta($mesin);
+        foreach (array_diff($pathLama, $pathBaru) as $path) {
+            if (MesinProduksi::pathDiFolder($path, self::FOLDER_PETA)) {
+                Storage::disk('public')->delete($path);
             }
         }
+
+        $views = $this->viewsDenganUrl($mesin);
 
         return response()->json([
             'success' => true,

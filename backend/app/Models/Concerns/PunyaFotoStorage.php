@@ -83,6 +83,21 @@ trait PunyaFotoStorage
         $this->gambar_url = $pathBaru;
     }
 
+    // Path file di disk public yang berada di folder tertentu (mis. "mesin-produksi/a.png")
+    public static function pathDiFolder(?string $path, string $folder): bool
+    {
+        return $path !== null && $path !== '' && self::adalahPathStorage($path)
+            && str_starts_with($path, rtrim($folder, '/') . '/');
+    }
+
+    // true bila nilai menunjuk file di storage (bukan gambar statis frontend / URL luar)
+    public static function adalahFileStorage(?string $nilai): bool
+    {
+        $path = self::kePathStorage($nilai);
+
+        return $path !== null && $path !== '' && self::adalahPathStorage($path);
+    }
+
     private static function adalahPathStorage(string $nilai): bool
     {
         // Path relatif disk public: tanpa skema (http/https/data) dan tidak diawali "/"

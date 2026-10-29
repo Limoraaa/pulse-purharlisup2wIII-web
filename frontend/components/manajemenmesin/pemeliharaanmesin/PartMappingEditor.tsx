@@ -1,4 +1,5 @@
 "use client";
+import { v4 as uuid } from "uuid"; // bukan crypto.randomUUID(): itu hanya tersedia di HTTPS/localhost
 import { useEffect, useRef, useState } from "react";
 import { Button, Form, Table, Alert, Badge, Spinner, Modal, Nav } from "react-bootstrap";
 import { IconMapPin, IconPencil, IconTrash, IconPlus, IconPhoto } from "@tabler/icons-react";
@@ -109,7 +110,7 @@ export default function PartMappingEditor({ show, onHide, mesinId, mesinNama, on
         setParts((prev) => prev.filter((p) => p.viewId !== activeViewId));
         resetPartForm();
       } else {
-        const baru: MachineView = { id: crypto.randomUUID(), nama: `View ${views.length + 1}`, gambarUrl: res.url };
+        const baru: MachineView = { id: uuid(), nama: `View ${views.length + 1}`, gambarUrl: res.url };
         setViews((prev) => [...prev, baru]);
         setActiveViewId(baru.id);
         resetPartForm();
@@ -222,7 +223,7 @@ export default function PartMappingEditor({ show, onHide, mesinId, mesinNama, on
       // id & viewId dipertahankan agar riwayat checklist yang sudah tersimpan tetap terhubung ke part ini
       setParts((prev) => prev.map((p) => (p.id === editingId ? { ...p, ...dataPart } : p)));
     } else {
-      setParts((prev) => [...prev, { id: crypto.randomUUID(), viewId: activeViewId, ...dataPart }]);
+      setParts((prev) => [...prev, { id: uuid(), viewId: activeViewId, ...dataPart }]);
     }
     resetPartForm();
   };
