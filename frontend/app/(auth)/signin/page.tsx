@@ -18,6 +18,7 @@ import { IconUser, IconLock, IconEye, IconEyeOff } from "@tabler/icons-react";
 // import custom components
 import { getAssetPath } from "helper/assetPath";
 import apiFetch from "lib/api";
+import { ambilTujuanLogin } from "lib/redirectLogin";
 
 interface LoginResponse {
   user: {
@@ -44,7 +45,7 @@ const SignIn = () => {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
-      router.replace("/");
+      router.replace(ambilTujuanLogin());
     }
   }, [router]);
 
@@ -67,7 +68,8 @@ const SignIn = () => {
       ["userAvatarUrl", "global_shared_tools_cart", "global_shared_consumable_cart"].forEach((k) => localStorage.removeItem(k));
       clearPermissions();
 
-      router.push("/");
+      // Kembali ke halaman yang dibuka sebelum login (mis. hasil scan QR mesin)
+      router.push(ambilTujuanLogin());
     } catch (err) {
       const message = err instanceof Error ? err.message : "Username atau password salah";
       setError(message);

@@ -102,10 +102,22 @@ const DataMesinManager = ({ mode = 'pemeliharaan' }: DataMesinManagerProps) => {
 
     const params = new URLSearchParams(window.location.search);
     const mesinParam = params.get("mesin");
-    if (!mesinParam) return;
+    // ?kode=BUBUT-01 berasal dari scan stiker QR di mesin
+    const kodeParam = params.get("kode")?.trim();
+    if (!mesinParam && !kodeParam) return;
 
     // Bersihkan parameter supaya refresh halaman tidak membuka ulang modal
     window.history.replaceState(null, "", window.location.pathname);
+
+    if (kodeParam) {
+      const byKode = mesinList.find((m) => m.kode_mesin?.toLowerCase() === kodeParam.toLowerCase());
+      if (!byKode) {
+        setError(`Mesin dengan kode "${kodeParam}" tidak ditemukan atau sedang tidak aktif.`);
+        return;
+      }
+      setSelectedMesin(byKode);
+      return;
+    }
 
     const found = mesinList.find((m) => String(m.id) === mesinParam);
     if (!found) {

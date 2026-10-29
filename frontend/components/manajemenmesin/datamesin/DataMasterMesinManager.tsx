@@ -4,13 +4,14 @@ import useSWR from "swr";
 import Image from "next/image";
 import { Alert, Badge, Button, Card, CardBody, Col, Form, InputGroup, Row, Spinner } from "react-bootstrap";
 import type { ColumnDef } from "@tanstack/react-table";
-import { IconBox, IconEdit, IconPlayerPause, IconPlayerPlay, IconPlus, IconSearch, IconTrash } from "@tabler/icons-react";
+import { IconBox, IconEdit, IconPlayerPause, IconPlayerPlay, IconPlus, IconQrcode, IconSearch, IconTrash } from "@tabler/icons-react";
 import api from "lib/api";
 import TanstackTable from "components/table/TanstackTable";
 import { usePermission } from "hooks/usePermissions";
 import { useFeedback } from "components/common/FeedbackProvider";
 import { exportToExcel, exportToPDF, ExportColumn, ringkasStatus } from "components/ruangtools/riwayat/common/exportUtils";
 import MesinFormModal, { MesinFormData } from "../MesinFormModal";
+import { cetakSemuaLabel, unduhLabelMesin } from "./qrMesin";
 
 interface MesinItem extends MesinFormData {
   // Total catatan riwayat (log, kalibrasi, rencana, dokumen, dll); > 0 berarti tidak boleh dihapus permanen
@@ -49,6 +50,32 @@ export default function DataMasterMesinManager() {
   const [formOpen, setFormOpen] = useState(false);
   const [mesinEdit, setMesinEdit] = useState<MesinItem | null>(null);
   const [prosesId, setProsesId] = useState<number | string | null>(null);
+  const [buatQr, setBuatQr] = useState(false);
+
+  // Stiker QR: tiap mesin punya 2 label (Operasional & Pemeliharaan) yang membuka catatan mesin itu di HP
+  const unduhQr = async (m: MesinItem) => {
+    try {
+      await unduhLabelMesin(m);
+    } catch {
+      notify("Gagal membuat QR mesin.", "danger");
+    }
+  };
+
+  const cetakQrSemua = async () => {
+    const daftar = filtered.filter((m) => m.status !== "Tidak Aktif");
+    if (daftar.length === 0) {
+      notify("Tidak ada mesin aktif pada daftar untuk dicetak.", "warning");
+      return;
+    }
+    setBuatQr(true);
+    try {
+      await cetakSemuaLabel(daftar);
+    } catch {
+      notify("Gagal membuat PDF QR mesin.", "danger");
+    } finally {
+      setBuatQr(false);
+    }
+  };
 
   const filtered = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
@@ -155,6 +182,15 @@ export default function DataMasterMesinManager() {
             <span className="text-secondary">Belum ada</span>
           ),
       },
+      {
+        header: "QR",
+        id: "qr",
+        cell: ({ row }) => (
+          <Button size="sm" variant="outline-dark" title="Unduh stiker QR (Operasional & Pemeliharaan)" onClick={() => unduhQr(row.original)}>
+            <IconQrcode size={16} />
+          </Button>
+        ),
+      },
     ];
 
     if (canManage) {
@@ -239,7 +275,17 @@ export default function DataMasterMesinManager() {
                 <option value="Tidak Aktif">Tidak Aktif</option>
               </Form.Select>
             </Col>
-            <Col md={4} className="d-flex justify-content-md-end align-items-center gap-1">
+            <Col md={4} className="d-flex flex-wrap justify-content-md-end align-items-center gap-1">
+              <Button
+                variant="outline-dark"
+                size="sm"
+                className="d-flex align-items-center gap-1 me-2"
+                title="PDF A4 berisi stiker QR semua mesin pada daftar (kecuali yang Tidak Aktif)"
+                onClick={cetakQrSemua}
+                disabled={buatQr}
+              >
+                {buatQr ? <Spinner animation="border" size="sm" /> : <IconQrcode size={16} />} Cetak QR
+              </Button>
               <span className="text-secondary small me-1">Export:</span>
               <Button
                 variant="outline-danger"
