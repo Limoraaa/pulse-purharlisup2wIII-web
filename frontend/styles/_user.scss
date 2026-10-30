@@ -3282,3 +3282,36 @@ th:has(.kode-sort-header):hover .kode-sort-icon:not(.is-active) {
     }
   }
 }
+
+// Rencana Pemeliharaan: lebar kolom sticky matrix, lebih sempit di HP
+// agar area kalender (W1–W4) tetap lega saat digeser
+.rp-matrix {
+  --rp-mesin-w: 200px;
+  --rp-label-w: 84px;
+
+  @media (max-width: 767.98px) {
+    --rp-mesin-w: 112px;
+    --rp-label-w: 76px;
+
+    td[style*="min-width: 32px"] {
+      min-width: 38px !important;
+    }
+  }
+}
+
+.rp-legend-swatch {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 0.35rem;
+  font-size: 0.7rem;
+}
+
+@media (min-width: 992px) {
+  .rp-legend-status {
+    border-left: 1px solid var(--bs-border-color);
+  }
+}
