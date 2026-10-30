@@ -2,7 +2,8 @@
 
 // import node module libraries
 import { useEffect, useState } from "react";
-import { Tabs, Tab } from "react-bootstrap";
+import { Nav } from "react-bootstrap";
+import { IconShieldLock, IconUsers } from "@tabler/icons-react";
 
 // import custom components
 import DataUserManager from "components/ruangtools/datauser/DataUserManager";
@@ -13,7 +14,7 @@ export default function DataUserPage() {
   const [key, setKey] = useState("users");
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
-    useEffect(() => {
+  useEffect(() => {
     api("/user")
       .then((res: any) => {
         const data = res?.data || res;
@@ -24,38 +25,39 @@ export default function DataUserPage() {
   }, []);
 
   return (
-    <div className="p-6 animate-fade-in-up">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Manajemen User</h1>
-        <p className="text-gray-500 dark:text-gray-400 text-sm">
-          Mengelola seluruh akun pengguna sistem dan hak akses matriks.
+    <div className="manajemen-user-page">
+      <div className="mb-4">
+        <h1 className="mb-2 h2">Manajemen User</h1>
+        <p className="text-secondary mb-0">
+          Mengelola akun pengguna sistem{isSuperAdmin ? " dan pengaturan hak akses tiap role" : ""}.
         </p>
       </div>
 
-      <div className="bg-white dark:bg-slate-800 shadow-sm rounded-xl border border-gray-200 dark:border-slate-700 p-4">
-        <Tabs
-          id="manajemen-user-tabs"
-          activeKey={key}
-          onSelect={(k) => setKey(k || "users")}
-          className="mb-4 border-b border-gray-200 dark:border-slate-700"
-        >
-          {/* TAB 1: Daftar Akun Pengguna */}
-          <Tab eventKey="users" title="👥 Daftar Pengguna">
-            <div className="pt-3">
-              <DataUserManager />
-            </div>
-          </Tab>
+      {/* Tab hanya tampil kalau ada lebih dari satu menu (Pengaturan Hak Akses khusus Super Admin) */}
+      {isSuperAdmin && (
+        <Nav variant="underline" activeKey={key} onSelect={(k) => setKey(k || "users")} className="manajemen-user-tabs mb-4">
+          <Nav.Item>
+            <Nav.Link eventKey="users" className="d-flex align-items-center gap-2">
+              <IconUsers size={18} /> Daftar Pengguna
+            </Nav.Link>
+          </Nav.Item>
+          <Nav.Item>
+            <Nav.Link eventKey="permissions" className="d-flex align-items-center gap-2">
+              <IconShieldLock size={18} /> Pengaturan Hak Akses
+            </Nav.Link>
+          </Nav.Item>
+        </Nav>
+      )}
 
-          {/* TAB 2: Pengaturan Hak Akses / Permission Matrix — khusus Super Admin */}
-          {isSuperAdmin && (
-            <Tab eventKey="permissions" title="🔐 Pengaturan Hak Akses">
-              <div className="pt-3">
-                <PermissionMatrix />
-              </div>
-            </Tab>
-          )}
-        </Tabs>
+      {/* Kedua tab tetap terpasang agar perubahan matriks yang belum disimpan tidak hilang saat pindah tab */}
+      <div className={key === "users" || !isSuperAdmin ? "" : "d-none"}>
+        <DataUserManager />
       </div>
+      {isSuperAdmin && (
+        <div className={key === "permissions" ? "" : "d-none"}>
+          <PermissionMatrix />
+        </div>
+      )}
     </div>
   );
 }

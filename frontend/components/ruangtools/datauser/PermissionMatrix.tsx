@@ -29,10 +29,15 @@ const AVAILABLE_COLORS = [
 // catatPerms  = (opsional) level "Isi catatan": hanya halaman catatan & tambah catatan,
 //               tanpa permission lihat (view) sehingga menu lain di modul tidak muncul.
 // Lebar kolom matriks (px). Kolom role dibuat tetap agar dropdown tidak terpotong saat role bertambah.
-const MODULE_COL_WIDTH = 260;
-const ROLE_COL_WIDTH = 165;
-// Warna latar header bagian, senada dengan judul grup di sidebar
-const SECTION_BG = '#E8F4F8';
+const MODULE_COL_WIDTH = 250;
+const ROLE_COL_WIDTH = 150; // lebar minimum per kolom role; sisa ruang dibagi rata
+
+const LEVEL_LEGEND = [
+  { title: 'Lihat saja', desc: 'Hanya bisa melihat data', color: 'info' },
+  { title: 'Isi catatan', desc: 'Hanya halaman catatan dan bisa menambah catatan (pekerja & vendor)', color: 'warning' },
+  { title: 'Kelola penuh', desc: 'Bisa tambah, ubah, dan hapus data', color: 'success' },
+  { title: 'Super Admin', desc: 'Selalu memiliki akses penuh ke semua modul', color: 'danger' },
+];
 
 interface ModuleConfig {
   key: string;
@@ -61,6 +66,8 @@ export default function PermissionMatrix() {
   const [deletingRoleId, setDeletingRoleId] = useState<number | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [roleToDelete, setRoleToDelete] = useState<{ id: number; name: string } | null>(null);
+
+  const [mobileRoleId, setMobileRoleId] = useState<number | null>(null);
 
   const [editingRoleId, setEditingRoleId] = useState<number | null>(null);
   const [editingName, setEditingName] = useState('');
@@ -349,7 +356,7 @@ const startEditName = (role: RoleMatrix) => {
         onChange={(e) => handleDropdownChange(role.id, nav, e.target.value as ModuleLevel)}
         style={{ cursor: isSuperAdmin ? 'not-allowed' : 'pointer', width: '100%' }}
       >
-        <option value="none">Tidak ada akses</option>
+        <option value="none">Tanpa akses</option>
         <option value="view">Lihat saja</option>
         {nav.catatPerms && <option value="catat">Isi catatan</option>}
         <option value="manage">Kelola penuh</option>
@@ -374,6 +381,10 @@ const startEditName = (role: RoleMatrix) => {
     }
   };
 
+  // Super Admin selalu punya akses penuh, jadi tidak ditampilkan sebagai kolom yang bisa diubah
+  const editableRoles = roles.filter((r) => r.name !== 'Super Admin');
+  const mobileRole = editableRoles.find((r) => r.id === mobileRoleId) ?? editableRoles[0];
+
   if (loading) {
     return (
       <div className="p-6 text-center">
@@ -396,122 +407,163 @@ const startEditName = (role: RoleMatrix) => {
         </Alert>
       )}
 
-      {/* Header Halaman & Tombol Simpan */}
-      <Row className="mb-4">
-        <Col>
-          <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-            <div>
-              <h1 className="mb-2 h2">Manajemen User</h1>
-              <p className="text-secondary mb-0">
-                Atur hak akses modul navigasi untuk masing-masing peran (Role) pengguna.
-              </p>
-            </div>
-            <div className="d-flex gap-2">
-              <Button
-                variant="outline-primary"
-                onClick={() => setShowAddRoleModal(true)}
-                className="d-flex align-items-center gap-2"
-              >
-                <IconShieldLock size={18} /> Kelola Role
-              </Button>
-              <Button
-                variant="primary"
-                onClick={handleSave}
-                disabled={saving}
-                className="d-flex align-items-center gap-2"
-              >
-                {saving ? (
-                  <>
-                    <Spinner size="sm" animation="border" /> Menyimpan...
-                  </>
-                ) : (
-                  <>
-                    <IconDeviceFloppy size={18} /> Simpan Perubahan
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </Col>
-      </Row>
-
-      {/* Satu tabel untuk semua modul: baris = modul (dikelompokkan seperti sidebar), kolom = role.
-          Lebar kolom role tetap, jadi kalau role banyak tabel bisa digeser ke samping. */}
-      <div className="d-flex flex-wrap gap-3 text-secondary small mb-3">
-        <span><strong className="text-dark">Lihat saja</strong>: hanya bisa melihat data</span>
-        <span><strong className="text-dark">Isi catatan</strong>: hanya halaman catatan, bisa menambah catatan (untuk pekerja &amp; vendor)</span>
-        <span><strong className="text-dark">Kelola penuh</strong>: bisa tambah, ubah, dan hapus</span>
-        <span>Super Admin selalu memiliki akses penuh</span>
-        {roles.length > 5 && <span className="ms-md-auto fst-italic">Geser tabel ke kanan untuk melihat role lainnya →</span>}
-      </div>
-      <Card className="card-lg mb-6 border shadow-sm overflow-hidden">
-        {/* maxHeight membuat scrollbar horizontal selalu terlihat tanpa harus scroll ke bawah tabel */}
-        <div className="table-responsive" style={{ maxHeight: '75vh' }}>
-          <table
-            className="table align-middle mb-0"
-            style={{ tableLayout: 'fixed', width: MODULE_COL_WIDTH + roles.length * ROLE_COL_WIDTH, minWidth: '100%' }}
+      {/* Header bagian & tombol aksi */}
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-stretch align-items-md-center gap-3 mb-3">
+        <div>
+          <h2 className="h4 mb-1">Pengaturan Hak Akses</h2>
+          <p className="text-secondary small mb-0">
+            Atur modul yang bisa diakses oleh tiap role pengguna, lalu klik Simpan Perubahan.
+          </p>
+        </div>
+        <div className="d-flex gap-2 flex-shrink-0">
+          <Button
+            variant="outline-primary"
+            onClick={() => setShowAddRoleModal(true)}
+            className="d-flex align-items-center justify-content-center gap-2 flex-fill text-nowrap"
           >
-            <colgroup>
-              <col style={{ width: MODULE_COL_WIDTH }} />
-              {roles.map((role) => (
-                <col key={role.id} style={{ width: ROLE_COL_WIDTH }} />
-              ))}
-            </colgroup>
-            {sections.map((section) => (
-              <tbody key={section.title}>
-                {/* Header tiap bagian: nama bagian + nama role, supaya role selalu terlihat di atas modulnya */}
-                <tr>
-                  <th
-                    className="py-3 px-4 text-uppercase small fw-bold"
-                    style={{
-                      position: 'sticky',
-                      left: 0,
-                      zIndex: 2,
-                      backgroundColor: SECTION_BG,
-                      boxShadow: 'inset 4px 0 0 #FDB913',
-                      color: '#0A6C8F',
-                      letterSpacing: '0.6px',
-                    }}
-                  >
-                    {section.title}
-                  </th>
-                  {roles.map((role) => {
-                    const badgeVariant = role.color ?? 'secondary';
-                    return (
-                      <th key={role.id} className="py-3 px-2 text-center" style={{ backgroundColor: SECTION_BG }}>
+            <IconShieldLock size={18} /> Kelola Role
+          </Button>
+          <Button
+            variant="primary"
+            onClick={handleSave}
+            disabled={saving}
+            className="d-flex align-items-center justify-content-center gap-2 flex-fill text-nowrap"
+          >
+            {saving ? (
+              <>
+                <Spinner size="sm" animation="border" /> Menyimpan...
+              </>
+            ) : (
+              <>
+                <IconDeviceFloppy size={18} /> Simpan Perubahan
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+
+      {/* Keterangan level akses */}
+      <Card className="border-0 shadow-sm mb-4">
+        <Card.Body className="p-3">
+          <Row xs={1} sm={2} xl={4} className="g-3 small">
+            {LEVEL_LEGEND.map((item) => (
+              <Col key={item.title} className="d-flex gap-2">
+                <span className={`perm-legend-dot bg-${item.color} flex-shrink-0`} />
+                <div>
+                  <div className="fw-semibold text-body">{item.title}</div>
+                  <div className="text-secondary">{item.desc}</div>
+                </div>
+              </Col>
+            ))}
+          </Row>
+        </Card.Body>
+      </Card>
+
+      {editableRoles.length === 0 ? (
+        <Card className="border-0 shadow-sm mb-6">
+          <Card.Body className="text-center text-secondary py-5">
+            Belum ada role selain Super Admin. Klik <strong>Kelola Role</strong> untuk membuat role baru.
+          </Card.Body>
+        </Card>
+      ) : (
+        <>
+          {/* Desktop/tablet: satu tabel, baris = modul (dikelompokkan seperti sidebar), kolom = role */}
+          <Card className="card-lg mb-6 border-0 shadow-sm overflow-hidden d-none d-md-block">
+            <div className="table-responsive perm-matrix" style={{ maxHeight: '72vh' }}>
+              <table
+                className="table align-middle mb-0"
+                style={{ tableLayout: 'fixed', width: '100%', minWidth: MODULE_COL_WIDTH + editableRoles.length * ROLE_COL_WIDTH }}
+              >
+                <colgroup>
+                  <col style={{ width: MODULE_COL_WIDTH }} />
+                  {editableRoles.map((role) => (
+                    <col key={role.id} />
+                  ))}
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th className="perm-sticky-col perm-head py-3 px-4 small text-secondary fw-semibold">Modul</th>
+                    {editableRoles.map((role) => (
+                      <th key={role.id} className="perm-head py-3 px-2 text-center">
                         <Badge
-                          bg={`${badgeVariant}-subtle`}
-                          text={`${badgeVariant}-emphasis` as any}
-                          className="text-wrap"
+                          bg={`${role.color ?? 'secondary'}-subtle`}
+                          text={`${role.color ?? 'secondary'}-emphasis` as any}
+                          className="text-wrap px-3 py-2"
                           style={{ lineHeight: 1.3 }}
                         >
                           {roleDisplayLabel[role.name] ?? role.name}
                         </Badge>
                       </th>
-                    );
-                  })}
-                </tr>
-                {section.modules.map((nav) => (
-                  <tr key={nav.key}>
-                    <td
-                      className="py-3 px-4"
-                      style={{ position: 'sticky', left: 0, zIndex: 1, backgroundColor: 'var(--bs-card-bg, #fff)' }}
-                    >
-                      <div className="fw-semibold text-dark">{nav.label}</div>
-                      {nav.hint && <div className="text-secondary small text-wrap">{nav.hint}</div>}
-                    </td>
-                    {roles.map((role) => (
-                      <td key={role.id} className="py-3 px-2 text-center">
-                        {renderModuleCell(role, nav, role.name === 'Super Admin')}
-                      </td>
                     ))}
                   </tr>
+                </thead>
+                {sections.map((section) => (
+                  <tbody key={section.title}>
+                    <tr>
+                      <th colSpan={editableRoles.length + 1} className="perm-section py-2 px-0">
+                        <span className="perm-sticky-col d-inline-block px-4">{section.title}</span>
+                      </th>
+                    </tr>
+                    {section.modules.map((nav) => (
+                      <tr key={nav.key}>
+                        <td className="perm-sticky-col py-3 px-4">
+                          <div className="fw-semibold text-body">{nav.label}</div>
+                          {nav.hint && <div className="text-secondary small text-wrap mt-1">{nav.hint}</div>}
+                        </td>
+                        {editableRoles.map((role) => (
+                          <td key={role.id} className="py-3 px-2 text-center">
+                            {renderModuleCell(role, nav, false)}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
                 ))}
-              </tbody>
+              </table>
+            </div>
+          </Card>
+
+          {/* HP: pilih satu role, lalu atur aksesnya per modul */}
+          <div className="d-md-none mb-6">
+            <Form.Group className="mb-3">
+              <Form.Label htmlFor="perm-role-mobile" className="small fw-semibold mb-1">Role yang diatur</Form.Label>
+              <Form.Select
+                id="perm-role-mobile"
+                value={mobileRole?.id ?? ''}
+                onChange={(e) => setMobileRoleId(Number(e.target.value))}
+              >
+                {editableRoles.map((role) => (
+                  <option key={role.id} value={role.id}>
+                    {roleDisplayLabel[role.name] ?? role.name}
+                  </option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+            {mobileRole && sections.map((section) => (
+              <Card key={section.title} className="border-0 shadow-sm mb-3 overflow-hidden">
+                <div className="perm-section px-3 py-2">{section.title}</div>
+                <div>
+                  {section.modules.map((nav) => (
+                    <div key={nav.key} className="px-3 py-3 border-top">
+                      <div className={nav.type === 'switch' ? 'd-flex justify-content-between align-items-start gap-3' : ''}>
+                        <div style={{ minWidth: 0 }}>
+                          <div className="fw-semibold text-body">{nav.label}</div>
+                          {nav.hint && <div className="text-secondary small mt-1">{nav.hint}</div>}
+                        </div>
+                        {nav.type === 'switch' ? (
+                          <div className="flex-shrink-0 pt-1">{renderModuleCell(mobileRole, nav, false)}</div>
+                        ) : (
+                          <div className="mt-2">{renderModuleCell(mobileRole, nav, false)}</div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
             ))}
-          </table>
-        </div>
-      </Card>
+          </div>
+        </>
+      )}
 
       {/* Modal Tambah Role */}
       <Modal show={showAddRoleModal} onHide={() => { setShowAddRoleModal(false); setAddRoleError(null); setNewRoleName(''); }} centered>
