@@ -260,7 +260,7 @@ const DataUserManager = () => {
 );
 
   return (
-    <div className="datatools-page">
+    <div className="datatools-page datauser-page">
       {successMessage && (
         <Alert
           variant="success"
@@ -275,18 +275,18 @@ const DataUserManager = () => {
 
       <Row>
         <Col>
-          <Flex justifyContent="between" alignItems="center" className="page-header mb-4 w-100" breakpoint="md">
+          <Flex justifyContent="between" alignItems="center" className="page-header mb-3 w-100" breakpoint="md">
             <div>
-              <h1 className="mb-2 h2">Manajemen User</h1>
-               <p className="text-secondary mb-0">
+              <h2 className="h4 mb-1">Daftar Pengguna</h2>
+              <p className="text-secondary small mb-0">
                 {isAdmin
-                  ? "Mengelola seluruh akun pengguna sistem."
+                  ? "Tambah, ubah, nonaktifkan, dan reset kata sandi akun pengguna."
                   : "Melihat daftar akun pengguna sistem."}
               </p>
             </div>
             {isAdmin && (
               <div>
-                <Button variant="primary" className="d-flex align-items-center gap-2" onClick={openAddModal}>
+                <Button variant="primary" className="d-flex align-items-center justify-content-center gap-2 text-nowrap" onClick={openAddModal}>
                   <IconPlus size={18} />
                   Tambah User
                 </Button>
@@ -317,7 +317,7 @@ const DataUserManager = () => {
                 )}
               </InputGroup>
             </Col>
-            <Col lg={6} md={5} className="text-md-end d-flex justify-content-end align-items-center gap-3">
+            <Col lg={6} md={5} className="d-flex flex-wrap justify-content-between justify-content-md-end align-items-center gap-2 gap-md-3">
               {isAdmin && (
                 <Form.Check
                   type="switch"
