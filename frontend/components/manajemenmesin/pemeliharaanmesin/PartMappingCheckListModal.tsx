@@ -1,12 +1,12 @@
 "use client";
 import { tanggalLokal } from "lib/tanggal";
 import { useEffect, useState } from "react";
-import { Modal, Form, Button, ButtonGroup, Alert, Spinner, Row, Col } from "react-bootstrap";
+import { Modal, Form, Button, ButtonGroup, Alert, Spinner, Row, Col, Nav, Badge } from "react-bootstrap";
 import { IconClipboardCheck, IconDroplet } from "@tabler/icons-react";
 import api from "lib/api";
 import AngkaStepper, { teksKeAngka } from "components/common/AngkaStepper";
-import { formatJumlahOli } from "./PartMappingType";
-import type { ChecklistStatus, MachinePart, PartMappingPayload, TindakanOli } from "./PartMappingType";
+import { formatJumlahOli, normalisasiMapping } from "./PartMappingType";
+import type { ChecklistStatus, MachinePart, MachineView, PartMappingPayload, TindakanOli } from "./PartMappingType";
 import { useFeedback } from "components/common/FeedbackProvider";
 import { useRoles } from "hooks/usePermissions";
 
@@ -75,8 +75,6 @@ function worstOf(statuses: Record<string, ChecklistStatus>): ChecklistStatus {
   return worst;
 }
 
-
-
 export default function PartMappingChecklistModal({
   show,
   onHide,
@@ -90,14 +88,15 @@ export default function PartMappingChecklistModal({
 }: Props) {
   const { confirm: confirmDialog } = useFeedback();
   const [loadingMapping, setLoadingMapping] = useState(true);
-  const [gambarUrl, setGambarUrl] = useState<string | null>(null);
+  const [views, setViews] = useState<MachineView[]>([]);
+  const [activeViewId, setActiveViewId] = useState<string | null>(null);
   const [parts, setParts] = useState<MachinePart[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const [results, setResults] = useState<Record<string, PartResult>>({});
   const [teknisi, setTeknisi] = useState("");
   const [aksi, setAksi] = useState<AksiCode | "">("");
-  
+
   const akunVendor = useRoles().includes("Vendor");
   const jenisPelaksanaAwal: JenisPelaksana = pelaksanaRencana?.jenis ?? (akunVendor ? "Vendor" : "Internal");
   const namaVendorAwal = pelaksanaRencana?.namaVendor ?? "";
@@ -120,6 +119,9 @@ export default function PartMappingChecklistModal({
 
   const oliStandar = olis.find((o) => String(o.id) === String(oliStandarId));
   const oliTerpilihUi = olis.find((o) => String(o.id) === selectedOliId);
+
+  const activeView = views.find((v) => v.id === activeViewId) ?? null;
+  const partsAktif = parts.filter((p) => p.viewId === activeViewId);
 
   const dariRencana = !!aksiRencana;
   const aksiRencanaLabel = AKSI_OPTIONS.find((o) => o.value === aksiRencana)?.label;
@@ -147,8 +149,10 @@ export default function PartMappingChecklistModal({
       try {
         const res = await api<PartMappingPayload>(`/mesin-produksi/${mesinId}/part-mapping`);
         if (!cancelled) {
-          setGambarUrl(res?.gambarUrl ?? null);
-          setParts(res?.parts ?? []);
+          const norm = normalisasiMapping(res);
+          setViews(norm.views);
+          setParts(norm.parts);
+          setActiveViewId(norm.views[0]?.id ?? null);
         }
       } catch {
         if (!cancelled) setLoadError("Mapping part untuk mesin ini belum tersedia.");
@@ -230,7 +234,7 @@ export default function PartMappingChecklistModal({
       setSubmitError("Nama vendor wajib diisi bila dikerjakan oleh vendor.");
       return;
     }
-    
+
     // Pemakaian oli: pilih oli & isi jumlah; stok gudang harus cukup
     const jumlahOliAngka = teksKeAngka(jumlahOli);
     if (pakaiOli) {
@@ -252,6 +256,7 @@ export default function PartMappingChecklistModal({
     setSubmitting(true);
     setSubmitError("");
     try {
+      // parts berisi semua part dari semua view, jadi hasil lintas view ikut tersimpan
       const hasil = parts
         .filter((p) => results[p.id])
         .map((p) => ({
@@ -308,35 +313,72 @@ export default function PartMappingChecklistModal({
           ) : (
             <>
               <p className="text-muted small mb-2">
-                Klik tiap titik part dan isi hasil pemeriksaannya. Semua hasil disimpan sekaligus sebagai satu kegiatan.
+                Klik tiap titik part dan isi hasil pemeriksaannya
+                {views.length > 1 ? " (pindah antar view lewat tab di bawah)" : ""}. Semua hasil disimpan sekaligus sebagai satu kegiatan.
               </p>
-              <div style={{ position: "relative", display: "inline-block", maxWidth: "100%" }}>
-                <img src={gambarUrl ?? undefined} alt={mesinNama} style={{ maxWidth: "100%", display: "block" }} />
-                {parts.map((p) => {
-                  const r = results[p.id];
-                  const bg = r ? MARKER_COLOR[worstOf(r.statuses)] : "#00529C";
-                  return (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => openPart(p)}
-                      title={r ? `${p.partName} (sudah diperiksa)` : p.partName}
-                      style={{
-                        position: "absolute",
-                        left: `${p.xPercent}%`,
-                        top: `${p.yPercent}%`,
-                        transform: "translate(-50%, -50%)",
-                        width: 28, height: 28, borderRadius: "50%",
-                        border: "2px solid #fff", background: bg,
-                        color: r && worstOf(r.statuses) === "perlu_perhatian" ? "#000" : "#fff",
-                        fontSize: 13, fontWeight: 600, padding: 0,
-                      }}
-                    >
-                      {p.partNumber}
-                    </button>
-                  );
-                })}
-              </div>
+
+              {views.length > 1 && (
+                <Nav variant="tabs" className="mb-2 flex-nowrap overflow-auto">
+                  {views.map((v) => {
+                    const total = parts.filter((p) => p.viewId === v.id).length;
+                    const sudah = parts.filter((p) => p.viewId === v.id && results[p.id]).length;
+                    return (
+                      <Nav.Item key={v.id}>
+                        <Nav.Link
+                          as="button"
+                          type="button"
+                          active={v.id === activeViewId}
+                          onClick={() => setActiveViewId(v.id)}
+                          className="text-nowrap small py-2"
+                        >
+                          {v.nama}{" "}
+                          <Badge bg={total > 0 && sudah === total ? "success" : "secondary"} pill>
+                            {sudah}/{total}
+                          </Badge>
+                        </Nav.Link>
+                      </Nav.Item>
+                    );
+                  })}
+                </Nav>
+              )}
+
+              {activeView ? (
+                <div className="text-center">
+                  <div style={{ position: "relative", display: "inline-block", maxWidth: "100%" }}>
+                    <img
+                      src={activeView.gambarUrl}
+                      alt={`${mesinNama} - ${activeView.nama}`}
+                      style={{ maxWidth: "100%", maxHeight: "60vh", display: "block" }}
+                    />
+                    {partsAktif.map((p) => {
+                      const r = results[p.id];
+                      const bg = r ? MARKER_COLOR[worstOf(r.statuses)] : "#00529C";
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => openPart(p)}
+                          title={r ? `${p.partName} (sudah diperiksa)` : p.partName}
+                          style={{
+                            position: "absolute",
+                            left: `${p.xPercent}%`,
+                            top: `${p.yPercent}%`,
+                            transform: "translate(-50%, -50%)",
+                            width: 28, height: 28, borderRadius: "50%",
+                            border: "2px solid #fff", background: bg,
+                            color: r && worstOf(r.statuses) === "perlu_perhatian" ? "#000" : "#fff",
+                            fontSize: 13, fontWeight: 600, padding: 0,
+                          }}
+                        >
+                          {p.partNumber}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <Alert variant="warning" className="small mb-0">Belum ada gambar yang dipetakan untuk mesin ini.</Alert>
+              )}
               <div className="small text-muted mt-2 mb-4">
                 Biru = belum diperiksa · Hijau = baik · Kuning = perlu perhatian · Merah = rusak
               </div>

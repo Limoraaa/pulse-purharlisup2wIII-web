@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Spinner } from "react-bootstrap";
+import { simpanTujuanLogin } from "lib/redirectLogin";
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -14,7 +15,8 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
-      router.replace("/signin"); // sesuaikan path halaman login kamu
+      simpanTujuanLogin();
+      router.replace("/signin");
     } else {
       setChecked(true);
     }

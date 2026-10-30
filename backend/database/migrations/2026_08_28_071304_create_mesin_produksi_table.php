@@ -17,8 +17,9 @@ return new class extends Migration
             
             // Kolom tambahan untuk foto dan fitur mapping
             $table->string('foto_katalog')->nullable()->comment('Foto profil mesin untuk tampilan katalog');
-            $table->string('gambar_url')->nullable()->comment('Foto blueprint/layout untuk background part mapping');
-            $table->json('part_mapping')->nullable()->comment('Data titik koordinat dan checklist part');
+            $table->string('gambar_url')->nullable()->comment('Foto blueprint/layout untuk background part mapping (= gambar view pertama)');
+            $table->json('part_mapping')->nullable()->comment('Data titik koordinat dan checklist part (tiap part punya viewId)');
+            $table->json('views_peta')->nullable()->comment('Daftar view/gambar peta part: [{id, nama, gambarUrl}]');
 
             // Oli standar mesin (1 mesin = 1 oli), dipilih dari Data Oli
             $table->foreignId('oli_id')->nullable()->constrained('olis')->nullOnDelete();

@@ -1,3 +1,5 @@
+import { simpanTujuanLogin } from "./redirectLogin";
+
 interface ApiErrorResponse {
   message?: string;
   errors?: Record<string, string[]>;
@@ -48,6 +50,7 @@ async function apiFetch<T = unknown>(
       // Ikut basePath bila aplikasi dipasang di subfolder (NEXT_PUBLIC_BASE_PATH)
       const halamanLogin = `${process.env.NEXT_PUBLIC_BASE_PATH || ""}/signin`;
       if (window.location.pathname !== halamanLogin) {
+        simpanTujuanLogin();
         window.location.href = halamanLogin;
       }
       return new Promise<T>(() => {});
