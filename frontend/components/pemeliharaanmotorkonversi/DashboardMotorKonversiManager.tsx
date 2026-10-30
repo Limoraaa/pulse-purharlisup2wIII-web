@@ -132,7 +132,7 @@ const DashboardMotorKonversiManager = () => {
 
       {/* Baris 1: Ringkasan Utama Pemeliharaan Motor Konversi */}
       <Row className="g-3 mb-4">
-        <Col xs={12} md={4} xl={4}>
+        <Col xs={6} md={4} xl={4}>
           {canViewMotor ? (
             <Link href="/pemeliharaan/data-motor-konversi" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
               <StatCard
@@ -153,7 +153,7 @@ const DashboardMotorKonversiManager = () => {
             </div>
           )}
         </Col>
-        <Col xs={12} md={4} xl={4}>
+        <Col xs={6} md={4} xl={4}>
           {canViewMotor ? (
             <Link href="/pemeliharaan/data-motor-konversi" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
               <StatCard
@@ -204,8 +204,8 @@ const DashboardMotorKonversiManager = () => {
             <CardBody>
               <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
                 <div className="d-flex align-items-center gap-2">
-                  <IconTrendingUp className="text-primary" size={20} />
-                  <h5 className="mb-0">Tren Aktivitas Pemeliharaan Motor Konversi</h5>
+                  <IconTrendingUp className="text-primary flex-shrink-0" size={20} />
+                  <h5 className="mb-0">Tren Aktivitas Pemeliharaan</h5>
                 </div>
                 <div className="d-flex gap-1">
                   {[7, 30, 90].map((h) => (
@@ -254,10 +254,10 @@ const DashboardMotorKonversiManager = () => {
                 <div style={{ maxHeight: 320, overflowY: "auto", paddingRight: "5px" }}>
                   <ul className="list-unstyled mb-0 dash-list">
                     {aktivitas.map((item, idx) => (
-                      <li key={idx} className="px-3 py-3 rounded border-bottom bg-white hover-bg-light transition">
-                        <div className="d-flex justify-content-between align-items-center gap-2">
-                          <div>
-                            <div className="fw-semibold text-dark fs-6">{item.nama_motor}</div>
+                      <li key={idx} className="px-2 px-md-3 py-3 rounded border-bottom bg-body hover-bg-light transition">
+                        <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
+                          <div className="text-break" style={{ minWidth: 0 }}>
+                            <div className="fw-semibold text-body fs-6">{item.nama_motor}</div>
                             <div className="small text-secondary mt-1">{item.deskripsi}</div>
                             <div className="text-muted mt-1" style={{ fontSize: "0.75rem" }}>
                               {item.tanggal ? formatWaktu(item.tanggal) : "-"}
