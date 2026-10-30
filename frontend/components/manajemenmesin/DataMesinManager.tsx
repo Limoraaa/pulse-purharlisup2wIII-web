@@ -177,7 +177,7 @@ const DataMesinManager = ({ mode = 'pemeliharaan' }: DataMesinManagerProps) => {
 
       <Row>
         <Col>
-          <Flex justifyContent="between" alignItems="center" className="mb-3 w-100" breakpoint="md">
+          <Flex justifyContent="between" alignItems="center" className="page-header mb-4 w-100" breakpoint="md">
             <div>
               <h1 className="mb-2 h2">
                 {mode === 'operasional' ? 'Katalog Operasional Mesin' : 'Katalog Mesin Produksi'}
@@ -188,13 +188,13 @@ const DataMesinManager = ({ mode = 'pemeliharaan' }: DataMesinManagerProps) => {
                   : 'Daftar mesin produksi beserta dokumen IK dan riwayat pemeliharaan.'}
               </p>
               {/* Data mesin dikelola satu pintu dari halaman Data Mesin */}
-              <p className="text-secondary small mb-0 mt-1">
+              <p className="text-secondary small mb-0 mt-2">
                 Daftar mesin dikelola melalui menu <strong>Data Mesin</strong>.
               </p>
             </div>
-            <div>
+            <div className="flex-shrink-0">
               {canManageDataMesin && (
-                <Link href={DATA_MESIN_PATH} className="btn btn-outline-primary btn-sm d-flex align-items-center gap-1 py-2 px-3">
+                <Link href={DATA_MESIN_PATH} className="btn btn-outline-primary d-inline-flex align-items-center gap-2 text-nowrap">
                   <IconDatabase size={16} /> Kelola Data Mesin
                 </Link>
               )}

@@ -186,7 +186,7 @@ const KalibrasiManager = () => {
     <div className="datatools-page">
       <Row>
         <Col>
-          <Flex justifyContent="between" alignItems="center" className="mb-4 w-100" breakpoint="md">
+          <Flex justifyContent="between" alignItems="center" className="page-header mb-4 w-100" breakpoint="md">
             <div>
               <h1 className="mb-2 h2">Sertifikasi & Kalibrasi</h1>
               <p className="text-secondary mb-0">

@@ -180,12 +180,25 @@ export default function DataMasterMesinManager() {
               >
                 {nonaktif ? <IconPlayerPlay size={16} /> : <IconPlayerPause size={16} />}
               </Button>
-              {/* Mesin yang sudah punya riwayat hanya bisa dinonaktifkan agar riwayatnya tidak ikut terhapus */}
-              <span title={punyaRiwayat ? "Mesin yang sudah punya riwayat tidak bisa dihapus, gunakan Nonaktifkan" : "Hapus permanen"}>
-                <Button size="sm" variant="outline-danger" onClick={() => handleHapus(m)} disabled={sibuk || punyaRiwayat}>
-                  {sibuk ? <Spinner animation="border" size="sm" /> : <IconTrash size={16} />}
-                </Button>
-              </span>
+              {/* Mesin yang sudah punya riwayat hanya bisa dinonaktifkan agar riwayatnya tidak ikut terhapus.
+                  Tombol tetap bisa ditekan (tampil pudar) supaya alasannya terlihat juga di HP yang tidak punya tooltip. */}
+              <Button
+                size="sm"
+                variant="outline-danger"
+                title={punyaRiwayat ? "Mesin yang sudah punya riwayat tidak bisa dihapus, gunakan Nonaktifkan" : "Hapus permanen"}
+                className={punyaRiwayat ? "opacity-50" : undefined}
+                onClick={() =>
+                  punyaRiwayat
+                    ? notify(
+                        `Mesin "${m.nama_mesin}" sudah memiliki ${m.jumlah_riwayat} catatan riwayat sehingga tidak bisa dihapus. Gunakan tombol Nonaktifkan agar mesin tidak muncul lagi tanpa menghapus riwayatnya.`,
+                        "warning"
+                      )
+                    : handleHapus(m)
+                }
+                disabled={sibuk}
+              >
+                {sibuk ? <Spinner animation="border" size="sm" /> : <IconTrash size={16} />}
+              </Button>
             </div>
           );
         },

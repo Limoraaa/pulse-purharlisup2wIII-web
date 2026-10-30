@@ -310,7 +310,7 @@ export default function OrderToolsManager() {
           <Flex
             justifyContent="between"
             alignItems="center"
-            className="w-100"
+            className="page-header w-100"
             breakpoint="md"
           >
             <div>

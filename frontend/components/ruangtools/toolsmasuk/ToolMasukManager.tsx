@@ -294,7 +294,7 @@ const ToolMasukManager = () => {
           <Flex
             justifyContent="between"
             alignItems="center"
-            className="mb-4 w-100"
+            className="page-header mb-4 w-100"
             breakpoint="md"
           >
             <div>
