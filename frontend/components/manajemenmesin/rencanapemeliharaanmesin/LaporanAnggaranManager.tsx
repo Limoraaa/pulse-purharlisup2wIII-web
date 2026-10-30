@@ -6,7 +6,7 @@ import { IconEdit, IconPlus, IconDownload, IconWallet, IconTool, IconClipboardLi
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import ExcelJS from 'exceljs';
-import { saveAs } from 'file-saver';
+import { downloadWorkbook } from 'components/ruangtools/riwayat/common/exportUtils';
 
 import api from '/lib/api';
 import { usePermission } from 'hooks/usePermissions';
@@ -279,8 +279,7 @@ export default function LaporanAnggaranManager() {
 
     sheet.columns.forEach((col) => { col.width = 25; });
 
-    const buffer = await workbook.xlsx.writeBuffer();
-    saveAs(new Blob([buffer]), `Laporan_Anggaran_${selectedYear}${selectedMonth !== 0 ? `_${MONTHS_LONG[selectedMonth - 1]}` : ''}.xlsx`);
+    await downloadWorkbook(workbook, `Laporan_Anggaran_${selectedYear}${selectedMonth !== 0 ? `_${MONTHS_LONG[selectedMonth - 1]}` : ''}`);
   };
 
   // ================= UI RENDER =================
