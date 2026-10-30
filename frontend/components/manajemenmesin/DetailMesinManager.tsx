@@ -1,4 +1,5 @@
 'use client';
+import JamPicker from "components/common/JamPicker";
 import { tanggalLokal, sudahLewat } from "lib/tanggal";
 import React, { useState, useEffect, useCallback } from 'react';
 import useSWR, { mutate } from 'swr';
@@ -1126,13 +1127,13 @@ export default function DetailMesinManager({
               <Col md={4}>
                 <Form.Group>
                   <Form.Label className="small fw-semibold text-secondary mb-1" style={{ fontSize: "0.75rem" }}>Waktu Mulai</Form.Label>
-                  <Form.Control size="sm" type="time" required value={jamMulai} onChange={(e) => setJamMulai(e.target.value)} className="bg-body text-body" />
+                  <JamPicker value={jamMulai} onChange={setJamMulai} ariaLabel="Waktu mulai" />
                 </Form.Group>
               </Col>
               <Col md={4}>
                 <Form.Group>
                   <Form.Label className="small fw-semibold text-secondary mb-1" style={{ fontSize: "0.75rem" }}>Waktu Selesai</Form.Label>
-                  <Form.Control size="sm" type="time" required value={jamSelesai} onChange={(e) => setJamSelesai(e.target.value)} className="bg-body text-body" />
+                  <JamPicker value={jamSelesai} onChange={setJamSelesai} ariaLabel="Waktu selesai" />
                 </Form.Group>
               </Col>
             </Row>

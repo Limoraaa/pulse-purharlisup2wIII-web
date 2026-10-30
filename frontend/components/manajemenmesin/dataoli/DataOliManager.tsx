@@ -120,15 +120,17 @@ export default function DataOliManager() {
   };
 
   return (
-    <div className="container-fluid px-0">
-      <div className="d-flex justify-content-between align-items-end mb-4">
+    // datamesin-page: kolom Aksi tabel tetap terlihat saat tabel digeser di layar kecil
+    <div className="datamesin-page">
+      {/* Header: di HP tombol turun ke bawah judul, di layar lebar sejajar di kanan */}
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
         <div>
-          <h3 className="fw-bold text-dark mb-1">Monitoring Ketersediaan Oli</h3>
-          <p className="text-muted mb-0 small">Pantau stok oli dan cairan pelumas mesin secara real-time.</p>
+          <h1 className="mb-2 h2">Monitoring Ketersediaan Oli</h1>
+          <p className="text-secondary mb-0">Pantau stok oli dan cairan pelumas mesin secara real-time.</p>
         </div>
         {canManage && (
-          <Button variant="primary" className="fw-semibold shadow-sm" onClick={() => handleOpenModal()}>
-            <IconPlus size={18} className="me-2" /> Tambah Oli Baru
+          <Button variant="primary" className="d-flex align-items-center gap-2 flex-shrink-0" onClick={() => handleOpenModal()}>
+            <IconPlus size={18} /> Tambah Oli Baru
           </Button>
         )}
       </div>
@@ -140,14 +142,14 @@ export default function DataOliManager() {
           {loading ? (
             <div className="text-center py-5"><Spinner animation="border" variant="primary" /></div>
           ) : (
-            <Table hover responsive className="align-middle mb-0">
+            <Table hover responsive className="align-middle mb-0 text-nowrap">
               <thead className="bg-light text-secondary">
                 <tr>
-                  <th className="py-3 px-4 border-0">Kode</th>
-                  <th className="py-3 px-4 border-0">Nama Oli / Pelumas</th>
-                  <th className="py-3 px-4 text-end border-0">Sisa Stok</th>
-                  <th className="py-3 px-4 text-center border-0">Status</th>
-                  <th className="py-3 px-4 text-center border-0">Aksi</th>
+                  <th className="py-3 px-3 px-md-4 border-0">Kode</th>
+                  <th className="py-3 px-3 px-md-4 border-0">Nama Oli / Pelumas</th>
+                  <th className="py-3 px-3 px-md-4 text-end border-0">Sisa Stok</th>
+                  <th className="py-3 px-3 px-md-4 text-center border-0">Status</th>
+                  <th className="py-3 px-3 px-md-4 text-center border-0" data-column-id="aksi">Aksi</th>
                 </tr>
               </thead>
               <tbody>
@@ -158,8 +160,8 @@ export default function DataOliManager() {
                     const isKritis = oli.stok <= oli.batas_minimum;
                     return (
                       <tr key={oli.id}>
-                        <td className="px-4 fw-medium text-secondary">{oli.kode_oli}</td>
-                        <td className="px-4 fw-bold text-dark">
+                        <td className="px-3 px-md-4 fw-medium text-secondary">{oli.kode_oli}</td>
+                        <td className="px-3 px-md-4 fw-bold text-dark">
                           <div className="d-flex align-items-center gap-2">
                             <div className="bg-primary-subtle p-2 rounded text-primary">
                               <IconDroplet size={16} />
@@ -167,17 +169,17 @@ export default function DataOliManager() {
                             {oli.nama_oli}
                           </div>
                         </td>
-                        <td className={`px-4 text-end fw-bolder fs-5 ${isKritis ? 'text-danger' : 'text-success'}`}>
+                        <td className={`px-3 px-md-4 text-end fw-bolder fs-5 ${isKritis ? 'text-danger' : 'text-success'}`}>
                           {oli.stok} <span className="fs-6 fw-normal text-muted">{oli.satuan}</span>
                         </td>
-                        <td className="px-4 text-center">
+                        <td className="px-3 px-md-4 text-center">
                           {isKritis ? (
                             <Badge bg="danger" className="px-3 py-2 rounded-pill">Stok Kritis</Badge>
                           ) : (
                             <Badge bg="success" className="px-3 py-2 rounded-pill">Aman</Badge>
                           )}
                         </td>
-                        <td className="px-4 text-center">
+                        <td className="px-3 px-md-4 text-center" data-column-id="aksi">
                           <div className="d-flex justify-content-center gap-2">
                             <Button variant="light" size="sm" className="border shadow-sm text-primary" title="Riwayat pemakaian" onClick={() => bukaRiwayat(oli)}>
                               <IconHistory size={14} />

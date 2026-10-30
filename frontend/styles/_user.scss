@@ -3263,3 +3263,22 @@ th:has(.kode-sort-header):hover .kode-sort-icon:not(.is-active) {
     border-spacing: 0;
   }
 }
+
+// Mapping Pengerjaan: dropdown mesin lebar tetap di layar sedang ke atas
+@media (min-width: 576px) {
+  .mp-mesin-select {
+    min-width: 260px;
+  }
+}
+
+// Header halaman (judul + tombol aksi): beri jarak yang cukup antar elemen,
+// termasuk saat tombol turun ke bawah judul di layar kecil
+.page-header {
+  gap: 1rem 1.5rem;
+
+  @media (max-width: 767.98px) {
+    > * + * {
+      margin-top: 1rem;
+    }
+  }
+}

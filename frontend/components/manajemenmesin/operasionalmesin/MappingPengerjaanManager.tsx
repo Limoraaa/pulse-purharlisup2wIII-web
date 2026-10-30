@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { Form, Spinner, Button, Modal, Alert } from 'react-bootstrap';
+import { Form, Spinner, Button, Modal, Alert, InputGroup } from 'react-bootstrap';
+import { IconChevronLeft, IconChevronRight, IconPlus } from '@tabler/icons-react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin, { DateClickArg } from '@fullcalendar/interaction';
@@ -453,23 +454,23 @@ export default function MappingPengerjaanManager() {
   return (
     <div className="container-fluid px-0">
       {/* Header */}
-      <div className="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
-        <div>
-          <h3 className="fw-bold text-dark mb-1">Mapping Pengerjaan Mesin</h3>
-          <p className="text-muted mb-0 small">
+      <div className="d-flex flex-column flex-lg-row justify-content-between align-items-stretch align-items-lg-end gap-3 mb-4">
+        <div style={{ maxWidth: 680 }}>
+          <h1 className="mb-2 h2">Mapping Pengerjaan Mesin</h1>
+          <p className="text-secondary mb-0">
             {canManage
               ? 'Klik tanggal untuk melihat jadwal & log aktivitas. Blok beberapa tanggal untuk menambah jadwal; geser atau tarik tepi jadwal untuk mengubahnya.'
               : 'Klik tanggal untuk melihat jadwal & log aktivitas, atau klik jadwal untuk melihat detailnya.'}
           </p>
         </div>
-        <div className="d-flex flex-wrap align-items-end gap-2">
-          <div>
+        <div className="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-end gap-2 flex-shrink-0">
+          <div className="flex-grow-1" style={{ minWidth: 0 }}>
             <Form.Label htmlFor="mp-mesin" className="small fw-semibold mb-1">
               Mesin
             </Form.Label>
             <Form.Select
               id="mp-mesin"
-              style={{ minWidth: 240 }}
+              className="mp-mesin-select"
               value={selectedMesinId}
               onChange={(e) => setSelectedMesinId(e.target.value)}
             >
@@ -483,10 +484,11 @@ export default function MappingPengerjaanManager() {
           {canManage && (
             <Button
               variant="primary"
+              className="d-flex align-items-center justify-content-center gap-2 text-nowrap flex-shrink-0"
               disabled={!selectedMesinId}
               onClick={() => openModal('create', { mulai: today, selesai: today })}
             >
-              + Tambah jadwal
+              <IconPlus size={18} /> Tambah Jadwal
             </Button>
           )}
         </div>
@@ -507,15 +509,20 @@ export default function MappingPengerjaanManager() {
         {/* Kalender */}
         <div className="col-12 col-xl-8">
           <div className="card border-0 shadow-sm rounded-4 p-3 p-md-4 position-relative">
-            <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-              <div className="d-flex align-items-center gap-2">
-                <Button variant="outline-secondary" size="sm" aria-label="Bulan sebelumnya" onClick={() => cal()?.prev()}>
-                  ‹
+            <div className="d-flex align-items-center gap-2 mb-3">
+              <InputGroup size="sm" className="flex-nowrap flex-grow-1" style={{ maxWidth: 360 }}>
+                <Button
+                  variant="outline-secondary"
+                  className="d-flex align-items-center justify-content-center px-2"
+                  aria-label="Bulan sebelumnya"
+                  onClick={() => cal()?.prev()}
+                >
+                  <IconChevronLeft size={16} />
                 </Button>
                 <Form.Select
-                  size="sm"
                   aria-label="Pilih bulan"
-                  style={{ width: 'auto' }}
+                  className="fw-semibold"
+                  style={{ minWidth: 0 }}
                   value={month.m}
                   onChange={(e) => goTo(month.year, Number(e.target.value))}
                 >
@@ -526,9 +533,9 @@ export default function MappingPengerjaanManager() {
                   ))}
                 </Form.Select>
                 <Form.Select
-                  size="sm"
                   aria-label="Pilih tahun"
-                  style={{ width: 'auto' }}
+                  className="fw-semibold"
+                  style={{ flex: '0 0 88px' }}
                   value={month.year}
                   onChange={(e) => goTo(Number(e.target.value), month.m)}
                 >
@@ -538,11 +545,16 @@ export default function MappingPengerjaanManager() {
                     </option>
                   ))}
                 </Form.Select>
-                <Button variant="outline-secondary" size="sm" aria-label="Bulan berikutnya" onClick={() => cal()?.next()}>
-                  ›
+                <Button
+                  variant="outline-secondary"
+                  className="d-flex align-items-center justify-content-center px-2"
+                  aria-label="Bulan berikutnya"
+                  onClick={() => cal()?.next()}
+                >
+                  <IconChevronRight size={16} />
                 </Button>
-              </div>
-              <Button variant="outline-secondary" size="sm" onClick={() => cal()?.today()}>
+              </InputGroup>
+              <Button variant="outline-primary" size="sm" className="ms-auto flex-shrink-0 text-nowrap" onClick={() => cal()?.today()}>
                 Hari ini
               </Button>
             </div>
