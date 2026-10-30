@@ -216,24 +216,24 @@ export default function DetailMotorKonversiManager({
       )}
 
       {/* Header Navigator Tombol Kembali + aksi kelola motor */}
-      <div className="mb-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+      <div className="mb-3 d-flex flex-column flex-md-row justify-content-between align-items-stretch align-items-md-center gap-2">
         <Button 
           variant="outline-secondary" 
           size="sm" 
-          className="d-flex align-items-center gap-1"
+          className="d-flex align-items-center justify-content-center gap-1 align-self-start align-self-md-auto"
           onClick={onBack}
         >
           <IconArrowLeft size={16} /> Kembali ke Katalog Motor
         </Button>
         {canManage && dataEdit && (
-          <div className="d-flex flex-wrap gap-2">
-            <Button size="sm" variant="outline-primary" className="d-flex align-items-center gap-1" onClick={() => setShowEdit(true)} disabled={memproses}>
+          <div className="d-flex gap-2">
+            <Button size="sm" variant="outline-primary" className="d-flex align-items-center justify-content-center gap-1 flex-fill flex-md-grow-0" onClick={() => setShowEdit(true)} disabled={memproses}>
               <IconEdit size={16} /> Edit
             </Button>
             <Button
               size="sm"
               variant={motorStatus === 'Tidak Aktif' ? 'outline-success' : 'outline-warning'}
-              className="d-flex align-items-center gap-1"
+              className="d-flex align-items-center justify-content-center gap-1 flex-fill flex-md-grow-0"
               onClick={handleToggleStatus}
               disabled={memproses}
             >
@@ -241,25 +241,26 @@ export default function DetailMotorKonversiManager({
               {motorStatus === 'Tidak Aktif' ? 'Aktifkan' : 'Nonaktifkan'}
             </Button>
             {/* Motor yang sudah punya log pemeliharaan hanya bisa dinonaktifkan agar riwayatnya tidak ikut terhapus */}
-            <span title={jumlahRiwayat > 0 ? 'Motor yang sudah punya riwayat tidak bisa dihapus, gunakan Nonaktifkan' : 'Hapus permanen'}>
-              <Button
-                size="sm"
-                variant="outline-danger"
-                className="d-flex align-items-center gap-1"
-                onClick={handleHapus}
-                disabled={memproses || jumlahRiwayat > 0}
-              >
-                <IconTrash size={16} /> Hapus
-              </Button>
-            </span>
+            <Button
+              size="sm"
+              variant="outline-danger"
+              title={jumlahRiwayat > 0 ? 'Motor yang sudah punya riwayat tidak bisa dihapus, gunakan Nonaktifkan' : 'Hapus permanen'}
+              className={`d-flex align-items-center justify-content-center gap-1 flex-fill flex-md-grow-0${jumlahRiwayat > 0 ? ' opacity-50' : ''}`}
+              onClick={() => jumlahRiwayat > 0
+                ? notify(`Motor "${motorNama}" sudah memiliki ${jumlahRiwayat} catatan riwayat sehingga tidak bisa dihapus. Gunakan tombol Nonaktifkan agar motor tidak muncul lagi tanpa menghapus riwayatnya.`, 'warning')
+                : handleHapus()}
+              disabled={memproses}
+            >
+              <IconTrash size={16} /> Hapus
+            </Button>
           </div>
         )}
       </div>
 
       {/* Hero Section: Profil Detail Motor */}
       <Card className="mb-4 shadow-sm border-0">
-        <CardBody className="p-4">
-          <Row className="align-items-center g-4">
+        <CardBody className="p-3 p-md-4">
+          <Row className="align-items-center g-3 g-md-4">
             
             <Col xs={12} md={4} lg={3}>
               <div 
@@ -287,7 +288,7 @@ export default function DetailMotorKonversiManager({
               <div className="mb-2 text-center text-md-start">
                 <span className="text-muted small fw-bold tracking-wider" style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>KODE: {motorKode}{motorPlat ? ` · PLAT: ${motorPlat}` : ''}</span>
                 <div className="d-flex align-items-center justify-content-center justify-content-md-start gap-3 mt-1 flex-wrap">
-                  <h2 className="h2 fw-bold text-body mb-0">{motorNama}</h2>
+                  <h2 className="h3 fw-bold text-body mb-0 text-break">{motorNama}</h2>
                   <Badge 
                     bg={motorStatus === 'Aktif' ? 'success' : motorStatus === 'Maintenance' ? 'warning' : motorStatus === 'Tidak Aktif' ? 'secondary' : 'danger'}
                     className="px-3 py-1 shadow-sm"
@@ -327,7 +328,7 @@ export default function DetailMotorKonversiManager({
       {/* Navigation Tabs (Tanpa Log Aktivitas) */}
       <Card className="shadow-sm border-0">
         <div className="bg-body-tertiary border-bottom px-3 py-3 rounded-top">
-          <ul className="nav nav-pills gap-2 m-0 justify-content-center justify-content-md-start">
+          <ul className="nav nav-pills gap-2 m-0">
             {[
               { id: 'log_pemeliharaan', label: 'Log Pemeliharaan', icon: IconHistory },
             ].map((tab) => {
@@ -359,13 +360,13 @@ export default function DetailMotorKonversiManager({
           {/* TAB: LOG PEMELIHARAAN */}
           {activeTab === 'log_pemeliharaan' && (
             <div>
-              <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2 text-center text-md-start">
-                <h5 className="mb-0 d-flex align-items-center gap-2 fs-6 fw-bold w-100 w-md-auto justify-content-center justify-content-md-start">
+              <div className="d-flex flex-column flex-md-row justify-content-between align-items-stretch align-items-md-center mb-3 gap-3">
+                <h5 className="mb-0 d-flex align-items-center gap-2 fs-6 fw-bold">
                   <IconClipboardList size={18} /> Riwayat Log Pemeliharaan
                 </h5>
-                <div className="d-flex gap-2 flex-wrap w-100 w-md-auto justify-content-center">
-                  <Dropdown>
-                    <Dropdown.Toggle variant="outline-secondary" size="sm" className="d-flex align-items-center gap-1 shadow-sm" style={{ fontSize: '0.75rem' }}>
+                <div className="d-flex flex-wrap gap-2">
+                  <Dropdown className="flex-fill flex-md-grow-0">
+                    <Dropdown.Toggle variant="outline-secondary" size="sm" className="d-flex align-items-center justify-content-center gap-1 shadow-sm w-100 text-nowrap" style={{ fontSize: '0.75rem' }}>
                       <IconDownload size={14} /> Export
                     </Dropdown.Toggle>
                     <Dropdown.Menu className="shadow border-0" style={{ fontSize: '0.8rem' }}>
@@ -374,12 +375,12 @@ export default function DetailMotorKonversiManager({
                     </Dropdown.Menu>
                   </Dropdown>
                   {canManage && (
-                    <Button variant="outline-primary" size="sm" onClick={() => setShowMappingEditor(true)} className="d-flex align-items-center gap-1 shadow-sm" style={{ fontSize: '0.75rem' }}>
+                    <Button variant="outline-primary" size="sm" onClick={() => setShowMappingEditor(true)} className="d-flex align-items-center justify-content-center gap-1 shadow-sm flex-fill flex-md-grow-0 text-nowrap" style={{ fontSize: '0.75rem' }}>
                       <IconMap size={14} /> Peta Komponen
                     </Button>
                   )}
                   {canCatatLog && (
-                    <Button variant="primary" size="sm" onClick={() => setShowChecklistModal(true)} className="d-flex align-items-center gap-1 shadow-sm" style={{ fontSize: '0.75rem' }}>
+                    <Button variant="primary" size="sm" onClick={() => setShowChecklistModal(true)} className="d-flex align-items-center justify-content-center gap-1 shadow-sm flex-fill flex-md-grow-0 text-nowrap" style={{ fontSize: '0.75rem' }}>
                       <IconClipboardCheck size={14} /> Checklist Visual
                     </Button>
                   )}
@@ -387,7 +388,7 @@ export default function DetailMotorKonversiManager({
               </div>
 
               <div className="table-responsive border rounded shadow-sm">
-                <Table hover className="align-middle mb-0" style={{ fontSize: '0.8rem' }}>
+                <Table hover className="align-middle mb-0" style={{ fontSize: '0.8rem', minWidth: 820 }}>
                   <thead className="table-light text-center text-nowrap">
                     <tr>
                       <th style={{ width: "5%" }}>No</th>
