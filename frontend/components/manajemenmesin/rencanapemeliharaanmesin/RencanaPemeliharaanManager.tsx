@@ -49,7 +49,6 @@ import {
 } from "components/ruangtools/riwayat/common/exportUtils";
 import TanstackTable from "components/table/TanstackTable";
 import Flex from "components/common/Flex";
-import DasherBreadcrumb from "components/common/DasherBreadcrumb";
 
 import {
   fetchRencanaLengkap,
@@ -115,18 +114,18 @@ const stickyCell = (bg: string, zIndex: number): React.CSSProperties => ({
   left: 0,
   zIndex,
   background: bg,
-  minWidth: 200,
-  maxWidth: 200,
+  minWidth: "var(--rp-mesin-w)",
+  maxWidth: "var(--rp-mesin-w)",
   borderRight: "1px solid var(--bs-border-color)",
 });
 
 const labelCell = (bg: string, zIndex: number): React.CSSProperties => ({
   position: "sticky",
-  left: 200,
+  left: "var(--rp-mesin-w)",
   zIndex,
   background: bg,
-  minWidth: 84,
-  maxWidth: 84,
+  minWidth: "var(--rp-label-w)",
+  maxWidth: "var(--rp-label-w)",
   borderRight: "1px solid var(--bs-border-color)",
 });
 
@@ -1175,10 +1174,15 @@ const RencanaPemeliharaanManager = () => {
           <Flex
             justifyContent="between"
             alignItems="center"
-            className="mb-4 w-100"
+            className="page-header mb-4 w-100"
             breakpoint="md"
           >
-            <DasherBreadcrumb />
+            <div>
+              <h1 className="mb-2 h2">Rencana Pemeliharaan Mesin</h1>
+              <p className="text-secondary mb-0">
+                Kelola dan pantau jadwal preventive maintenance mesin.
+              </p>
+            </div>
             <div>
               {canManage && (
                 <Button
@@ -1196,7 +1200,7 @@ const RencanaPemeliharaanManager = () => {
       </Row>
 
       <Row className="g-3 mb-4">
-        <Col xl={3} md={6}>
+        <Col xl={3} md={6} xs={6}>
           <StatCard
             label={`Total Rencana ${tahun}`}
             value={stats.total}
@@ -1204,7 +1208,7 @@ const RencanaPemeliharaanManager = () => {
             icon={<IconCalendar size={24} />}
           />
         </Col>
-        <Col xl={3} md={6}>
+        <Col xl={3} md={6} xs={6}>
           <StatCard
             label={
               stats.bulanIni === null
@@ -1216,7 +1220,7 @@ const RencanaPemeliharaanManager = () => {
             icon={<IconClock size={24} />}
           />
         </Col>
-        <Col xl={3} md={6}>
+        <Col xl={3} md={6} xs={6}>
           <StatCard
             label="Selesai"
             value={stats.selesai}
@@ -1224,7 +1228,7 @@ const RencanaPemeliharaanManager = () => {
             icon={<IconCircleCheck size={24} />}
           />
         </Col>
-        <Col xl={3} md={6}>
+        <Col xl={3} md={6} xs={6}>
           <StatCard
             label="Terlewat"
             value={stats.terlewat}
@@ -1259,12 +1263,13 @@ const RencanaPemeliharaanManager = () => {
                 )}
               </InputGroup>
             </Col>
-            <Col lg="auto" md={6} className="d-flex gap-2">
+            <Col xs={12} md={6} lg="auto" className="d-flex gap-2">
               <Form.Select
                 value={tahun}
                 onChange={(e) => setTahun(Number(e.target.value))}
                 aria-label="Tahun rencana"
-                style={{ width: 100 }}
+                className="flex-grow-1 flex-lg-grow-0"
+                style={{ minWidth: 100, maxWidth: 160 }}
               >
                 {yearOptions.map((y) => (
                   <option key={y} value={y}>
@@ -1272,22 +1277,20 @@ const RencanaPemeliharaanManager = () => {
                   </option>
                 ))}
               </Form.Select>
-              <ButtonGroup aria-label="Mode tampilan">
+              <ButtonGroup aria-label="Mode tampilan" className="flex-grow-1 flex-lg-grow-0">
                 <Button
                   variant={viewMode === "matrix" ? "primary" : "outline-secondary"}
-                  className="d-flex align-items-center gap-1"
+                  className="d-flex align-items-center justify-content-center gap-1"
                   onClick={() => setViewMode("matrix")}
                 >
-                  <IconCalendar size={16} />{" "}
-                  <span className="d-none d-sm-inline">Matrix</span>
+                  <IconCalendar size={16} /> Matrix
                 </Button>
                 <Button
                   variant={viewMode === "list" ? "primary" : "outline-secondary"}
-                  className="d-flex align-items-center gap-1"
+                  className="d-flex align-items-center justify-content-center gap-1"
                   onClick={() => setViewMode("list")}
                 >
-                  <IconList size={16} />{" "}
-                  <span className="d-none d-sm-inline">List</span>
+                  <IconList size={16} /> List
                 </Button>
               </ButtonGroup>
             </Col>
@@ -1410,13 +1413,13 @@ const RencanaPemeliharaanManager = () => {
               </Button>
             </div>
           ) : viewMode === "matrix" ? (
-            <div className="table-responsive">
+            <div className="table-responsive rp-matrix">
               <Table className="mb-0 align-middle text-nowrap" size="sm">
                 <thead>
                   <tr>
                     <th
                       rowSpan={2}
-                      className="px-3 py-3"
+                      className="px-2 px-md-3 py-3 text-wrap"
                       style={stickyCell("var(--bs-tertiary-bg, #f8f9fa)", 3)}
                     >
                       Kode &amp; Nama Mesin
@@ -1597,13 +1600,12 @@ const RencanaPemeliharaanManager = () => {
                         <tr>
                           <td
                             rowSpan={2}
-                            className="px-3 py-2"
+                            className="px-2 px-md-3 py-2"
                             style={stickyCell("var(--bs-body-bg, #fff)", 2)}
                           >
-                            <div className="fw-semibold">{mesin.kodeMesin}</div>
+                            <div className="fw-semibold text-truncate">{mesin.kodeMesin}</div>
                             <div
                               className="text-secondary small text-truncate"
-                              style={{ maxWidth: 168 }}
                               title={mesin.namaMesin}
                             >
                               {mesin.namaMesin}
@@ -1651,47 +1653,46 @@ const RencanaPemeliharaanManager = () => {
       </Card>
 
       <Card className="mb-6">
-        <CardBody className="d-flex flex-wrap align-items-center gap-4 small">
-          <span className="fw-semibold">Keterangan Tindakan:</span>
-          {ACTION_KEYS.map((k) => (
-            <span key={k} className="d-inline-flex align-items-center gap-2">
-              <span
-                className="d-inline-block rounded"
-                style={{ width: 16, height: 16, background: ACTION_META[k].color }}
-              />
-              {k} ({ACTION_META[k].label})
-            </span>
-          ))}
-          <span className="vr d-none d-md-block" />
-          <span className="fw-semibold">Status:</span>
-          <span className="d-inline-flex align-items-center gap-2">
-            <span
-              className="d-inline-block rounded bg-body border border-secondary"
-              style={{ width: 16, height: 16 }}
-            />
-            Terjadwal (Putih)
-          </span>
-          <span className="d-inline-flex align-items-center gap-2">
-            <span
-              className="d-inline-block rounded bg-primary"
-              style={{ width: 16, height: 16 }}
-            />
-            Selesai (Warna Solid, di baris Realisasi)
-          </span>
-          <span className="d-inline-flex align-items-center gap-2">
-            <span
-              className="d-inline-block rounded bg-body"
-              style={{ width: 16, height: 16, border: "1.5px dashed #6c757d" }}
-            />
-            Di luar rencana (Garis Putus-Putus)
-          </span>
-          <span className="d-inline-flex align-items-center gap-2">
-            <span
-              className="d-inline-block rounded"
-              style={{ width: 16, height: 16, background: "#dc3545" }}
-            />
-            Terlewat (Merah)
-          </span>
+        <CardBody className="small">
+          <Row className="g-4">
+            <Col xs={12} lg={6}>
+              <div className="fw-semibold mb-2">Keterangan Tindakan</div>
+              <Row xs={1} sm={2} className="g-2">
+                {ACTION_KEYS.map((k) => (
+                  <Col key={k} className="d-flex align-items-center gap-2">
+                    <span
+                      className="rp-legend-swatch fw-bold"
+                      style={{ background: ACTION_META[k].color, color: ACTION_META[k].textColor || "#fff" }}
+                    >
+                      {k}
+                    </span>
+                    <span>{ACTION_META[k].label}</span>
+                  </Col>
+                ))}
+              </Row>
+            </Col>
+            <Col xs={12} lg={6} className="rp-legend-status">
+              <div className="fw-semibold mb-2">Keterangan Status</div>
+              <Row xs={1} sm={2} className="g-2">
+                <Col className="d-flex align-items-center gap-2">
+                  <span className="rp-legend-swatch bg-body border border-secondary" />
+                  <span>Terjadwal (kotak putih, baris Rencana)</span>
+                </Col>
+                <Col className="d-flex align-items-center gap-2">
+                  <span className="rp-legend-swatch bg-primary" />
+                  <span>Selesai (warna solid, baris Realisasi)</span>
+                </Col>
+                <Col className="d-flex align-items-center gap-2">
+                  <span className="rp-legend-swatch bg-body" style={{ border: "1.5px dashed #6c757d" }} />
+                  <span>Di luar rencana (garis putus-putus)</span>
+                </Col>
+                <Col className="d-flex align-items-center gap-2">
+                  <span className="rp-legend-swatch" style={{ background: "#dc3545" }} />
+                  <span>Terlewat (merah)</span>
+                </Col>
+              </Row>
+            </Col>
+          </Row>
         </CardBody>
       </Card>
 

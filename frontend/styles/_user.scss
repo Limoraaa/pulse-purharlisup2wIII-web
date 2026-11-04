@@ -3263,3 +3263,145 @@ th:has(.kode-sort-header):hover .kode-sort-icon:not(.is-active) {
     border-spacing: 0;
   }
 }
+
+// Mapping Pengerjaan: dropdown mesin lebar tetap di layar sedang ke atas
+@media (min-width: 576px) {
+  .mp-mesin-select {
+    min-width: 260px;
+  }
+}
+
+// Header halaman (judul + tombol aksi): beri jarak yang cukup antar elemen,
+// termasuk saat tombol turun ke bawah judul di layar kecil
+.page-header {
+  gap: 1rem 1.5rem;
+
+  @media (max-width: 767.98px) {
+    > * + * {
+      margin-top: 1rem;
+    }
+  }
+}
+
+// Rencana Pemeliharaan: lebar kolom sticky matrix, lebih sempit di HP
+// agar area kalender (W1–W4) tetap lega saat digeser
+.rp-matrix {
+  --rp-mesin-w: 200px;
+  --rp-label-w: 84px;
+
+  @media (max-width: 767.98px) {
+    --rp-mesin-w: 112px;
+    --rp-label-w: 76px;
+
+    td[style*="min-width: 32px"] {
+      min-width: 38px !important;
+    }
+  }
+}
+
+.rp-legend-swatch {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 0.35rem;
+  font-size: 0.7rem;
+}
+
+@media (min-width: 992px) {
+  .rp-legend-status {
+    border-left: 1px solid var(--bs-border-color);
+  }
+}
+
+// ============================================================
+// Manajemen User: tab, tabel pengguna, dan matriks hak akses
+// ============================================================
+.manajemen-user-tabs {
+  border-bottom: 1px solid var(--#{$prefix}border-color);
+  gap: 0.5rem 1.5rem;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+
+  .nav-link {
+    white-space: nowrap;
+    padding: 0.75rem 0.25rem;
+    font-weight: 600;
+    color: var(--#{$prefix}secondary-color);
+  }
+}
+
+.datauser-page .table tbody td {
+  white-space: nowrap;
+}
+
+.perm-matrix {
+  .table > :not(caption) > * > * {
+    border-color: var(--#{$prefix}border-color-translucent);
+  }
+
+  // Kolom modul menempel di kiri saat tabel digeser
+  .perm-sticky-col {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background-color: var(--#{$prefix}card-bg, #fff);
+  }
+
+  // Baris nama role menempel di atas saat tabel di-scroll ke bawah
+  thead .perm-head {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    --#{$prefix}table-bg: var(--#{$prefix}tertiary-bg);
+    background-color: var(--#{$prefix}tertiary-bg);
+    border-bottom: 1px solid var(--#{$prefix}border-color);
+  }
+
+  thead .perm-head.perm-sticky-col {
+    z-index: 4;
+  }
+
+  // Gaya tabel bawaan Bootstrap menimpa background sel, jadi warna baris bagian diset lewat variabelnya
+  th.perm-section {
+    --#{$prefix}table-bg: rgba(10, 108, 143, 0.08);
+    border-left: 4px solid #fdb913;
+  }
+
+  .perm-section .perm-sticky-col {
+    background-color: transparent;
+  }
+
+  tbody tr:hover td {
+    --#{$prefix}table-bg: var(--#{$prefix}tertiary-bg);
+  }
+
+  .form-select {
+    max-width: 190px;
+    margin: 0 auto;
+  }
+}
+
+.perm-section {
+  background-color: rgba(10, 108, 143, 0.08);
+  box-shadow: inset 4px 0 0 #fdb913;
+  color: #0a6c8f;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+[data-bs-theme="dark"] .perm-section {
+  background-color: rgba(10, 108, 143, 0.25);
+  color: #7cc7e6;
+}
+
+.perm-legend-dot {
+  width: 10px;
+  height: 10px;
+  margin-top: 0.35rem;
+  border-radius: 50%;
+}

@@ -1,4 +1,5 @@
 'use client';
+import JamPicker from "components/common/JamPicker";
 import { tanggalLokal, sudahLewat } from "lib/tanggal";
 import React, { useState, useEffect, useCallback } from 'react';
 import useSWR, { mutate } from 'swr';
@@ -584,7 +585,7 @@ export default function DetailMesinManager({
             {/* HANYA MUNCUL JIKA MODE = OPERASIONAL */}
             {mode === 'operasional' && (
               <div className="d-flex align-items-center pe-4 border-end">
-                <span className="text-muted small fw-bold me-3" style={{fontSize: '0.7rem', letterSpacing: '0.5px'}}>OPERASIONAL:</span>
+                <span className="text-muted small fw-bold me-3 d-none d-sm-inline" style={{fontSize: '0.7rem', letterSpacing: '0.5px'}}>OPERASIONAL:</span>
                 <ul className="nav nav-pills gap-2 m-0 flex-nowrap">
                   {[
                     { id: 'log_aktivitas', label: 'Log Aktivitas', icon: IconActivity },
@@ -597,7 +598,7 @@ export default function DetailMesinManager({
             {/* HANYA MUNCUL JIKA MODE = PEMELIHARAAN */}
             {mode === 'pemeliharaan' && (
               <div className="d-flex align-items-center pe-4 border-end">
-                <span className="text-muted small fw-bold me-3" style={{fontSize: '0.7rem', letterSpacing: '0.5px'}}>PEMELIHARAAN:</span>
+                <span className="text-muted small fw-bold me-3 d-none d-sm-inline" style={{fontSize: '0.7rem', letterSpacing: '0.5px'}}>PEMELIHARAAN:</span>
                 <ul className="nav nav-pills gap-2 m-0 flex-nowrap">
                   {[
                     { id: 'log_pemeliharaan', label: 'Log Pemeliharaan', icon: IconHistory }, 
@@ -610,7 +611,7 @@ export default function DetailMesinManager({
 
             {/* MUNCUL DI KEDUA MODE */}
             <div className="d-flex align-items-center">
-              <span className="text-muted small fw-bold me-3" style={{fontSize: '0.7rem', letterSpacing: '0.5px'}}>K3:</span>
+              <span className="text-muted small fw-bold me-3 d-none d-sm-inline" style={{fontSize: '0.7rem', letterSpacing: '0.5px'}}>K3:</span>
               <ul className="nav nav-pills gap-2 m-0 flex-nowrap">
                 {[
                   { id: 'hirarc', label: 'HIRARC', icon: IconAlertTriangle },
@@ -621,7 +622,7 @@ export default function DetailMesinManager({
             {/* Kebutuhan alat & consumable: hanya di halaman Pemeliharaan */}
             {mode === 'pemeliharaan' && (
               <div className="d-flex align-items-center ps-4 border-start">
-                <span className="text-muted small fw-bold me-3" style={{fontSize: '0.7rem', letterSpacing: '0.5px'}}>KEBUTUHAN:</span>
+                <span className="text-muted small fw-bold me-3 d-none d-sm-inline" style={{fontSize: '0.7rem', letterSpacing: '0.5px'}}>KEBUTUHAN:</span>
                 <ul className="nav nav-pills gap-2 m-0 flex-nowrap">
                   {[
                     { id: 'kebutuhan', label: 'Kebutuhan Pemeliharaan', icon: IconPackages },
@@ -1126,13 +1127,13 @@ export default function DetailMesinManager({
               <Col md={4}>
                 <Form.Group>
                   <Form.Label className="small fw-semibold text-secondary mb-1" style={{ fontSize: "0.75rem" }}>Waktu Mulai</Form.Label>
-                  <Form.Control size="sm" type="time" required value={jamMulai} onChange={(e) => setJamMulai(e.target.value)} className="bg-body text-body" />
+                  <JamPicker value={jamMulai} onChange={setJamMulai} ariaLabel="Waktu mulai" />
                 </Form.Group>
               </Col>
               <Col md={4}>
                 <Form.Group>
                   <Form.Label className="small fw-semibold text-secondary mb-1" style={{ fontSize: "0.75rem" }}>Waktu Selesai</Form.Label>
-                  <Form.Control size="sm" type="time" required value={jamSelesai} onChange={(e) => setJamSelesai(e.target.value)} className="bg-body text-body" />
+                  <JamPicker value={jamSelesai} onChange={setJamSelesai} ariaLabel="Waktu selesai" />
                 </Form.Group>
               </Col>
             </Row>

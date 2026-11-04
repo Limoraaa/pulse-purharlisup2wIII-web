@@ -730,7 +730,7 @@ const columns = useMemo(
 
       <Row>
         <Col>
-          <Flex justifyContent="between" alignItems="center" className="mb-4 w-100" breakpoint="md">
+          <Flex justifyContent="between" alignItems="center" className="page-header mb-4 w-100" breakpoint="md">
             <div>
               <h1 className="mb-2 h2">Data Consumable</h1>
               <p className="text-secondary mb-0">
