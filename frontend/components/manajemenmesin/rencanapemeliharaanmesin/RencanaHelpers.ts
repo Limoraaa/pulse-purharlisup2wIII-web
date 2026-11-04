@@ -128,7 +128,7 @@ export const getStatusTampil = (
 
 export const formatJadwal = (
   r: Pick<RencanaItem, 'tahun' | 'bulan' | 'minggu'>
-): string => `${BULAN_NAMES[r.bulan - 1]} ${r.tahun} (W${r.minggu})`;
+): string => `${BULAN_NAMES[r.bulan - 1]} ${r.tahun} (Minggu ${r.minggu})`;
 
 // ===== Kode lama =====
 

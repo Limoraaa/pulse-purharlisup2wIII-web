@@ -9,6 +9,8 @@ import { DateFilterValue, formatDateFilter } from "components/ruangtools/common/
 export interface ExportColumn {
   header: string; // judul kolom yang tampil di file export
   key: string; // nama field pada object data (top-level)
+  excelWidth?: number; // lebar kolom Excel (karakter), default mengikuti panjang header
+  pdfWidth?: number; // lebar kolom PDF (mm), default otomatis
 }
 
 // Satu baris pada blok info di bawah kop (mis. "Jenis Laporan : Data Tools")
@@ -268,7 +270,9 @@ export async function addExcelKop(
     }
     return end;
   };
-  const tengah = Math.floor(lastCol / 2) + 1;
+  // Info kanan tidak dimulai di kolom yang sangat lebar (mis. Keterangan), agar label & nilainya tidak renggang
+  let tengah = Math.floor(lastCol / 2) + 1;
+  while (tengah < lastCol - 1 && lebar(tengah) > 25) tengah += 1;
   const tulisKolom = (rows: ExportInfoRow[], startCol: number, endCol: number, rowStart: number) => {
     rows.forEach((r, i) => {
       const rowNo = rowStart + i;
@@ -320,11 +324,14 @@ export async function exportToExcel<T extends Record<string, unknown>>(
   info?: ExportInfo
 ) {
   const workbook = new ExcelJS.Workbook();
-  const sheet = workbook.addWorksheet("Data");
+  // Saat dicetak: landscape dan semua kolom muat selebar satu halaman
+  const sheet = workbook.addWorksheet("Data", {
+    pageSetup: { paperSize: 9, orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
+  });
 
   // Lebar kolom otomatis mengikuti panjang header (minimal 15)
   columns.forEach((col, idx) => {
-    sheet.getColumn(idx + 1).width = Math.max(col.header.length + 4, 15);
+    sheet.getColumn(idx + 1).width = col.excelWidth ?? Math.max(col.header.length + 4, 15);
   });
 
   // Kop selebar tabel, supaya semua isi kop masuk area cetak
@@ -385,8 +392,11 @@ export async function exportToPDF<T extends Record<string, unknown>>(
     startY,
     head: [columns.map((c) => c.header)],
     body: data.map((row) => columns.map((c) => String(row[c.key] ?? ""))),
-    styles: { fontSize: 7, cellPadding: 2 },
-    headStyles: { fillColor: [13, 110, 253] },
+    styles: { fontSize: 7, cellPadding: 2, valign: "top" },
+    headStyles: { fillColor: [13, 110, 253], valign: "middle" },
+    columnStyles: Object.fromEntries(
+      columns.map((c, i) => [i, c.pdfWidth ? { cellWidth: c.pdfWidth } : {}])
+    ),
   });
 
   doc.save(`${fileName}.pdf`);

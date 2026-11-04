@@ -32,6 +32,7 @@ import api from 'lib/api';
 import { formatTanggal } from 'components/ruangtools/common/dateUtils';
 import { usePermission } from 'hooks/usePermissions';
 import { exportToExcel, exportToPDF, ExportColumn, ringkasStatus } from 'components/ruangtools/riwayat/common/exportUtils';
+import { KeteranganLog, keteranganUntukExport } from 'components/common/keteranganLog';
 import type { RencanaItem } from 'types/RencanaPemeliharaanTypes';
 
 // Import Modal pendukung
@@ -116,7 +117,7 @@ const EXPORT_COLUMNS_LOG: ExportColumn[] = [
   { header: "No", key: "no" },
   { header: "Uraian Pemeliharaan", key: "uraian_pemeliharaan" },
   { header: "Waktu Pelaksana", key: "waktu_pelaksana" },
-  { header: "Keterangan", key: "keterangan" },
+  { header: "Keterangan", key: "keterangan", excelWidth: 60, pdfWidth: 110 },
   { header: "Oli", key: "oli_label" },
   { header: "Teknisi", key: "paraf" },
   { header: "Pelaksana", key: "pelaksana" },
@@ -306,12 +307,12 @@ export default function DetailMesinManager({
   });
 
   const handleExportLogPDF = () => {
-    const dataWithIndex = logs.map((log, index) => ({ no: index + 1, ...log, waktu_pelaksana: formatTanggal(log.waktu_pelaksana), pelaksana: labelPelaksana(log), oli_label: labelOliLog(log) }));
+    const dataWithIndex = logs.map((log, index) => ({ no: index + 1, ...log, keterangan: keteranganUntukExport(log.keterangan), waktu_pelaksana: formatTanggal(log.waktu_pelaksana), pelaksana: labelPelaksana(log), oli_label: labelOliLog(log) }));
     exportToPDF(dataWithIndex as unknown as Record<string, unknown>[], EXPORT_COLUMNS_LOG, `kartu-gantung-${mesinKode}`, "Kartu Gantung Pemeliharaan Mesin", exportLogInfo());
   };
 
   const handleExportLogExcel = () => {
-    const dataWithIndex = logs.map((log, index) => ({ no: index + 1, ...log, waktu_pelaksana: formatTanggal(log.waktu_pelaksana), pelaksana: labelPelaksana(log), oli_label: labelOliLog(log) }));
+    const dataWithIndex = logs.map((log, index) => ({ no: index + 1, ...log, keterangan: keteranganUntukExport(log.keterangan), waktu_pelaksana: formatTanggal(log.waktu_pelaksana), pelaksana: labelPelaksana(log), oli_label: labelOliLog(log) }));
     exportToExcel(dataWithIndex as unknown as Record<string, unknown>[], EXPORT_COLUMNS_LOG, `kartu-gantung-${mesinKode}`, "Kartu Gantung Pemeliharaan Mesin", exportLogInfo());
   };
 
@@ -898,35 +899,7 @@ export default function DetailMesinManager({
                               ) : "-"}
                             </td>
                             <td>
-                              {(() => {
-                                const ket = log.keterangan || "-";
-                                const expanded = expandedLogs.has(log.id);
-                                const panjang = ket.length > 80;
-                                return (
-                                  <>
-                                    {expanded ? (
-                                      ket.split(" | ").map((bagian, i) => (
-                                        <div key={i} className="mb-1">{bagian}</div>
-                                      ))
-                                    ) : (
-                                      <div style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                                        {ket}
-                                      </div>
-                                    )}
-                                    {panjang && (
-                                      <Button
-                                        variant="link"
-                                        size="sm"
-                                        className="p-0"
-                                        style={{ fontSize: '0.75rem' }}
-                                        onClick={() => toggleLog(log.id)}
-                                      >
-                                        {expanded ? "Sembunyikan" : "Selengkapnya"}
-                                      </Button>
-                                    )}
-                                  </>
-                                );
-                              })()}
+                              <KeteranganLog ket={log.keterangan} expanded={expandedLogs.has(log.id)} onToggle={() => toggleLog(log.id)} />
                             </td>
                           </tr>
                         );

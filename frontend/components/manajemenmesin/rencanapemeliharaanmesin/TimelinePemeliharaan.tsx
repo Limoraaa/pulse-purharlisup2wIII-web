@@ -121,7 +121,7 @@ const TimelinePemeliharaan: React.FC<TimelinePemeliharaanProps> = ({
                         : '1px solid #f1f5f9',
                   }}
                 >
-                  W{w}
+                  M{w}
                 </th>
               ))
             )}
@@ -256,7 +256,7 @@ const TimelinePemeliharaan: React.FC<TimelinePemeliharaanProps> = ({
                                   }}
                                   title={`[RENCANA] ${meta.label}\nJadwal: ${
                                     MONTHS_LONG[mIdx]
-                                  } ${item.tahun} - W${item.minggu}\nStatus: ${statusText}${
+                                  } ${item.tahun} - Minggu ${item.minggu}\nStatus: ${statusText}${
                                     item.rab ? `\nRAB: ${formatRupiah(item.rab)}` : ''
                                   }${
                                     item.keterangan ? `\nKet: ${item.keterangan}` : ''
@@ -347,9 +347,9 @@ const TimelinePemeliharaan: React.FC<TimelinePemeliharaanProps> = ({
                                   }}
                                   title={`[REALISASI - SELESAI] ${meta.label}\nRencana: ${
                                     MONTHS_LONG[Number(item.bulan) - 1]
-                                  } W${item.minggu}\nRealisasi: ${
+                                  } Minggu ${item.minggu}\nRealisasi: ${
                                     MONTHS_LONG[mIdx]
-                                  } W${w}${
+                                  } Minggu ${w}${
                                     slot?.tanggalFormatted
                                       ? ` (${slot.tanggalFormatted})`
                                       : ''
