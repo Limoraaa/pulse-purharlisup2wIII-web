@@ -24,7 +24,7 @@ import { formatTanggal } from 'components/ruangtools/common/dateUtils';
 import { useFeedback } from 'components/common/FeedbackProvider';
 import { MotorKonversiFormModal, MotorEditData } from './MotorKonversiFormModal';
 import { exportToExcel, exportToPDF, ExportColumn, ringkasStatus } from 'components/ruangtools/riwayat/common/exportUtils';
-import { KeteranganLog, keteranganUntukExport } from 'components/common/keteranganLog';
+import { KeteranganLog, UraianLog, keteranganUntukExport } from 'components/common/keteranganLog';
 
 // Import Modal pendukung (Pastikan Anda mengadaptasi file ini juga nantinya untuk Motor)
 import PartMappingEditorMotor from './PartMappingEditor'; // Sesuaikan path jika namanya diubah
@@ -422,9 +422,7 @@ export default function DetailMotorKonversiManager({
                           <tr key={log.id}>
                             <td className="text-center fw-semibold text-muted">{index + 1}</td>
                             <td>
-                              <div style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={log.uraian_pemeliharaan}>
-                                {log.uraian_pemeliharaan}
-                              </div>
+                              <UraianLog teks={log.uraian_pemeliharaan} expanded={expandedLogs.has(log.id)} onToggle={() => toggleLog(log.id)} baris={2} />
                             </td>
                             <td className="text-center text-nowrap">{formatTanggal(log.waktu_pelaksana)}</td>
                             <td className="text-center fw-semibold text-secondary text-nowrap">{log.paraf}</td>

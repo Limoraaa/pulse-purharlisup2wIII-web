@@ -32,7 +32,7 @@ import api from 'lib/api';
 import { formatTanggal } from 'components/ruangtools/common/dateUtils';
 import { usePermission } from 'hooks/usePermissions';
 import { exportToExcel, exportToPDF, ExportColumn, ringkasStatus } from 'components/ruangtools/riwayat/common/exportUtils';
-import { KeteranganLog, keteranganUntukExport } from 'components/common/keteranganLog';
+import { KeteranganLog, UraianLog, keteranganUntukExport } from 'components/common/keteranganLog';
 import type { RencanaItem } from 'types/RencanaPemeliharaanTypes';
 
 // Import Modal pendukung
@@ -845,9 +845,7 @@ export default function DetailMesinManager({
                           <tr key={log.id}>
                             <td className="text-center fw-semibold text-muted">{index + 1}</td>
                             <td>
-                              <div style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                                {log.uraian_pemeliharaan}
-                              </div>
+                              <UraianLog teks={log.uraian_pemeliharaan} expanded={expandedLogs.has(log.id)} onToggle={() => toggleLog(log.id)} baris={3} />
                             </td>
                             <td className="text-center text-nowrap">{formatTanggal(log.waktu_pelaksana)}</td>
                             <td className="text-center">

@@ -122,3 +122,30 @@ export function KeteranganLog({
     </div>
   );
 }
+
+// Sel Uraian Pemeliharaan: dipotong beberapa baris, lengkap saat baris dibuka (status buka sama dengan Keterangan)
+export function UraianLog({
+  teks,
+  expanded,
+  onToggle,
+  baris = 3,
+}: {
+  teks?: string | null;
+  expanded: boolean;
+  onToggle: () => void;
+  baris?: number;
+}) {
+  const isi = teks || "-";
+  return (
+    <>
+      <div style={expanded ? undefined : { display: "-webkit-box", WebkitLineClamp: baris, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+        {isi}
+      </div>
+      {isi.length > 50 && (
+        <button type="button" className="btn btn-link btn-sm p-0" style={{ fontSize: "0.75rem" }} onClick={onToggle}>
+          {expanded ? "Sembunyikan" : "Selengkapnya"}
+        </button>
+      )}
+    </>
+  );
+}
