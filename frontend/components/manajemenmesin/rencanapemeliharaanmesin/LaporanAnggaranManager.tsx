@@ -74,9 +74,10 @@ const sum = <T,>(list: T[], pick: (x: T) => number) => list.reduce((acc, x) => a
 // Pekerjaan disburse yang ikut memotong Sisa PRK. Ada dua jalur:
 // 1) Kerja dulu, bayar belakangan -> terhitung saat status Sedang/Sudah dikerjakan.
 // 2) Bayar dulu, kerja belakangan -> terhitung saat dibayar. Penandanya: kolom
-//    Keterangan berisi "Sudah dibayar" (kalau belum: "Belum dibayar").
+//    Keterangan berisi "Sudah dibayar" (kalau belum: "Belum dibayar"); penulisan
+//    "sudah di bayar" / "sudah bayar" juga diterima.
 // Ubah di sini kalau aturannya berubah.
-const SUDAH_DIBAYAR_REGEX = /sudah\s+(di)?bayar/i;
+const SUDAH_DIBAYAR_REGEX = /sudah\s*(di\s*)?bayar/i;
 const isDibayarDimuka = (p: LocalPekerjaanItem) => SUDAH_DIBAYAR_REGEX.test(p.keterangan ?? '');
 const isTerhitung = (p: LocalPekerjaanItem) => p.status !== 'belum_dikerjakan' || isDibayarDimuka(p);
 
