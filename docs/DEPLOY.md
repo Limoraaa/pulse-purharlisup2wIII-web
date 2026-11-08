@@ -11,6 +11,15 @@ Ganti `namadomain.com` dengan domain yang dibeli. Buat dua record DNS **A** (`@`
 
 > Jangan pernah mengirim password VPS / database ke siapa pun (termasuk lewat chat). Simpan sendiri.
 
+> **Versi PHP:** backend butuh **PHP 8.4.1 atau lebih baru** (Laravel 13 / Symfony 8). Pilih **Ubuntu 26.04 LTS**
+> saat membeli VPS. Ubuntu 24.04 hanya membawa PHP 8.3 sehingga backend tidak bisa berjalan.
+> Sebelum memasang paket, cek versi yang tersedia:
+> ```bash
+> apt-cache policy php8.4-fpm
+> ```
+> Bila yang tersedia versi lain (≥ 8.4, mis. 8.5), ganti semua `8.4` di panduan ini dengan versi tersebut
+> (nama paket `php8.x-...`, file `/etc/php/8.x/fpm/php.ini`, dan socket `/run/php/php8.x-fpm.sock`).
+
 ---
 
 ## 1. Paket yang dibutuhkan
@@ -23,6 +32,16 @@ sudo apt install -y nginx postgresql git unzip curl \
 curl -sS https://getcomposer.org/installer | php && sudo mv composer.phar /usr/local/bin/composer
 # Node.js 22 (untuk build frontend)
 curl -fsSL https://deb.nodesource.com/setup_22.x | sudo bash - && sudo apt install -y nodejs
+```
+
+### Swap (cadangan RAM)
+
+Build frontend bisa memakai RAM 1–2 GB. Agar VPS 4 GB tidak kehabisan memori, buat swap 2 GB (sekali saja):
+
+```bash
+sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile
+sudo mkswap /swapfile && sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 ```
 
 ## 2. Database PostgreSQL
@@ -179,7 +198,35 @@ sudo apt install -y certbot python3-certbot-nginx
 sudo certbot --nginx -d namadomain.com -d api.namadomain.com
 ```
 
-## 9. Update aplikasi di kemudian hari
+## 9. Backup otomatis
+
+Skrip `deploy/backup.sh` menyimpan database (`pg_dump`) dan semua file upload (`storage/app/public`)
+ke `/var/backups/pulse/<tanggal>`, lalu menghapus backup yang lebih tua dari 14 hari.
+
+```bash
+sudo cp /var/www/pulse/deploy/backup.sh /usr/local/bin/pulse-backup && sudo chmod +x /usr/local/bin/pulse-backup
+sudo pulse-backup                 # coba sekali, pastikan muncul "Backup selesai"
+sudo crontab -e                   # tambahkan baris berikut (backup tiap pukul 02.00):
+0 2 * * * /usr/local/bin/pulse-backup >> /var/log/pulse-backup.log 2>&1
+```
+
+Backup di server yang sama ikut hilang bila server rusak, jadi unduh juga sesekali ke komputer lain:
+
+```powershell
+scp -r root@IP_SERVER:/var/backups/pulse D:\backup-pulse\dari-server
+```
+
+Memulihkan (hanya bila perlu, data saat ini akan diganti isi backup):
+
+```bash
+sudo -u postgres pg_restore --clean --if-exists -d pulse /var/backups/pulse/<tanggal>/database.dump
+sudo tar xzf /var/backups/pulse/<tanggal>/uploads.tar.gz -C /var/www/pulse/backend/storage/app
+sudo chown -R www-data:www-data /var/www/pulse/backend/storage
+```
+
+## 10. Update aplikasi di kemudian hari
+
+Jalankan `sudo pulse-backup` dulu bila update mengubah struktur database (ada migration baru).
 
 ```bash
 cd /var/www/pulse && git pull
@@ -188,10 +235,10 @@ cd backend && composer install --no-dev --optimize-autoloader \
 cd ../frontend && npm ci && NEXT_PUBLIC_API_URL=https://api.namadomain.com/api npm run build
 ```
 
-## 10. Cek setelah deploy
+## 11. Cek setelah deploy
 
 - [ ] `https://namadomain.com` membuka halaman login.
 - [ ] Login dengan akun Super Admin berhasil, lalu ganti password.
 - [ ] Unggah foto mesin & PDF IK (± 5–10 MB) berhasil dan bisa dibuka.
 - [ ] `https://api.namadomain.com/api/user` tanpa login menjawab 401 (bukan halaman error berisi detail kode).
-- [ ] Backup database terjadwal, mis. `pg_dump pulse > backup-$(date +%F).sql` setiap hari.
+- [ ] `sudo pulse-backup` berhasil dan jadwal cron sudah terpasang (`sudo crontab -l`).
