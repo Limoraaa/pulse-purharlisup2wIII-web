@@ -20,10 +20,17 @@ interface ChecklistState {
     jumlahDikembalikan: number;
     jumlahBisaDiperbaiki: number;
     jumlahRusakPermanen: number;
-    catatanBisaDiperbaiki: string;
-    catatanRusakPermanen: string;
+    // Satu catatan untuk setiap unit rusak (panjang array = jumlah unitnya)
+    catatanBisaDiperbaiki: string[];
+    catatanRusakPermanen: string[];
   };
 }
+
+type FieldCatatan = "catatanBisaDiperbaiki" | "catatanRusakPermanen";
+
+// Sesuaikan jumlah kolom catatan dengan jumlah unit; catatan yang sudah diketik tetap disimpan
+const sesuaikanCatatan = (catatan: string[], jumlah: number) =>
+  Array.from({ length: jumlah }, (_, i) => catatan[i] ?? "");
 
 export interface PengembalianKerusakanEntry {
   jenisKerusakan: JenisKerusakan;
@@ -52,8 +59,8 @@ const emptyRow = (jumlahDipinjam: number) => ({
   jumlahDikembalikan: jumlahDipinjam,
   jumlahBisaDiperbaiki: 0,
   jumlahRusakPermanen: 0,
-  catatanBisaDiperbaiki: "",
-  catatanRusakPermanen: "",
+  catatanBisaDiperbaiki: [] as string[],
+  catatanRusakPermanen: [] as string[],
 });
 
 const PengembalianChecklist = ({
@@ -92,14 +99,6 @@ const PengembalianChecklist = ({
     setState((prev) => ({ ...prev, [id]: { ...prev[id], checked: !prev[id].checked } }));
   };
 
-    const updateField = (
-    id: string,
-    field: keyof ChecklistState[string],
-    value: number | string
-  ) => {
-    setState((prev) => ({ ...prev, [id]: { ...prev[id], [field]: value } }));
-  };
-
   const handleDikembalikanChange = (id: string, jumlahDikembalikan: number) => {
     setState((prev) => {
       const row = prev[id];
@@ -110,8 +109,39 @@ const PengembalianChecklist = ({
       );
       return {
         ...prev,
-        [id]: { ...row, jumlahDikembalikan, jumlahBisaDiperbaiki, jumlahRusakPermanen },
+        [id]: {
+          ...row,
+          jumlahDikembalikan,
+          jumlahBisaDiperbaiki,
+          jumlahRusakPermanen,
+          catatanBisaDiperbaiki: sesuaikanCatatan(row.catatanBisaDiperbaiki, jumlahBisaDiperbaiki),
+          catatanRusakPermanen: sesuaikanCatatan(row.catatanRusakPermanen, jumlahRusakPermanen),
+        },
       };
+    });
+  };
+
+  const handleJumlahRusakChange = (
+    id: string,
+    field: "jumlahBisaDiperbaiki" | "jumlahRusakPermanen",
+    jumlah: number
+  ) => {
+    const fieldCatatan: FieldCatatan =
+      field === "jumlahBisaDiperbaiki" ? "catatanBisaDiperbaiki" : "catatanRusakPermanen";
+    setState((prev) => {
+      const row = prev[id];
+      return {
+        ...prev,
+        [id]: { ...row, [field]: jumlah, [fieldCatatan]: sesuaikanCatatan(row[fieldCatatan], jumlah) },
+      };
+    });
+  };
+
+  const updateCatatan = (id: string, field: FieldCatatan, index: number, value: string) => {
+    setState((prev) => {
+      const catatan = [...prev[id][field]];
+      catatan[index] = value;
+      return { ...prev, [id]: { ...prev[id], [field]: catatan } };
     });
   };
 
@@ -140,12 +170,18 @@ const PengembalianChecklist = ({
         );
         return;
       }
-      if (row.jumlahBisaDiperbaiki > 0 && row.catatanBisaDiperbaiki.trim() === "") {
-        setError(`Catatan "Bisa Diperbaiki" untuk "${item.namaBarang}" wajib diisi.`);
+      const kosongBisa = row.catatanBisaDiperbaiki.findIndex((c) => c.trim() === "");
+      if (kosongBisa >= 0) {
+        setError(
+          `Catatan "Bisa Diperbaiki"${row.jumlahBisaDiperbaiki > 1 ? ` unit ke-${kosongBisa + 1}` : ""} untuk "${item.namaBarang}" wajib diisi.`
+        );
         return;
       }
-      if (row.jumlahRusakPermanen > 0 && row.catatanRusakPermanen.trim() === "") {
-        setError(`Catatan "Rusak Permanen" untuk "${item.namaBarang}" wajib diisi.`);
+      const kosongPermanen = row.catatanRusakPermanen.findIndex((c) => c.trim() === "");
+      if (kosongPermanen >= 0) {
+        setError(
+          `Catatan "Rusak Permanen"${row.jumlahRusakPermanen > 1 ? ` unit ke-${kosongPermanen + 1}` : ""} untuk "${item.namaBarang}" wajib diisi.`
+        );
         return;
       }
     }
@@ -154,22 +190,19 @@ const PengembalianChecklist = ({
 
     const payload: PengembalianBatchItem[] = dipilih.map((item) => {
       const row = state[item.id];
-      const kerusakan: PengembalianKerusakanEntry[] = [];
-
-      if (row.jumlahBisaDiperbaiki > 0) {
-        kerusakan.push({
-          jenisKerusakan: "bisa_diperbaiki",
-          jumlah: row.jumlahBisaDiperbaiki,
-          catatan: row.catatanBisaDiperbaiki,
-        });
-      }
-      if (row.jumlahRusakPermanen > 0) {
-        kerusakan.push({
-          jenisKerusakan: "rusak_permanen",
-          jumlah: row.jumlahRusakPermanen,
-          catatan: row.catatanRusakPermanen,
-        });
-      }
+      // Satu entri per unit rusak agar setiap unit tercatat dengan catatannya sendiri
+      const kerusakan: PengembalianKerusakanEntry[] = [
+        ...row.catatanBisaDiperbaiki.map((catatan) => ({
+          jenisKerusakan: "bisa_diperbaiki" as const,
+          jumlah: 1,
+          catatan: catatan.trim(),
+        })),
+        ...row.catatanRusakPermanen.map((catatan) => ({
+          jenisKerusakan: "rusak_permanen" as const,
+          jumlah: 1,
+          catatan: catatan.trim(),
+        })),
+      ];
 
       return {
         id: item.id,
@@ -182,6 +215,29 @@ const PengembalianChecklist = ({
 
     onSubmit(payload);
   };
+
+  // Satu kolom catatan per unit rusak; label "Unit n" muncul bila lebih dari satu unit
+  const renderCatatan = (id: string, field: FieldCatatan, catatan: string[]) =>
+    catatan.length > 0 && (
+      <div className="d-flex flex-column gap-1 mt-1">
+        {catatan.map((nilai, i) => (
+          <InputGroup size="sm" key={i}>
+            {catatan.length > 1 && (
+              <InputGroup.Text className="text-secondary" style={{ minWidth: 56 }}>
+                Unit {i + 1}
+              </InputGroup.Text>
+            )}
+            <Form.Control
+              placeholder="Catatan kerusakan..."
+              aria-label={`Catatan kerusakan unit ${i + 1}`}
+              value={nilai}
+              onChange={(e) => updateCatatan(id, field, i, e.target.value)}
+              disabled={submitting}
+            />
+          </InputGroup>
+        ))}
+      </div>
+    );
 
   return (
     <Card className="card-lg pengembalian-checklist">
@@ -246,7 +302,8 @@ const PengembalianChecklist = ({
           </p>
         ) : (
           <>
-            <Table responsive className="align-middle mb-0 pengembalian-table" style={{ tableLayout: "fixed" }}>
+            {/* align-top: semua isian sejajar di baris atas, catatan kerusakan tumbuh ke bawah */}
+            <Table responsive className="align-top mb-0 pengembalian-table" style={{ tableLayout: "fixed", minWidth: 820 }}>
               <colgroup>
                 <col style={{ width: "4%" }} />
                 <col style={{ width: "20%" }} />
@@ -256,7 +313,7 @@ const PengembalianChecklist = ({
                 <col style={{ width: "28.5%" }} />
               </colgroup>
               <thead>
-                <tr>
+                <tr className="align-middle text-nowrap">
                   <th></th>
                   <th>Alat</th>
                   <th>Dipinjam</th>
@@ -271,18 +328,18 @@ const PengembalianChecklist = ({
 
                   return (
                     <tr key={item.id} className={row.checked ? "table-active" : undefined}>
-                      <td>
+                      <td className="pengembalian-sejajar">
                         <Form.Check
                           checked={row.checked}
                           onChange={() => toggleCheck(item.id)}
                           disabled={submitting}
                         />
                       </td>
-                      <td>
+                      <td className="pengembalian-sejajar">
                         <div className="fw-semibold">{item.namaBarang}</div>
                         <div className="text-secondary small">{item.kodeBarang}</div>
                       </td>
-                      <td>{item.jumlah}</td>
+                      <td className="pengembalian-sejajar">{item.jumlah}</td>
                       <td>
                         {row.checked ? (
                           <>
@@ -315,10 +372,9 @@ const PengembalianChecklist = ({
                               size="sm"
                               value={row.jumlahBisaDiperbaiki}
                               onChange={(e) =>
-                                updateField(item.id, "jumlahBisaDiperbaiki", Number(e.target.value))
+                                handleJumlahRusakChange(item.id, "jumlahBisaDiperbaiki", Number(e.target.value))
                               }
                               disabled={submitting}
-                              className={row.jumlahBisaDiperbaiki > 0 ? "mb-1" : ""}
                             >
                               {Array.from(
                                 { length: row.jumlahDikembalikan - row.jumlahRusakPermanen + 1 },
@@ -329,15 +385,7 @@ const PengembalianChecklist = ({
                                 </option>
                               ))}
                             </Form.Select>
-                            {row.jumlahBisaDiperbaiki > 0 && (
-                              <Form.Control
-                                size="sm"
-                                placeholder="Catatan kerusakan..."
-                                value={row.catatanBisaDiperbaiki}
-                                onChange={(e) => updateField(item.id, "catatanBisaDiperbaiki", e.target.value)}
-                                disabled={submitting}
-                              />
-                            )}
+                            {renderCatatan(item.id, "catatanBisaDiperbaiki", row.catatanBisaDiperbaiki)}
                           </>
                         ) : (
                           <span className="text-secondary">-</span>
@@ -350,10 +398,9 @@ const PengembalianChecklist = ({
                               size="sm"
                               value={row.jumlahRusakPermanen}
                               onChange={(e) =>
-                                updateField(item.id, "jumlahRusakPermanen", Number(e.target.value))
+                                handleJumlahRusakChange(item.id, "jumlahRusakPermanen", Number(e.target.value))
                               }
                               disabled={submitting}
-                              className={row.jumlahRusakPermanen > 0 ? "mb-1" : ""}
                             >
                               {Array.from(
                                 { length: row.jumlahDikembalikan - row.jumlahBisaDiperbaiki + 1 },
@@ -364,15 +411,7 @@ const PengembalianChecklist = ({
                                 </option>
                               ))}
                             </Form.Select>
-                            {row.jumlahRusakPermanen > 0 && (
-                              <Form.Control
-                                size="sm"
-                                placeholder="Catatan kerusakan..."
-                                value={row.catatanRusakPermanen}
-                                onChange={(e) => updateField(item.id, "catatanRusakPermanen", e.target.value)}
-                                disabled={submitting}
-                              />
-                            )}
+                            {renderCatatan(item.id, "catatanRusakPermanen", row.catatanRusakPermanen)}
                           </>
                         ) : (
                           <span className="text-secondary">-</span>
