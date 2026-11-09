@@ -3405,3 +3405,9 @@ th:has(.kode-sort-header):hover .kode-sort-icon:not(.is-active) {
   margin-top: 0.35rem;
   border-radius: 50%;
 }
+
+// Pengembalian Alat: teks di kolom kiri sejajar dengan isi kotak pilihan di sebelahnya
+// (sel tabel rata atas agar catatan kerusakan per unit tumbuh ke bawah tanpa menggeser kolom lain)
+.pengembalian-table tbody td.pengembalian-sejajar {
+  padding-top: calc(var(--#{$prefix}table-cell-padding-y, 0.5rem) + 0.3rem);
+}

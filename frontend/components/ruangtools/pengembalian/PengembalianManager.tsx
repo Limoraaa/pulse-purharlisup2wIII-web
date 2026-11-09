@@ -132,10 +132,10 @@ const PengembalianManager = () => {
         const records = recordsByGroup[item.id] || [];
 
         let sisaDikembalikan = item.jumlahDikembalikan;
-        let poolBisaDiperbaiki = item.kerusakan.find((k) => k.jenisKerusakan === "bisa_diperbaiki")?.jumlah ?? 0;
-        let poolRusakPermanen = item.kerusakan.find((k) => k.jenisKerusakan === "rusak_permanen")?.jumlah ?? 0;
-        const catatanBisaDiperbaiki = item.kerusakan.find((k) => k.jenisKerusakan === "bisa_diperbaiki")?.catatan ?? "";
-        const catatanRusakPermanen = item.kerusakan.find((k) => k.jenisKerusakan === "rusak_permanen")?.catatan ?? "";
+        // Antrean unit rusak (bisa diperbaiki dulu, lalu rusak permanen), masing-masing dengan catatannya
+        const antreanRusak: KerusakanPengembalian[] = item.kerusakan.flatMap((k) =>
+          Array.from({ length: k.jumlah }, () => ({ status: k.jenisKerusakan, jumlah: 1, keterangan: k.catatan }))
+        );
 
         // Alokasikan ke transaksi peminjaman asli, mulai dari yang paling
         // lama (FIFO), sampai jumlahDikembalikan terpenuhi.
@@ -144,18 +144,9 @@ const PengembalianManager = () => {
 
           const ambil = Math.min(record.jumlah, sisaDikembalikan);
 
-          // Bagi unit rusak ke record ini; dikirim bersama pengembalian agar tersimpan sekaligus
-          const kerusakan: KerusakanPengembalian[] = [];
-          const ambilBisaDiperbaiki = Math.min(poolBisaDiperbaiki, ambil);
-          if (ambilBisaDiperbaiki > 0) {
-            kerusakan.push({ status: "bisa_diperbaiki", jumlah: ambilBisaDiperbaiki, keterangan: catatanBisaDiperbaiki });
-            poolBisaDiperbaiki -= ambilBisaDiperbaiki;
-          }
-          const ambilRusakPermanen = Math.min(poolRusakPermanen, ambil - ambilBisaDiperbaiki);
-          if (ambilRusakPermanen > 0) {
-            kerusakan.push({ status: "rusak_permanen", jumlah: ambilRusakPermanen, keterangan: catatanRusakPermanen });
-            poolRusakPermanen -= ambilRusakPermanen;
-          }
+          // Unit rusak ikut record ini (maksimal sebanyak unit yang dikembalikan dari record ini);
+          // dikirim bersama pengembalian agar tersimpan sekaligus, satu laporan per unit
+          const kerusakan = antreanRusak.splice(0, ambil);
 
           await tandaiDikembalikan(record.id, ambil, kerusakan);
           sisaDikembalikan -= ambil;
