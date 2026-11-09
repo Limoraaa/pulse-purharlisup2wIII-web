@@ -71,6 +71,20 @@ const rincianLines = (rincian: string | null): string[] =>
 
 const sum = <T,>(list: T[], pick: (x: T) => number) => list.reduce((acc, x) => acc + pick(x), 0);
 
+// Pekerjaan disburse yang ikut memotong Sisa PRK. Ada dua jalur:
+// 1) Kerja dulu, bayar belakangan -> terhitung saat status Sedang/Sudah dikerjakan.
+// 2) Bayar dulu, kerja belakangan -> terhitung saat dibayar. Penandanya: kolom
+//    Keterangan berisi "Sudah dibayar" (kalau belum: "Belum dibayar"); penulisan
+//    "sudah di bayar" / "sudah bayar" juga diterima.
+// Ubah di sini kalau aturannya berubah.
+const SUDAH_DIBAYAR_REGEX = /sudah\s*(di\s*)?bayar/i;
+const isDibayarDimuka = (p: LocalPekerjaanItem) => SUDAH_DIBAYAR_REGEX.test(p.keterangan ?? '');
+const isTerhitung = (p: LocalPekerjaanItem) => p.status !== 'belum_dikerjakan' || isDibayarDimuka(p);
+
+// Garis tabel untuk export PDF. Tema 'grid' bawaan jspdf-autotable menonaktifkan garis
+// di header & footer dan warnanya terlalu tipis, jadi garis diset eksplisit di semua bagian.
+const GRID_LINE = { lineWidth: 0.2, lineColor: [60, 60, 60] as [number, number, number] };
+
 export default function LaporanAnggaranManager() {
   const now = new Date();
   const currentYear = now.getFullYear();
@@ -175,6 +189,10 @@ export default function LaporanAnggaranManager() {
       const pekDisburse = pekAll.filter((p) => p.jenis_anggaran !== 'penugasan');
       const pekPenugasan = pekAll.filter((p) => p.jenis_anggaran === 'penugasan');
 
+      const totalDisburse = sum(dis, (d) => d.nominal);
+      const totalTerhitung = sum(pekDisburse.filter(isTerhitung), (p) => p.biaya_aktual || p.biaya);
+      const sisa = totalDisburse - totalTerhitung;
+
       doc.setFontSize(12);
       doc.setTextColor(0, 0, 0);
       doc.text(`Bulan: ${namaBulan.toUpperCase()}`, 14, finalY);
@@ -185,9 +203,10 @@ export default function LaporanAnggaranManager() {
         head: [[`Disburse bulan ${namaBulan} ${selectedYear}`, 'Nominal']],
         body: dis.map((d) => [d.uraian, formatRupiah(d.nominal)]),
         theme: 'grid',
-        headStyles: { fillColor: [253, 126, 20] },
-        foot: [['TOTAL', formatRupiah(sum(dis, (d) => d.nominal))]],
-        footStyles: { fillColor: [253, 126, 20], textColor: 255, fontStyle: 'bold' },
+        styles: GRID_LINE,
+        headStyles: { fillColor: [253, 126, 20], ...GRID_LINE },
+        foot: [['TOTAL', formatRupiah(totalDisburse)]],
+        footStyles: { fillColor: [253, 126, 20], textColor: 255, fontStyle: 'bold', ...GRID_LINE },
       });
       finalY = (doc as any).lastAutoTable.finalY + 10;
 
@@ -196,9 +215,13 @@ export default function LaporanAnggaranManager() {
         head: [[`Pekerjaan Disburse bulan ${namaBulan} ${selectedYear}`, 'Biaya (Rp)', 'Status', 'Vendor Pelaksana', 'No.PO', 'Keterangan']],
         body: pekDisburse.map((p) => [p.nama_pekerjaan, formatRupiah(p.biaya_aktual || p.biaya), STATUS_LABEL[p.status], p.nama_vendor || '-', p.no_po || '-', p.keterangan || '-']),
         theme: 'grid',
-        headStyles: { fillColor: [25, 135, 84] },
-        foot: [['TOTAL DISBURSE', formatRupiah(sum(pekDisburse, (p) => p.biaya_aktual || p.biaya)), '', '', '', '']],
-        footStyles: { fillColor: [25, 135, 84], textColor: 255, fontStyle: 'bold' },
+        styles: GRID_LINE,
+        headStyles: { fillColor: [25, 135, 84], ...GRID_LINE },
+        foot: [
+          ['TOTAL PEKERJAAN DISBURSE', formatRupiah(sum(pekDisburse, (p) => p.biaya_aktual || p.biaya)), '', '', '', ''],
+          ['SISA PRK PEMELIHARAAN', formatRupiah(sisa), '', '', '', ''],
+        ],
+        footStyles: { fillColor: [25, 135, 84], textColor: 255, fontStyle: 'bold', ...GRID_LINE },
       });
       finalY = (doc as any).lastAutoTable.finalY + 10;
 
@@ -206,9 +229,12 @@ export default function LaporanAnggaranManager() {
         autoTable(doc, {
           startY: finalY,
           head: [[`Pekerjaan Penugasan bulan ${namaBulan} ${selectedYear}`, 'Biaya (Rp)', 'Status', 'Vendor Pelaksana', 'No.PO', 'Keterangan']],
-          body: pekPenugasan.map((p) => [p.nama_pekerjaan, formatRupiah(p.biaya), STATUS_LABEL[p.status], p.nama_vendor || '-', p.no_po || '-', p.keterangan || '-']),
+          body: pekPenugasan.map((p) => [p.nama_pekerjaan, formatRupiah(p.biaya_aktual || p.biaya), STATUS_LABEL[p.status], p.nama_vendor || '-', p.no_po || '-', p.keterangan || '-']),
           theme: 'grid',
-          headStyles: { fillColor: [13, 202, 240] },
+          styles: GRID_LINE,
+          headStyles: { fillColor: [13, 202, 240], ...GRID_LINE },
+          foot: [['TOTAL PEKERJAAN PENUGASAN', formatRupiah(sum(pekPenugasan, (p) => p.biaya_aktual || p.biaya)), '', '', '', '']],
+          footStyles: { fillColor: [13, 202, 240], textColor: 255, fontStyle: 'bold', ...GRID_LINE },
         });
         finalY = (doc as any).lastAutoTable.finalY + 10;
       }
@@ -244,6 +270,10 @@ export default function LaporanAnggaranManager() {
       const pekDisburse = pekAll.filter((p) => p.jenis_anggaran !== 'penugasan');
       const pekPenugasan = pekAll.filter((p) => p.jenis_anggaran === 'penugasan');
 
+      const totalDisburse = sum(dis, (d) => d.nominal);
+      const totalTerhitung = sum(pekDisburse.filter(isTerhitung), (p) => p.biaya_aktual || p.biaya);
+      const sisa = totalDisburse - totalTerhitung;
+
       sheet.addRow([`BULAN ${namaBulan.toUpperCase()}`]).font = { bold: true, size: 14 };
       sheet.addRow([]);
 
@@ -253,7 +283,7 @@ export default function LaporanAnggaranManager() {
         const r = sheet.addRow([d.uraian, d.nominal]);
         r.eachCell((c) => { c.border = borderStyle as any; });
       });
-      const totalDisRow = sheet.addRow(['TOTAL', sum(dis, (d) => d.nominal)]);
+      const totalDisRow = sheet.addRow(['TOTAL', totalDisburse]);
       totalDisRow.eachCell((c) => { c.style = headStyle('FFFFE066') as any; });
       sheet.addRow([]);
 
@@ -265,14 +295,18 @@ export default function LaporanAnggaranManager() {
       });
       const totalDibayarRow = sheet.addRow(['TOTAL', sum(pekDisburse, (p) => p.biaya_aktual || p.biaya), '', '', '', '']);
       totalDibayarRow.eachCell((c) => { c.style = headStyle('FFB2F2BB') as any; });
+      const sisaRow = sheet.addRow(['SISA PRK PEMELIHARAAN', sisa, '', '', '', '']);
+      sisaRow.eachCell((c) => { c.style = headStyle('FFB2F2BB') as any; });
       sheet.addRow([]);
 
       const rencRow = sheet.addRow([`Pekerjaan Penugasan bulan ${namaBulan} ${selectedYear}`, 'Biaya (Rp)', 'Status', 'Vendor Pelaksana', 'No.PO', 'Keterangan']);
       rencRow.eachCell((c) => { c.style = headStyle('FF99E9F2') as any; }); // Soft Cyan
       pekPenugasan.forEach((p) => {
-        const r = sheet.addRow([p.nama_pekerjaan, p.biaya, STATUS_LABEL[p.status], p.nama_vendor || '-', p.no_po || '-', p.keterangan || '-']);
+        const r = sheet.addRow([p.nama_pekerjaan, p.biaya_aktual || p.biaya, STATUS_LABEL[p.status], p.nama_vendor || '-', p.no_po || '-', p.keterangan || '-']);
         r.eachCell((c) => { c.border = borderStyle as any; });
       });
+      const totalPenugasanRow = sheet.addRow(['TOTAL', sum(pekPenugasan, (p) => p.biaya_aktual || p.biaya), '', '', '', '']);
+      totalPenugasanRow.eachCell((c) => { c.style = headStyle('FF99E9F2') as any; });
       sheet.addRow([]);
       sheet.addRow([]);
     });
@@ -293,7 +327,10 @@ export default function LaporanAnggaranManager() {
 
     const totalDisburse = sum(dis, (d) => d.nominal);
     const totalPekDisburse = sum(pekDisburse, (p) => p.biaya_aktual || p.biaya);
-    const sisa = totalDisburse - totalPekDisburse;
+    const totalTerhitung = sum(pekDisburse.filter(isTerhitung), (p) => p.biaya_aktual || p.biaya);
+    const totalBelumTerhitung = totalPekDisburse - totalTerhitung;
+    const sisa = totalDisburse - totalTerhitung;
+    const totalPekPenugasan = sum(pekPenugasan, (p) => p.biaya_aktual || p.biaya);
 
     return (
       <Card key={bulan} className="mb-5 shadow-sm border-0">
@@ -404,6 +441,12 @@ export default function LaporanAnggaranManager() {
                         <Badge bg={STATUS_VARIANT[p.status]} className="px-2 py-1 fw-normal" style={{ fontSize: '12px' }}>
                           {STATUS_LABEL[p.status]}
                         </Badge>
+                        {!isTerhitung(p) && (
+                          <div className="small text-muted fst-italic mt-1">Belum dibayar, belum memotong sisa</div>
+                        )}
+                        {p.status === 'belum_dikerjakan' && isDibayarDimuka(p) && (
+                          <div className="small text-success fst-italic mt-1">Sudah dibayar, memotong sisa</div>
+                        )}
                       </td>
                       <td className="px-3">{p.nama_vendor || '-'}</td>
                       <td className="px-3">{p.no_po || '-'}</td>
@@ -427,11 +470,23 @@ export default function LaporanAnggaranManager() {
                 </tr>
               </tfoot>
             </Table>
+            <div className="small text-muted mt-2">
+              <strong>Catatan:</strong> isi kolom Keterangan dengan <strong>&quot;Sudah dibayar&quot;</strong> jika pekerjaan sudah dibayar
+              (walau belum dikerjakan), atau <strong>&quot;Belum dibayar&quot;</strong> jika belum. Pekerjaan yang statusnya Sedang/Sudah
+              dikerjakan otomatis memotong Sisa PRK. Pekerjaan Belum dikerjakan baru memotong Sisa PRK setelah &quot;Sudah dibayar&quot;.
+            </div>
           </div>
 
           {/* SISA PRK CARD */}
           <Alert variant={sisa < 0 ? 'danger' : 'secondary'} className="d-flex justify-content-between align-items-center mb-5 shadow-sm border-0 py-3">
-            <div className="fw-bold fs-5">Sisa PRK Pemeliharaan</div>
+            <div>
+              <div className="fw-bold fs-5">Sisa PRK Pemeliharaan</div>
+              {totalBelumTerhitung > 0 && (
+                <div className="small text-muted">
+                  Belum memotong sisa (belum dikerjakan &amp; belum dibayar): {formatRupiah(totalBelumTerhitung)}
+                </div>
+              )}
+            </div>
             <div className="fw-bolder fs-4">{formatRupiah(sisa)}</div>
           </Alert>
 
@@ -496,6 +551,13 @@ export default function LaporanAnggaranManager() {
                   ))
                 )}
               </tbody>
+              <tfoot className="table-light">
+                <tr>
+                  <td className="fw-bold px-3 text-end">TOTAL PEKERJAAN PENUGASAN</td>
+                  <td className="fw-bold px-3 text-end text-dark">{formatRupiah(totalPekPenugasan)}</td>
+                  <td colSpan={5}></td>
+                </tr>
+              </tfoot>
             </Table>
           </div>
 

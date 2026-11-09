@@ -19,6 +19,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
         ]);
+
+        // Aplikasi tidak punya halaman login di backend: request API tanpa token dijawab 401 (bukan
+        // dialihkan ke route "login" yang tidak ada, yang membuat error 500 bila dibuka langsung di browser)
+        $middleware->redirectGuestsTo(fn (Request $request) => $request->is('api/*') ? null : '/');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

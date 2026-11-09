@@ -485,7 +485,7 @@ const RencanaPemeliharaanManager = () => {
     MONTHS_SHORT.forEach(() => {
       WEEKS.forEach((w) => {
         headRow2.push({
-          content: `W${w}`,
+          content: `M${w}`,
           styles: { halign: "center", fontSize: 5.5, textColor: [100, 100, 100] },
         });
       });
@@ -709,7 +709,7 @@ const RencanaPemeliharaanManager = () => {
     ];
     MONTHS_SHORT.forEach(() => {
       WEEKS.forEach((w) => {
-        headRow2.push({ v: `W${w}`, t: "s", s: subHeaderStyle });
+        headRow2.push({ v: `M${w}`, t: "s", s: subHeaderStyle });
       });
     });
     headRow2.push({ v: "", t: "s", s: headerStyle });
@@ -1450,7 +1450,7 @@ const RencanaPemeliharaanManager = () => {
                           }`}
                           style={{ fontSize: 10 }}
                         >
-                          W{w}
+                          M{w}
                         </th>
                       ))
                     )}

@@ -57,7 +57,7 @@ const buildEmptyForm = (
   jenis_pelaksana: "Internal",
 });
 
-// Posisi Bulan & Minggu (W1-W4) dari tanggal selesai (realisasi).
+// Posisi Bulan & Minggu (1-4) dari tanggal selesai (realisasi).
 // Tanggal dipotong manual (bukan new Date) supaya tidak bergeser sehari karena zona waktu.
 const getRealisasiInfo = (tanggalSelesai?: string | null) => {
   if (!tanggalSelesai) return null;
@@ -66,7 +66,7 @@ const getRealisasiInfo = (tanggalSelesai?: string | null) => {
   const tahun = Number(m[1]);
   const bulan = MONTHS_LONG[Number(m[2]) - 1];
   const minggu = Math.min(4, Math.max(1, Math.ceil(Number(m[3]) / 7)));
-  return `${bulan} ${tahun} (Minggu ke-${minggu} / W${minggu})`;
+  return `${bulan} ${tahun} (Minggu ${minggu})`;
 };
 
 const RencanaFormModal = ({
@@ -170,14 +170,14 @@ const RencanaFormModal = ({
               </div>
               <div>
                 <strong>Rencana:</strong> {MONTHS_LONG[initialData.bulan - 1]}{" "}
-                {initialData.tahun} (Minggu ke-{initialData.minggu} / W{initialData.minggu})
+                {initialData.tahun} (Minggu {initialData.minggu})
               </div>
               <div>
                 <strong>Realisasi:</strong>{" "}
                 {realisasiSlotText
                   ? `${realisasiSlotText} — ${formatDateIndo(tglSelesai)}`
                   : formatDateIndo(tglSelesai) ||
-                    `${MONTHS_LONG[initialData.bulan - 1]} ${initialData.tahun} (W${initialData.minggu})`}
+                    `${MONTHS_LONG[initialData.bulan - 1]} ${initialData.tahun} (Minggu ${initialData.minggu})`}
               </div>
               <div className="mt-1 text-muted">
                 Hasilnya tercatat di log pemeliharaan mesin ini, sehingga rencana tidak bisa diubah.

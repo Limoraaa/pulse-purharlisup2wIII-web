@@ -24,6 +24,7 @@ import { formatTanggal } from 'components/ruangtools/common/dateUtils';
 import { useFeedback } from 'components/common/FeedbackProvider';
 import { MotorKonversiFormModal, MotorEditData } from './MotorKonversiFormModal';
 import { exportToExcel, exportToPDF, ExportColumn, ringkasStatus } from 'components/ruangtools/riwayat/common/exportUtils';
+import { KeteranganLog, UraianLog, keteranganUntukExport } from 'components/common/keteranganLog';
 
 // Import Modal pendukung (Pastikan Anda mengadaptasi file ini juga nantinya untuk Motor)
 import PartMappingEditorMotor from './PartMappingEditor'; // Sesuaikan path jika namanya diubah
@@ -66,7 +67,7 @@ const EXPORT_COLUMNS_LOG: ExportColumn[] = [
   { header: "No", key: "no" },
   { header: "Uraian Pemeliharaan", key: "uraian_pemeliharaan" },
   { header: "Waktu Pelaksana", key: "waktu_pelaksana" },
-  { header: "Keterangan", key: "keterangan" },
+  { header: "Keterangan", key: "keterangan", excelWidth: 60, pdfWidth: 110 },
   { header: "Teknisi", key: "paraf" },
 ];
 
@@ -197,12 +198,12 @@ export default function DetailMotorKonversiManager({
   });
 
   const handleExportLogPDF = () => {
-    const dataWithIndex = logs.map((log, index) => ({ no: index + 1, ...log, waktu_pelaksana: formatTanggal(log.waktu_pelaksana) }));
+    const dataWithIndex = logs.map((log, index) => ({ no: index + 1, ...log, keterangan: keteranganUntukExport(log.keterangan), waktu_pelaksana: formatTanggal(log.waktu_pelaksana) }));
     exportToPDF(dataWithIndex as unknown as Record<string, unknown>[], EXPORT_COLUMNS_LOG, exportFileName, "Kartu Gantung Pemeliharaan Motor Konversi", exportLogInfo());
   };
 
   const handleExportLogExcel = () => {
-    const dataWithIndex = logs.map((log, index) => ({ no: index + 1, ...log, waktu_pelaksana: formatTanggal(log.waktu_pelaksana) }));
+    const dataWithIndex = logs.map((log, index) => ({ no: index + 1, ...log, keterangan: keteranganUntukExport(log.keterangan), waktu_pelaksana: formatTanggal(log.waktu_pelaksana) }));
     exportToExcel(dataWithIndex as unknown as Record<string, unknown>[], EXPORT_COLUMNS_LOG, exportFileName, "Kartu Gantung Pemeliharaan Motor Konversi", exportLogInfo());
   };
 
@@ -421,9 +422,7 @@ export default function DetailMotorKonversiManager({
                           <tr key={log.id}>
                             <td className="text-center fw-semibold text-muted">{index + 1}</td>
                             <td>
-                              <div style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={log.uraian_pemeliharaan}>
-                                {log.uraian_pemeliharaan}
-                              </div>
+                              <UraianLog teks={log.uraian_pemeliharaan} expanded={expandedLogs.has(log.id)} onToggle={() => toggleLog(log.id)} baris={2} />
                             </td>
                             <td className="text-center text-nowrap">{formatTanggal(log.waktu_pelaksana)}</td>
                             <td className="text-center fw-semibold text-secondary text-nowrap">{log.paraf}</td>
@@ -440,35 +439,7 @@ export default function DetailMotorKonversiManager({
                               ) : "-"}
                             </td>
                             <td>
-                              {(() => {
-                                const ket = log.keterangan || "-";
-                                const expanded = expandedLogs.has(log.id);
-                                const panjang = ket.length > 80;
-                                return (
-                                  <>
-                                    {expanded ? (
-                                      ket.split(" | ").map((bagian, i) => (
-                                        <div key={i} className="mb-1">{bagian}</div>
-                                      ))
-                                    ) : (
-                                      <div style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                                        {ket}
-                                      </div>
-                                    )}
-                                    {panjang && (
-                                      <Button
-                                        variant="link"
-                                        size="sm"
-                                        className="p-0"
-                                        style={{ fontSize: '0.75rem' }}
-                                        onClick={() => toggleLog(log.id)}
-                                      >
-                                        {expanded ? "Sembunyikan" : "Selengkapnya"}
-                                      </Button>
-                                    )}
-                                  </>
-                                );
-                              })()}
+                              <KeteranganLog ket={log.keterangan} expanded={expandedLogs.has(log.id)} onToggle={() => toggleLog(log.id)} />
                             </td>
                           </tr>
                         );
