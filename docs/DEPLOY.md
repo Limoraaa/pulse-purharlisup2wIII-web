@@ -158,6 +158,15 @@ server {
         try_files $uri $uri.html $uri/ =404;
     }
 
+    # Worker penampil PDF (pdf.worker.min.mjs) wajib dikirim sebagai JavaScript.
+    # mime.types bawaan nginx belum mengenal .mjs (terkirim sebagai octet-stream),
+    # sehingga dokumen IK/HIRARC gagal dibuka di sebagian browser HP.
+    location ~* \.mjs$ {
+        types { }
+        default_type application/javascript;
+        try_files $uri =404;
+    }
+
     error_page 404 /404.html;
 }
 
@@ -239,6 +248,9 @@ cd ../frontend && npm ci && NEXT_PUBLIC_API_URL=https://api.namadomain.com/api n
 
 - [ ] `https://namadomain.com` membuka halaman login.
 - [ ] Login dengan akun Super Admin berhasil, lalu ganti password.
-- [ ] Unggah foto mesin & PDF IK (± 5–10 MB) berhasil dan bisa dibuka.
+- [ ] Unggah foto mesin & PDF IK (± 5–10 MB) berhasil dan bisa dibuka, juga dari HP.
+- [ ] File worker PDF terkirim sebagai JavaScript:
+      `curl -sI https://namadomain.com/_next/static/media/$(ls /var/www/pulse/frontend/out/_next/static/media | grep pdf.worker) | grep -i content-type`
+      harus `application/javascript`.
 - [ ] `https://api.namadomain.com/api/user` tanpa login menjawab 401 (bukan halaman error berisi detail kode).
 - [ ] `sudo pulse-backup` berhasil dan jadwal cron sudah terpasang (`sudo crontab -l`).
