@@ -27,7 +27,8 @@ import { v4 as uuid } from "uuid";
 // Redux & Services untuk Universal Scanner
 import { useAppDispatch, useAppSelector } from "store/store";
 import { fetchTools } from "store/slices/inventoryToolsSlice";
-import { scanTool, fetchAntrean, prosesPeminjamanApi, updateCartItem, removeCartItem } from "services/peminjamanService";
+import { scanTool, prosesPeminjamanApi, updateCartItem, removeCartItem } from "services/peminjamanService";
+import { ambilKeranjangConsumable, ambilKeranjangTools, urutkanKeranjang } from "lib/keranjang";
 
 import {
   ConsumableItemType,
@@ -82,18 +83,6 @@ const EXPORT_COLUMNS: ExportColumn[] = [
   { header: "Stok Tersedia", key: "stok_tersedia" },
 ];
 
-interface AntreanConsumableApiItem {
-  id: string;
-  consumable_id: string;
-  kodeBarang?: string;
-  kode_barang?: string;
-  namaBarang?: string;
-  nama?: string;
-  qty?: number;
-  jumlah?: number;
-  stok_tersedia?: number;
-}
-
 const DataConsumableManager = () => {
   const dispatch = useAppDispatch();
   const tools = useAppSelector((state) => state.inventoryTools.tools);
@@ -145,48 +134,22 @@ const DataConsumableManager = () => {
     }
   };
 
-  const loadCart = useCallback(async () => {
+  // Isi keranjang (consumable dan alat) selalu diambil dari server, sama seperti di halaman Data Tools.
+  // Mengembalikan isi keranjang terbaru (null bila gagal dimuat).
+  const loadCart = useCallback(async (): Promise<ConsumableCartItem[] | null> => {
     try {
-      const token = localStorage.getItem("token");
-      const userId = localStorage.getItem("userId");
+      const [consumableCart, toolCart] = await Promise.all([ambilKeranjangConsumable(), ambilKeranjangTools()]);
 
-      const json = await api<{ data: AntreanConsumableApiItem[] } | AntreanConsumableApiItem[]>(
-        "/consumable-keluar/antrean",
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            ...(userId ? { "x-user-id": userId } : {}),
-          },
-        }
-      );
+      // Salinan untuk pemindai di halaman lain; sumber datanya tetap server
+      localStorage.setItem("global_shared_consumable_cart", JSON.stringify(consumableCart));
+      localStorage.setItem("global_shared_tools_cart", JSON.stringify(toolCart));
 
-      const rawItems: AntreanConsumableApiItem[] = Array.isArray(json) ? json : json.data || [];
-
-      const mappedConsumableCart: ConsumableCartItem[] = rawItems.map((item) => ({
-        id: item.id,
-        consumable_id: item.consumable_id,
-        kode_barang: item.kodeBarang || item.kode_barang || "-",
-        nama: item.namaBarang || item.nama || "Bahan Dihapus",
-        jumlah: item.qty || item.jumlah || 1,
-        stok_tersedia: item.stok_tersedia ?? 0,
-        item_type: 'consumable',
-      }));
-
-      localStorage.setItem("global_shared_consumable_cart", JSON.stringify(mappedConsumableCart));
-
-      const savedToolCart: ConsumableCartItem[] = JSON.parse(localStorage.getItem("global_shared_tools_cart") || "[]");
-
-      const combinedCart = [...mappedConsumableCart, ...savedToolCart];
-      combinedCart.sort((a, b) => {
-        const keyA = String((a as any).toolId ?? a.consumable_id ?? a.id ?? "");
-        const keyB = String((b as any).toolId ?? b.consumable_id ?? b.id ?? "");
-        return keyA.localeCompare(keyB);
-      });
-
+      const combinedCart = urutkanKeranjang([...consumableCart, ...toolCart] as unknown as ConsumableCartItem[]);
       setCart(combinedCart);
+      return combinedCart;
     } catch (err) {
       console.warn("Gagal load keranjang", err);
+      return null;
     }
   }, []);
 
@@ -276,26 +239,7 @@ const DataConsumableManager = () => {
               if (tersedia > 0) {
                 try {
                   await scanTool(foundTool.id, 1);
-                  
-                  // Sinkronisasi data keranjang tools dari API ke LocalStorage
-                  const dbCartTools = await fetchAntrean();
-                  const groupedToolsCart = dbCartTools.reduce((acc: any[], item: any) => {
-                    const existingItem = acc.find((c: any) => c.toolId === item.tools_id);
-                    if (existingItem) {
-                      existingItem.jumlah += item.qty ?? 1;
-                    } else {
-                      acc.push({
-                        cartId: item.id, toolId: item.tools_id,
-                        namaBarang: item.nama_barang || "Nama Alat Tidak Ditemukan",
-                        kodeBarang: item.kode_barang || "-",
-                        jumlah: item.qty ?? 1, maxJumlah: item.max_jumlah ?? 99, item_type: "tool",
-                      });
-                    }
-                    return acc;
-                  }, []);
-                  localStorage.setItem("global_shared_tools_cart", JSON.stringify(groupedToolsCart));
-                  
-                  await loadCart(); // Trigger update UI
+                  await loadCart();
                   setSuccessMessage(`Berhasil: Tool ${foundTool.namaBarang} ditambahkan ke keranjang.`);
                   setTimeout(() => setSuccessMessage(null), 3000);
                 } catch (err) {
@@ -576,35 +520,23 @@ const DataConsumableManager = () => {
 
     setCart((prev) => prev.filter((c) => c.id !== cartId && c.consumable_id !== cartId && c.cartId !== cartId));
 
-    if (targetItem.item_type === 'tool') {
-      const savedTools = JSON.parse(localStorage.getItem("global_shared_tools_cart") || "[]");
-      const updatedToolCart = savedTools.filter((c: any) => c.cartId !== cartId);
-      localStorage.setItem("global_shared_tools_cart", JSON.stringify(updatedToolCart));
-      // Hapus juga dari keranjang di server; kalau tidak, alat tetap ikut terproses saat checkout
-      try {
+    // Hapus di server, lalu ambil ulang keranjang dari server.
+    // Item yang ternyata sudah terhapus (mis. dari halaman/tab lain) tidak dianggap gagal.
+    try {
+      if (targetItem.item_type === 'tool') {
         await removeCartItem(cartId);
-      } catch (err) {
-        showToast(err instanceof Error ? err.message : "Gagal menghapus alat dari keranjang.", "danger");
-        await loadCart();
-      } finally {
-        pendingRemoveRef.current.delete(cartId);
+      } else {
+        await api(`/consumable-keluar/antrean/${targetItem.consumable_id}`, { method: "DELETE" });
       }
-      return;
-    }
-
-    const savedCons = JSON.parse(localStorage.getItem("global_shared_consumable_cart") || "[]");
-    const updatedCons = savedCons.filter((c: any) => c.id !== cartId && c.consumable_id !== cartId);
-    localStorage.setItem("global_shared_consumable_cart", JSON.stringify(updatedCons));
-
-      try {
-      const token = localStorage.getItem("token");
-      await api(`/consumable-keluar/antrean/${targetItem.consumable_id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await loadCart();
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Gagal menghapus item dari keranjang.", "danger");
-      await loadCart(); 
+      const sisa = await loadCart();
+      const masihAda = sisa?.some((c) =>
+        targetItem.item_type === 'tool'
+          ? (c as { toolId?: string }).toolId === (targetItem as { toolId?: string }).toolId
+          : c.item_type === 'consumable' && c.consumable_id === targetItem.consumable_id
+      );
+      if (masihAda) showToast(err instanceof Error ? err.message : "Gagal menghapus item dari keranjang.", "danger");
     } finally {
       pendingRemoveRef.current.delete(cartId);
     }

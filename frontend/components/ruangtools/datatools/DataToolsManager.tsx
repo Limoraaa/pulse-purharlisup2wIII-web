@@ -1,7 +1,7 @@
 "use client";
 // import node module libraries
 import { exportToExcel, exportToPDF, ExportColumn, ringkasStatus } from "components/ruangtools/riwayat/common/exportUtils";
-import { AntreanItemResponse } from "services/peminjamanService";
+import { ambilKeranjangConsumable, kelompokkanKeranjangTools, urutkanKeranjang } from "lib/keranjang";
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import {
   Row,
@@ -168,51 +168,21 @@ const DataToolsManager = () => {
 
   // ================= FETCH KERANJANG MENGGUNAKAN SWR & SERVICE =================
   const { data: dbCart } = useSWR("/peminjaman/antrean", fetchAntrean);
+  // Consumable di keranjang juga diambil dari server (bukan salinan localStorage)
+  // agar sama dengan halaman Data Consumable
+  const { data: dbConsumableCart } = useSWR("/consumable-keluar/antrean", ambilKeranjangConsumable);
 
-  // Sinkronisasi data Tools dari Database + Gabungkan dengan data Consumable dari LocalStorage
   useEffect(() => {
-    let groupedToolsCart: UnifiedCartItem[] = [];
+    if (!dbCart && !dbConsumableCart) return;
+    const groupedToolsCart: UnifiedCartItem[] = kelompokkanKeranjangTools(Array.isArray(dbCart) ? dbCart : []);
+    const consumableCart: UnifiedCartItem[] = dbConsumableCart ?? [];
 
-    if (dbCart && Array.isArray(dbCart)) {
-      groupedToolsCart = dbCart.reduce((acc: UnifiedCartItem[], item: AntreanItemResponse) => {
-        const cartRecordId = item.id;
-        const toolIdVal = item.tools_id;
-
-        const existingItem = acc.find((c) => c.toolId === toolIdVal);
-
-        if (existingItem) {
-          existingItem.jumlah += item.qty ?? 1;
-        } else {
-          acc.push({
-            cartId: cartRecordId,
-            toolId: toolIdVal,
-            namaBarang: item.nama_barang || "Nama Alat Tidak Ditemukan",
-            kodeBarang: item.kode_barang || "-",
-            jumlah: item.qty ?? 1,
-            maxJumlah: item.max_jumlah ?? 99,
-            item_type: "tool",
-          });
-        }
-        return acc;
-      }, []);
-    }
-    // Simpan tools ke localStorage agar halaman consumable bisa membacanya
+    // Salinan untuk pemindai di halaman lain; sumber datanya tetap server
     localStorage.setItem("global_shared_tools_cart", JSON.stringify(groupedToolsCart));
+    localStorage.setItem("global_shared_consumable_cart", JSON.stringify(consumableCart));
 
-    // Ambil data consumable dari localStorage
-    const savedConsumableCart = JSON.parse(localStorage.getItem("global_shared_consumable_cart") || "[]");
-
-    // Urutkan stabil berdasarkan id supaya posisi kartu tidak lompat-lompat
-    const combined = [...groupedToolsCart, ...savedConsumableCart];
-    combined.sort((a, b) => {
-      const keyA = String(a.toolId ?? a.consumable_id ?? a.id ?? "");
-      const keyB = String(b.toolId ?? b.consumable_id ?? b.id ?? "");
-      return keyA.localeCompare(keyB);
-    });
-
-    // Gabungkan data tools dan consumable ke state cart utama
-    setCart(combined);
-  }, [dbCart]);
+    setCart(urutkanKeranjang([...groupedToolsCart, ...consumableCart]));
+  }, [dbCart, dbConsumableCart]);
 
   // Data filter tabel
   const filteredTools = useMemo(() => {
@@ -314,22 +284,7 @@ const DataToolsManager = () => {
                     body: JSON.stringify({ consumable_id: foundConsumable.id, jumlah: 1, ...(userId ? { user_id: userId } : {}) }),
                   });
 
-                  // Sinkronisasi data keranjang consumable dari API ke LocalStorage
-                  const json = await api("/consumable-keluar/antrean", {
-                    method: "GET",
-                    headers: { Authorization: `Bearer ${token}`, ...(userId ? { "x-user-id": userId } : {}) },
-                  });
-                  const rawItems = Array.isArray(json) ? json : (json as any).data || [];
-                  const mappedConsumable = rawItems.map((item: any) => ({
-                    id: item.id, consumable_id: item.consumable_id,
-                    kode_barang: item.kodeBarang || item.kode_barang || "-",
-                    nama: item.namaBarang || item.nama || "Bahan Dihapus",
-                    jumlah: item.qty || item.jumlah || 1,
-                    stok_tersedia: item.stok_tersedia ?? 0, item_type: 'consumable',
-                  }));
-                  localStorage.setItem("global_shared_consumable_cart", JSON.stringify(mappedConsumable));
-                  
-                  mutate("/peminjaman/antrean"); // Trigger update UI
+                  mutate("/consumable-keluar/antrean"); // Ambil ulang keranjang consumable dari server
                   setSuccessMessage(`Berhasil: Consumable ${foundConsumable.nama} ditambahkan ke keranjang.`);
                   setTimeout(() => setSuccessMessage(null), 3000);
                 } catch (err) {
@@ -507,11 +462,11 @@ const DataToolsManager = () => {
         }
 
         debounceTimers.current.delete(cartId);
-        // Sukses: state lokal sudah benar, tidak perlu refetch — biar tetap smooth.
       } catch (err) {
         showToast(err instanceof Error ? err.message : "Gagal memperbarui jumlah item.", "danger");
-        // Jika backend menolak (misal error server/stok limit), paksa ambil nilai asli dari database
-        mutate("/peminjaman/antrean");
+      } finally {
+        // Samakan dengan server (hasilnya sama dengan tampilan bila sukses, nilai asli bila ditolak)
+        mutate(targetItem.item_type === "consumable" ? "/consumable-keluar/antrean" : "/peminjaman/antrean");
       }
     }, 500);
 
@@ -537,30 +492,23 @@ const DataToolsManager = () => {
     // 1. Hapus secara instan dari state lokal
     setCart((prev) => prev.filter((c) => c.cartId !== cartId && c.id !== cartId && c.consumable_id !== cartId));
 
-    // 2. Jika item tersebut adalah Consumable
-    if (targetItem.item_type === "consumable") {
-      const savedCons = JSON.parse(localStorage.getItem("global_shared_consumable_cart") || "[]");
-      const updated = savedCons.filter((c: any) => c.id !== cartId && c.consumable_id !== cartId);
-      localStorage.setItem("global_shared_consumable_cart", JSON.stringify(updated));
-      // Hapus juga dari antrean di server; kalau tidak, consumable tetap ikut terproses saat checkout
-      try {
-        await api(`/consumable-keluar/antrean/${targetItem.consumable_id}`, { method: "DELETE" });
-      } catch (err) {
-        showToast(err instanceof Error ? err.message : "Gagal menghapus dari keranjang.", "danger");
-        await mutate("/peminjaman/antrean");
-      } finally {
-        pendingRemoveRef.current.delete(cartId);
-      }
-      return;
-    }
-
-    // 3. Jika item tersebut adalah Tool
+    // 2. Hapus di server, lalu ambil ulang keranjang dari server.
+    //    Item yang ternyata sudah terhapus (mis. dari halaman/tab lain) tidak dianggap gagal.
+    const isConsumable = targetItem.item_type === "consumable";
+    const kunci = isConsumable ? "/consumable-keluar/antrean" : "/peminjaman/antrean";
     try {
-      await removeCartItem(cartId);
-      // Sukses: item sudah dihapus dari state lokal, tidak perlu refetch.
+      if (isConsumable) {
+        await api(`/consumable-keluar/antrean/${targetItem.consumable_id}`, { method: "DELETE" });
+      } else {
+        await removeCartItem(cartId);
+      }
+      await mutate(kunci);
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Gagal menghapus dari keranjang.", "danger");
-      await mutate("/peminjaman/antrean"); // Revert jika gagal
+      const sisa = await mutate(kunci);
+      const masihAda = isConsumable
+        ? (sisa as { consumable_id?: string }[] | undefined)?.some((c) => c.consumable_id === targetItem.consumable_id)
+        : (sisa as { tools_id?: string }[] | undefined)?.some((c) => c.tools_id === targetItem.toolId);
+      if (masihAda) showToast(err instanceof Error ? err.message : "Gagal menghapus dari keranjang.", "danger");
     } finally {
       pendingRemoveRef.current.delete(cartId);
     }
@@ -634,6 +582,7 @@ const DataToolsManager = () => {
       setCart([]);
       setLoanFormOpen(false);
       mutate("/peminjaman/antrean");
+      mutate("/consumable-keluar/antrean");
       dispatch(fetchTools());
 
       setSuccessMessage(
