@@ -84,9 +84,12 @@ const SignIn = () => {
         {/* Panel Kiri: Visual */}
         <div className="login-visual login-anim-left">
           <Image
-            src={getAssetPath("/images/png/welder2.png")}
+            src={getAssetPath("/images/png/welder2.webp")}
             alt="Workshop Produksi Mekanikal PT PLN (PERSERO) PUSHARLIS UP2WIII"
             className="login-visual-img"
+            width={1000}
+            height={1000}
+            fetchPriority="high"
           />
           <div className="login-visual-overlay" />
           <div className="login-visual-content">
@@ -106,9 +109,11 @@ const SignIn = () => {
           <div className="login-form-inner">
             <div className="text-center mb-4">
               <Image
-                src={getAssetPath("/images/png/PLN-Pusharlis-UP2W3.png")}
+                src={getAssetPath("/images/png/PLN-Pusharlis-UP2W3.webp")}
                 alt="PT PLN (PERSERO) PUSHARLIS UP2WIII"
                 className="login-logo"
+                width={180}
+                height={61}
               />
             </div>
 
