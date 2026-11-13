@@ -100,6 +100,13 @@ export default function PermissionMatrix() {
           managePerms: ['manage_data_mesin'],
         },
         {
+          key: 'view_data_oli',
+          label: 'Data Oli',
+          hint: 'Stok oli & riwayat pemakaian. "Kelola penuh": tambah, edit, hapus oli & ubah stok',
+          type: 'dropdown',
+          managePerms: ['manage_data_oli'],
+        },
+        {
           key: 'view_operasional_mesin',
           label: 'Operasional',
           hint: 'Plotting Jadwal Operasional, Catatan Aktivitas Mesin. "Isi catatan": hanya Catatan Aktivitas (tambah saja)',

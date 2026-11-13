@@ -9,7 +9,7 @@ import { formatTanggal } from 'components/ruangtools/common/dateUtils';
 import { fetchOli, createOli, updateOli, deleteOli, fetchRiwayatOli, OliItem, RiwayatOliItem } from 'services/oliService';
 
 export default function DataOliManager() {
-  const canManage = usePermission('manage_inventaris');
+  const canManage = usePermission('manage_data_oli');
   const { confirm: confirmDialog, notify } = useFeedback();
 
   // Riwayat pemakaian oli (dari Checklist Visual pemeliharaan mesin)

@@ -49,6 +49,8 @@ class RolePermissionSeeder extends Seeder
             'view_operasional_mesin', 'process_operasional_mesin', 'manage_operasional_mesin',
             // Data Mesin (master data: tambah, edit, nonaktifkan, hapus mesin)
             'view_data_mesin', 'manage_data_mesin',
+            // Data Oli (stok oli & riwayat pemakaian)
+            'view_data_oli', 'manage_data_oli',
             // Izin tambahan (dipakai role PIC Mesin, bisa diberikan ke role lain lewat matriks)
             'manage_peta_part',              // atur Peta Part semua mesin
             'manage_plotting_operasional',   // kelola Plotting Jadwal Operasional
@@ -91,6 +93,7 @@ class RolePermissionSeeder extends Seeder
             'view_pemeliharaan_mesin', 'create_pemeliharaan_mesin', 'process_pemeliharaan_mesin', 'manage_pemeliharaan_mesin',
             'view_operasional_mesin', 'process_operasional_mesin', 'manage_operasional_mesin',
             'view_data_mesin', 'manage_data_mesin',
+            'view_data_oli', 'manage_data_oli',
             'view_dashboard_pemeliharaan_motor_konversi',
             'view_pemeliharaan_motor_konversi', 'process_pemeliharaan_motor_konversi', 'manage_pemeliharaan_motor_konversi',
             'view_users', 'manage_users',
@@ -132,6 +135,7 @@ class RolePermissionSeeder extends Seeder
             'view_pemeliharaan_mesin', 'process_pemeliharaan_mesin', 'manage_pemeliharaan_mesin',
             'view_operasional_mesin', 'process_operasional_mesin', 'manage_operasional_mesin',
             'view_data_mesin', 'manage_data_mesin',
+            'view_data_oli',
         ]);
 
         // Catatan: Super Admin tidak perlu di-assign permission satu-satu.

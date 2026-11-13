@@ -16,6 +16,7 @@ const HALAMAN_AWAL: [string[], string][] = [
   [["view_kerusakan_alat"], "/laporan"],
   [["view_dashboard_pemeliharaan"], "/pemeliharaan/dashboard"],
   [["view_data_mesin"], "/data-mesin"],
+  [["view_data_oli", "manage_data_oli"], "/data-oli"],
   [["view_pemeliharaan_mesin", "process_pemeliharaan_mesin"], "/pemeliharaan/data-mesin"],
   [["view_operasional_mesin", "process_operasional_mesin"], "/operasional/data-mesin"],
   [["manage_plotting_operasional"], "/operasional/mapping-pengerjaan"],

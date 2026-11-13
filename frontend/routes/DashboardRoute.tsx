@@ -146,14 +146,12 @@ export const DashboardMenu: MenuItemType[] = [
     link: "/data-mesin",
     icon: <IconDatabase size={20} strokeWidth={1.5} />,
   },
-  // --- MENU DATA OLI DIPINDAH KE SINI ---
   {
     id: uuid(),
     title: "Data Oli",
-    link: "/inventaris/data-oli",
+    link: "/data-oli",
     icon: <IconDroplet size={20} strokeWidth={1.5} />,
   },
-  // --------------------------------------
   {
     id: uuid(),
     title: "Operasional",

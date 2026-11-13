@@ -99,8 +99,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('peminta', PemintaController::class)->only(['index', 'show']);
     });
 
-    // Tambahan untuk Oli: Bisa dilihat oleh user Inventaris & Teknisi Mesin
-    Route::middleware('permission:view_inventaris|view_pemeliharaan_mesin|process_pemeliharaan_mesin')->group(function () {
+    // Data Oli: dibaca oleh pemegang izin Data Oli, juga oleh form Data Mesin (oli standar)
+    // dan form Catatan Pemeliharaan (pilih oli yang dipakai)
+    Route::middleware('permission:view_data_oli|manage_data_oli|view_data_mesin|view_pemeliharaan_mesin|process_pemeliharaan_mesin')->group(function () {
         Route::apiResource('olis', OliController::class)->only(['index', 'show']);
         Route::get('/olis/{id}/riwayat', [OliController::class, 'riwayat']);
     });
@@ -118,8 +119,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('tools', ToolController::class)->except(['index', 'show']);
         Route::patch('/tools/{tool}/kurangi-stok', [ToolController::class, 'kurangiStok']);
         Route::apiResource('consumable', ConsumableController::class)->except(['index', 'show']);
-        
-        // Tambahan Kelola Oli
+    });
+
+    // Kelola Data Oli (tambah, ubah stok, hapus): level "Akses penuh" Data Oli di matriks
+    Route::middleware('permission:manage_data_oli')->group(function () {
         Route::apiResource('olis', OliController::class)->except(['index', 'show']);
     });
 

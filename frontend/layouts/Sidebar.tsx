@@ -229,8 +229,8 @@ const Sidebar: React.FC<SidebarProps> = ({ hideLogo = false, containerId }) => {
   const linkPermissionMap: Record<string, string | string[]> = {
     "/pemeliharaan/dashboard": "view_dashboard_pemeliharaan",
     "/data-mesin": "view_data_mesin",
-    // Data Oli: dikelola Inventaris, dilihat juga oleh pengelola Pemeliharaan (bukan level "Isi catatan")
-    "/inventaris/data-oli": ["view_inventaris", "view_pemeliharaan_mesin"],
+    // Data Oli: baris sendiri di matriks RBAC (kelompok Manajemen Mesin Produksi)
+    "/data-oli": ["view_data_oli", "manage_data_oli"],
     "/operasional/mapping-pengerjaan": ["view_operasional_mesin", "manage_plotting_operasional"],
     "/operasional/data-mesin": ["view_operasional_mesin", "process_operasional_mesin"],
     "/pemeliharaan/kalibrasi": "view_pemeliharaan_mesin",
