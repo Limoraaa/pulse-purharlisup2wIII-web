@@ -92,6 +92,10 @@ const PengembalianManager = () => {
             toolId: item.toolId,
             kodeBarang: item.kodeBarang,
             namaBarang: item.namaBarang,
+            merk: item.merk,
+            tipe: item.tipe,
+            warna: item.warna,
+            ukuran: item.ukuran,
             jumlah: 0,
           });
         }

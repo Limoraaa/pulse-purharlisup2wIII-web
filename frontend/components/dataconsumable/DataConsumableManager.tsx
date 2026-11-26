@@ -64,6 +64,7 @@ import {
 } from "services/consumableService";
 
 import api from "lib/api";
+import { saringPencarian } from "lib/pencarian";
 import { usePermission } from "hooks/usePermissions";
 
 function sortByKode(items: ConsumableItemType[]): ConsumableItemType[] {
@@ -263,54 +264,22 @@ const DataConsumableManager = () => {
   }, [consumables, tools, cart, loadCart, showToast]);
 
   const filteredConsumables = useMemo(() => {
-    const keyword = searchTerm.trim().toLowerCase();
-    
-    return consumables
-      .map((item) => {
-        // Hitung sisa stok jika barang sedang ada di keranjang
-        const itemDiKeranjang = cart.find((c) => c.consumable_id === item.id && c.item_type === 'consumable');
-        const jumlahDiKeranjang = itemDiKeranjang ? itemDiKeranjang.jumlah : 0;
+    const denganSisa = consumables.map((item) => {
+      // Hitung sisa stok jika barang sedang ada di keranjang
+      const itemDiKeranjang = cart.find((c) => c.consumable_id === item.id && c.item_type === 'consumable');
+      const jumlahDiKeranjang = itemDiKeranjang ? itemDiKeranjang.jumlah : 0;
 
-        return {
-          ...item,
-          stok_tersedia: item.stok_tersedia - jumlahDiKeranjang, 
-        };
-      })
-      .filter((item) => {
-        // Jika kolom pencarian kosong, loloskan semua data
-        if (!keyword) return true;
+      return {
+        ...item,
+        stok_tersedia: item.stok_tersedia - jumlahDiKeranjang,
+      };
+    });
 
-        const kodeBarang = (item.kode_barang || "").toLowerCase();
-        const nama = (item.nama || "").toLowerCase();
-        const merk = (item.merk || "").toLowerCase();
-        const tipe = (item.tipe || "").toLowerCase();
-        const erE = (item.er_e || "").toLowerCase();
-        const ukuran = (item.ukuran || "").toLowerCase();
-        const satuan = (item.satuan || "").toLowerCase();
-
-        const stokAwal = String(item.stok_tersedia?? 0);
-        const masuk = String((item as any).masuk ?? 0);
-        const keluar = String((item as any).keluar ?? 0);
-        const stokTersedia = String((item as any).stok_tersedia ?? item.stok_tersedia ?? 0);
-
-        const sisaStok = Number(item.stok_tersedia); 
-        const statusLabel = sisaStok <= 5 ? "perlu restock" : "cukup";
-
-        return (
-          kodeBarang.includes(keyword) ||
-          nama.includes(keyword) ||
-          merk.includes(keyword) ||
-          tipe.includes(keyword) ||
-          erE.includes(keyword) ||
-          ukuran.includes(keyword) ||
-          satuan.includes(keyword) ||
-          stokAwal.includes(keyword) ||
-          masuk.includes(keyword) ||
-          keluar.includes(keyword) ||
-          stokTersedia.includes(keyword) ||
-          statusLabel.includes(keyword)
-        );
-      });
+    // Pencarian per kata ("cutting 4 resibon"), urutan kata bebas
+    return saringPencarian(denganSisa, searchTerm, (item) => [
+      item.kode_barang, item.nama, item.merk, item.tipe, item.er_e, item.ukuran, item.satuan,
+      Number(item.stok_tersedia) <= 5 ? "perlu restock" : "cukup",
+    ]);
   }, [consumables, searchTerm, cart]);
 
   const openAddModal = () => {
@@ -688,7 +657,7 @@ const columns = useMemo(
                 <InputGroup.Text><IconSearch size={18} /></InputGroup.Text>
                 <Form.Control
                   type="search"
-                  placeholder="Cari kode, nama, merk, atau informasi lainnya..."
+                  placeholder="Cari kode, nama, merk, ukuran... (mis. cutting 4)"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />

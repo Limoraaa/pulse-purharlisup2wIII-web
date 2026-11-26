@@ -2,6 +2,7 @@
 import { useState, useMemo } from "react";
 import { Card, CardBody, Table, Form, Button, Badge, Alert, InputGroup } from "react-bootstrap";
 import { IconRotateClockwise2, IconArrowLeft, IconSearch, IconX } from "@tabler/icons-react";
+import { saringPencarian } from "lib/pencarian";
 
 
 export type JenisKerusakan = "bisa_diperbaiki" | "rusak_permanen";
@@ -11,8 +12,20 @@ export interface PengembalianGroupItem {
   toolId: string;
   kodeBarang: string;
   namaBarang: string;
+  // Spesifikasi alat, supaya alat sejenis (mis. beberapa obeng) bisa dibedakan
+  merk?: string;
+  tipe?: string;
+  warna?: string;
+  ukuran?: string;
   jumlah: number; // total gabungan dari semua transaksi pinjam alat ini
 }
+
+// "TEKIRO · PH2 · Merah · 6 x 150 mm" (kolom kosong / "-" tidak ditampilkan)
+const spesifikasiAlat = (item: PengembalianGroupItem) =>
+  [item.merk, item.tipe, item.warna, item.ukuran]
+    .map((v) => (v ?? "").trim())
+    .filter((v) => v && v !== "-")
+    .join(" · ");
 
 interface ChecklistState {
   [id: string]: {
@@ -80,15 +93,14 @@ const PengembalianChecklist = ({
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const filteredItems = useMemo(() => {
-    const keyword = searchTerm.trim().toLowerCase();
-    if (!keyword) return items;
-    return items.filter(
-      (item) =>
-        item.namaBarang.toLowerCase().includes(keyword) ||
-        item.kodeBarang.toLowerCase().includes(keyword)
-    );
-  }, [items, searchTerm]);
+  // Pencarian per kata, termasuk spesifikasi ("obeng ph2", "kunci 17")
+  const filteredItems = useMemo(
+    () =>
+      saringPencarian(items, searchTerm, (item) => [
+        item.kodeBarang, item.namaBarang, item.merk, item.tipe, item.warna, item.ukuran,
+      ]),
+    [items, searchTerm]
+  );
 
   const jumlahDicentang = useMemo(
     () => Object.values(state).filter((s) => s.checked).length,
@@ -265,7 +277,7 @@ const PengembalianChecklist = ({
             </InputGroup.Text>
             <Form.Control
               type="text"
-              placeholder="Cari nama atau kode alat..."
+              placeholder="Cari alat, mis. obeng ph2 atau kunci 17..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               aria-label="Cari alat"
@@ -337,7 +349,10 @@ const PengembalianChecklist = ({
                       </td>
                       <td className="pengembalian-sejajar">
                         <div className="fw-semibold">{item.namaBarang}</div>
-                        <div className="text-secondary small">{item.kodeBarang}</div>
+                        <div className="text-secondary small">
+                          {item.kodeBarang}
+                          {spesifikasiAlat(item) && <> · {spesifikasiAlat(item)}</>}
+                        </div>
                       </td>
                       <td className="pengembalian-sejajar">{item.jumlah}</td>
                       <td>

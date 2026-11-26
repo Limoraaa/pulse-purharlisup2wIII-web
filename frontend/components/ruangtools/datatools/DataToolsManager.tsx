@@ -2,6 +2,7 @@
 // import node module libraries
 import { exportToExcel, exportToPDF, ExportColumn, ringkasStatus } from "components/ruangtools/riwayat/common/exportUtils";
 import { ambilKeranjangConsumable, kelompokkanKeranjangTools, urutkanKeranjang } from "lib/keranjang";
+import { saringPencarian } from "lib/pencarian";
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import {
   Row,
@@ -184,39 +185,14 @@ const DataToolsManager = () => {
     setCart(urutkanKeranjang([...groupedToolsCart, ...consumableCart]));
   }, [dbCart, dbConsumableCart]);
 
-  // Data filter tabel
-  const filteredTools = useMemo(() => {
-    const keyword = searchTerm.trim().toLowerCase();
-    
-    if (!keyword) return tools;
-
-    return tools.filter((tool) => {
-      const kodeBarang = (tool.kodeBarang || "").toLowerCase();
-      const namaBarang = (tool.namaBarang || "").toLowerCase();
-      const merk = (tool.merk || "").toLowerCase();
-      const tipe = (tool.tipe || "").toLowerCase();
-      const warna = (tool.warna || "").toLowerCase();
-      const ukuran = (tool.ukuran || "").toLowerCase();
-      const kondisi = (tool.kondisi || "").toLowerCase();
-
-      const stok = String(tool.stok || 0);
-      const dipinjam = String(tool.dipinjam || 0);
-      const tersedia = String((tool.stok || 0) - (tool.dipinjam || 0));
-
-      return (
-        kodeBarang.includes(keyword) ||
-        namaBarang.includes(keyword) ||
-        merk.includes(keyword) ||
-        tipe.includes(keyword) ||
-        warna.includes(keyword) ||
-        ukuran.includes(keyword) ||
-        kondisi.includes(keyword) ||
-        stok.includes(keyword) ||
-        dipinjam.includes(keyword) ||
-        tersedia.includes(keyword)
-      );
-    });
-  }, [tools, searchTerm]);
+  // Data filter tabel: pencarian per kata ("bor 13" -> Mata Bor ukuran 13), urutan kata bebas
+  const filteredTools = useMemo(
+    () =>
+      saringPencarian(tools, searchTerm, (tool) => [
+        tool.kodeBarang, tool.namaBarang, tool.merk, tool.tipe, tool.warna, tool.ukuran, tool.kondisi,
+      ]),
+    [tools, searchTerm]
+  );
 
   // ================= LOAD DATA DARI DATABASE =================
   useEffect(() => {
@@ -674,7 +650,7 @@ const DataToolsManager = () => {
                 <InputGroup.Text><IconSearch size={18} /></InputGroup.Text>
                 <Form.Control
                   type="search"
-                  placeholder="Cari kode, nama, merk, atau informasi lainnya..."
+                  placeholder="Cari kode, nama, merk, ukuran... (mis. bor 13)"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
